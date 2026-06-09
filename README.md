@@ -105,11 +105,14 @@ Project foundation and implementation readiness phase.
 ## Local setup for the Next.js skeleton
 
 1. Install dependencies with `pnpm install`.
-2. Copy `.env.example` to `.env.local` and set `DATABASE_URL` to your local CRM database.
-3. Generate Prisma Client with `pnpm prisma:generate`.
-4. Validate the schema with `pnpm prisma:validate`.
-5. If your local CRM database is available, create the initial migration with `pnpm prisma:migrate`.
-6. Start the app with `pnpm dev`.
+2. Create a local `.env.local` file.
+3. Set `DATABASE_URL` to your local `clariobase_crm` PostgreSQL database.
+4. Do not commit `.env.local`.
+5. Generate Prisma Client with `pnpm prisma:generate`.
+6. Validate the schema with `pnpm prisma:validate`.
+7. If your local CRM database is available, create the initial migration with `pnpm prisma:migrate`.
+8. Seed local fake data with `pnpm prisma:seed` if your local CRM database is available.
+9. Start the app with `pnpm dev`.
 
 ## Available scripts
 
@@ -121,6 +124,7 @@ Project foundation and implementation readiness phase.
 - `pnpm prisma:generate`
 - `pnpm prisma:validate`
 - `pnpm prisma:migrate`
+- `pnpm prisma:seed`
 
 ## Health check
 
