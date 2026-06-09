@@ -14,20 +14,45 @@ Deliverables:
 - MVP scope.
 - Decision log.
 - JSON schemas and samples.
+- Ways of working.
+- Technical stack decision.
+
+## Phase 0.5 - Implementation readiness
+
+Goal: prepare the repository for coding without starting CRM features too early.
+
+Deliverables:
+
+- Next.js App Router skeleton.
+- TypeScript setup.
+- Tailwind setup.
+- Prisma setup.
+- Dedicated CRM PostgreSQL connection via env variables.
+- `.env.example`.
+- Basic health/status page or route.
+- Basic test command.
+- Local setup instructions.
+
+Out of scope:
+
+- CRM feature screens.
+- Harvester sync.
+- AI exchange implementation.
+- Auth.
+- Real lead data.
 
 ## Phase 1 - Local CRM foundation
 
-Goal: create the basic self-hosted CRM shell.
+Goal: create the basic self-hosted CRM shell over the dedicated CRM database.
 
 Potential deliverables:
 
-- App skeleton.
-- PostgreSQL connection.
+- Initial Prisma models and migrations.
 - Lead list.
 - Lead detail view.
 - Basic status update.
 - Basic filters.
-- Initial migrations.
+- Initial sample/seed data with fake leads only.
 
 ## Phase 2 - Sales workflow
 
@@ -58,15 +83,23 @@ Potential deliverables:
 
 ## Phase 4 - Harvester integration
 
-Goal: connect the CRM cleanly with harvested leads.
+Goal: connect the CRM cleanly with harvested leads through a documented import/sync contract.
 
-Potential deliverables:
+Required first deliverable:
 
-- Import/sync from existing harvester PostgreSQL tables.
+- `docs/11-harvester-integration-analysis.md`
+
+Potential deliverables after analysis:
+
+- Import/sync from existing harvester PostgreSQL database.
 - Deduplication by `customer_id` and source identifiers.
-- Refresh metadata.
+- Refresh metadata mapping.
 - Lead source tracking.
-- Scoring refresh status.
+- Scoring refresh status mapping.
+
+Constraint:
+
+- CRM must not directly mutate harvester tables.
 
 ## Phase 5 - UGC pipeline
 
