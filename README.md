@@ -87,15 +87,15 @@ For harvester integration work, first create/update:
 
 ```text
 clariobase-ai-crm/
-â”œâ”€â”€ docs/                 # Product, process and technical documentation
-â”œâ”€â”€ ai_exchange/          # File-based AI exchange workspace
-â”‚   â”œâ”€â”€ inbox/            # CRM-generated files for ChatGPT review
-â”‚   â”œâ”€â”€ outbox/           # ChatGPT-generated files ready for CRM import
-â”‚   â”œâ”€â”€ processed/        # Archived processed exchange files
-â”‚   â”œâ”€â”€ rejected/         # Invalid or rejected exchange files
-â”‚   â”œâ”€â”€ schemas/          # JSON schemas for import/export contracts
-â”‚   â””â”€â”€ samples/          # Safe anonymized examples
-â””â”€â”€ README.md
+- docs/                 # Product, process and technical documentation
+- ai_exchange/          # File-based AI exchange workspace
+  - inbox/              # CRM-generated files for ChatGPT review
+  - outbox/             # ChatGPT-generated files ready for CRM import
+  - processed/          # Archived processed exchange files
+  - rejected/           # Invalid or rejected exchange files
+  - schemas/            # JSON schemas for file contracts
+  - samples/            # Safe anonymized examples
+- README.md
 ```
 
 ## Current status
