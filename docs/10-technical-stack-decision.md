@@ -155,6 +155,65 @@ Out of scope for first coding PR:
 - No CRM feature work is included.
 - No real data, secrets or `.env` files are committed.
 
+## Suggested first Codex prompt
+
+```text
+You are working in the `clariobase-ai-crm` repository.
+
+Read first:
+- README.md
+- docs/00-project-context.md
+- docs/05-mvp-scope.md
+- docs/08-codex-working-rules.md
+- docs/09-ways-of-working.md
+- docs/10-technical-stack-decision.md
+
+Task:
+Initialize the technical skeleton for ClarioBase AI CRM using the selected target stack.
+
+Scope:
+- Initialize a Next.js App Router project with TypeScript.
+- Configure pnpm.
+- Configure Tailwind CSS.
+- Configure ESLint.
+- Add Prisma setup for PostgreSQL using `DATABASE_URL`.
+- Add `.env.example` with placeholder values only.
+- Add a simple health/status page or route.
+- Add basic lint/test scripts.
+- Update README/local setup instructions if needed.
+
+Out of scope:
+- Do not implement CRM feature screens.
+- Do not implement lead list or lead detail yet.
+- Do not implement harvester import/sync.
+- Do not implement AI file exchange logic.
+- Do not add auth.
+- Do not add deployment automation.
+- Do not add real lead data.
+- Do not commit `.env` or secrets.
+
+Constraints:
+- Use the selected stack from docs/10-technical-stack-decision.md.
+- CRM database must be separate from harvester database.
+- Do not connect to or mutate harvester tables.
+- Do not add external AI API calls.
+- Keep the PR small and reviewable.
+
+Acceptance criteria:
+- App can be installed and started locally.
+- Prisma is present and configured for PostgreSQL without real credentials.
+- `.env.example` includes `DATABASE_URL` for a dedicated `clariobase_crm` database.
+- Lint command exists.
+- Basic test command exists or a clear minimal testing setup is documented.
+- No CRM feature implementation is included.
+
+Before finishing:
+- List changed files.
+- Explain setup decisions.
+- Provide exact local run/test commands.
+- Mention anything not completed.
+```
+
 ## Constraints for Codex
 
 - Do not introduce external AI API calls.
