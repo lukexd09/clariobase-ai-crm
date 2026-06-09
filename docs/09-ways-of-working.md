@@ -11,9 +11,11 @@ ChatGPT challenges assumptions and shapes scope
   ↓
 ChatGPT creates or refines epic/task
   ↓
-Codex implements in a branch/PR
+Codex implements in a branch
   ↓
-ChatGPT reviews diff and risks
+Codex creates or updates PR
+  ↓
+ChatGPT reviews PR diff and risks
   ↓
 User tests locally
   ↓
@@ -24,7 +26,7 @@ User merges only after explicit approval
 
 ## Work item coding
 
-All epics and tasks must follow the coding standard from `docs/12-work-item-coding.md`.
+All epics and tasks must follow `docs/12-work-item-coding.md`.
 
 Required title format:
 
@@ -38,8 +40,8 @@ Rules:
 - Every implementation task must belong to an epic.
 - Epic IDs are sequential and stable.
 - Task IDs are scoped to the epic.
-- Branch and PR names should include the work item code.
-- Codex prompts should start with the work item code and title.
+- Branch and PR names must include the work item code.
+- Codex prompts must start with the work item code and title.
 
 ## Non-negotiable principles
 
@@ -57,6 +59,7 @@ Rules:
 - No external AI API calls in v1.
 - No automatic outreach sending in v1.
 - User approval is required before merge.
+- Codex must create a PR or update the existing PR before considering a task finished.
 
 ## Roles
 
@@ -94,10 +97,26 @@ Responsibilities:
 
 - reads required documentation before coding,
 - implements only the requested scope,
+- works on a branch named with the work item code,
+- creates a PR or updates the existing PR for the same work item,
 - explains changed files,
 - provides test commands and results,
 - avoids unrelated refactoring,
 - flags blockers instead of guessing.
+
+## Pull request requirement
+
+A task is not finished until Codex has created or updated a pull request.
+
+Required behavior:
+
+- If no PR exists for the work item, Codex must create one.
+- If a PR already exists for the work item, Codex must push changes to the same branch and update the PR description or add a comment.
+- PR title must use the work item code, for example `E001.T001 - Initialize Next.js technical skeleton`.
+- PR body must include summary, scope, out of scope, changed files, test commands and regression checklist.
+- Codex must share the PR link after finishing.
+
+PRs are the mandatory checkpoint for ChatGPT review and user approval. Direct commits to `main` are not acceptable for implementation work unless the user explicitly requests it.
 
 ## Definition of Ready
 
@@ -146,54 +165,28 @@ Out of scope:
 
 ## Epic template
 
-Use this structure for larger work packages.
-
 ```markdown
 # E001 - <epic name>
 
 ## Goal
 
-What business or technical outcome should this epic achieve?
-
 ## Background / context
-
-Why this matters and what previous decisions must be respected.
 
 ## Source of truth
 
-Required docs to read before implementation:
-
-- `docs/...`
-- related issues
-- relevant existing modules
-
 ## Scope
-
-What must be included.
 
 ## Out of scope
 
-What must not be included, even if tempting.
-
 ## Functional requirements
-
-Concrete behavior expected from the system.
 
 ## Technical requirements
 
-Architecture, database, file, security and integration constraints.
-
 ## Data requirements
-
-Tables, fields, migrations, import/export contracts, sample data.
 
 ## UX requirements
 
-Expected screens, buttons, flows, validation and user feedback.
-
 ## Acceptance criteria
-
-Checklist that must be true before the epic can be considered done.
 
 ## Child tasks
 
@@ -201,20 +194,12 @@ Checklist that must be true before the epic can be considered done.
 
 ## Test plan
 
-Manual and automated tests expected.
-
 ## Regression checklist
 
-Existing flows that must still work.
-
 ## Risks and open questions
-
-Known uncertainties or decisions needed before/during work.
 ```
 
 ## Task template
-
-Use this for smaller implementation tasks.
 
 ```markdown
 # E001.T001 - <task name>
@@ -237,10 +222,6 @@ Parent epic: E001 - <epic name>
 ```
 
 ## Codex prompt template
-
-Prompts to Codex should be specific and bounded. Avoid asking Codex to "build the CRM" or "improve the app".
-
-Recommended format:
 
 ```text
 Work item: E001.T001 - <task name>
@@ -274,6 +255,7 @@ Constraints:
 - Do not commit real lead data.
 - Do not change unrelated files.
 - Keep the change small and reviewable.
+- Create a PR or update the existing PR for this work item before finishing.
 
 Acceptance criteria:
 - <criterion 1>
@@ -283,57 +265,8 @@ Before finishing:
 - list changed files,
 - explain key decisions,
 - provide test commands,
+- create/update PR and share PR link,
 - mention anything not completed.
-```
-
-## Bad Codex prompts
-
-Avoid prompts like:
-
-```text
-Build the CRM app.
-```
-
-```text
-Add AI to this project.
-```
-
-```text
-Make the UI nicer.
-```
-
-```text
-Refactor the database.
-```
-
-They are too broad and invite uncontrolled changes.
-
-## Good Codex prompts
-
-Good prompts are narrow:
-
-```text
-Work item: E001.T001 - Initialize Next.js technical skeleton
-
-Initialize the Next.js App Router project skeleton with TypeScript, pnpm, Tailwind CSS, Prisma setup, `.env.example`, a simple health/status route, and basic lint/test commands. Do not implement CRM feature screens yet.
-```
-
-```text
-Work item: E002.T001 - Validate AI response files against schema
-
-Implement JSON schema validation for files placed in `ai_exchange/outbox`. Validate against `ai_exchange/schemas/ai_response.schema.json`, return readable errors, and do not apply any CRM changes yet.
-```
-
-```text
-Work item: E001.T002 - Add initial Prisma lead model
-
-Create the initial Prisma `Lead` model based on `docs/03-data-model.md`, but include only fields required for MVP lead list and lead detail. Do not add UGC-specific fields yet.
-```
-
-```text
-Work item: E001.T003 - Add read-only lead list page
-
-Add a read-only lead list page that displays business name, city, category, status, priority, score and next action date. No editing in this task.
 ```
 
 ## Branching and PR rules
@@ -345,7 +278,7 @@ main
   ↓
 feature/e001-t001-nextjs-skeleton
   ↓
-PR
+PR: E001.T001 - Initialize Next.js technical skeleton
   ↓
 review
   ↓
@@ -359,9 +292,10 @@ Rules:
 - `main` should remain stable.
 - One PR should solve one clear problem.
 - Do not mix documentation, architecture, feature work and unrelated cleanup in one PR unless explicitly agreed.
-- PR title should include the task code, for example `E001.T001 - Initialize Next.js technical skeleton`.
+- PR title must include the task code.
 - PR description must explain what changed and how to test it.
 - Large PRs should be split.
+- Codex must not finish by only committing to a branch; it must create or update the PR.
 
 ## PR description template
 
@@ -395,11 +329,9 @@ E001.T001 - <task name>
 ## Regression checklist
 
 - [ ] Existing app starts
-- [ ] Existing lead list/detail still works
 - [ ] No real data committed
 - [ ] No secrets committed
 - [ ] No external AI API calls added
-- [ ] AI exchange schemas/samples still valid if touched
 - [ ] CRM database remains separate from harvester database
 - [ ] Harvester tables are not mutated
 
@@ -435,6 +367,7 @@ User review should check:
 A task is done only when:
 
 - acceptance criteria are met,
+- a PR exists or the existing PR has been updated,
 - implementation is reviewed,
 - test instructions were followed or consciously skipped with reason,
 - regression checklist passes,
@@ -444,14 +377,14 @@ A task is done only when:
 
 ## Testing strategy
 
-## Minimum for every change
+Minimum for every change:
 
 - App starts.
 - No obvious console/runtime errors.
 - Relevant page or command works.
 - No secrets or real lead data were committed.
 
-## Backend/data changes
+Backend/data changes:
 
 - Migration applies cleanly.
 - Migration can be reasoned about safely.
@@ -460,64 +393,9 @@ A task is done only when:
 - Import/export paths are tested with sample files.
 - CRM database remains separate from harvester database.
 
-## AI exchange changes
+AI exchange changes must fail safely when given malformed files, unknown IDs, invalid decisions or attempts to modify protected fields.
 
-Test with:
-
-- valid sample response,
-- malformed JSON,
-- wrong schema version,
-- unknown `batch_id`,
-- unknown `lead_id`,
-- invalid `decision`,
-- attempt to modify protected fields,
-- empty `items` array.
-
-AI import must fail safely.
-
-## UI changes
-
-Manual checks:
-
-- page loads,
-- empty state works,
-- loading state works if applicable,
-- validation messages are understandable,
-- primary action is clear,
-- destructive actions require confirmation.
-
-## Regression checklist
-
-Before merge, check relevant items:
-
-```markdown
-- [ ] App starts locally
-- [ ] Database connection works
-- [ ] CRM database is separate from harvester database
-- [ ] Harvester tables are not mutated
-- [ ] Lead list still loads
-- [ ] Lead detail still loads
-- [ ] Status update still works
-- [ ] Task/activity flow still works if touched
-- [ ] AI export still creates valid file if touched
-- [ ] AI import still validates sample response if touched
-- [ ] No `.env` or secrets committed
-- [ ] No real lead data committed
-- [ ] No external AI API dependency added
-- [ ] No automatic outreach sending added
-```
-
-## Database change rules
-
-- Every schema change must be documented.
-- Every migration must explain intent.
-- Avoid destructive migrations in early MVP.
-- Prefer additive changes unless cleanup is explicitly planned.
-- Do not rename/drop columns without a migration and fallback plan.
-- Do not change `customer_id` semantics casually.
-- Do not use Google Place ID as the main business key.
-- Do not directly mutate harvester tables from CRM.
-- Harvester import/sync requires prior integration analysis.
+UI changes must include manual checks for page load, empty states, loading states, validation messages and destructive action confirmations.
 
 ## Documentation rules
 
@@ -530,6 +408,7 @@ Update docs when:
 - technical stack decisions change,
 - database boundary decisions change,
 - work item coding changes,
+- PR workflow changes,
 - a major decision is made,
 - Codex needs a new rule to avoid repeating a mistake.
 
@@ -563,33 +442,21 @@ Only `Must have now` belongs in the current task.
 
 The strongest risk is overbuilding. The CRM should first prove that it helps ClarioBase convert harvested leads into conversations and clients.
 
-Do not build:
-
-- generic CRM features,
-- multi-tenant SaaS,
-- complex permissions,
-- automated campaigns,
-- email inbox,
-- billing,
-- advanced analytics,
-- UGC UI,
-
-until the ClarioBase MVP workflow is working and useful.
+Do not build generic CRM features, multi-tenant SaaS, complex permissions, automated campaigns, email inbox, billing, advanced analytics or UGC UI until the ClarioBase MVP workflow is working and useful.
 
 ## Standard conversation pattern
-
-When starting a new piece of work:
 
 1. User describes need.
 2. ChatGPT challenges and narrows scope.
 3. ChatGPT writes or updates issue.
 4. ChatGPT creates Codex prompt.
 5. User runs Codex.
-6. Codex creates PR or patch.
-7. ChatGPT reviews result.
-8. User tests locally.
-9. Fixes are requested if needed.
-10. User merges.
+6. Codex implements on branch.
+7. Codex creates or updates PR.
+8. ChatGPT reviews PR.
+9. User tests locally.
+10. Fixes are requested if needed.
+11. User merges.
 
 ## Lessons carried over from harvester work
 
