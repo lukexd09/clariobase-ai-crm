@@ -39,6 +39,25 @@ enum PackageFit {
   NOT_FIT
 }
 
+enum ImportBatchStatus {
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+}
+
+enum ImportRowStatus {
+  CREATED
+  UPDATED
+  REJECTED
+  SKIPPED
+}
+
+enum ImportSourceType {
+  LOCAL_JSON
+  HARVESTER_EXPORT
+  MANUAL_AI_PREPARED_FILE
+}
+
 model Lead {
   id             String       @id @default(cuid())
   customerId     String       @unique @map("customer_id")
@@ -68,9 +87,59 @@ model Lead {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
+  importRowResults ImportRowResult[]
+
   @@index([businessName])
   @@index([city, country])
   @@index([leadStatus, priority])
   @@unique([source, sourceRecordId])
   @@map("leads")
+}
+
+model ImportBatch {
+  id            String             @id @default(cuid())
+  sourceType    ImportSourceType   @map("source_type")
+  sourceName    String?            @map("source_name")
+  fileName      String?            @map("file_name")
+  status        ImportBatchStatus
+  totalRows     Int                @default(0) @map("total_rows")
+  createdRows   Int                @default(0) @map("created_rows")
+  updatedRows   Int                @default(0) @map("updated_rows")
+  rejectedRows  Int                @default(0) @map("rejected_rows")
+  skippedRows   Int                @default(0) @map("skipped_rows")
+  startedAt     DateTime           @map("started_at")
+  finishedAt    DateTime?          @map("finished_at")
+  notes         String?
+  errorSummary  String?            @map("error_summary")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  rows ImportRowResult[]
+
+  @@index([sourceType, startedAt])
+  @@index([status, startedAt])
+  @@map("import_batches")
+}
+
+model ImportRowResult {
+  id              String          @id @default(cuid())
+  importBatchId    String          @map("import_batch_id")
+  rowNumber        Int             @map("row_number")
+  status          ImportRowStatus
+  leadId          String?         @map("lead_id")
+  customerId      String?         @map("customer_id")
+  source          String?
+  sourceRecordId  String?         @map("source_record_id")
+  businessName    String?         @map("business_name")
+  rejectionReason String?         @map("rejection_reason")
+  rawRowSnapshot  Json?           @map("raw_row_snapshot")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  batch ImportBatch @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+  lead  Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([importBatchId, rowNumber])
+  @@index([leadId])
+  @@index([customerId])
+  @@map("import_row_results")
 }

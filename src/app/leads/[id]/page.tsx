@@ -5,7 +5,7 @@ import { LeadUpdateForm } from "@/components/lead-update-form";
 import { StatusPill } from "@/components/lead-status-pill";
 
 function formatDate(value: Date | null | undefined) {
-  if (!value) return "—";
+  if (!value) return "-";
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short"
@@ -37,7 +37,7 @@ export default async function LeadDetailPage({
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-6">
           <Link href="/leads" className="text-sm text-cyan-300 hover:text-cyan-200">
-            ← Back to leads
+            &larr; Back to leads
           </Link>
         </div>
 
@@ -45,7 +45,7 @@ export default async function LeadDetailPage({
           <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Lead detail</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">{lead.businessName}</h1>
           <p className="mt-2 text-sm text-slate-300">
-            {lead.city ?? "—"}, {lead.region ?? "—"}, {lead.country ?? "—"}
+            {lead.city ?? "-"}, {lead.region ?? "-"}, {lead.country ?? "-"}
           </p>
         </header>
 
@@ -56,22 +56,22 @@ export default async function LeadDetailPage({
               <dl className="mt-4 grid gap-4 md:grid-cols-2">
                 <Detail label="Business name" value={lead.businessName} />
                 <Detail label="Customer ID" value={lead.customerId} />
-                <Detail label="Category" value={lead.category ?? "—"} />
-                <Detail label="Address" value={lead.address ?? "—"} />
+                <Detail label="Category" value={lead.category ?? "-"} />
+                <Detail label="Address" value={lead.address ?? "-"} />
               </dl>
             </div>
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
               <h2 className="text-lg font-medium">Contact and source</h2>
               <dl className="mt-4 grid gap-4 md:grid-cols-2">
-                <Detail label="Email" value={lead.email ?? "—"} />
-                <Detail label="Phone" value={lead.phone ?? "—"} />
-                <Detail label="Source" value={lead.source ?? "—"} />
-                <Detail label="Source record ID" value={lead.sourceRecordId ?? "—"} />
-                <Detail label="Google Place ID" value={lead.googlePlaceId ?? "—"} />
-                <Detail label="Website" value={lead.websiteUrl ? <ExternalLink href={lead.websiteUrl} /> : "—"} />
-                <Detail label="Instagram" value={lead.instagramUrl ? <ExternalLink href={lead.instagramUrl} /> : "—"} />
-                <Detail label="Facebook" value={lead.facebookUrl ? <ExternalLink href={lead.facebookUrl} /> : "—"} />
+                <Detail label="Email" value={lead.email ?? "-"} />
+                <Detail label="Phone" value={lead.phone ?? "-"} />
+                <Detail label="Source" value={lead.source ?? "-"} />
+                <Detail label="Source record ID" value={lead.sourceRecordId ?? "-"} />
+                <Detail label="Google Place ID" value={lead.googlePlaceId ?? "-"} />
+                <Detail label="Website" value={lead.websiteUrl ? <ExternalLink href={lead.websiteUrl} /> : "-"} />
+                <Detail label="Instagram" value={lead.instagramUrl ? <ExternalLink href={lead.instagramUrl} /> : "-"} />
+                <Detail label="Facebook" value={lead.facebookUrl ? <ExternalLink href={lead.facebookUrl} /> : "-"} />
               </dl>
             </div>
 

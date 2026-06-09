@@ -147,3 +147,8 @@ Safety rules:
 - Re-imports do not overwrite operational CRM fields like status, priority, package fit or next action date.
 - The importer validates rows and rejects invalid ones with clear reasons.
 - The import is idempotent by `source + sourceRecordId` when available, then by `customerId`.
+
+After importing, review the audit trail in the app:
+
+- `/imports` for the batch list
+- `/imports/[id]` for row-level results and lead links
