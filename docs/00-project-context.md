@@ -23,14 +23,24 @@ A generic CRM is too broad for the current stage. The business needs a focused t
 
 The first version should not use external AI APIs. The user already has a ChatGPT subscription and wants to manually exchange files with ChatGPT. The CRM should therefore generate structured files for AI analysis and import structured AI responses after manual approval.
 
+## Technical direction
+
+The CRM will be built as a Next.js fullstack application with TypeScript, PostgreSQL, Prisma, Zod, Tailwind CSS and shadcn/ui.
+
+The CRM will use a separate PostgreSQL database from the harvester database. The harvester remains responsible for lead acquisition and enrichment. The CRM database is responsible for CRM-specific operational data such as statuses, tasks, activities, mini-audits, AI recommendations and user-approved decisions.
+
+See `docs/10-technical-stack-decision.md` for details.
+
 ## Operating model
 
 ```text
 Harvester
   ↓
-PostgreSQL
+Harvester PostgreSQL database
+  ↓ import/sync contract
+CRM PostgreSQL database
   ↓
-CRM UI
+Next.js CRM UI
   ↓
 AI exchange files
   ↓
