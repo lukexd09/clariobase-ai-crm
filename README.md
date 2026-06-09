@@ -26,80 +26,23 @@ Package manager: pnpm
 AI integration v1: file-based exchange only, no AI API calls
 ```
 
-See `docs/10-technical-stack-decision.md` for the full decision.
+## Local setup for the Next.js skeleton
 
-## Work item coding
+1. Install dependencies with `pnpm install`.
+2. Copy `.env.example` to `.env.local` and set `DATABASE_URL` to your local CRM database.
+3. Generate Prisma Client with `pnpm prisma:generate`.
+4. Start the app with `pnpm dev`.
 
-All epics and tasks use stable codes:
+## Available scripts
 
-```text
-E001 - Epic name
-E001.T001 - Task name
-```
+- `pnpm dev`
+- `pnpm build`
+- `pnpm start`
+- `pnpm lint`
+- `pnpm test`
+- `pnpm prisma:generate`
+- `pnpm prisma:validate`
 
-See `docs/12-work-item-coding.md` for the full standard.
+## Health check
 
-## Key principles
-
-- CRM PostgreSQL database is the source of truth for CRM operational data.
-- Harvester remains the lead acquisition/enrichment system.
-- Harvester database and CRM database should be separate.
-- CRM UI supports lead review, scoring, pipeline, tasks, activities and mini-audits.
-- No external AI API in v1.
-- AI collaboration is file-based through `ai_exchange`.
-- All AI imports must be validated, previewed and manually approved before applying changes.
-- Real lead data should not be committed to the repository by default.
-- The system should support ClarioBase first, UGC outreach second, and only later evolve into a product.
-
-## Initial scope
-
-- Leads
-- Contacts
-- Pipeline statuses
-- Scoring
-- Activities
-- Tasks
-- Mini-audits
-- AI export packs
-- AI response import
-- Basic reporting
-
-## Required reading before implementation
-
-Before starting any coding task, read:
-
-- `docs/00-project-context.md`
-- `docs/05-mvp-scope.md`
-- `docs/08-codex-working-rules.md`
-- `docs/09-ways-of-working.md`
-- `docs/10-technical-stack-decision.md`
-- `docs/12-work-item-coding.md`
-
-For AI exchange work, also read:
-
-- `docs/04-ai-file-exchange.md`
-- `ai_exchange/schemas/ai_review_pack.schema.json`
-- `ai_exchange/schemas/ai_response.schema.json`
-
-For harvester integration work, first create/update:
-
-- `docs/11-harvester-integration-analysis.md`
-
-## Repository structure
-
-```text
-clariobase-ai-crm/
-├── docs/                 # Product, process and technical documentation
-├── ai_exchange/          # File-based AI exchange workspace
-│   ├── inbox/            # CRM-generated files for ChatGPT review
-│   ├── outbox/           # ChatGPT-generated files ready for CRM import
-│   ├── processed/        # Archived processed exchange files
-│   ├── rejected/         # Invalid or rejected exchange files
-│   ├── schemas/          # JSON schemas for import/export contracts
-│   └── samples/          # Safe anonymized examples
-└── README.md
-```
-
-## Current status
-
-Project foundation and implementation readiness phase.
+Open `/health` after starting the app to verify the skeleton is running.
