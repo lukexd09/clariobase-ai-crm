@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "batch_id": "ai_batch_2026_06_09_001",
+  "response_type": "lead_review_recommendations",
+  "summary": "One lead reviewed. The lead looks promising and should move to mini-audit preparation.",
+  "items": [
+    {
+      "lead_id": "LEAD-000001",
+      "customer_id": "CLB-000001",
+      "priority": "Hot",
+      "decision": "prepare_mini_audit",
+      "recommended_status": "To audit",
+      "recommended_package": "Clarity",
+      "reasoning_summary": "Good local fit, solid review count and visible conversion gap on the website. The lead is active enough to justify a personalized mini-audit.",
+      "recommended_next_action": "Prepare a short mini-audit focused on improving booking clarity and trust signals, then send a manual Instagram DM.",
+      "draft_message": "Czesc! Trafiłem na Wasz profil i mam jedna konkretna obserwacje dotyczaca tego, jak mozna ulatwic klientkom zapis na wizyte. Jesli chcesz, moge podeslac krotki mini-audyt bez zobowiazan.",
+      "mini_audit": {
+        "problem_1": "The booking path is not obvious enough from the first screen.",
+        "problem_2": "The offer could better highlight trust signals and customer proof.",
+        "problem_3": "Instagram and website messaging are not fully aligned.",
+        "recommendation": "Create a clearer landing page structure with stronger CTA and visible proof elements.",
+        "outreach_angle": "Focus on easier booking and stronger trust before the first contact."
+      },
+      "risk_notes": [
+        "Verify the website manually before sending outreach.",
+        "Avoid overly technical language in the first message."
+      ]
+    }
+  ]
+}
