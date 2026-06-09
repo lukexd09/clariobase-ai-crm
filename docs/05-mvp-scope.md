@@ -22,7 +22,13 @@ The CRM database must be separate from the harvester database.
 
 ## Implementation readiness before feature coding
 
-Before CRM feature work starts, the project should have:
+Before CRM feature work starts, complete:
+
+```text
+E001.T001 - Initialize Next.js technical skeleton
+```
+
+The project should have:
 
 - Next.js app skeleton,
 - TypeScript configured,
