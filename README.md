@@ -26,6 +26,82 @@ Package manager: pnpm
 AI integration v1: file-based exchange only, no AI API calls
 ```
 
+## Work item coding
+
+All epics and tasks use stable codes:
+
+```text
+E001 - Epic name
+E001.T001 - Task name
+```
+
+See `docs/12-work-item-coding.md` for the full standard.
+
+## Key principles
+
+- CRM PostgreSQL database is the source of truth for CRM operational data.
+- Harvester remains the lead acquisition/enrichment system.
+- Harvester database and CRM database should be separate.
+- CRM UI supports lead review, scoring, pipeline, tasks, activities and mini-audits.
+- No external AI API in v1.
+- AI collaboration is file-based through `ai_exchange`.
+- All AI imports must be validated, previewed and manually approved before applying changes.
+- Real lead data should not be committed to the repository by default.
+- The system should support ClarioBase first, UGC outreach second, and only later evolve into a product.
+
+## Initial scope
+
+- Leads
+- Contacts
+- Pipeline statuses
+- Scoring
+- Activities
+- Tasks
+- Mini-audits
+- AI export packs
+- AI response import
+- Basic reporting
+
+## Required reading before implementation
+
+Before starting any coding task, read:
+
+- `docs/00-project-context.md`
+- `docs/05-mvp-scope.md`
+- `docs/08-codex-working-rules.md`
+- `docs/09-ways-of-working.md`
+- `docs/10-technical-stack-decision.md`
+- `docs/12-work-item-coding.md`
+
+For AI exchange work, also read:
+
+- `docs/04-ai-file-exchange.md`
+- `ai_exchange/schemas/ai_review_pack.schema.json`
+- `ai_exchange/schemas/ai_response.schema.json`
+
+For harvester integration work, first create/update:
+
+- `docs/11-harvester-integration-analysis.md`
+
+## Repository structure
+
+```text
+clariobase-ai-crm/
+â”œâ”€â”€ docs/                 # Product, process and technical documentation
+â”œâ”€â”€ ai_exchange/          # File-based AI exchange workspace
+â”‚   â”œâ”€â”€ inbox/            # CRM-generated files for ChatGPT review
+â”‚   â”œâ”€â”€ outbox/           # ChatGPT-generated files ready for CRM import
+â”‚   â”œâ”€â”€ processed/        # Archived processed exchange files
+â”‚   â”œâ”€â”€ rejected/         # Invalid or rejected exchange files
+â”‚   â”œâ”€â”€ schemas/          # JSON schemas for import/export contracts
+â”‚   â””â”€â”€ samples/          # Safe anonymized examples
+â””â”€â”€ README.md
+```
+
+## Current status
+
+Project foundation and implementation readiness phase.
+
 ## Local setup for the Next.js skeleton
 
 1. Install dependencies with `pnpm install`.

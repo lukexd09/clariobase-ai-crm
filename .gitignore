@@ -37,4 +37,3 @@ ai_exchange/rejected/*.md
 !ai_exchange/samples/*.json
 !ai_exchange/samples/*.md
 coverage/
-pnpm-lock.yaml
