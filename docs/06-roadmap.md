@@ -16,10 +16,18 @@ Deliverables:
 - JSON schemas and samples.
 - Ways of working.
 - Technical stack decision.
+- Work item coding standard.
 
 ## Phase 0.5 - Implementation readiness
 
 Goal: prepare the repository for coding without starting CRM features too early.
+
+Primary epic/task:
+
+```text
+E001 - Define and implement CRM foundation
+E001.T001 - Initialize Next.js technical skeleton
+```
 
 Deliverables:
 
@@ -45,6 +53,12 @@ Out of scope:
 
 Goal: create the basic self-hosted CRM shell over the dedicated CRM database.
 
+Primary epic:
+
+```text
+E001 - Define and implement CRM foundation
+```
+
 Potential deliverables:
 
 - Initial Prisma models and migrations.
@@ -57,6 +71,12 @@ Potential deliverables:
 ## Phase 2 - Sales workflow
 
 Goal: support real ClarioBase lead work.
+
+Primary epic:
+
+```text
+E003 - Build ClarioBase sales workflow
+```
 
 Potential deliverables:
 
@@ -71,6 +91,12 @@ Potential deliverables:
 
 Goal: make ChatGPT collaboration operational.
 
+Primary epic:
+
+```text
+E002 - Implement file-based AI exchange
+```
+
 Potential deliverables:
 
 - Export AI review pack.
@@ -84,6 +110,12 @@ Potential deliverables:
 ## Phase 4 - Harvester integration
 
 Goal: connect the CRM cleanly with harvested leads through a documented import/sync contract.
+
+Primary epic:
+
+```text
+E004 - Connect CRM with harvester data
+```
 
 Required first deliverable:
 
@@ -104,6 +136,12 @@ Constraint:
 ## Phase 5 - UGC pipeline
 
 Goal: validate the same system for UGC outreach.
+
+Primary epic:
+
+```text
+E005 - Prepare future UGC outreach pipeline
+```
 
 Potential deliverables:
 
