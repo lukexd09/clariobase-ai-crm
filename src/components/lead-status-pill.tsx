@@ -1,4 +1,7 @@
 import {
+  type ImportBatchStatusValue,
+  type ImportRowStatusValue,
+  type ImportSourceTypeValue,
   type LeadPriorityValue,
   type LeadStatusValue,
   type PackageFitValue
@@ -29,14 +32,31 @@ const variants: Record<string, string> = {
   BASE: "bg-blue-500/15 text-blue-200 border-blue-500/30",
   CLARITY: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
   MOMENTUM: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
-  NOT_FIT: "bg-rose-500/15 text-rose-200 border-rose-500/30"
+  NOT_FIT: "bg-rose-500/15 text-rose-200 border-rose-500/30",
+  CREATED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
+  UPDATED: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
+  REJECTED: "bg-rose-500/15 text-rose-200 border-rose-500/30",
+  SKIPPED: "bg-slate-500/15 text-slate-200 border-slate-500/30",
+  RUNNING: "bg-sky-500/15 text-sky-200 border-sky-500/30",
+  COMPLETED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
+  COMPLETED_WITH_ERRORS: "bg-amber-500/15 text-amber-200 border-amber-500/30",
+  FAILED: "bg-rose-500/15 text-rose-200 border-rose-500/30",
+  LOCAL_JSON: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
+  HARVESTER_EXPORT: "bg-violet-500/15 text-violet-200 border-violet-500/30",
+  MANUAL_AI_PREPARED_FILE: "bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-500/30"
 };
 
 export function StatusPill({
   value,
   className
 }: {
-  value: LeadStatusValue | LeadPriorityValue | PackageFitValue;
+  value:
+    | LeadStatusValue
+    | LeadPriorityValue
+    | PackageFitValue
+    | ImportBatchStatusValue
+    | ImportRowStatusValue
+    | ImportSourceTypeValue;
   className?: string;
 }) {
   return (

@@ -3,6 +3,9 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
+  ImportBatchStatus,
+  ImportRowStatus,
+  ImportSourceType,
   LeadPriority,
   LeadStatus,
   PackageFit,
@@ -39,6 +42,7 @@ const importRowSchema = z.object({
 type ImportRow = z.infer<typeof importRowSchema>;
 
 type ImportSummary = {
+  batchId: string;
   totalRows: number;
   created: number;
   updated: number;
@@ -65,14 +69,9 @@ async function main() {
   }
 
   const raw = await fs.readFile(path.resolve(inputPath), "utf8");
-  const parsed = JSON.parse(raw);
-
-  if (!Array.isArray(parsed)) {
-    throw new Error("Import file must contain a JSON array");
-  }
-
   const summary: ImportSummary = {
-    totalRows: parsed.length,
+    batchId: "",
+    totalRows: 0,
     created: 0,
     updated: 0,
     rejected: 0,
@@ -80,50 +79,159 @@ async function main() {
     rejections: []
   };
 
-  for (let index = 0; index < parsed.length; index += 1) {
-    const rowNumber = index + 1;
-    const rowResult = importRowSchema.safeParse(parsed[index]);
+  const batch = await prisma.importBatch.create({
+    data: {
+      sourceType: ImportSourceType.LOCAL_JSON,
+      sourceName: "Local JSON import",
+      fileName: path.basename(inputPath),
+      status: ImportBatchStatus.RUNNING,
+      totalRows: 0,
+      createdRows: 0,
+      updatedRows: 0,
+      rejectedRows: 0,
+      skippedRows: 0,
+      startedAt: new Date()
+    }
+  });
 
-    if (!rowResult.success) {
-      summary.rejected += 1;
-      summary.rejections.push({
-        row: rowNumber,
-        reason: rowResult.error.issues.map((issue) => issue.message).join("; ")
-      });
-      continue;
+  summary.batchId = batch.id;
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      throw new Error("Import file must contain a JSON array");
     }
 
-    const row = rowResult.data;
-    const normalized = normalizeRow(row);
-    const target = buildTarget(normalized);
+    summary.totalRows = parsed.length;
 
-    if (!target) {
-      summary.rejected += 1;
-      summary.rejections.push({
-        row: rowNumber,
-        reason: "Missing customerId and source/sourceRecordId; cannot determine idempotent key"
+    for (let index = 0; index < parsed.length; index += 1) {
+      const rowNumber = index + 1;
+      const rawRow = parsed[index];
+      const rowResult = importRowSchema.safeParse(rawRow);
+
+      if (!rowResult.success) {
+        summary.rejected += 1;
+        summary.rejections.push({
+          row: rowNumber,
+          reason: rowResult.error.issues.map((issue) => issue.message).join("; ")
+        });
+
+        await prisma.importRowResult.create({
+          data: {
+            importBatchId: batch.id,
+            rowNumber,
+            status: ImportRowStatus.REJECTED,
+            rejectionReason: rowResult.error.issues.map((issue) => issue.message).join("; "),
+            rawRowSnapshot: rawRow
+          }
+        });
+        continue;
+      }
+
+      const row = rowResult.data;
+      const normalized = normalizeRow(row);
+      const target = buildTarget(normalized);
+
+      if (!target) {
+        const reason = "Missing customerId and source/sourceRecordId; cannot determine idempotent key";
+        summary.rejected += 1;
+        summary.rejections.push({ row: rowNumber, reason });
+
+        await prisma.importRowResult.create({
+          data: {
+            importBatchId: batch.id,
+            rowNumber,
+            status: ImportRowStatus.REJECTED,
+            customerId: normalized.customerId,
+            source: normalized.source,
+            sourceRecordId: normalized.sourceRecordId,
+            businessName: normalized.businessName,
+            rejectionReason: reason,
+            rawRowSnapshot: rawRow
+          }
+        });
+        continue;
+      }
+
+      const existing = await findExistingLead(target);
+
+      if (!existing) {
+        const lead = await prisma.lead.create({
+          data: buildCreateData(normalized)
+        });
+
+        await prisma.importRowResult.create({
+          data: {
+            importBatchId: batch.id,
+            rowNumber,
+            status: ImportRowStatus.CREATED,
+            leadId: lead.id,
+            customerId: lead.customerId,
+            source: lead.source,
+            sourceRecordId: lead.sourceRecordId,
+            businessName: lead.businessName,
+            rawRowSnapshot: rawRow
+          }
+        });
+
+        summary.created += 1;
+        continue;
+      }
+
+      const lead = await prisma.lead.update({
+        where: { id: existing.id },
+        data: buildSafeUpdateData(normalized)
       });
-      continue;
+
+      await prisma.importRowResult.create({
+        data: {
+          importBatchId: batch.id,
+          rowNumber,
+          status: ImportRowStatus.UPDATED,
+          leadId: lead.id,
+          customerId: lead.customerId,
+          source: lead.source,
+          sourceRecordId: lead.sourceRecordId,
+          businessName: lead.businessName,
+          rawRowSnapshot: rawRow
+        }
+      });
+
+      summary.updated += 1;
     }
 
-    const existing = await findExistingLead(target);
-
-    if (!existing) {
-      await prisma.lead.create({
-        data: buildCreateData(normalized)
-      });
-      summary.created += 1;
-      continue;
-    }
-
-    await prisma.lead.update({
-      where: { id: existing.id },
-      data: buildSafeUpdateData(normalized)
+    await prisma.importBatch.update({
+      where: { id: batch.id },
+      data: {
+        status: summary.rejected > 0 ? ImportBatchStatus.COMPLETED_WITH_ERRORS : ImportBatchStatus.COMPLETED,
+        totalRows: summary.totalRows,
+        createdRows: summary.created,
+        updatedRows: summary.updated,
+        rejectedRows: summary.rejected,
+        skippedRows: summary.skipped,
+        finishedAt: new Date(),
+        errorSummary: summary.rejections.length > 0 ? serializeRejections(summary.rejections) : null
+      }
     });
-    summary.updated += 1;
-  }
 
-  printSummary(summary);
+    printSummary(summary);
+  } catch (error) {
+    await prisma.importBatch.update({
+      where: { id: batch.id },
+      data: {
+        status: ImportBatchStatus.FAILED,
+        totalRows: summary.totalRows,
+        createdRows: summary.created,
+        updatedRows: summary.updated,
+        rejectedRows: summary.rejected,
+        skippedRows: summary.skipped,
+        finishedAt: new Date(),
+        errorSummary: error instanceof Error ? error.message : "Unknown import failure"
+      }
+    });
+    throw error;
+  }
 }
 
 function normalizeRow(row: ImportRow) {
@@ -146,13 +254,13 @@ function normalizeRow(row: ImportRow) {
     phone: row.phone ?? null,
     email: row.email ?? null,
     address: row.address ?? null,
+    lastReviewedAt: row.lastReviewedAt ? new Date(row.lastReviewedAt) : undefined,
     leadStatus: row.leadStatus ?? LeadStatus.NEW,
     priority: row.priority ?? LeadPriority.MEDIUM,
     packageFit: row.packageFit ?? PackageFit.UNKNOWN,
     scoreTotal: row.scoreTotal ?? 0,
     scoreLabel: row.scoreLabel ?? null,
     nextActionAt: row.nextActionAt ? new Date(row.nextActionAt) : null,
-    lastReviewedAt: row.lastReviewedAt ? new Date(row.lastReviewedAt) : null,
     lastImportedAt: row.lastImportedAt ? new Date(row.lastImportedAt) : new Date()
   };
 }
@@ -215,7 +323,6 @@ function buildCreateData(row: ReturnType<typeof normalizeRow>) {
     scoreTotal: row.scoreTotal,
     scoreLabel: row.scoreLabel,
     nextActionAt: row.nextActionAt,
-    lastReviewedAt: row.lastReviewedAt,
     lastImportedAt: row.lastImportedAt
   };
 }
@@ -250,6 +357,7 @@ function deterministicCustomerId(
 }
 
 function printSummary(summary: ImportSummary) {
+  console.log(`batch id: ${summary.batchId}`);
   console.log(`total rows: ${summary.totalRows}`);
   console.log(`created: ${summary.created}`);
   console.log(`updated: ${summary.updated}`);
@@ -262,6 +370,10 @@ function printSummary(summary: ImportSummary) {
       console.log(`  row ${rejection.row}: ${rejection.reason}`);
     }
   }
+}
+
+function serializeRejections(rejections: ImportSummary["rejections"]) {
+  return rejections.map((rejection) => `row ${rejection.row}: ${rejection.reason}`).join(" | ");
 }
 
 main()
