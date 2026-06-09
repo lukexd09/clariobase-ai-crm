@@ -36,6 +36,21 @@ This is not intended to be a generic CRM. It is a lightweight operational CRM de
 - AI response import
 - Basic reporting
 
+## Required reading before implementation
+
+Before starting any coding task, read:
+
+- `docs/00-project-context.md`
+- `docs/05-mvp-scope.md`
+- `docs/08-codex-working-rules.md`
+- `docs/09-ways-of-working.md`
+
+For AI exchange work, also read:
+
+- `docs/04-ai-file-exchange.md`
+- `ai_exchange/schemas/ai_review_pack.schema.json`
+- `ai_exchange/schemas/ai_response.schema.json`
+
 ## Repository structure
 
 ```text
