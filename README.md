@@ -28,6 +28,17 @@ AI integration v1: file-based exchange only, no AI API calls
 
 See `docs/10-technical-stack-decision.md` for the full decision.
 
+## Work item coding
+
+All epics and tasks use stable codes:
+
+```text
+E001 - Epic name
+E001.T001 - Task name
+```
+
+See `docs/12-work-item-coding.md` for the full standard.
+
 ## Key principles
 
 - CRM PostgreSQL database is the source of truth for CRM operational data.
@@ -62,6 +73,7 @@ Before starting any coding task, read:
 - `docs/08-codex-working-rules.md`
 - `docs/09-ways-of-working.md`
 - `docs/10-technical-stack-decision.md`
+- `docs/12-work-item-coding.md`
 
 For AI exchange work, also read:
 
