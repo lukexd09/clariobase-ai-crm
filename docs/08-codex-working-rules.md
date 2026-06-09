@@ -2,15 +2,20 @@
 
 This document defines how Codex or another coding assistant should work on this repository.
 
+For the full team process, use `docs/09-ways-of-working.md` as the source of truth.
+
 ## General rules
 
 - Do not invent broad CRM features outside the documented MVP scope.
 - Read `docs/00-project-context.md` before planning implementation.
+- Read `docs/09-ways-of-working.md` before starting implementation work.
 - Read `docs/04-ai-file-exchange.md` before touching AI exchange logic.
 - Preserve PostgreSQL as the source of truth.
 - Do not add external AI API calls in v1.
 - Do not implement automatic message sending in v1.
 - Prefer small, reviewable changes.
+- Work from a clear issue/task and keep the change within scope.
+- Provide changed files, test commands and known limitations before finishing.
 
 ## Data safety rules
 
