@@ -52,6 +52,31 @@ Implication:
 - Harvester integration analysis should be documented before implementation.
 - Expected analysis document: `docs/11-harvester-integration-analysis.md`.
 
+## 2026-06-09 - Work item coding standard
+
+Decision: Epics and tasks will use stable work item codes.
+
+Format:
+
+```text
+E001 - Epic name
+E001.T001 - Task name
+```
+
+Reason:
+
+- Easier reading and navigation in GitHub.
+- Clearer prompts for Codex.
+- Easier discussion in ChatGPT.
+- Better traceability between epics, tasks, branches and PRs.
+
+Implication:
+
+- Every implementation task must belong to a coded epic.
+- Branches and PRs should include the work item code.
+- Codex prompts should start with the work item code and title.
+- See `docs/12-work-item-coding.md`.
+
 ## 2026-06-09 - PostgreSQL as source of truth
 
 Decision: PostgreSQL remains the system of record.
