@@ -26,8 +26,6 @@ Package manager: pnpm
 AI integration v1: file-based exchange only, no AI API calls
 ```
 
-See `docs/10-technical-stack-decision.md` for the full decision.
-
 ## Work item coding
 
 All epics and tasks use stable codes:
@@ -89,17 +87,38 @@ For harvester integration work, first create/update:
 
 ```text
 clariobase-ai-crm/
-├── docs/                 # Product, process and technical documentation
-├── ai_exchange/          # File-based AI exchange workspace
-│   ├── inbox/            # CRM-generated files for ChatGPT review
-│   ├── outbox/           # ChatGPT-generated files ready for CRM import
-│   ├── processed/        # Archived processed exchange files
-│   ├── rejected/         # Invalid or rejected exchange files
-│   ├── schemas/          # JSON schemas for import/export contracts
-│   └── samples/          # Safe anonymized examples
-└── README.md
+- docs/                 # Product, process and technical documentation
+- ai_exchange/          # File-based AI exchange workspace
+  - inbox/              # CRM-generated files for ChatGPT review
+  - outbox/             # ChatGPT-generated files ready for CRM import
+  - processed/          # Archived processed exchange files
+  - rejected/           # Invalid or rejected exchange files
+  - schemas/            # JSON schemas for file contracts
+  - samples/            # Safe anonymized examples
+- README.md
 ```
 
 ## Current status
 
 Project foundation and implementation readiness phase.
+
+## Local setup for the Next.js skeleton
+
+1. Install dependencies with `pnpm install`.
+2. Copy `.env.example` to `.env.local` and set `DATABASE_URL` to your local CRM database.
+3. Generate Prisma Client with `pnpm prisma:generate`.
+4. Start the app with `pnpm dev`.
+
+## Available scripts
+
+- `pnpm dev`
+- `pnpm build`
+- `pnpm start`
+- `pnpm lint`
+- `pnpm test`
+- `pnpm prisma:generate`
+- `pnpm prisma:validate`
+
+## Health check
+
+Open `/health` after starting the app to verify the skeleton is running.
