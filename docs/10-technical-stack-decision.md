@@ -122,6 +122,12 @@ Avoid adding a separate backend service in v1 unless a strong need appears.
 
 The first coding PR should only create the technical skeleton.
 
+First implementation task:
+
+```text
+E001.T001 - Initialize Next.js technical skeleton
+```
+
 In scope for first coding PR:
 
 - initialize Next.js App Router with TypeScript,
@@ -158,6 +164,8 @@ Out of scope for first coding PR:
 ## Suggested first Codex prompt
 
 ```text
+Work item: E001.T001 - Initialize Next.js technical skeleton
+
 You are working in the `clariobase-ai-crm` repository.
 
 Read first:
@@ -167,6 +175,7 @@ Read first:
 - docs/08-codex-working-rules.md
 - docs/09-ways-of-working.md
 - docs/10-technical-stack-decision.md
+- docs/12-work-item-coding.md
 
 Task:
 Initialize the technical skeleton for ClarioBase AI CRM using the selected target stack.
