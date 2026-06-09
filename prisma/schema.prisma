@@ -9,9 +9,18 @@ datasource db {
 
 enum LeadStatus {
   NEW
-  REVIEWING
   QUALIFIED
-  DISQUALIFIED
+  TO_AUDIT
+  AUDITED
+  CONTACTED
+  REPLIED
+  DISCOVERY_SCHEDULED
+  OFFER_SENT
+  WON
+  LOST
+  NURTURE
+  BAD_FIT
+  DO_NOT_CONTACT
   ARCHIVED
 }
 
@@ -24,9 +33,10 @@ enum LeadPriority {
 
 enum PackageFit {
   UNKNOWN
-  LOW
-  MEDIUM
-  HIGH
+  BASE
+  CLARITY
+  MOMENTUM
+  NOT_FIT
 }
 
 model Lead {
