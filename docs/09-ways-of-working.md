@@ -22,6 +22,25 @@ Regression checklist is executed
 User merges only after explicit approval
 ```
 
+## Work item coding
+
+All epics and tasks must follow the coding standard from `docs/12-work-item-coding.md`.
+
+Required title format:
+
+```text
+E001 - Epic name
+E001.T001 - Task name
+```
+
+Rules:
+
+- Every implementation task must belong to an epic.
+- Epic IDs are sequential and stable.
+- Task IDs are scoped to the epic.
+- Branch and PR names should include the work item code.
+- Codex prompts should start with the work item code and title.
+
 ## Non-negotiable principles
 
 - Do not start coding from vague ideas.
@@ -84,6 +103,7 @@ Responsibilities:
 
 An epic or task is ready for Codex only when it has:
 
+- work item code,
 - clear goal,
 - business context,
 - technical context,
@@ -129,7 +149,7 @@ Out of scope:
 Use this structure for larger work packages.
 
 ```markdown
-# Epic: <name>
+# E001 - <epic name>
 
 ## Goal
 
@@ -175,6 +195,10 @@ Expected screens, buttons, flows, validation and user feedback.
 
 Checklist that must be true before the epic can be considered done.
 
+## Child tasks
+
+- `E001.T001 - <task name>`
+
 ## Test plan
 
 Manual and automated tests expected.
@@ -193,7 +217,9 @@ Known uncertainties or decisions needed before/during work.
 Use this for smaller implementation tasks.
 
 ```markdown
-# Task: <name>
+# E001.T001 - <task name>
+
+Parent epic: E001 - <epic name>
 
 ## Goal
 
@@ -217,6 +243,8 @@ Prompts to Codex should be specific and bounded. Avoid asking Codex to "build th
 Recommended format:
 
 ```text
+Work item: E001.T001 - <task name>
+
 You are working in the `clariobase-ai-crm` repository.
 
 Read first:
@@ -225,6 +253,7 @@ Read first:
 - docs/08-codex-working-rules.md
 - docs/09-ways-of-working.md
 - docs/10-technical-stack-decision.md
+- docs/12-work-item-coding.md
 - <other relevant docs>
 
 Task:
@@ -284,18 +313,26 @@ They are too broad and invite uncontrolled changes.
 Good prompts are narrow:
 
 ```text
+Work item: E001.T001 - Initialize Next.js technical skeleton
+
 Initialize the Next.js App Router project skeleton with TypeScript, pnpm, Tailwind CSS, Prisma setup, `.env.example`, a simple health/status route, and basic lint/test commands. Do not implement CRM feature screens yet.
 ```
 
 ```text
+Work item: E002.T001 - Validate AI response files against schema
+
 Implement JSON schema validation for files placed in `ai_exchange/outbox`. Validate against `ai_exchange/schemas/ai_response.schema.json`, return readable errors, and do not apply any CRM changes yet.
 ```
 
 ```text
+Work item: E001.T002 - Add initial Prisma lead model
+
 Create the initial Prisma `Lead` model based on `docs/03-data-model.md`, but include only fields required for MVP lead list and lead detail. Do not add UGC-specific fields yet.
 ```
 
 ```text
+Work item: E001.T003 - Add read-only lead list page
+
 Add a read-only lead list page that displays business name, city, category, status, priority, score and next action date. No editing in this task.
 ```
 
@@ -306,7 +343,7 @@ Preferred flow:
 ```text
 main
   ↓
-feature/<short-description>
+feature/e001-t001-nextjs-skeleton
   ↓
 PR
   ↓
@@ -322,12 +359,17 @@ Rules:
 - `main` should remain stable.
 - One PR should solve one clear problem.
 - Do not mix documentation, architecture, feature work and unrelated cleanup in one PR unless explicitly agreed.
+- PR title should include the task code, for example `E001.T001 - Initialize Next.js technical skeleton`.
 - PR description must explain what changed and how to test it.
 - Large PRs should be split.
 
 ## PR description template
 
 ```markdown
+## Work item
+
+E001.T001 - <task name>
+
 ## Summary
 
 - 
@@ -487,6 +529,7 @@ Update docs when:
 - MVP scope changes,
 - technical stack decisions change,
 - database boundary decisions change,
+- work item coding changes,
 - a major decision is made,
 - Codex needs a new rule to avoid repeating a mistake.
 
@@ -500,7 +543,8 @@ Important docs:
 - `docs/08-codex-working-rules.md` - rules for coding agents,
 - `docs/09-ways-of-working.md` - team process,
 - `docs/10-technical-stack-decision.md` - selected implementation stack,
-- `docs/11-harvester-integration-analysis.md` - required before harvester sync.
+- `docs/11-harvester-integration-analysis.md` - required before harvester sync,
+- `docs/12-work-item-coding.md` - epic/task/branch/PR naming convention.
 
 ## Scope control rules
 
