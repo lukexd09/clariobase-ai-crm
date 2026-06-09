@@ -1,20 +1,45 @@
 # Data Model Draft
 
-This is an initial conceptual model. It should be refined before implementation and converted into migrations.
+This is an initial conceptual model for the dedicated CRM PostgreSQL database. It should be refined before implementation and converted into Prisma schema and migrations.
 
 ## Design principles
 
-- PostgreSQL is the source of truth.
+- The CRM PostgreSQL database is the source of truth for CRM operational data.
+- The harvester database remains the source of truth for raw harvested/enriched lead source data.
+- CRM and harvester databases should be separate.
+- CRM should import/sync from harvester through a documented contract, not mutate harvester tables directly.
 - `customer_id` should be the stable business identifier, not Google Place ID.
 - Google-specific identifiers are source metadata, not primary business keys.
 - AI recommendations should be stored separately from approved CRM state.
 - Importing AI output must not overwrite core data without user approval.
+- Prisma is the default ORM/migration tool for implementation.
+
+## Database boundary
+
+```text
+Harvester PostgreSQL database
+  ├── raw/source lead data
+  ├── Google-specific metadata
+  ├── refresh metadata
+  └── harvester scoring/enrichment data
+
+CRM PostgreSQL database
+  ├── CRM lead records
+  ├── statuses and priorities
+  ├── tasks and activities
+  ├── mini-audits
+  ├── offers
+  ├── AI exchange batches
+  └── approved AI recommendations
+```
+
+The CRM database may store selected copied/imported fields from the harvester, but it should not become a raw scraping database.
 
 ## Core tables
 
 ## `leads`
 
-Represents a potential business/client.
+Represents a potential business/client inside CRM.
 
 Suggested fields:
 
@@ -44,7 +69,43 @@ next_action_at
 created_at
 updated_at
 last_reviewed_at
+last_imported_at
 archived_at
+```
+
+Notes:
+
+- `id` is the internal CRM primary key.
+- `customer_id` is the stable business identifier used across CRM workflows.
+- `google_place_id` is optional source metadata.
+- `source_record_id` should reference the origin record if imported from harvester.
+
+## `lead_sources`
+
+Tracks where a CRM lead came from and allows future multi-source imports.
+
+```text
+id
+lead_id
+source_system
+source_record_id
+source_url
+external_id
+imported_at
+last_seen_at
+raw_snapshot
+created_at
+updated_at
+```
+
+Examples of `source_system`:
+
+```text
+harvester
+google_maps
+manual
+instagram
+ugc_brand_research
 ```
 
 ## `contacts`
@@ -182,6 +243,54 @@ created_at
 updated_at
 ```
 
+## Import/sync tables
+
+## `import_batches`
+
+Tracks data imports from harvester or other future sources.
+
+```text
+id
+batch_id
+source_system
+source_database
+source_description
+status
+started_at
+finished_at
+records_seen
+records_created
+records_updated
+records_skipped
+error_message
+created_at
+```
+
+## `import_batch_items`
+
+Tracks individual import results.
+
+```text
+id
+batch_id
+lead_id
+source_record_id
+action
+status
+reason
+created_at
+```
+
+Possible actions:
+
+```text
+created
+updated
+skipped
+duplicate
+failed
+```
+
 ## AI exchange tables
 
 ## `ai_review_batches`
@@ -279,3 +388,5 @@ The first version can assume one workspace, but the data model should not block 
 - ClarioBase sales pipeline,
 - UGC outreach pipeline,
 - future productized customer workspaces.
+
+Do not implement multi-tenant SaaS in v1. Only avoid hardcoding decisions that would make it impossible later.
