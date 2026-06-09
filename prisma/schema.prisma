@@ -40,6 +40,7 @@ enum PackageFit {
 }
 
 enum ImportBatchStatus {
+  RUNNING
   COMPLETED
   COMPLETED_WITH_ERRORS
   FAILED

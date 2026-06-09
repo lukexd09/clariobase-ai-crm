@@ -84,7 +84,7 @@ async function main() {
       sourceType: ImportSourceType.LOCAL_JSON,
       sourceName: "Local JSON import",
       fileName: path.basename(inputPath),
-      status: ImportBatchStatus.COMPLETED,
+      status: ImportBatchStatus.RUNNING,
       totalRows: 0,
       createdRows: 0,
       updatedRows: 0,
@@ -254,13 +254,13 @@ function normalizeRow(row: ImportRow) {
     phone: row.phone ?? null,
     email: row.email ?? null,
     address: row.address ?? null,
+    lastReviewedAt: row.lastReviewedAt ? new Date(row.lastReviewedAt) : undefined,
     leadStatus: row.leadStatus ?? LeadStatus.NEW,
     priority: row.priority ?? LeadPriority.MEDIUM,
     packageFit: row.packageFit ?? PackageFit.UNKNOWN,
     scoreTotal: row.scoreTotal ?? 0,
     scoreLabel: row.scoreLabel ?? null,
     nextActionAt: row.nextActionAt ? new Date(row.nextActionAt) : null,
-    lastReviewedAt: row.lastReviewedAt ? new Date(row.lastReviewedAt) : null,
     lastImportedAt: row.lastImportedAt ? new Date(row.lastImportedAt) : new Date()
   };
 }
@@ -323,7 +323,6 @@ function buildCreateData(row: ReturnType<typeof normalizeRow>) {
     scoreTotal: row.scoreTotal,
     scoreLabel: row.scoreLabel,
     nextActionAt: row.nextActionAt,
-    lastReviewedAt: row.lastReviewedAt,
     lastImportedAt: row.lastImportedAt
   };
 }
