@@ -44,10 +44,12 @@ Forbidden:
 
 ## Overwrite rules
 
-- Existing operational fields may be updated when the import contract allows it.
+- Existing CRM operational fields are not overwritten by local file re-imports.
 - Protected source fields should not be overwritten silently.
+- The importer may update safe descriptive/source-copy fields only, such as business identity and contact metadata.
 - If the importer finds a conflict, it should prefer idempotent behavior and report what happened.
 - Imported data should be traceable back to the source row.
+- Any change to operational CRM state should happen through user action or a future preview/approval workflow, not silent file re-import.
 
 ## Duplicate risks
 
@@ -100,4 +102,3 @@ Future work may replace the file importer with a documented service integration 
 - Invalid rows must be rejected with a clear reason.
 - If `customerId` is missing, the importer may create a deterministic fallback ID.
 - `source + sourceRecordId` should be used for idempotent upsert when both are present.
-

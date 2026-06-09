@@ -109,19 +109,16 @@ async function main() {
     const existing = await findExistingLead(target);
 
     if (!existing) {
-      await prisma.lead.upsert({
-        where: target.where,
-        create: buildCreateData(normalized),
-        update: buildUpdateData(normalized)
+      await prisma.lead.create({
+        data: buildCreateData(normalized)
       });
       summary.created += 1;
       continue;
     }
 
-    await prisma.lead.upsert({
-      where: target.where,
-      create: buildCreateData(normalized),
-      update: buildUpdateData(normalized)
+    await prisma.lead.update({
+      where: { id: existing.id },
+      data: buildSafeUpdateData(normalized)
     });
     summary.updated += 1;
   }
@@ -223,7 +220,7 @@ function buildCreateData(row: ReturnType<typeof normalizeRow>) {
   };
 }
 
-function buildUpdateData(row: ReturnType<typeof normalizeRow>) {
+function buildSafeUpdateData(row: ReturnType<typeof normalizeRow>) {
   return {
     businessName: row.businessName,
     category: row.category,
@@ -236,12 +233,8 @@ function buildUpdateData(row: ReturnType<typeof normalizeRow>) {
     phone: row.phone,
     email: row.email,
     address: row.address,
-    leadStatus: row.leadStatus,
-    priority: row.priority,
-    packageFit: row.packageFit,
     scoreTotal: row.scoreTotal,
     scoreLabel: row.scoreLabel,
-    nextActionAt: row.nextActionAt,
     lastReviewedAt: row.lastReviewedAt,
     lastImportedAt: row.lastImportedAt
   };

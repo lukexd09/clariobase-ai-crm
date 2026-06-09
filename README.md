@@ -144,5 +144,6 @@ Safety rules:
 - Use fake data only.
 - Do not commit `.env.local`.
 - Do not mutate the harvester database.
+- Re-imports do not overwrite operational CRM fields like status, priority, package fit or next action date.
 - The importer validates rows and rejects invalid ones with clear reasons.
 - The import is idempotent by `source + sourceRecordId` when available, then by `customerId`.
