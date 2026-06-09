@@ -124,14 +124,15 @@ The first coding PR should only create the technical skeleton.
 
 In scope for first coding PR:
 
-- initialize Next.js with TypeScript,
+- initialize Next.js App Router with TypeScript,
+- configure pnpm,
 - configure Tailwind,
 - configure ESLint,
 - add Prisma,
 - add `.env.example`,
-- add basic database connection setup,
+- add basic database connection setup using `DATABASE_URL`,
 - add health/status page or route,
-- add basic test setup,
+- add basic test/lint commands,
 - update local setup instructions.
 
 Out of scope for first coding PR:
@@ -143,6 +144,16 @@ Out of scope for first coding PR:
 - deployment automation,
 - production Docker hardening,
 - real lead data.
+
+## Suggested first PR acceptance criteria
+
+- App can be installed and started locally.
+- `pnpm lint` or equivalent command exists.
+- Basic test command exists, even if coverage is minimal.
+- Prisma is configured without real credentials.
+- `.env.example` documents `DATABASE_URL` for `clariobase_crm`.
+- No CRM feature work is included.
+- No real data, secrets or `.env` files are committed.
 
 ## Constraints for Codex
 
