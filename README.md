@@ -107,7 +107,9 @@ Project foundation and implementation readiness phase.
 1. Install dependencies with `pnpm install`.
 2. Copy `.env.example` to `.env.local` and set `DATABASE_URL` to your local CRM database.
 3. Generate Prisma Client with `pnpm prisma:generate`.
-4. Start the app with `pnpm dev`.
+4. Validate the schema with `pnpm prisma:validate`.
+5. If your local CRM database is available, create the initial migration with `pnpm prisma:migrate`.
+6. Start the app with `pnpm dev`.
 
 ## Available scripts
 
@@ -118,6 +120,7 @@ Project foundation and implementation readiness phase.
 - `pnpm test`
 - `pnpm prisma:generate`
 - `pnpm prisma:validate`
+- `pnpm prisma:migrate`
 
 ## Health check
 

@@ -6,3 +6,71 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum LeadStatus {
+  NEW
+  QUALIFIED
+  TO_AUDIT
+  AUDITED
+  CONTACTED
+  REPLIED
+  DISCOVERY_SCHEDULED
+  OFFER_SENT
+  WON
+  LOST
+  NURTURE
+  BAD_FIT
+  DO_NOT_CONTACT
+  ARCHIVED
+}
+
+enum LeadPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum PackageFit {
+  UNKNOWN
+  BASE
+  CLARITY
+  MOMENTUM
+  NOT_FIT
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  customerId     String       @unique @map("customer_id")
+  businessName   String       @map("business_name")
+  category       String?
+  city           String?
+  region         String?
+  country        String?
+  source         String?
+  sourceRecordId String?      @map("source_record_id")
+  googlePlaceId  String?      @unique @map("google_place_id")
+  websiteUrl     String?      @map("website_url")
+  instagramUrl   String?      @map("instagram_url")
+  facebookUrl    String?      @map("facebook_url")
+  phone          String?
+  email          String?
+  address        String?
+  leadStatus     LeadStatus   @default(NEW) @map("lead_status")
+  priority       LeadPriority @default(MEDIUM)
+  packageFit     PackageFit   @default(UNKNOWN) @map("package_fit")
+  scoreTotal     Int          @default(0) @map("score_total")
+  scoreLabel     String?      @map("score_label")
+  nextActionAt   DateTime?    @map("next_action_at")
+  lastReviewedAt DateTime?    @map("last_reviewed_at")
+  lastImportedAt  DateTime?    @map("last_imported_at")
+  archivedAt     DateTime?    @map("archived_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@index([businessName])
+  @@index([city, country])
+  @@index([leadStatus, priority])
+  @@unique([source, sourceRecordId])
+  @@map("leads")
+}
