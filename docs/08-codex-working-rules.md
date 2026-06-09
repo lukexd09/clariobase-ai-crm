@@ -10,7 +10,10 @@ For the full team process, use `docs/09-ways-of-working.md` as the source of tru
 - Read `docs/00-project-context.md` before planning implementation.
 - Read `docs/09-ways-of-working.md` before starting implementation work.
 - Read `docs/10-technical-stack-decision.md` before coding.
+- Read `docs/12-work-item-coding.md` before creating branches, PRs or task references.
 - Read `docs/04-ai-file-exchange.md` before touching AI exchange logic.
+- Every implementation task must use a work item code such as `E001.T001`.
+- Branches, PRs and Codex prompts should include the work item code.
 - Preserve the dedicated CRM PostgreSQL database as the CRM source of truth.
 - Keep harvester and CRM databases separate.
 - Do not mutate harvester tables directly.
