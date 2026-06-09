@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clariobase.local/schemas/ai_response.schema.json",
+  "title": "AI Response",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "batch_id",
+    "response_type",
+    "items"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "response_type": {
+      "type": "string",
+      "enum": [
+        "lead_review_recommendations",
+        "mini_audit_drafts",
+        "outreach_message_drafts",
+        "followup_recommendations",
+        "pipeline_health_review",
+        "lost_leads_analysis"
+      ]
+    },
+    "summary": {
+      "type": ["string", "null"]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["lead_id", "decision", "reasoning_summary"],
+        "properties": {
+          "lead_id": { "type": "string" },
+          "customer_id": { "type": ["string", "null"] },
+          "priority": {
+            "type": ["string", "null"],
+            "enum": ["Hot", "Warm", "Nurture", "Reject", null]
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "prepare_mini_audit",
+              "contact_now",
+              "nurture",
+              "reject",
+              "needs_manual_review"
+            ]
+          },
+          "recommended_status": { "type": ["string", "null"] },
+          "recommended_package": {
+            "type": ["string", "null"],
+            "enum": ["Base", "Clarity", "Momentum", "Unknown", null]
+          },
+          "reasoning_summary": { "type": "string" },
+          "recommended_next_action": { "type": ["string", "null"] },
+          "draft_message": { "type": ["string", "null"] },
+          "mini_audit": {
+            "type": ["object", "null"],
+            "properties": {
+              "problem_1": { "type": ["string", "null"] },
+              "problem_2": { "type": ["string", "null"] },
+              "problem_3": { "type": ["string", "null"] },
+              "recommendation": { "type": ["string", "null"] },
+              "outreach_angle": { "type": ["string", "null"] }
+            }
+          },
+          "risk_notes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
