@@ -7,9 +7,11 @@ ClarioBase AI CRM is a self-hosted, file-based AI-assisted sales operating syste
 ## What this product is
 
 - A focused CRM for lead-driven sales.
-- A practical operating layer over PostgreSQL and the existing harvester.
+- A practical operating layer over a dedicated CRM PostgreSQL database.
+- A system integrated with the existing harvester through import/sync, not direct table mutation.
 - A system designed for human + ChatGPT collaboration through structured files.
 - A future foundation for UGC outreach and productization.
+- A product-grade web application built with the target stack from the start.
 
 ## What this product is not
 
@@ -18,6 +20,7 @@ ClarioBase AI CRM is a self-hosted, file-based AI-assisted sales operating syste
 - Not an AI autopilot that sends messages without approval.
 - Not a generic CRM for every industry in v1.
 - Not dependent on paid AI API calls in v1.
+- Not a temporary MVP built on a stack intended to be replaced later.
 
 ## Core value proposition
 
@@ -51,3 +54,7 @@ The potential advantage is not a classic CRM feature set. The advantage is the c
 ```text
 lead harvesting + scoring + mini-audit preparation + file-based AI support + controlled CRM import
 ```
+
+## Product-grade stack principle
+
+The project should use the target stack from the start to avoid rewriting the application after MVP validation. The selected stack is documented in `docs/10-technical-stack-decision.md`.
