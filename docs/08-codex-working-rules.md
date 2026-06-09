@@ -14,6 +14,8 @@ For the full team process, use `docs/09-ways-of-working.md` as the source of tru
 - Read `docs/04-ai-file-exchange.md` before touching AI exchange logic.
 - Every implementation task must use a work item code such as `E001.T001`.
 - Branches, PRs and Codex prompts should include the work item code.
+- Codex must create a PR or update the existing PR for the work item before considering the task finished.
+- Codex must share the PR link after finishing.
 - Preserve the dedicated CRM PostgreSQL database as the CRM source of truth.
 - Keep harvester and CRM databases separate.
 - Do not mutate harvester tables directly.
@@ -38,6 +40,18 @@ pnpm
 ```
 
 Codex must not replace this with a temporary MVP stack unless the user explicitly changes the decision.
+
+## Pull request rules
+
+A task is not finished until there is a pull request.
+
+Rules:
+
+- If no PR exists for the work item, create one.
+- If a PR already exists for the work item, update the existing PR instead of creating a duplicate.
+- PR title must include the work item code, for example `E001.T001 - Initialize Next.js technical skeleton`.
+- PR description must include summary, scope, out of scope, changed files, test commands and regression checklist.
+- Direct commits to `main` are not acceptable for implementation work unless the user explicitly requests it.
 
 ## Data safety rules
 
