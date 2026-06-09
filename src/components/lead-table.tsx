@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { type Lead } from "@prisma/client";
+import { type Lead } from "@/generated/prisma/client";
 import { StatusPill } from "@/components/lead-status-pill";
 
 type LeadListItem = Pick<
@@ -16,20 +16,7 @@ type LeadListItem = Pick<
 >;
 
 function formatDate(value: Date | null) {
-  return value ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(value) : "—";
-}
-
-function filterHref(params: Record<string, string | undefined>, key: string, value: string) {
-  const next = new URLSearchParams();
-
-  for (const [paramKey, paramValue] of Object.entries(params)) {
-    if (paramValue) next.set(paramKey, paramValue);
-  }
-
-  if (value) next.set(key, value);
-  else next.delete(key);
-
-  return `/leads?${next.toString()}`;
+  return value ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(value) : "-";
 }
 
 export function LeadTable({
@@ -65,8 +52,8 @@ export function LeadTable({
                     {lead.businessName}
                   </Link>
                 </td>
-                <td className="px-4 py-4 text-slate-300">{lead.city ?? "—"}</td>
-                <td className="px-4 py-4 text-slate-300">{lead.category ?? "—"}</td>
+                <td className="px-4 py-4 text-slate-300">{lead.city ?? "-"}</td>
+                <td className="px-4 py-4 text-slate-300">{lead.category ?? "-"}</td>
                 <td className="px-4 py-4">
                   <StatusPill value={lead.leadStatus} />
                 </td>

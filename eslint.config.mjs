@@ -11,7 +11,7 @@ const config = [
     extends: ["next/core-web-vitals"]
   }),
   {
-    ignores: ["node_modules/**", ".next/**", "coverage/**", "generated/**"]
+    ignores: ["node_modules/**", ".next/**", "coverage/**", "generated/**", "src/generated/**"]
   }
 ];
 

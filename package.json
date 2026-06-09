@@ -9,13 +9,14 @@
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "test": "node --test tests/smoke.test.js",
-    "prisma:generate": "prisma generate",
+    "prisma:generate": "node --env-file=.env.example ./node_modules/prisma/build/index.js generate",
     "prisma:validate": "node --env-file=.env.example ./node_modules/prisma/build/index.js validate",
     "prisma:migrate": "node --env-file=.env.local ./node_modules/prisma/build/index.js migrate dev",
-    "prisma:seed": "node --env-file=.env.local prisma/seed.js"
+    "prisma:seed": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.10.1",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "next": "^15.3.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -29,7 +30,8 @@
     "eslint": "^9.28.0",
     "eslint-config-next": "^15.3.3",
     "postcss": "^8.5.4",
-    "prisma": "^6.10.1",
+    "prisma": "^7.8.0",
+    "tsx": "^4.20.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3"
   }
