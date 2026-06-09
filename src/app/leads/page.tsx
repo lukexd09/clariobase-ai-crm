@@ -1,7 +1,7 @@
 import { getLeads } from "@/lib/leads";
 import { LeadTable } from "@/components/lead-table";
 import { LeadFilters } from "@/components/lead-filters";
-import { LeadPriority, LeadStatus, PackageFit } from "@prisma/client";
+import { getLeadFilterOptions } from "@/lib/leads";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -23,14 +23,15 @@ export default async function LeadsPage({
     packageFit: firstValue(params.packageFit)
   };
   const leads = await getLeads(filters);
+  const filterOptions = await getLeadFilterOptions(filters);
   const filterControls = (
     <LeadFilters
       filters={filters}
       options={{
-        status: ["", ...Object.values(LeadStatus)],
-        priority: ["", ...Object.values(LeadPriority)],
-        city: ["", "Warsaw", "Krakow", "Gdansk", "Poznan", "Wroclaw", "Lodz"],
-        packageFit: ["", ...Object.values(PackageFit)]
+        status: ["", ...filterOptions.status],
+        priority: ["", ...filterOptions.priority],
+        city: ["", ...filterOptions.city],
+        packageFit: ["", ...filterOptions.packageFit]
       }}
     />
   );

@@ -1,6 +1,15 @@
-const { PrismaClient } = require("@prisma/client");
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Prisma, PrismaClient } from "../src/generated/prisma/client";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required to run the seed script");
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString })
+});
 
 const leads = [
   {
@@ -159,13 +168,13 @@ const leads = [
     lastImportedAt: new Date("2026-06-09T08:00:00.000Z"),
     archivedAt: null
   }
-];
+] satisfies Prisma.LeadUncheckedCreateInput[];
 
 async function main() {
   for (const lead of leads) {
     await prisma.lead.upsert({
       where: { customerId: lead.customerId },
-      update: lead,
+      update: lead as Prisma.LeadUpdateInput,
       create: lead
     });
   }

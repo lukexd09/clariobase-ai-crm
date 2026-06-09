@@ -1,4 +1,9 @@
-import { Prisma, LeadPriority, LeadStatus, PackageFit } from "@prisma/client";
+import {
+  Prisma,
+  LeadPriority,
+  LeadStatus,
+  PackageFit
+} from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type LeadFilters = {
@@ -56,6 +61,34 @@ export async function getLeadById(id: string) {
   });
 }
 
+export async function getLeadFilterOptions(filters: LeadFilters = {}) {
+  const [statusRows, priorityRows, cityRows, packageRows] = await Promise.all([
+    prisma.lead.findMany({
+      where: leadFiltersToWhere(filters, "status"),
+      select: { leadStatus: true }
+    }),
+    prisma.lead.findMany({
+      where: leadFiltersToWhere(filters, "priority"),
+      select: { priority: true }
+    }),
+    prisma.lead.findMany({
+      where: leadFiltersToWhere(filters, "city"),
+      select: { city: true }
+    }),
+    prisma.lead.findMany({
+      where: leadFiltersToWhere(filters, "packageFit"),
+      select: { packageFit: true }
+    })
+  ]);
+
+  return {
+    status: uniqueSorted(statusRows.map((row) => row.leadStatus)),
+    priority: uniqueSorted(priorityRows.map((row) => row.priority)),
+    city: uniqueSorted(cityRows.map((row) => row.city).filter(isDefined)),
+    packageFit: uniqueSorted(packageRows.map((row) => row.packageFit))
+  };
+}
+
 export async function updateLeadOperationalFields(id: string, input: LeadUpdateInput) {
   return prisma.lead.update({
     where: { id },
@@ -66,4 +99,39 @@ export async function updateLeadOperationalFields(id: string, input: LeadUpdateI
       nextActionAt: input.nextActionAt
     }
   });
+}
+
+function leadFiltersToWhere(
+  filters: LeadFilters,
+  omitKey?: keyof LeadFilters
+): Prisma.LeadWhereInput {
+  return {
+    ...(omitKey === "status" || !filters.status
+      ? {}
+      : { leadStatus: filters.status as LeadStatus }),
+    ...(omitKey === "priority" || !filters.priority
+      ? {}
+      : { priority: filters.priority as LeadPriority }),
+    ...(omitKey === "city" || !filters.city
+      ? {}
+      : {
+          city: {
+            contains: filters.city,
+            mode: "insensitive"
+          }
+        }),
+    ...(omitKey === "packageFit" || !filters.packageFit
+      ? {}
+      : { packageFit: filters.packageFit as PackageFit })
+  };
+}
+
+function uniqueSorted(values: Array<string | null | undefined>) {
+  return [...new Set(values.filter(isDefined))].sort((left, right) =>
+    left.localeCompare(right)
+  );
+}
+
+function isDefined(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.length > 0;
 }

@@ -1,9 +1,16 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
-import { LeadPriority, LeadStatus, PackageFit } from "@prisma/client";
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { updateLeadAction } from "@/app/leads/actions";
+import {
+  LEAD_PRIORITY_VALUES,
+  LEAD_STATUS_VALUES,
+  PACKAGE_FIT_VALUES,
+  type LeadPriorityValue,
+  type LeadStatusValue,
+  type PackageFitValue
+} from "@/lib/lead-values";
 import { StatusPill } from "@/components/lead-status-pill";
 
 type LeadUpdateState = {
@@ -38,9 +45,9 @@ export function LeadUpdateForm({
   nextActionAt
 }: {
   leadId: string;
-  leadStatus: LeadStatus;
-  priority: LeadPriority;
-  packageFit: PackageFit;
+  leadStatus: LeadStatusValue;
+  priority: LeadPriorityValue;
+  packageFit: PackageFitValue;
   nextActionAt: string;
 }) {
   const [state, formAction] = useActionState<LeadUpdateState, FormData>(
@@ -51,36 +58,48 @@ export function LeadUpdateForm({
   return (
     <form action={formAction} className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Lead status" value={<StatusPill value={leadStatus} />} control={
-          <select name="leadStatus" defaultValue={leadStatus} className="input">
-            {Object.values(LeadStatus).map((value) => (
-              <option key={value} value={value}>
-                {value.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
-        } />
-        <Field label="Priority" value={<StatusPill value={priority} />} control={
-          <select name="priority" defaultValue={priority} className="input">
-            {Object.values(LeadPriority).map((value) => (
-              <option key={value} value={value}>
-                {value.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
-        } />
-        <Field label="Package fit" value={<StatusPill value={packageFit} />} control={
-          <select name="packageFit" defaultValue={packageFit} className="input">
-            {Object.values(PackageFit).map((value) => (
-              <option key={value} value={value}>
-                {value.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
-        } />
+        <Field
+          label="Lead status"
+          value={<StatusPill value={leadStatus} />}
+          control={
+            <select name="leadStatus" defaultValue={leadStatus} className="input">
+              {LEAD_STATUS_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {value.replaceAll("_", " ")}
+                </option>
+              ))}
+            </select>
+          }
+        />
+        <Field
+          label="Priority"
+          value={<StatusPill value={priority} />}
+          control={
+            <select name="priority" defaultValue={priority} className="input">
+              {LEAD_PRIORITY_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {value.replaceAll("_", " ")}
+                </option>
+              ))}
+            </select>
+          }
+        />
+        <Field
+          label="Package fit"
+          value={<StatusPill value={packageFit} />}
+          control={
+            <select name="packageFit" defaultValue={packageFit} className="input">
+              {PACKAGE_FIT_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {value.replaceAll("_", " ")}
+                </option>
+              ))}
+            </select>
+          }
+        />
         <Field
           label="Next action date"
-          value={nextActionAt || "—"}
+          value={nextActionAt || "-"}
           control={
             <input
               name="nextActionAt"
