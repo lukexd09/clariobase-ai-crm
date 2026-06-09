@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clariobase.local/schemas/ai_review_pack.schema.json",
+  "title": "AI Review Pack",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "batch_id",
+    "workspace",
+    "purpose",
+    "instructions",
+    "leads"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workspace": {
+      "type": "string",
+      "enum": ["clariobase", "ugc"]
+    },
+    "purpose": {
+      "type": "string",
+      "enum": [
+        "lead_review",
+        "mini_audit_generation",
+        "outreach_message_generation",
+        "followup_recommendation",
+        "pipeline_health_review",
+        "lost_leads_analysis"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "instructions": {
+      "type": "object",
+      "required": ["goal", "business_context", "allowed_decisions"],
+      "properties": {
+        "goal": { "type": "string" },
+        "business_context": { "type": "string" },
+        "allowed_decisions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "prepare_mini_audit",
+              "contact_now",
+              "nurture",
+              "reject",
+              "needs_manual_review"
+            ]
+          }
+        }
+      }
+    },
+    "leads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["lead_id", "business_name", "current_status"],
+        "properties": {
+          "lead_id": { "type": "string" },
+          "customer_id": { "type": "string" },
+          "business_name": { "type": "string" },
+          "city": { "type": "string" },
+          "category": { "type": "string" },
+          "website_url": { "type": ["string", "null"] },
+          "instagram_url": { "type": ["string", "null"] },
+          "google_rating": { "type": ["number", "null"] },
+          "google_reviews_count": { "type": ["integer", "null"] },
+          "score_total": { "type": ["integer", "null"] },
+          "score_reasons": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "current_status": { "type": "string" },
+          "last_activity": { "type": ["string", "null"] },
+          "notes": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}
