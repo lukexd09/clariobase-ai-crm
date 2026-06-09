@@ -7,15 +7,32 @@ Self-hosted, file-based AI-assisted CRM for ClarioBase lead management, sales wo
 This is not intended to be a generic CRM. It is a lightweight operational CRM designed around:
 
 - a lead harvester,
-- PostgreSQL as the source of truth,
+- a dedicated CRM PostgreSQL database,
 - sales pipeline management,
 - scoring and prioritization,
 - mini-audits,
 - manual ChatGPT-assisted analysis through structured file exchange.
 
+## Selected technical direction
+
+```text
+Application: Next.js App Router
+Language: TypeScript
+Database: separate PostgreSQL database for CRM
+ORM / migrations: Prisma
+Validation: Zod
+UI foundation: Tailwind CSS + shadcn/ui
+Package manager: pnpm
+AI integration v1: file-based exchange only, no AI API calls
+```
+
+See `docs/10-technical-stack-decision.md` for the full decision.
+
 ## Key principles
 
-- PostgreSQL is the source of truth.
+- CRM PostgreSQL database is the source of truth for CRM operational data.
+- Harvester remains the lead acquisition/enrichment system.
+- Harvester database and CRM database should be separate.
 - CRM UI supports lead review, scoring, pipeline, tasks, activities and mini-audits.
 - No external AI API in v1.
 - AI collaboration is file-based through `ai_exchange`.
@@ -44,12 +61,17 @@ Before starting any coding task, read:
 - `docs/05-mvp-scope.md`
 - `docs/08-codex-working-rules.md`
 - `docs/09-ways-of-working.md`
+- `docs/10-technical-stack-decision.md`
 
 For AI exchange work, also read:
 
 - `docs/04-ai-file-exchange.md`
 - `ai_exchange/schemas/ai_review_pack.schema.json`
 - `ai_exchange/schemas/ai_response.schema.json`
+
+For harvester integration work, first create/update:
+
+- `docs/11-harvester-integration-analysis.md`
 
 ## Repository structure
 
@@ -68,4 +90,4 @@ clariobase-ai-crm/
 
 ## Current status
 
-Project foundation and documentation phase.
+Project foundation and implementation readiness phase.
