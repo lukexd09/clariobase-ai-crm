@@ -9,13 +9,32 @@ For the full team process, use `docs/09-ways-of-working.md` as the source of tru
 - Do not invent broad CRM features outside the documented MVP scope.
 - Read `docs/00-project-context.md` before planning implementation.
 - Read `docs/09-ways-of-working.md` before starting implementation work.
+- Read `docs/10-technical-stack-decision.md` before coding.
 - Read `docs/04-ai-file-exchange.md` before touching AI exchange logic.
-- Preserve PostgreSQL as the source of truth.
+- Preserve the dedicated CRM PostgreSQL database as the CRM source of truth.
+- Keep harvester and CRM databases separate.
+- Do not mutate harvester tables directly.
 - Do not add external AI API calls in v1.
 - Do not implement automatic message sending in v1.
 - Prefer small, reviewable changes.
 - Work from a clear issue/task and keep the change within scope.
 - Provide changed files, test commands and known limitations before finishing.
+
+## Selected stack rules
+
+The selected implementation stack is:
+
+```text
+Next.js App Router
+TypeScript
+PostgreSQL
+Prisma
+Zod
+Tailwind CSS + shadcn/ui
+pnpm
+```
+
+Codex must not replace this with a temporary MVP stack unless the user explicitly changes the decision.
 
 ## Data safety rules
 
@@ -36,6 +55,16 @@ Any implementation of AI response import must include:
 5. Manual approval.
 6. Clear error handling.
 7. No direct update of protected fields.
+
+## Harvester integration rules
+
+Before implementing harvester import/sync, create or update:
+
+```text
+docs/11-harvester-integration-analysis.md
+```
+
+The CRM must not directly mutate harvester tables. Integration should be import/sync based and explicitly documented.
 
 ## UX priority
 
