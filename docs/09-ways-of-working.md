@@ -29,6 +29,10 @@ User merges only after explicit approval
 - Codex must receive narrow, explicit prompts.
 - Changes should be small enough to review.
 - No silent architecture changes.
+- Selected stack is Next.js App Router, TypeScript, PostgreSQL, Prisma, Zod, Tailwind CSS and shadcn/ui.
+- Do not replace the selected stack with a temporary MVP stack.
+- CRM and harvester databases must remain separate.
+- No direct mutation of harvester tables from CRM.
 - No destructive database changes without explicit migration plan and rollback note.
 - No real lead data in Git by default.
 - No external AI API calls in v1.
@@ -92,6 +96,33 @@ An epic or task is ready for Codex only when it has:
 - rollback considerations if data or migrations are involved.
 
 If these are missing, ChatGPT should refine the task before Codex starts.
+
+## First coding PR readiness
+
+The first coding PR must be limited to implementation readiness.
+
+In scope:
+
+- initialize Next.js App Router with TypeScript,
+- configure pnpm,
+- configure Tailwind CSS,
+- prepare shadcn/ui foundation if it can be done safely,
+- configure Prisma without real credentials,
+- add `.env.example`,
+- add basic health/status page or route,
+- add basic test/lint commands,
+- update local setup instructions.
+
+Out of scope:
+
+- CRM feature screens,
+- real lead data,
+- harvester import/sync,
+- AI exchange implementation,
+- auth,
+- Docker hardening,
+- deployment automation,
+- multi-tenant support.
 
 ## Epic template
 
@@ -192,6 +223,8 @@ Read first:
 - docs/00-project-context.md
 - docs/05-mvp-scope.md
 - docs/08-codex-working-rules.md
+- docs/09-ways-of-working.md
+- docs/10-technical-stack-decision.md
 - <other relevant docs>
 
 Task:
@@ -206,6 +239,8 @@ Out of scope:
 - <item 2>
 
 Constraints:
+- Use the selected stack: Next.js App Router, TypeScript, PostgreSQL, Prisma, Zod, Tailwind CSS and shadcn/ui.
+- Use a dedicated CRM database; do not mutate harvester tables.
 - Do not add external AI API calls.
 - Do not commit real lead data.
 - Do not change unrelated files.
@@ -249,11 +284,15 @@ They are too broad and invite uncontrolled changes.
 Good prompts are narrow:
 
 ```text
+Initialize the Next.js App Router project skeleton with TypeScript, pnpm, Tailwind CSS, Prisma setup, `.env.example`, a simple health/status route, and basic lint/test commands. Do not implement CRM feature screens yet.
+```
+
+```text
 Implement JSON schema validation for files placed in `ai_exchange/outbox`. Validate against `ai_exchange/schemas/ai_response.schema.json`, return readable errors, and do not apply any CRM changes yet.
 ```
 
 ```text
-Create the initial `leads` table migration based on `docs/03-data-model.md`, but include only fields required for MVP lead list and lead detail. Do not add UGC-specific fields yet.
+Create the initial Prisma `Lead` model based on `docs/03-data-model.md`, but include only fields required for MVP lead list and lead detail. Do not add UGC-specific fields yet.
 ```
 
 ```text
@@ -319,6 +358,8 @@ Rules:
 - [ ] No secrets committed
 - [ ] No external AI API calls added
 - [ ] AI exchange schemas/samples still valid if touched
+- [ ] CRM database remains separate from harvester database
+- [ ] Harvester tables are not mutated
 
 ## Risks / notes
 
@@ -334,6 +375,7 @@ ChatGPT review should check:
 - Are there unrelated changes?
 - Are there hidden scope expansions?
 - Are database changes safe?
+- Does the change preserve separate CRM and harvester database boundaries?
 - Is error handling sufficient?
 - Are tests or manual checks provided?
 - Does this create future product debt?
@@ -374,6 +416,7 @@ A task is done only when:
 - Existing data is not destroyed.
 - New fields have sensible defaults or nullable strategy.
 - Import/export paths are tested with sample files.
+- CRM database remains separate from harvester database.
 
 ## AI exchange changes
 
@@ -408,6 +451,8 @@ Before merge, check relevant items:
 ```markdown
 - [ ] App starts locally
 - [ ] Database connection works
+- [ ] CRM database is separate from harvester database
+- [ ] Harvester tables are not mutated
 - [ ] Lead list still loads
 - [ ] Lead detail still loads
 - [ ] Status update still works
@@ -429,6 +474,8 @@ Before merge, check relevant items:
 - Do not rename/drop columns without a migration and fallback plan.
 - Do not change `customer_id` semantics casually.
 - Do not use Google Place ID as the main business key.
+- Do not directly mutate harvester tables from CRM.
+- Harvester import/sync requires prior integration analysis.
 
 ## Documentation rules
 
@@ -438,6 +485,8 @@ Update docs when:
 - data model changes,
 - AI exchange contract changes,
 - MVP scope changes,
+- technical stack decisions change,
+- database boundary decisions change,
 - a major decision is made,
 - Codex needs a new rule to avoid repeating a mistake.
 
@@ -449,7 +498,9 @@ Important docs:
 - `docs/05-mvp-scope.md` - current scope boundaries,
 - `docs/07-decisions-log.md` - architecture/product decisions,
 - `docs/08-codex-working-rules.md` - rules for coding agents,
-- `docs/09-ways-of-working.md` - team process.
+- `docs/09-ways-of-working.md` - team process,
+- `docs/10-technical-stack-decision.md` - selected implementation stack,
+- `docs/11-harvester-integration-analysis.md` - required before harvester sync.
 
 ## Scope control rules
 
