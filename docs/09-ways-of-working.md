@@ -22,6 +22,12 @@ User tests locally
 Regression checklist is executed
   ↓
 User merges only after explicit approval
+  ↓
+ChatGPT verifies that the code is on main
+  ↓
+ChatGPT closes the completed task
+  ↓
+Next task is prepared
 ```
 
 ## Work item coding
@@ -60,6 +66,7 @@ Rules:
 - No automatic outreach sending in v1.
 - User approval is required before merge.
 - Codex must create a PR or update the existing PR before considering a task finished.
+- A task must not be closed until merged code is verified on `main`.
 
 ## Roles
 
@@ -85,6 +92,8 @@ Responsibilities:
 - writes epics and task breakdowns,
 - prepares Codex prompts,
 - reviews PRs/diffs,
+- verifies that merged changes are present on `main`,
+- closes completed tasks only after `main` verification,
 - creates test and regression checklists,
 - validates whether implementation matches the business process,
 - keeps the project focused on MVP.
@@ -117,6 +126,30 @@ Required behavior:
 - Codex must share the PR link after finishing.
 
 PRs are the mandatory checkpoint for ChatGPT review and user approval. Direct commits to `main` are not acceptable for implementation work unless the user explicitly requests it.
+
+## Post-merge verification and task closure
+
+After the user merges a PR, ChatGPT must verify that the relevant changes are actually present on `main` before closing the task.
+
+Required behavior:
+
+- Check that the PR is merged.
+- Check key files on `main`, not only on the feature branch.
+- Confirm that the implementation matches the accepted scope.
+- Add a completion comment to the task issue.
+- Close the task issue as completed.
+- Only then prepare the next task and Codex prompt.
+
+For implementation tasks, the verification should usually include at least one direct `main` check, for example:
+
+```text
+package.json
+prisma/schema.prisma
+src/app/health/page.tsx
+README.md
+```
+
+Choose files relevant to the task being closed.
 
 ## Definition of Ready
 
@@ -285,6 +318,10 @@ review
 local test
   ↓
 merge
+  ↓
+verify on main
+  ↓
+close task
 ```
 
 Rules:
@@ -296,6 +333,7 @@ Rules:
 - PR description must explain what changed and how to test it.
 - Large PRs should be split.
 - Codex must not finish by only committing to a branch; it must create or update the PR.
+- Completed work is not considered closed until it is verified on `main`.
 
 ## PR description template
 
@@ -373,7 +411,10 @@ A task is done only when:
 - regression checklist passes,
 - documentation is updated if behavior changed,
 - no real lead data or secrets are committed,
-- user approves merge.
+- user approves merge,
+- PR is merged,
+- relevant changes are verified on `main`,
+- task issue is closed as completed.
 
 ## Testing strategy
 
@@ -409,6 +450,7 @@ Update docs when:
 - database boundary decisions change,
 - work item coding changes,
 - PR workflow changes,
+- task closure workflow changes,
 - a major decision is made,
 - Codex needs a new rule to avoid repeating a mistake.
 
@@ -457,6 +499,9 @@ Do not build generic CRM features, multi-tenant SaaS, complex permissions, autom
 9. User tests locally.
 10. Fixes are requested if needed.
 11. User merges.
+12. ChatGPT verifies merged code on `main`.
+13. ChatGPT closes completed task.
+14. ChatGPT prepares next task and prompt.
 
 ## Lessons carried over from harvester work
 
