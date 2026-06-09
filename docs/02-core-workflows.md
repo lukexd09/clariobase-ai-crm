@@ -5,7 +5,9 @@
 ```text
 Harvester finds lead
   ↓
-Lead is stored in PostgreSQL
+Lead is stored/enriched in harvester PostgreSQL database
+  ↓
+CRM import/sync copies selected lead data into dedicated CRM PostgreSQL database
   ↓
 CRM shows lead as New
   ↓
@@ -13,6 +15,13 @@ User reviews basic data
   ↓
 Lead is qualified, rejected or sent to AI review
 ```
+
+Important boundary:
+
+- Harvester is responsible for acquisition/enrichment.
+- CRM is responsible for sales workflow.
+- CRM must not directly mutate harvester tables.
+- Harvester import/sync requires a documented mapping before implementation.
 
 Expected statuses:
 
