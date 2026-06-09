@@ -4,6 +4,36 @@
 
 Build a minimal operational CRM that helps ClarioBase manage harvested leads, prioritize work, prepare mini-audits, plan outreach and collaborate with ChatGPT through structured files.
 
+## Technical baseline
+
+MVP must follow the selected stack from `docs/10-technical-stack-decision.md`:
+
+```text
+Next.js App Router
+TypeScript
+PostgreSQL dedicated CRM database
+Prisma
+Zod
+Tailwind CSS + shadcn/ui
+pnpm
+```
+
+The CRM database must be separate from the harvester database.
+
+## Implementation readiness before feature coding
+
+Before CRM feature work starts, the project should have:
+
+- Next.js app skeleton,
+- TypeScript configured,
+- Tailwind configured,
+- Prisma configured,
+- `.env.example`,
+- local setup instructions,
+- basic health/status route or page,
+- basic test command,
+- no real data committed.
+
 ## In scope for MVP
 
 ## 1. Lead management
@@ -86,6 +116,16 @@ Archive file
 - Offers sent.
 - Won / lost.
 
+## 9. Harvester import/sync - MVP boundary
+
+The MVP may include harvester import/sync only after a separate analysis document is prepared:
+
+```text
+docs/11-harvester-integration-analysis.md
+```
+
+Initial CRM implementation should not directly mutate harvester tables.
+
 ## Out of scope for MVP
 
 - External AI API calls.
@@ -98,11 +138,14 @@ Archive file
 - Marketing campaigns.
 - Full project delivery management.
 - Complex role-based access.
+- Direct mutation of harvester database tables.
+- Temporary non-Next.js implementation stack.
 
 ## Non-negotiable requirements
 
 - Real data must not be committed by default.
 - AI imports require preview and manual approval.
 - Database must keep AI recommendations separate from approved CRM state.
-- PostgreSQL must remain the source of truth.
+- CRM PostgreSQL database must remain the CRM source of truth.
+- Harvester and CRM databases must stay separate.
 - The app should remain simple enough for a solo operator.
