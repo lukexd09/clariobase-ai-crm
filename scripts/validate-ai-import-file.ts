@@ -1,36 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { LeadPriority, LeadStatus, PackageFit } from "../src/generated/prisma/client";
-import { z } from "zod";
-
-const importRowSchema = z.object({
-  customerId: z.string().trim().min(1).optional(),
-  businessName: z.string().trim().min(1),
-  category: z.string().trim().min(1).optional().nullable(),
-  city: z.string().trim().min(1).optional().nullable(),
-  region: z.string().trim().min(1).optional().nullable(),
-  country: z.string().trim().min(1).optional().nullable(),
-  source: z.string().trim().min(1).optional().nullable(),
-  sourceRecordId: z.string().trim().min(1).optional().nullable(),
-  googlePlaceId: z.string().trim().min(1).optional().nullable(),
-  websiteUrl: z.string().trim().min(1).url().optional().nullable(),
-  instagramUrl: z.string().trim().min(1).url().optional().nullable(),
-  facebookUrl: z.string().trim().min(1).url().optional().nullable(),
-  phone: z.string().trim().min(1).optional().nullable(),
-  email: z.string().trim().min(1).email().optional().nullable(),
-  address: z.string().trim().min(1).optional().nullable(),
-  leadStatus: z.nativeEnum(LeadStatus).optional().nullable(),
-  priority: z.nativeEnum(LeadPriority).optional().nullable(),
-  packageFit: z.nativeEnum(PackageFit).optional().nullable(),
-  scoreTotal: z.number().int().optional().nullable(),
-  scoreLabel: z.string().trim().min(1).optional().nullable(),
-  nextActionAt: z.string().datetime().optional().nullable(),
-  lastReviewedAt: z.string().datetime().optional().nullable(),
-  lastImportedAt: z.string().datetime().optional().nullable()
-});
-
-const importFileSchema = z.array(importRowSchema);
+import { importFileSchema } from "../src/lib/import-contract";
 
 function flattenIssues(issues: Array<{ path: Array<string | number | symbol>; message: string }>) {
   return issues.map((issue) => {
