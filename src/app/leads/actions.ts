@@ -33,7 +33,7 @@ export async function updateLeadAction(leadId: string, formData: FormData) {
   }
 
   await updateLeadOperationalFields(leadId, parsed.data);
-  if (existingLead) {
+  if (existingLead && changedFields.length > 0) {
     await createLeadActivity({
       leadId,
       type: "STATUS_CHANGE",

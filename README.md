@@ -1,4 +1,4 @@
-﻿# ClarioBase AI CRM
+# ClarioBase AI CRM
 
 Self-hosted, file-based AI-assisted CRM for ClarioBase lead management, sales workflow, mini-audits, outreach preparation and future UGC pipeline support.
 
@@ -99,6 +99,10 @@ clariobase-ai-crm/
 ## Current status
 
 Project foundation and implementation readiness phase.
+
+## Sales workbench
+
+Open `/work` to see the first daily sales workbench. It groups actionable leads into overdue, due today, upcoming, and no-next-action buckets, and links each record to the existing quick update form on the lead detail page.
 
 ## Activity timeline
 
