@@ -21,20 +21,18 @@ Thumbs.db
 *.db
 *.log
 
-# AI exchange real data files should stay local by default.
-# Schemas and anonymized samples are allowed.
-ai_exchange/inbox/*.json
-ai_exchange/inbox/*.md
-ai_exchange/outbox/*.json
-ai_exchange/outbox/*.md
-ai_exchange/processed/*.json
-ai_exchange/processed/*.md
-ai_exchange/rejected/*.json
-ai_exchange/rejected/*.md
+# AI exchange runtime data should stay local by default.
+data/ai-exchange/inbox/*.json
+data/ai-exchange/inbox/*.md
+data/ai-exchange/processing/*.json
+data/ai-exchange/processing/*.md
+data/ai-exchange/outbox/*.json
+data/ai-exchange/outbox/*.md
+data/ai-exchange/archive/*.json
+data/ai-exchange/archive/*.md
+data/ai-exchange/error/*.json
+data/ai-exchange/error/*.md
 
-!ai_exchange/**/.gitkeep
-!ai_exchange/schemas/*.json
-!ai_exchange/schemas/*.md
-!ai_exchange/samples/*.json
-!ai_exchange/samples/*.md
+!data/ai-exchange/**/.gitkeep
+!data/ai-exchange/inbox/sample-prepared-leads.json
 coverage/

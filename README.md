@@ -127,6 +127,8 @@ Project foundation and implementation readiness phase.
 - `pnpm prisma:seed`
 - `pnpm leads:import`
 - `pnpm leads:detect-duplicates`
+- `pnpm ai:export-leads`
+- `pnpm ai:validate-import-file`
 
 ## Health check
 
@@ -138,6 +140,8 @@ Import a local JSON file with fake lead data:
 
 ```bash
 corepack pnpm leads:import ./data/import/sample-leads.json
+corepack pnpm ai:export-leads
+corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/sample-prepared-leads.json
 ```
 
 Safety rules:
@@ -174,3 +178,52 @@ Safety rules:
 - Do not delete leads.
 - Do not commit `.env.local`.
 - Do not mutate the harvester database.
+
+## AI file exchange
+
+ClarioBase also supports a local, file-based ChatGPT workflow without calling any external AI API.
+
+### Folder convention
+
+```text
+data/ai-exchange/
+- inbox/       # Prepared files waiting for validation
+- processing/  # Optional manual staging area
+- outbox/      # Exported CRM files for review or ChatGPT preparation
+- archive/     # Archived exchange files
+- error/       # Invalid or rejected files
+```
+
+### Export a local review file
+
+```bash
+corepack pnpm ai:export-leads
+```
+
+This writes a JSON file into `data/ai-exchange/outbox/` containing local CRM lead context for review and manual ChatGPT preparation. It does not call any AI service and does not export `.env` data or harvester data.
+
+### Validate a prepared import file
+
+```bash
+corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
+```
+
+The validator checks that the file is valid JSON, contains a top-level array, and matches the same row contract used by `leads:import`. It prints total rows, valid rows, invalid rows, and row-level validation errors. A non-zero exit code means the file should not be imported yet.
+
+### Manual workflow
+
+```bash
+corepack pnpm ai:export-leads
+# user reviews or prepares the file with ChatGPT outside the app
+corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
+corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json
+corepack pnpm leads:detect-duplicates
+```
+
+### Safety rules
+
+- No external AI API calls are made by the app.
+- No automatic ChatGPT invocation exists.
+- No file watcher or background sync is included.
+- No harvester DB data is exported or mutated.
+- No real lead data should be committed to the repository.

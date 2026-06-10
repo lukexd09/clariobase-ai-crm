@@ -7,7 +7,7 @@ The CRM must support manual ChatGPT collaboration without calling external AI AP
 The exchange is file-based:
 
 ```text
-CRM export → ChatGPT analysis → structured response → CRM import preview → user approval → apply changes
+CRM export -> ChatGPT analysis -> structured response -> CRM import preview -> user approval -> apply changes
 ```
 
 ## Related work item coding
@@ -32,12 +32,12 @@ See `docs/12-work-item-coding.md` for the full coding standard.
 
 ```text
 ai_exchange/
-├── inbox/       # CRM-generated files for ChatGPT review
-├── outbox/      # ChatGPT-generated files ready for CRM import
-├── processed/   # Archived files after successful import
-├── rejected/    # Invalid, unsafe or rejected responses
-├── schemas/     # JSON schemas for file contracts
-└── samples/     # Safe anonymized examples
+- inbox/       # CRM-generated files for ChatGPT review
+- outbox/      # ChatGPT-generated files ready for CRM import
+- processed/   # Archived files after successful import
+- rejected/    # Invalid, unsafe or rejected responses
+- schemas/     # JSON schemas for file contracts
+- samples/     # Safe anonymized examples
 ```
 
 ## Important rule
@@ -87,17 +87,17 @@ lost_leads_analysis
 
 ```text
 File found in ai_exchange/outbox
-  ↓
+  ->
 Schema validation
-  ↓
+  ->
 Business validation
-  ↓
+  ->
 Preview screen
-  ↓
+  ->
 User accepts selected items
-  ↓
+  ->
 CRM applies changes
-  ↓
+  ->
 Files moved to processed or rejected
 ```
 

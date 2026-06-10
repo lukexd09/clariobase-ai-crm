@@ -15,7 +15,9 @@
     "prisma:migrate": "node --env-file=.env.local ./node_modules/prisma/build/index.js migrate dev",
     "prisma:seed": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs prisma/seed.ts",
     "leads:import": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/import-leads.ts",
-    "leads:detect-duplicates": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/detect-duplicates.ts"
+    "leads:detect-duplicates": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/detect-duplicates.ts",
+    "ai:export-leads": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts",
+    "ai:validate-import-file": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/validate-ai-import-file.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

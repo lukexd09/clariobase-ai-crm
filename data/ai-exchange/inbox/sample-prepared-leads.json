@@ -1,0 +1,43 @@
+[
+  {
+    "customerId": "imp-aurora-katowice",
+    "businessName": "Aurora Nail Studio",
+    "category": "Beauty salon",
+    "city": "Katowice",
+    "region": "Silesian",
+    "country": "Poland",
+    "source": "manual",
+    "sourceRecordId": "manual-aurora-001",
+    "websiteUrl": "https://example.com/aurora-nail-studio",
+    "instagramUrl": "https://instagram.com/auroranailstudio",
+    "phone": "+48 123 450 101",
+    "email": "hello@aurora.example",
+    "address": "ul. Srebrna 12, Katowice",
+    "leadStatus": "NEW",
+    "priority": "MEDIUM",
+    "packageFit": "BASE",
+    "scoreTotal": 42,
+    "scoreLabel": "Warm",
+    "nextActionAt": "2026-06-15T09:00:00.000Z"
+  },
+  {
+    "businessName": "Velvet Brows & Lashes",
+    "category": "Beauty salon",
+    "city": "Chorzow",
+    "region": "Silesian",
+    "country": "Poland",
+    "source": "manual",
+    "sourceRecordId": "manual-velvet-002",
+    "websiteUrl": "https://example.com/velvet-brows-lashes",
+    "instagramUrl": "https://instagram.com/velvetbrowslashes",
+    "phone": "+48 123 450 102",
+    "email": "bookings@velvetbrows.example",
+    "address": "ul. Wenecka 8, Chorzow",
+    "leadStatus": "TO_AUDIT",
+    "priority": "HIGH",
+    "packageFit": "CLARITY",
+    "scoreTotal": 63,
+    "scoreLabel": "Strong",
+    "nextActionAt": "2026-06-12T10:00:00.000Z"
+  }
+]
