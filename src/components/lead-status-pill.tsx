@@ -7,6 +7,7 @@ import {
   type LeadStatusValue,
   type PackageFitValue
 } from "@/lib/lead-values";
+import { type ActivityTypeValue } from "@/lib/activity-values";
 import { cn } from "@/lib/utils";
 
 const variants: Record<string, string> = {
@@ -49,7 +50,13 @@ const variants: Record<string, string> = {
   OPEN: "bg-sky-500/15 text-sky-200 border-sky-500/30",
   NEEDS_REVIEW: "bg-amber-500/15 text-amber-200 border-amber-500/30",
   DISMISSED: "bg-slate-500/15 text-slate-200 border-slate-500/30",
-  RESOLVED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30"
+  RESOLVED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
+  NOTE: "bg-slate-500/15 text-slate-200 border-slate-500/30",
+  CALL: "bg-indigo-500/15 text-indigo-200 border-indigo-500/30",
+  MESSAGE: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
+  STATUS_CHANGE: "bg-violet-500/15 text-violet-200 border-violet-500/30",
+  AUDIT: "bg-amber-500/15 text-amber-200 border-amber-500/30",
+  OTHER: "bg-slate-500/15 text-slate-200 border-slate-500/30"
 };
 
 export function StatusPill({
@@ -63,7 +70,8 @@ export function StatusPill({
     | ImportBatchStatusValue
     | ImportRowStatusValue
     | ImportSourceTypeValue
-    | DuplicateCandidateStatusValue;
+    | DuplicateCandidateStatusValue
+    | ActivityTypeValue;
   className?: string;
 }) {
   return (

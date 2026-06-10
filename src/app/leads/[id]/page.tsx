@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLeadById } from "@/lib/leads";
+import { getLeadActivities } from "@/lib/activities";
 import { LeadUpdateForm } from "@/components/lead-update-form";
+import { ActivityForm, ActivityTimeline } from "@/components/activity-form";
 import { StatusPill } from "@/components/lead-status-pill";
 
 function formatDate(value: Date | null | undefined) {
@@ -28,7 +30,7 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const lead = await getLeadById(id);
+  const [lead, activities] = await Promise.all([getLeadById(id), getLeadActivities(id)]);
 
   if (!lead) notFound();
 
@@ -108,6 +110,9 @@ export default async function LeadDetailPage({
               packageFit={lead.packageFit}
               nextActionAt={asLocalDateTimeValue(lead.nextActionAt)}
             />
+
+            <ActivityForm leadId={lead.id} />
+            <ActivityTimeline activities={activities} />
           </section>
         </div>
       </div>

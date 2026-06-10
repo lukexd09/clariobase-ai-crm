@@ -100,6 +100,14 @@ clariobase-ai-crm/
 
 Project foundation and implementation readiness phase.
 
+## Sales workbench
+
+Open `/work` to see the first daily sales workbench. It groups actionable leads into overdue, due today, upcoming, and no-next-action buckets, and links each record to the existing quick update form on the lead detail page.
+
+## Activity timeline
+
+Each lead detail page includes a lightweight activity timeline and a manual activity form for logging notes, calls, messages, and other interaction types. Seed data includes fake demo activities for local development.
+
 ## Local setup for the Next.js skeleton
 
 1. Install dependencies with `pnpm install`.
@@ -129,10 +137,6 @@ Project foundation and implementation readiness phase.
 ## Health check
 
 Open `/health` after starting the app to verify the skeleton is running.
-
-## Sales workbench
-
-Open `/work` to see the first daily sales workbench. It groups actionable leads into overdue, due today, upcoming, and no-next-action buckets, and links each record to the existing quick update form on the lead detail page.
 
 ## Local import
 

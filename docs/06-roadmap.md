@@ -82,7 +82,7 @@ Potential deliverables:
 
 - Pipeline view.
 - Tasks.
-- Activities.
+- Activities and a lead activity timeline.
 - Mini-audit drafts.
 - Package fit.
 - Basic reporting.

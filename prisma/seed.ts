@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Prisma, PrismaClient } from "../src/generated/prisma/client";
+import { Prisma, PrismaClient, type ActivityType } from "../src/generated/prisma/client";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -171,13 +171,37 @@ const leads = [
 ] satisfies Prisma.LeadUncheckedCreateInput[];
 
 async function main() {
+  await prisma.activity.deleteMany({});
   for (const lead of leads) {
-    await prisma.lead.upsert({
+    const savedLead = await prisma.lead.upsert({
       where: { customerId: lead.customerId },
       update: lead as Prisma.LeadUpdateInput,
       create: lead
     });
+
+    await prisma.activity.createMany({
+      data: demoActivitiesForLead(savedLead.id, lead.businessName)
+    });
   }
+}
+
+function demoActivitiesForLead(leadId: string, businessName: string) {
+  return [
+    {
+      leadId,
+      type: "NOTE" as ActivityType,
+      title: `${businessName} reviewed`,
+      body: "Seed note for local development.",
+      occurredAt: new Date("2026-06-09T08:30:00.000Z")
+    },
+    {
+      leadId,
+      type: "CALL" as ActivityType,
+      title: `${businessName} quick call`,
+      body: "Seed call activity for timeline testing.",
+      occurredAt: new Date("2026-06-10T09:30:00.000Z")
+    }
+  ] satisfies Prisma.ActivityCreateManyInput[];
 }
 
 main()

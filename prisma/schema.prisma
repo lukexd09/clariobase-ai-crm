@@ -66,6 +66,15 @@ enum DuplicateCandidateStatus {
   RESOLVED
 }
 
+enum ActivityType {
+  NOTE
+  CALL
+  MESSAGE
+  STATUS_CHANGE
+  AUDIT
+  OTHER
+}
+
 model Lead {
   id             String       @id @default(cuid())
   customerId     String       @unique @map("customer_id")
@@ -98,6 +107,7 @@ model Lead {
   importRowResults ImportRowResult[]
   duplicateCandidatesAsLeadA DuplicateCandidate[] @relation("DuplicateCandidateLeadA")
   duplicateCandidatesAsLeadB DuplicateCandidate[] @relation("DuplicateCandidateLeadB")
+  activities Activity[]
 
   @@index([businessName])
   @@index([city, country])
@@ -174,4 +184,21 @@ model DuplicateCandidate {
   @@index([leadIdA])
   @@index([leadIdB])
   @@map("duplicate_candidates")
+}
+
+model Activity {
+  id         String       @id @default(cuid())
+  leadId     String       @map("lead_id")
+  type       ActivityType  @default(OTHER)
+  title      String
+  body       String?
+  occurredAt DateTime     @map("occurred_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, occurredAt])
+  @@index([type, occurredAt])
+  @@map("activities")
 }
