@@ -121,7 +121,7 @@ export default async function LeadDetailPage({
             />
 
             <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
-            <OutreachDraftSection leadId={lead.id} drafts={outreachDrafts} />
+            <OutreachDraftSection leadId={lead.id} drafts={outreachDrafts} miniAuditDrafts={miniAuditDrafts} />
 
             <ActivityForm leadId={lead.id} />
             <ActivityTimeline activities={activities} />

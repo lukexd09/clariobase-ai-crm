@@ -10,6 +10,7 @@ import {
   type OutreachChannelValue,
   type OutreachDraftStatusValue
 } from "@/lib/lead-values";
+import type { MiniAuditDraftRecord } from "@/lib/mini-audits";
 import type { OutreachDraftRecord } from "@/lib/outreach-drafts";
 
 type DraftState = {
@@ -38,10 +39,12 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
 
 export function OutreachDraftSection({
   leadId,
-  drafts
+  drafts,
+  miniAuditDrafts
 }: {
   leadId: string;
   drafts: OutreachDraftRecord[];
+  miniAuditDrafts: MiniAuditDraftRecord[];
 }) {
   return (
     <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
@@ -52,11 +55,16 @@ export function OutreachDraftSection({
         </p>
       </div>
 
-      <OutreachDraftEditor leadId={leadId} />
+      <OutreachDraftEditor leadId={leadId} miniAuditDrafts={miniAuditDrafts} />
 
       <div className="space-y-4">
         {drafts.map((draft) => (
-          <OutreachDraftEditor key={draft.id} leadId={leadId} draft={draft} />
+          <OutreachDraftEditor
+            key={draft.id}
+            leadId={leadId}
+            draft={draft}
+            miniAuditDrafts={miniAuditDrafts}
+          />
         ))}
       </div>
     </section>
@@ -65,10 +73,12 @@ export function OutreachDraftSection({
 
 function OutreachDraftEditor({
   leadId,
-  draft
+  draft,
+  miniAuditDrafts
 }: {
   leadId: string;
   draft?: OutreachDraftRecord;
+  miniAuditDrafts: MiniAuditDraftRecord[];
 }) {
   const [state, formAction] = useActionState<DraftState, FormData>(
     async (_previous, formData) => saveOutreachDraftAction(leadId, formData),
@@ -93,9 +103,6 @@ function OutreachDraftEditor({
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
-      {draft?.miniAuditDraftId ? (
-        <input type="hidden" name="miniAuditDraftId" value={draft.miniAuditDraftId} />
-      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <DraftField
@@ -123,6 +130,25 @@ function OutreachDraftEditor({
             </select>
           }
           value={<StatusPill value={(draft?.channel ?? "EMAIL") as OutreachChannelValue} />}
+        />
+        <DraftField
+          label="Linked mini-audit"
+          control={
+            <select
+              name="miniAuditDraftId"
+              defaultValue={draft?.miniAuditDraftId ?? ""}
+              className="input"
+            >
+              <option value="">None</option>
+              {miniAuditDrafts.map((miniAuditDraft) => (
+                <option key={miniAuditDraft.id} value={miniAuditDraft.id}>
+                  {miniAuditDraft.id.slice(0, 8)} - {miniAuditDraft.status.replaceAll("_", " ")} -{" "}
+                  {miniAuditDraft.suggestedPackage.replaceAll("_", " ")}
+                </option>
+              ))}
+            </select>
+          }
+          value="Optional downstream mini-audit link"
         />
         <DraftField
           label="Subject"
