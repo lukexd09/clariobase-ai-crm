@@ -19,6 +19,7 @@ export const LEAD_PRIORITY_VALUES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const
 
 export const PACKAGE_FIT_VALUES = ["UNKNOWN", "BASE", "CLARITY", "MOMENTUM", "NOT_FIT"] as const;
 export const IMPORT_BATCH_STATUS_VALUES = [
+  "RUNNING",
   "COMPLETED",
   "COMPLETED_WITH_ERRORS",
   "FAILED"
