@@ -1,40 +1,33 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { importFileSchema } from "@/lib/import-contract";
+import { importFileSchema } from "../src/lib/import-contract";
 
-type ValidationIssueLike = {
-  path: Array<string | number | symbol>;
-  message: string;
-};
-
-function flattenIssues(issues: ValidationIssueLike[]) {
+function flattenIssues(issues: Array<{ path: Array<string | number | symbol>; message: string }>) {
   return issues.map((issue) => {
-    const rowIndex = typeof issue.path[0] === "number" ? issue.path[0] + 1 : 1;
-    const fieldPath = issue.path
-      .slice(1)
-      .map((segment) => String(segment))
-      .join(".");
+    const rowNumber = typeof issue.path[0] === "number" ? issue.path[0] + 1 : 1;
+    const fieldPath = issue.path.slice(1).map(String).join(".");
+
     return {
-      row: rowIndex,
+      rowNumber,
       reason: fieldPath ? `${fieldPath}: ${issue.message}` : issue.message
     };
   });
 }
 
 async function main() {
-  const inputPath = process.argv[2];
+  const inputPath = process.argv.slice(2).find((value) => value !== "--");
 
   if (!inputPath) {
     throw new Error(
-      "Usage: pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json"
+      "Usage: corepack pnpm exec tsx scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json"
     );
   }
 
   const resolvedPath = path.resolve(inputPath);
   const raw = await fs.readFile(resolvedPath, "utf8");
 
-  let parsedJson: unknown;
+  let parsedJson;
   try {
     parsedJson = JSON.parse(raw);
   } catch (error) {
@@ -57,18 +50,21 @@ async function main() {
     return;
   }
 
-  const issues = flattenIssues(result.error.issues);
+  const issues = flattenIssues(result.error.issues as Array<{
+    path: Array<string | number | symbol>;
+    message: string;
+  }>);
+  const invalidRows = new Set(issues.map((issue) => issue.rowNumber)).size;
 
   console.log(`file: ${resolvedPath}`);
-  console.log(
-    `total rows: ${Array.isArray(parsedJson) ? parsedJson.length : 0}`
-  );
+  console.log(`total rows: ${Array.isArray(parsedJson) ? parsedJson.length : 0}`);
   console.log("valid rows: 0");
-  console.log(`invalid rows: ${issues.length}`);
+  console.log(`invalid rows: ${invalidRows}`);
   console.log("row errors:");
   for (const issue of issues) {
-    console.log(`  row ${issue.row}: ${issue.reason}`);
+    console.log(`  row ${issue.rowNumber}: ${issue.reason}`);
   }
+
   process.exitCode = 1;
 }
 

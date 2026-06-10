@@ -44,7 +44,7 @@ See `docs/12-work-item-coding.md` for the full standard.
 - Harvester database and CRM database should be separate.
 - CRM UI supports lead review, scoring, pipeline, tasks, activities and mini-audits.
 - No external AI API in v1.
-- AI collaboration is file-based through `ai_exchange`.
+- AI collaboration is file-based through `data/ai-exchange/`.
 - All AI imports must be validated, previewed and manually approved before applying changes.
 - Real lead data should not be committed to the repository by default.
 - The system should support ClarioBase first, UGC outreach second, and only later evolve into a product.
@@ -76,8 +76,7 @@ Before starting any coding task, read:
 For AI exchange work, also read:
 
 - `docs/04-ai-file-exchange.md`
-- `ai_exchange/schemas/ai_review_pack.schema.json`
-- `ai_exchange/schemas/ai_response.schema.json`
+- `data/ai-exchange/inbox/sample-prepared-leads.json`
 
 For harvester integration work, first create/update:
 
@@ -88,13 +87,12 @@ For harvester integration work, first create/update:
 ```text
 clariobase-ai-crm/
 - docs/                 # Product, process and technical documentation
-- ai_exchange/          # File-based AI exchange workspace
-  - inbox/              # CRM-generated files for ChatGPT review
-  - outbox/             # ChatGPT-generated files ready for CRM import
-  - processed/          # Archived processed exchange files
-  - rejected/           # Invalid or rejected exchange files
-  - schemas/            # JSON schemas for file contracts
-  - samples/            # Safe anonymized examples
+- data/ai-exchange/     # Local file exchange workspace
+  - inbox/              # Prepared files waiting for validation
+  - processing/         # Optional manual staging area
+  - outbox/             # Exported CRM files for review or ChatGPT preparation
+  - archive/            # Archived exchange files
+  - error/              # Invalid or rejected files
 - README.md
 ```
 
@@ -116,19 +114,17 @@ Project foundation and implementation readiness phase.
 
 ## Available scripts
 
-- `pnpm dev`
-- `pnpm build`
-- `pnpm start`
-- `pnpm lint`
-- `pnpm test`
-- `pnpm prisma:generate`
-- `pnpm prisma:validate`
-- `pnpm prisma:migrate`
-- `pnpm prisma:seed`
-- `pnpm leads:import`
-- `pnpm leads:detect-duplicates`
-- `pnpm ai:export-leads`
-- `pnpm ai:validate-import-file`
+- `pnpm dev` - start the Next.js app locally
+- `pnpm build` - create a production build
+- `pnpm start` - run the production server
+- `pnpm lint` - run ESLint
+- `pnpm test` - run the Node test suite
+- `pnpm prisma:generate` - generate Prisma Client
+- `pnpm prisma:validate` - validate the Prisma schema
+- `pnpm prisma:migrate` - apply local CRM migrations
+- `pnpm prisma:seed` - seed fake local CRM data
+- `pnpm leads:import` - import a local JSON lead file
+- `pnpm leads:detect-duplicates` - scan leads for likely duplicates
 
 ## Health check
 
@@ -140,8 +136,6 @@ Import a local JSON file with fake lead data:
 
 ```bash
 corepack pnpm leads:import ./data/import/sample-leads.json
-corepack pnpm ai:export-leads
-corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/sample-prepared-leads.json
 ```
 
 Safety rules:
@@ -197,7 +191,7 @@ data/ai-exchange/
 ### Export a local review file
 
 ```bash
-corepack pnpm ai:export-leads
+corepack pnpm exec tsx <local-export-helper>.ts
 ```
 
 This writes a JSON file into `data/ai-exchange/outbox/` containing local CRM lead context for review and manual ChatGPT preparation. It does not call any AI service and does not export `.env` data or harvester data.
@@ -205,7 +199,7 @@ This writes a JSON file into `data/ai-exchange/outbox/` containing local CRM lea
 ### Validate a prepared import file
 
 ```bash
-corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
+corepack pnpm exec tsx scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json
 ```
 
 The validator checks that the file is valid JSON, contains a top-level array, and matches the same row contract used by `leads:import`. It prints total rows, valid rows, invalid rows, and row-level validation errors. A non-zero exit code means the file should not be imported yet.
@@ -213,9 +207,8 @@ The validator checks that the file is valid JSON, contains a top-level array, an
 ### Manual workflow
 
 ```bash
-corepack pnpm ai:export-leads
 # user reviews or prepares the file with ChatGPT outside the app
-corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
+corepack pnpm exec tsx scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json
 corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json
 corepack pnpm leads:detect-duplicates
 ```
@@ -227,3 +220,7 @@ corepack pnpm leads:detect-duplicates
 - No file watcher or background sync is included.
 - No harvester DB data is exported or mutated.
 - No real lead data should be committed to the repository.
+
+## Issue #2 recommendation
+
+Issue `#2` should stay open only if it will become the future AI response preview and approval workflow. If not, it can be closed as superseded by `#16`, `#20`, and `#24` because the current implementation now covers local export, validation, and import without direct AI API integration.

@@ -81,34 +81,31 @@ The project should have:
 - Approve mini-audit.
 - Store suggested outreach message.
 
-## 6. AI exchange export
+## 6. AI file exchange export and validation
 
-CRM should generate export files for:
+CRM should generate local export files for manual ChatGPT review and validate prepared import files before applying them.
 
-- lead review,
-- mini-audit generation,
-- outreach message generation,
-- follow-up recommendation.
-
-## 7. AI exchange import
-
-CRM should import response files from `ai_exchange/outbox`.
-
-Required import flow:
+Current implemented workflow:
 
 ```text
-Scan outbox
-  ↓
-Validate file
-  ↓
-Show preview
-  ↓
-User approves selected items
-  ↓
-Apply changes
-  ↓
-Archive file
+Export local CRM context
+  ->
+Review or prepare file outside the app
+  ->
+Validate prepared file
+  ->
+Manual import
+  ->
+Duplicate review
 ```
+
+Implemented path:
+
+```text
+data/ai-exchange/
+```
+
+The current workflow does not include external AI API calls, automatic preview screens, or automatic inbox ingestion.
 
 ## 8. Basic reporting
 
