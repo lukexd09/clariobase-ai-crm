@@ -92,6 +92,21 @@ export function getWorkBuckets(leads: WorkLead[], now = new Date()): WorkBucket[
   ];
 }
 
+export function getWorkbenchBucketCounts(leads: WorkLead[], now = new Date()) {
+  return getWorkBuckets(leads, now).reduce(
+    (counts, bucket) => {
+      counts[bucket.key] = bucket.leads.length;
+      return counts;
+    },
+    {
+      overdue: 0,
+      dueToday: 0,
+      upcoming: 0,
+      noAction: 0
+    } as Record<WorkBucketName, number>
+  );
+}
+
 function sortByDate(leads: WorkLead[], field: "nextActionAt") {
   return [...leads].sort((left, right) => {
     const leftValue = left[field]?.getTime() ?? Number.POSITIVE_INFINITY;
