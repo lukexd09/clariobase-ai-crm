@@ -19,6 +19,7 @@ export const LEAD_PRIORITY_VALUES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const
 
 export const PACKAGE_FIT_VALUES = ["UNKNOWN", "BASE", "CLARITY", "MOMENTUM", "NOT_FIT"] as const;
 export const IMPORT_BATCH_STATUS_VALUES = [
+  "RUNNING",
   "COMPLETED",
   "COMPLETED_WITH_ERRORS",
   "FAILED"
@@ -29,6 +30,12 @@ export const IMPORT_SOURCE_TYPE_VALUES = [
   "HARVESTER_EXPORT",
   "MANUAL_AI_PREPARED_FILE"
 ] as const;
+export const DUPLICATE_CANDIDATE_STATUS_VALUES = [
+  "OPEN",
+  "NEEDS_REVIEW",
+  "DISMISSED",
+  "RESOLVED"
+] as const;
 
 export type LeadStatusValue = (typeof LEAD_STATUS_VALUES)[number];
 export type LeadPriorityValue = (typeof LEAD_PRIORITY_VALUES)[number];
@@ -36,3 +43,5 @@ export type PackageFitValue = (typeof PACKAGE_FIT_VALUES)[number];
 export type ImportBatchStatusValue = (typeof IMPORT_BATCH_STATUS_VALUES)[number];
 export type ImportRowStatusValue = (typeof IMPORT_ROW_STATUS_VALUES)[number];
 export type ImportSourceTypeValue = (typeof IMPORT_SOURCE_TYPE_VALUES)[number];
+export type DuplicateCandidateStatusValue =
+  (typeof DUPLICATE_CANDIDATE_STATUS_VALUES)[number];

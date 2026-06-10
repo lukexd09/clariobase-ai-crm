@@ -126,6 +126,7 @@ Project foundation and implementation readiness phase.
 - `pnpm prisma:migrate`
 - `pnpm prisma:seed`
 - `pnpm leads:import`
+- `pnpm leads:detect-duplicates`
 
 ## Health check
 
@@ -152,3 +153,24 @@ After importing, review the audit trail in the app:
 
 - `/imports` for the batch list
 - `/imports/[id]` for row-level results and lead links
+
+## Duplicate review
+
+After running imports, detect likely duplicate leads with:
+
+```bash
+corepack pnpm leads:detect-duplicates
+```
+
+Then review candidates in the app:
+
+- `/duplicates` for the candidate list
+- `/duplicates/[id]` for side-by-side review
+
+Safety rules:
+
+- Use deterministic rules only; no AI matching.
+- Do not auto-merge leads.
+- Do not delete leads.
+- Do not commit `.env.local`.
+- Do not mutate the harvester database.
