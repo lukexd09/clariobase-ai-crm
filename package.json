@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
-    "test": "tsx --test tests/smoke.test.ts tests/work-view.test.ts tests/activity.test.ts tests/lead-drafts.test.ts tests/sales-report.test.ts",
+    "test": "tsx --test tests/smoke.test.ts tests/work-view.test.ts tests/activity.test.ts tests/lead-drafts.test.ts tests/offer-drafts.test.ts tests/sales-report.test.ts",
     "prisma:generate": "node --env-file=.env.example ./node_modules/prisma/build/index.js generate",
     "prisma:validate": "node --env-file=.env.example ./node_modules/prisma/build/index.js validate",
     "prisma:migrate": "node --env-file=.env.local ./node_modules/prisma/build/index.js migrate dev",

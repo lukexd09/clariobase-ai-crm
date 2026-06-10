@@ -6,6 +6,7 @@ import {
   type LeadPriorityValue,
   type LeadStatusValue,
   type MiniAuditStatusValue,
+  type OfferDraftStatusValue,
   type OutreachChannelValue,
   type OutreachDraftStatusValue,
   type PackageFitValue
@@ -66,7 +67,8 @@ const variants: Record<string, string> = {
   INSTAGRAM_DM: "bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-500/30",
   FACEBOOK_DM: "bg-blue-500/15 text-blue-200 border-blue-500/30",
   PHONE_CALL: "bg-orange-500/15 text-orange-200 border-orange-500/30",
-  APPROVED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30"
+  APPROVED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
+  ACCEPTED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30"
 };
 
 export function StatusPill({
@@ -82,6 +84,7 @@ export function StatusPill({
     | ImportSourceTypeValue
     | DuplicateCandidateStatusValue
     | MiniAuditStatusValue
+    | OfferDraftStatusValue
     | OutreachDraftStatusValue
     | OutreachChannelValue
     | ActivityTypeValue;

@@ -245,6 +245,89 @@ async function main() {
     }
   ];
 
+  const offerDrafts: Prisma.OfferDraftCreateManyInput[] = [
+    {
+      leadId: seededLeadIds.get("clb-seed-001")!,
+      status: "DRAFT",
+      title: "Clarity package for Aurora Nail Studio",
+      packageFit: "CLARITY",
+      priceNet: new Prisma.Decimal("950"),
+      currency: "PLN",
+      scopeSummary: "Homepage polish, booking path cleanup and clearer offer framing.",
+      assumptions: "Content changes stay within the existing brand direction.",
+      nextStep: "Review the draft and align on the final wording.",
+      validUntil: new Date("2026-06-20T12:00:00.000Z"),
+      sentAt: null,
+      acceptedAt: null,
+      rejectedAt: null,
+      rejectionReason: null
+    },
+    {
+      leadId: seededLeadIds.get("clb-seed-002")!,
+      status: "READY",
+      title: "Clarity package for Velvet Brows & Lashes",
+      packageFit: "CLARITY",
+      priceNet: new Prisma.Decimal("1250"),
+      currency: "PLN",
+      scopeSummary: "Landing page clarity, review placement and stronger booking cues.",
+      assumptions: "A fast implementation window is available.",
+      nextStep: "Send after a short final review.",
+      validUntil: new Date("2026-06-22T12:00:00.000Z"),
+      sentAt: null,
+      acceptedAt: null,
+      rejectedAt: null,
+      rejectionReason: null
+    },
+    {
+      leadId: seededLeadIds.get("clb-seed-003")!,
+      status: "SENT_MANUALLY",
+      title: "Momentum package for Lumina PMU Studio",
+      packageFit: "MOMENTUM",
+      priceNet: new Prisma.Decimal("1890"),
+      currency: "PLN",
+      scopeSummary: "Conversion-focused refresh with stronger lead handling and follow-up flow.",
+      assumptions: "The lead wants a more ambitious package.",
+      nextStep: "Wait for reply and track objections.",
+      validUntil: new Date("2026-06-24T12:00:00.000Z"),
+      sentAt: new Date("2026-06-10T13:00:00.000Z"),
+      acceptedAt: null,
+      rejectedAt: null,
+      rejectionReason: null
+    },
+    {
+      leadId: seededLeadIds.get("clb-seed-004")!,
+      status: "ACCEPTED",
+      title: "Base package for Sento Kobido Room",
+      packageFit: "BASE",
+      priceNet: new Prisma.Decimal("690"),
+      currency: "PLN",
+      scopeSummary: "A smaller foundation package with clearer booking emphasis.",
+      assumptions: "The lead prefers a light-touch implementation.",
+      nextStep: "Kick off delivery and confirm timing.",
+      validUntil: new Date("2026-06-18T12:00:00.000Z"),
+      sentAt: new Date("2026-06-10T09:45:00.000Z"),
+      acceptedAt: new Date("2026-06-10T10:15:00.000Z"),
+      rejectedAt: null,
+      rejectionReason: null
+    },
+    {
+      leadId: seededLeadIds.get("clb-seed-005")!,
+      status: "REJECTED",
+      title: "Base package for Nova Skin Beauty",
+      packageFit: "BASE",
+      priceNet: new Prisma.Decimal("590"),
+      currency: "PLN",
+      scopeSummary: "A light package focused on the most visible homepage improvements.",
+      assumptions: "The lead wants to postpone the project.",
+      nextStep: "Keep for reference or archive later.",
+      validUntil: new Date("2026-06-16T12:00:00.000Z"),
+      sentAt: new Date("2026-06-10T08:30:00.000Z"),
+      acceptedAt: null,
+      rejectedAt: new Date("2026-06-10T15:00:00.000Z"),
+      rejectionReason: "Timing is not right now."
+    }
+  ];
+
   await prisma.miniAuditDraft.deleteMany({
     where: {
       leadId: {
@@ -261,12 +344,24 @@ async function main() {
     }
   });
 
+  await prisma.offerDraft.deleteMany({
+    where: {
+      leadId: {
+        in: offerDrafts.map((draft) => draft.leadId)
+      }
+    }
+  });
+
   await prisma.miniAuditDraft.createMany({
     data: miniAuditDrafts
   });
 
   await prisma.outreachDraft.createMany({
     data: outreachDrafts
+  });
+
+  await prisma.offerDraft.createMany({
+    data: offerDrafts
   });
 }
 

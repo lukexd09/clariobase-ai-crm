@@ -6,10 +6,12 @@ import {
   LEAD_PRIORITY_VALUES,
   LEAD_STATUS_VALUES,
   MINI_AUDIT_STATUS_VALUES,
+  OFFER_DRAFT_STATUS_VALUES,
   OUTREACH_DRAFT_STATUS_VALUES,
   PACKAGE_FIT_VALUES,
   type LeadPriorityValue,
   type LeadStatusValue,
+  type OfferDraftStatusValue,
   type MiniAuditStatusValue,
   type OutreachDraftStatusValue,
   type PackageFitValue
@@ -30,8 +32,10 @@ export type SalesReport = {
   workbenchBucketCounts: Record<WorkBucketName, number>;
   miniAuditDraftStatusCounts: Record<MiniAuditStatusValue, number>;
   outreachDraftStatusCounts: Record<OutreachDraftStatusValue, number>;
+  offerDraftStatusCounts: Record<OfferDraftStatusValue, number>;
   leadsWithMiniAuditDrafts: number;
   leadsWithOutreachDrafts: number;
+  leadsWithOfferDrafts: number;
   activityTotalCount: number;
   activityLast7DaysCount: number;
   activityTypeCounts: Record<ActivityTypeValue, number>;
@@ -97,6 +101,18 @@ export async function getOutreachDraftStatusCounts() {
   );
 }
 
+export async function getOfferDraftStatusCounts() {
+  const rows = await prisma.offerDraft.groupBy({
+    by: ["status"],
+    _count: { _all: true }
+  });
+
+  return toCountMap(
+    OFFER_DRAFT_STATUS_VALUES,
+    rows.map((row) => ({ key: row.status, count: row._count._all }))
+  );
+}
+
 export async function getActivityTypeCounts() {
   const rows = await prisma.activity.groupBy({
     by: ["type"],
@@ -120,8 +136,10 @@ export async function getSalesReport(now = new Date()): Promise<SalesReport> {
     packageFitCounts,
     miniAuditDraftStatusCounts,
     outreachDraftStatusCounts,
+    offerDraftStatusCounts,
     miniAuditLeadGroups,
     outreachLeadGroups,
+    offerLeadGroups,
     activityTypeCounts,
     activityTotalCount,
     activityLast7DaysCount
@@ -132,11 +150,16 @@ export async function getSalesReport(now = new Date()): Promise<SalesReport> {
     getPackageFitCounts(),
     getMiniAuditDraftStatusCounts(),
     getOutreachDraftStatusCounts(),
+    getOfferDraftStatusCounts(),
     prisma.miniAuditDraft.groupBy({
       by: ["leadId"],
       _count: { _all: true }
     }),
     prisma.outreachDraft.groupBy({
+      by: ["leadId"],
+      _count: { _all: true }
+    }),
+    prisma.offerDraft.groupBy({
       by: ["leadId"],
       _count: { _all: true }
     }),
@@ -164,8 +187,10 @@ export async function getSalesReport(now = new Date()): Promise<SalesReport> {
     workbenchBucketCounts: getWorkbenchBucketCounts(leads, now),
     miniAuditDraftStatusCounts,
     outreachDraftStatusCounts,
+    offerDraftStatusCounts,
     leadsWithMiniAuditDrafts: miniAuditLeadGroups.length,
     leadsWithOutreachDrafts: outreachLeadGroups.length,
+    leadsWithOfferDrafts: offerLeadGroups.length,
     activityTotalCount,
     activityLast7DaysCount,
     activityTypeCounts

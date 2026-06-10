@@ -48,6 +48,14 @@ export const OUTREACH_DRAFT_STATUS_VALUES = [
   "SENT_MANUALLY",
   "ARCHIVED"
 ] as const;
+export const OFFER_DRAFT_STATUS_VALUES = [
+  "DRAFT",
+  "READY",
+  "SENT_MANUALLY",
+  "ACCEPTED",
+  "REJECTED",
+  "ARCHIVED"
+] as const;
 export const OUTREACH_CHANNEL_VALUES = [
   "EMAIL",
   "INSTAGRAM_DM",
@@ -66,4 +74,5 @@ export type DuplicateCandidateStatusValue =
   (typeof DUPLICATE_CANDIDATE_STATUS_VALUES)[number];
 export type MiniAuditStatusValue = (typeof MINI_AUDIT_STATUS_VALUES)[number];
 export type OutreachDraftStatusValue = (typeof OUTREACH_DRAFT_STATUS_VALUES)[number];
+export type OfferDraftStatusValue = (typeof OFFER_DRAFT_STATUS_VALUES)[number];
 export type OutreachChannelValue = (typeof OUTREACH_CHANNEL_VALUES)[number];

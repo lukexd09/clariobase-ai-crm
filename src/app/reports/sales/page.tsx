@@ -4,6 +4,7 @@ import { ACTIVITY_TYPE_VALUES } from "@/lib/activity-values";
 import { getSalesReport } from "@/lib/sales-report";
 import {
   LEAD_PRIORITY_VALUES,
+  OFFER_DRAFT_STATUS_VALUES,
   MINI_AUDIT_STATUS_VALUES,
   OUTREACH_DRAFT_STATUS_VALUES,
   PACKAGE_FIT_VALUES
@@ -59,6 +60,7 @@ export default async function SalesReportPage() {
           <Metric label="Due today" value={report.workbenchBucketCounts.dueToday} />
           <Metric label="Leads with mini-audit drafts" value={report.leadsWithMiniAuditDrafts} />
           <Metric label="Leads with outreach drafts" value={report.leadsWithOutreachDrafts} />
+          <Metric label="Leads with offer drafts" value={report.leadsWithOfferDrafts} />
           <Metric label="Activities in last 7 days" value={report.activityLast7DaysCount} />
         </section>
 
@@ -130,7 +132,7 @@ export default async function SalesReportPage() {
 
             <ReportSection
               title="Draft readiness"
-              description="How many drafts exist and how many leads already have at least one draft."
+              description="How many drafts exist and how many leads already have at least one draft artifact."
             >
               <div className="space-y-5">
                 <SimpleCountTable
@@ -145,6 +147,13 @@ export default async function SalesReportPage() {
                   rows={OUTREACH_DRAFT_STATUS_VALUES.map((value) => ({
                     label: value,
                     value: report.outreachDraftStatusCounts[value]
+                  }))}
+                />
+                <SimpleCountTable
+                  heading="Offer draft statuses"
+                  rows={OFFER_DRAFT_STATUS_VALUES.map((value) => ({
+                    label: value,
+                    value: report.offerDraftStatusCounts[value]
                   }))}
                 />
               </div>

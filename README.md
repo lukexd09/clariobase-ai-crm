@@ -1,6 +1,6 @@
 # ClarioBase AI CRM
 
-Self-hosted, file-based AI-assisted CRM for ClarioBase lead management, sales workflow, mini-audits, outreach preparation and future UGC pipeline support.
+Self-hosted, file-based AI-assisted CRM for ClarioBase lead management, sales workflow, mini-audits, outreach preparation, offer drafting and future UGC pipeline support.
 
 ## Core idea
 
@@ -43,6 +43,7 @@ See `docs/12-work-item-coding.md` for the full standard.
 - Harvester remains the lead acquisition/enrichment system.
 - Harvester database and CRM database should be separate.
 - CRM UI supports lead review, scoring, pipeline, tasks, activities, mini-audits and outreach drafts.
+- CRM UI also supports offer drafts for manual commercial preparation.
 - No external AI API in v1.
 - AI collaboration is file-based through `data/ai-exchange/`.
 - All AI imports must be validated and manually reviewed before applying changes.
@@ -59,6 +60,7 @@ See `docs/12-work-item-coding.md` for the full standard.
 - Tasks
 - Mini-audits
 - Outreach drafts
+- Offer drafts
 - AI export packs
 - AI response import
 - Basic reporting
@@ -145,18 +147,20 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 
 Open `/health` after starting the app to verify the skeleton is running.
 
-## Lead activity, mini-audit and outreach drafts
+## Lead activity, mini-audit, outreach and offer drafts
 
 Open a lead in `/leads/[id]` to work with:
 
 - the quick operational update form,
 - the activity timeline,
 - mini-audit drafts,
-- outreach drafts.
+- outreach drafts,
+- offer drafts.
 
 Safety rules:
 
-- No new Prisma models beyond the sales workflow foundation are introduced for activities, mini-audits or outreach drafts.
+- No additional Prisma models beyond the sales workflow foundation are introduced for activities, mini-audits, outreach drafts or offer drafts.
+- Offer drafts remain local CRM records only and do not send, export or execute a commercial workflow automatically.
 - Drafts are local CRM records only and do not send email, Instagram or other outbound messages.
 - The existing lead detail page remains the place where operators review and save these records.
 
