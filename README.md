@@ -105,6 +105,10 @@ Project foundation and implementation readiness phase.
 
 Open `/work` to see the first daily sales workbench. It groups actionable leads into overdue, due today, upcoming, and no-next-action buckets, and links each record to the existing quick update form on the lead detail page.
 
+## Sales reporting
+
+Open `/reports/sales` for a text-based operational summary of lead status usage, workbench health, draft readiness, and activity volume. It is intentionally lightweight and does not use charts.
+
 ## Activity timeline
 
 Each lead detail page includes a lightweight activity timeline and a manual activity form for logging notes, calls, messages, and other interaction types. Seed data includes fake demo activities for local development.
@@ -140,10 +144,6 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 ## Health check
 
 Open `/health` after starting the app to verify the skeleton is running.
-
-## Sales workbench
-
-Open `/work` to see the first daily sales workbench. It groups actionable leads into overdue, due today, upcoming, and no-next-action buckets, and links each record to the existing quick update form on the lead detail page.
 
 ## Lead activity, mini-audit and outreach drafts
 
