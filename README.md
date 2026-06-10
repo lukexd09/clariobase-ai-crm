@@ -42,10 +42,10 @@ See `docs/12-work-item-coding.md` for the full standard.
 - CRM PostgreSQL database is the source of truth for CRM operational data.
 - Harvester remains the lead acquisition/enrichment system.
 - Harvester database and CRM database should be separate.
-- CRM UI supports lead review, scoring, pipeline, tasks, activities and mini-audits.
+- CRM UI supports lead review, scoring, pipeline, tasks, activities, mini-audits and outreach drafts.
 - No external AI API in v1.
 - AI collaboration is file-based through `data/ai-exchange/`.
-- All AI imports must be validated, previewed and manually approved before applying changes.
+- All AI imports must be validated and manually reviewed before applying changes.
 - Real lead data should not be committed to the repository by default.
 - The system should support ClarioBase first, UGC outreach second, and only later evolve into a product.
 
@@ -58,6 +58,7 @@ See `docs/12-work-item-coding.md` for the full standard.
 - Activities
 - Tasks
 - Mini-audits
+- Outreach drafts
 - AI export packs
 - AI response import
 - Basic reporting
@@ -133,10 +134,31 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 - `pnpm prisma:seed` - seed fake local CRM data
 - `pnpm leads:import` - import a local JSON lead file
 - `pnpm leads:detect-duplicates` - scan leads for likely duplicates
+- `pnpm ai:export-leads` - export local CRM context to `data/ai-exchange/outbox/`
+- `pnpm ai:validate-import-file` - validate a prepared AI import file before import
 
 ## Health check
 
 Open `/health` after starting the app to verify the skeleton is running.
+
+## Sales workbench
+
+Open `/work` to see the first daily sales workbench. It groups actionable leads into overdue, due today, upcoming, and no-next-action buckets, and links each record to the existing quick update form on the lead detail page.
+
+## Lead activity, mini-audit and outreach drafts
+
+Open a lead in `/leads/[id]` to work with:
+
+- the quick operational update form,
+- the activity timeline,
+- mini-audit drafts,
+- outreach drafts.
+
+Safety rules:
+
+- No new Prisma models beyond the sales workflow foundation are introduced for activities, mini-audits or outreach drafts.
+- Drafts are local CRM records only and do not send email, Instagram or other outbound messages.
+- The existing lead detail page remains the place where operators review and save these records.
 
 ## Local import
 
@@ -199,7 +221,7 @@ data/ai-exchange/
 ### Export a local review file
 
 ```bash
-corepack pnpm exec tsx <local-export-helper>.ts
+corepack pnpm ai:export-leads
 ```
 
 This writes a JSON file into `data/ai-exchange/outbox/` containing local CRM lead context for review and manual ChatGPT preparation. It does not call any AI service and does not export `.env` data or harvester data.
@@ -216,7 +238,7 @@ The validator checks that the file is valid JSON, contains a top-level array, an
 
 ```bash
 # user reviews or prepares the file with ChatGPT outside the app
-corepack pnpm exec tsx scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json
+corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
 corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json
 corepack pnpm leads:detect-duplicates
 ```

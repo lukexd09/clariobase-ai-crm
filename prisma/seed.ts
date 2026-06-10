@@ -172,6 +172,9 @@ const leads = [
 
 async function main() {
   await prisma.activity.deleteMany({});
+
+  const seededLeadIds = new Map<string, string>();
+
   for (const lead of leads) {
     const savedLead = await prisma.lead.upsert({
       where: { customerId: lead.customerId },
@@ -179,10 +182,92 @@ async function main() {
       create: lead
     });
 
+    seededLeadIds.set(savedLead.customerId, savedLead.id);
+
     await prisma.activity.createMany({
       data: demoActivitiesForLead(savedLead.id, lead.businessName)
     });
   }
+
+  const miniAuditDrafts: Prisma.MiniAuditDraftCreateManyInput[] = [
+    {
+      leadId: seededLeadIds.get("clb-seed-001")!,
+      status: "DRAFT",
+      problem1: "No clear booking funnel",
+      problem2: "Weak social proof placement",
+      problem3: "The homepage lacks a sharp offer",
+      recommendation: "Start with a fast homepage and booking flow cleanup.",
+      suggestedPackage: "CLARITY",
+      outreachAngle: "Show the value of a polished first impression.",
+      draftMessage: "Hi Aurora team, I reviewed your presence and saw a few quick wins...",
+      riskNotes: "Keep the tone practical and light.",
+      approvedAt: null
+    },
+    {
+      leadId: seededLeadIds.get("clb-seed-003")!,
+      status: "READY_FOR_REVIEW",
+      problem1: "Strong brand but inconsistent contact paths",
+      problem2: "CTA is not obvious enough",
+      problem3: "Profile visuals could do more work",
+      recommendation: "Use the booking path and review snippets as the main pitch.",
+      suggestedPackage: "MOMENTUM",
+      outreachAngle: "Lean into lead handling speed and conversion.",
+      draftMessage: "Hello Lumina, I noticed your profile could convert more of the interest you already have...",
+      riskNotes: "Potentially more premium tone required.",
+      approvedAt: new Date("2026-06-10T12:00:00.000Z")
+    }
+  ];
+
+  const outreachDrafts: Prisma.OutreachDraftCreateManyInput[] = [
+    {
+      leadId: seededLeadIds.get("clb-seed-002")!,
+      miniAuditDraftId: null,
+      status: "DRAFT",
+      channel: "INSTAGRAM_DM",
+      subject: "Quick idea for Velvet Brows & Lashes",
+      openingHook: "I loved the clean look of your profile.",
+      message: "Hi, I had a look at your site and Instagram presence and noticed a few quick wins...",
+      callToAction: "Would you like a short review?",
+      notes: "Keep it concise and warm.",
+      sentAt: null
+    },
+    {
+      leadId: seededLeadIds.get("clb-seed-004")!,
+      miniAuditDraftId: null,
+      status: "READY",
+      channel: "EMAIL",
+      subject: "A small clarity upgrade for Sento Kobido Room",
+      openingHook: "Your calm positioning is already strong.",
+      message: "I think a few practical changes could make it easier for visitors to book right away...",
+      callToAction: "Open to a quick audit?",
+      notes: "Use a friendly, non-pushy tone.",
+      sentAt: null
+    }
+  ];
+
+  await prisma.miniAuditDraft.deleteMany({
+    where: {
+      leadId: {
+        in: miniAuditDrafts.map((draft) => draft.leadId)
+      }
+    }
+  });
+
+  await prisma.outreachDraft.deleteMany({
+    where: {
+      leadId: {
+        in: outreachDrafts.map((draft) => draft.leadId)
+      }
+    }
+  });
+
+  await prisma.miniAuditDraft.createMany({
+    data: miniAuditDrafts
+  });
+
+  await prisma.outreachDraft.createMany({
+    data: outreachDrafts
+  });
 }
 
 function demoActivitiesForLead(leadId: string, businessName: string) {

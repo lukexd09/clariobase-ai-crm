@@ -36,6 +36,25 @@ export const DUPLICATE_CANDIDATE_STATUS_VALUES = [
   "DISMISSED",
   "RESOLVED"
 ] as const;
+export const MINI_AUDIT_STATUS_VALUES = [
+  "DRAFT",
+  "READY_FOR_REVIEW",
+  "APPROVED",
+  "ARCHIVED"
+] as const;
+export const OUTREACH_DRAFT_STATUS_VALUES = [
+  "DRAFT",
+  "READY",
+  "SENT_MANUALLY",
+  "ARCHIVED"
+] as const;
+export const OUTREACH_CHANNEL_VALUES = [
+  "EMAIL",
+  "INSTAGRAM_DM",
+  "FACEBOOK_DM",
+  "PHONE_CALL",
+  "OTHER"
+] as const;
 
 export type LeadStatusValue = (typeof LEAD_STATUS_VALUES)[number];
 export type LeadPriorityValue = (typeof LEAD_PRIORITY_VALUES)[number];
@@ -45,3 +64,6 @@ export type ImportRowStatusValue = (typeof IMPORT_ROW_STATUS_VALUES)[number];
 export type ImportSourceTypeValue = (typeof IMPORT_SOURCE_TYPE_VALUES)[number];
 export type DuplicateCandidateStatusValue =
   (typeof DUPLICATE_CANDIDATE_STATUS_VALUES)[number];
+export type MiniAuditStatusValue = (typeof MINI_AUDIT_STATUS_VALUES)[number];
+export type OutreachDraftStatusValue = (typeof OUTREACH_DRAFT_STATUS_VALUES)[number];
+export type OutreachChannelValue = (typeof OUTREACH_CHANNEL_VALUES)[number];

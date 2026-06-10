@@ -5,6 +5,9 @@ import {
   type ImportSourceTypeValue,
   type LeadPriorityValue,
   type LeadStatusValue,
+  type MiniAuditStatusValue,
+  type OutreachChannelValue,
+  type OutreachDraftStatusValue,
   type PackageFitValue
 } from "@/lib/lead-values";
 import { type ActivityTypeValue } from "@/lib/activity-values";
@@ -17,8 +20,7 @@ const variants: Record<string, string> = {
   AUDITED: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
   CONTACTED: "bg-indigo-500/15 text-indigo-200 border-indigo-500/30",
   REPLIED: "bg-lime-500/15 text-lime-200 border-lime-500/30",
-  DISCOVERY_SCHEDULED:
-    "bg-violet-500/15 text-violet-200 border-violet-500/30",
+  DISCOVERY_SCHEDULED: "bg-violet-500/15 text-violet-200 border-violet-500/30",
   OFFER_SENT: "bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-500/30",
   WON: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
   LOST: "bg-rose-500/15 text-rose-200 border-rose-500/30",
@@ -45,18 +47,26 @@ const variants: Record<string, string> = {
   FAILED: "bg-rose-500/15 text-rose-200 border-rose-500/30",
   LOCAL_JSON: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
   HARVESTER_EXPORT: "bg-violet-500/15 text-violet-200 border-violet-500/30",
-  MANUAL_AI_PREPARED_FILE: "bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-500/30"
-  ,
+  MANUAL_AI_PREPARED_FILE: "bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-500/30",
   OPEN: "bg-sky-500/15 text-sky-200 border-sky-500/30",
   NEEDS_REVIEW: "bg-amber-500/15 text-amber-200 border-amber-500/30",
   DISMISSED: "bg-slate-500/15 text-slate-200 border-slate-500/30",
   RESOLVED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
-  NOTE: "bg-slate-500/15 text-slate-200 border-slate-500/30",
-  CALL: "bg-indigo-500/15 text-indigo-200 border-indigo-500/30",
+  NOTE: "bg-sky-500/15 text-sky-200 border-sky-500/30",
+  CALL: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
   MESSAGE: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
   STATUS_CHANGE: "bg-violet-500/15 text-violet-200 border-violet-500/30",
   AUDIT: "bg-amber-500/15 text-amber-200 border-amber-500/30",
-  OTHER: "bg-slate-500/15 text-slate-200 border-slate-500/30"
+  OTHER: "bg-slate-500/15 text-slate-200 border-slate-500/30",
+  DRAFT: "bg-slate-500/15 text-slate-200 border-slate-500/30",
+  READY: "bg-blue-500/15 text-blue-200 border-blue-500/30",
+  READY_FOR_REVIEW: "bg-blue-500/15 text-blue-200 border-blue-500/30",
+  SENT_MANUALLY: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30",
+  EMAIL: "bg-cyan-500/15 text-cyan-200 border-cyan-500/30",
+  INSTAGRAM_DM: "bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-500/30",
+  FACEBOOK_DM: "bg-blue-500/15 text-blue-200 border-blue-500/30",
+  PHONE_CALL: "bg-orange-500/15 text-orange-200 border-orange-500/30",
+  APPROVED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30"
 };
 
 export function StatusPill({
@@ -71,6 +81,9 @@ export function StatusPill({
     | ImportRowStatusValue
     | ImportSourceTypeValue
     | DuplicateCandidateStatusValue
+    | MiniAuditStatusValue
+    | OutreachDraftStatusValue
+    | OutreachChannelValue
     | ActivityTypeValue;
   className?: string;
 }) {
