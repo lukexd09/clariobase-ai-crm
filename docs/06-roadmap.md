@@ -84,6 +84,7 @@ Potential deliverables:
 - Tasks.
 - Activities and a lead activity timeline.
 - Mini-audit drafts.
+- Outreach drafts.
 - Package fit.
 - Basic reporting.
 

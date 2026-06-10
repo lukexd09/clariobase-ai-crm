@@ -18,19 +18,20 @@ This is an initial conceptual model for the dedicated CRM PostgreSQL database. I
 
 ```text
 Harvester PostgreSQL database
-  ├── raw/source lead data
-  ├── Google-specific metadata
-  ├── refresh metadata
-  └── harvester scoring/enrichment data
+  - raw/source lead data
+  - Google-specific metadata
+  - refresh metadata
+  - harvester scoring/enrichment data
 
 CRM PostgreSQL database
-  ├── CRM lead records
-  ├── statuses and priorities
-  ├── tasks and activities
-  ├── mini-audits
-  ├── offers
-  ├── AI exchange batches
-  └── approved AI recommendations
+  - CRM lead records
+  - statuses and priorities
+  - tasks and activities
+  - mini-audit drafts
+  - outreach drafts
+  - offers
+  - AI exchange batches
+  - approved AI recommendations
 ```
 
 The CRM database may store selected copied/imported fields from the harvester, but it should not become a raw scraping database.
@@ -200,9 +201,9 @@ cancelled
 deferred
 ```
 
-## `mini_audits`
+## `mini_audit_drafts`
 
-Stores audit drafts and approved audit content.
+Stores mini-audit drafts and their review status for a lead.
 
 ```text
 id
@@ -216,9 +217,56 @@ suggested_package
 outreach_angle
 draft_message
 risk_notes
+approved_at
 created_at
 updated_at
-approved_at
+```
+
+Mini-audit statuses:
+
+```text
+DRAFT
+READY
+APPROVED
+ARCHIVED
+```
+
+## `outreach_drafts`
+
+Stores manual outreach drafts for a lead.
+
+```text
+id
+lead_id
+status
+channel
+subject
+opening_hook
+message
+call_to_action
+notes
+sent_at
+created_at
+updated_at
+```
+
+Outreach draft statuses:
+
+```text
+DRAFT
+READY
+SENT
+ARCHIVED
+```
+
+Outreach channels:
+
+```text
+EMAIL
+INSTAGRAM_DM
+FACEBOOK_DM
+PHONE_CALL
+OTHER
 ```
 
 ## `offers`

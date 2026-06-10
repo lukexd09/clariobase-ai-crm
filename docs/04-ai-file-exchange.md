@@ -31,7 +31,8 @@ data/ai-exchange/
 
 ## Current commands
 
-- Validate a prepared file with `corepack pnpm exec tsx scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json`
+- Export local CRM context with `corepack pnpm ai:export-leads`
+- Validate a prepared file with `corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json`
 - Import an approved file with `corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json`
 
 ## Contract boundaries

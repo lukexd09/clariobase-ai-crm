@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getLeadById } from "@/lib/leads";
 import { getLeadActivities } from "@/lib/activities";
-import { LeadUpdateForm } from "@/components/lead-update-form";
+import { getLeadById } from "@/lib/leads";
+import { getLeadMiniAuditDrafts } from "@/lib/mini-audits";
+import { getLeadOutreachDrafts } from "@/lib/outreach-drafts";
 import { ActivityForm, ActivityTimeline } from "@/components/activity-form";
+import { LeadUpdateForm } from "@/components/lead-update-form";
+import { MiniAuditDraftSection } from "@/components/mini-audit-draft-form";
+import { OutreachDraftSection } from "@/components/outreach-draft-form";
 import { StatusPill } from "@/components/lead-status-pill";
 
 function formatDate(value: Date | null | undefined) {
@@ -30,7 +34,12 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [lead, activities] = await Promise.all([getLeadById(id), getLeadActivities(id)]);
+  const [lead, activities, miniAuditDrafts, outreachDrafts] = await Promise.all([
+    getLeadById(id),
+    getLeadActivities(id),
+    getLeadMiniAuditDrafts(id),
+    getLeadOutreachDrafts(id)
+  ]);
 
   if (!lead) notFound();
 
@@ -110,6 +119,9 @@ export default async function LeadDetailPage({
               packageFit={lead.packageFit}
               nextActionAt={asLocalDateTimeValue(lead.nextActionAt)}
             />
+
+            <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
+            <OutreachDraftSection leadId={lead.id} drafts={outreachDrafts} />
 
             <ActivityForm leadId={lead.id} />
             <ActivityTimeline activities={activities} />
