@@ -150,31 +150,28 @@ scored_by
 
 History of actions taken on a lead.
 
+Implemented in Prisma as a lightweight append-first log for the sales workflow. The first version supports manual notes, calls, messages, audits, other interaction types, and optional status-change style entries created from lead updates.
+
 ```text
 id
 lead_id
-activity_type
-activity_at
-channel
-summary
-content
-result
-created_by
+type
+title
+body
+occurred_at
 created_at
+updated_at
 ```
 
 Activity types:
 
 ```text
-note
-call
-email
-instagram_dm
-meeting
-offer
-follow_up
-status_change
-mini_audit
+NOTE
+CALL
+MESSAGE
+STATUS_CHANGE
+AUDIT
+OTHER
 ```
 
 ## `tasks`
