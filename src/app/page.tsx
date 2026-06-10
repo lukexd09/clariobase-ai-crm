@@ -21,6 +21,12 @@ export default function HomePage() {
               Open leads
             </Link>
             <Link
+              href="/work"
+              className="rounded-xl border border-slate-700 px-4 py-2 font-medium text-slate-100 transition hover:border-cyan-500 hover:text-cyan-200"
+            >
+              Open workbench
+            </Link>
+            <Link
               href="/imports"
               className="rounded-xl border border-slate-700 px-4 py-2 font-medium text-slate-100 transition hover:border-cyan-500 hover:text-cyan-200"
             >
