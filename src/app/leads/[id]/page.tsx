@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLeadActivities } from "@/lib/activities";
 import { getLeadById } from "@/lib/leads";
+import { getLeadOfferDrafts, toOfferDraftClientRecord } from "@/lib/offer-drafts";
 import { getLeadMiniAuditDrafts } from "@/lib/mini-audits";
 import { getLeadOutreachDrafts } from "@/lib/outreach-drafts";
 import { ActivityForm, ActivityTimeline } from "@/components/activity-form";
 import { LeadUpdateForm } from "@/components/lead-update-form";
+import { OfferDraftSection } from "@/components/offer-draft-form";
 import { MiniAuditDraftSection } from "@/components/mini-audit-draft-form";
 import { OutreachDraftSection } from "@/components/outreach-draft-form";
 import { StatusPill } from "@/components/lead-status-pill";
@@ -34,11 +36,12 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [lead, activities, miniAuditDrafts, outreachDrafts] = await Promise.all([
+  const [lead, activities, miniAuditDrafts, outreachDrafts, offerDrafts] = await Promise.all([
     getLeadById(id),
     getLeadActivities(id),
     getLeadMiniAuditDrafts(id),
-    getLeadOutreachDrafts(id)
+    getLeadOutreachDrafts(id),
+    getLeadOfferDrafts(id)
   ]);
 
   if (!lead) notFound();
@@ -122,6 +125,7 @@ export default async function LeadDetailPage({
 
             <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
             <OutreachDraftSection leadId={lead.id} drafts={outreachDrafts} miniAuditDrafts={miniAuditDrafts} />
+            <OfferDraftSection leadId={lead.id} drafts={offerDrafts.map(toOfferDraftClientRecord)} />
 
             <ActivityForm leadId={lead.id} />
             <ActivityTimeline activities={activities} />

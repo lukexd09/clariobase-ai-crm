@@ -89,6 +89,15 @@ enum OutreachDraftStatus {
   ARCHIVED
 }
 
+enum OfferDraftStatus {
+  DRAFT
+  READY
+  SENT_MANUALLY
+  ACCEPTED
+  REJECTED
+  ARCHIVED
+}
+
 enum OutreachChannel {
   EMAIL
   INSTAGRAM_DM
@@ -132,6 +141,7 @@ model Lead {
   activities Activity[]
   miniAuditDrafts MiniAuditDraft[]
   outreachDrafts OutreachDraft[]
+  offerDrafts OfferDraft[]
 
   @@index([businessName])
   @@index([city, country])
@@ -273,4 +283,30 @@ model OutreachDraft {
   @@index([miniAuditDraftId])
   @@index([status, channel])
   @@map("outreach_drafts")
+}
+
+model OfferDraft {
+  id             String          @id @default(cuid())
+  leadId         String          @map("lead_id")
+  status         OfferDraftStatus @default(DRAFT)
+  title          String
+  packageFit     PackageFit      @map("package_fit")
+  priceNet       Decimal?        @map("price_net")
+  currency       String          @default("PLN")
+  scopeSummary   String?         @map("scope_summary")
+  assumptions    String?
+  nextStep       String?         @map("next_step")
+  validUntil     DateTime?       @map("valid_until")
+  sentAt         DateTime?       @map("sent_at")
+  acceptedAt     DateTime?       @map("accepted_at")
+  rejectedAt     DateTime?       @map("rejected_at")
+  rejectionReason String?         @map("rejection_reason")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, updatedAt])
+  @@index([status, updatedAt])
+  @@map("offer_drafts")
 }

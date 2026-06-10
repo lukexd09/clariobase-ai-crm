@@ -29,7 +29,7 @@ CRM PostgreSQL database
   - tasks and activities
   - mini-audit drafts
   - outreach drafts
-  - offers
+  - offer drafts
   - AI exchange batches
   - approved AI recommendations
 ```
@@ -269,24 +269,46 @@ PHONE_CALL
 OTHER
 ```
 
-## `offers`
+## `offer_drafts`
 
-Future table for commercial offers.
+Stores the first commercial offer draft records for a lead.
 
 ```text
 id
 lead_id
-offer_status
-package_name
+status
+title
+package_fit
 price_net
+currency
 scope_summary
+assumptions
+next_step
+valid_until
 sent_at
 accepted_at
 rejected_at
-notes
+rejection_reason
 created_at
 updated_at
 ```
+
+Offer draft statuses:
+
+```text
+DRAFT
+READY
+SENT_MANUALLY
+ACCEPTED
+REJECTED
+ARCHIVED
+```
+
+Notes:
+
+- Offer drafts are local CRM planning records, not automatic send or payment artifacts.
+- `package_fit` uses the same package fit vocabulary as the rest of the CRM.
+- A future finalized `offers` table can still be added later if commercial contract tracking becomes a separate need.
 
 ## Import/sync tables
 
