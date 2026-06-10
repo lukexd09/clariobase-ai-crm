@@ -59,6 +59,13 @@ enum ImportSourceType {
   MANUAL_AI_PREPARED_FILE
 }
 
+enum DuplicateCandidateStatus {
+  OPEN
+  NEEDS_REVIEW
+  DISMISSED
+  RESOLVED
+}
+
 model Lead {
   id             String       @id @default(cuid())
   customerId     String       @unique @map("customer_id")
@@ -89,6 +96,8 @@ model Lead {
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
   importRowResults ImportRowResult[]
+  duplicateCandidatesAsLeadA DuplicateCandidate[] @relation("DuplicateCandidateLeadA")
+  duplicateCandidatesAsLeadB DuplicateCandidate[] @relation("DuplicateCandidateLeadB")
 
   @@index([businessName])
   @@index([city, country])
@@ -143,4 +152,26 @@ model ImportRowResult {
   @@index([leadId])
   @@index([customerId])
   @@map("import_row_results")
+}
+
+model DuplicateCandidate {
+  id           String                  @id @default(cuid())
+  leadIdA      String                  @map("lead_id_a")
+  leadIdB      String                  @map("lead_id_b")
+  status       DuplicateCandidateStatus @default(OPEN)
+  score        Int                     @default(0)
+  reasons      Json
+  reviewedAt   DateTime?               @map("reviewed_at")
+  decisionNote String?                 @map("decision_note")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  leadA Lead @relation("DuplicateCandidateLeadA", fields: [leadIdA], references: [id], onDelete: Cascade)
+  leadB Lead @relation("DuplicateCandidateLeadB", fields: [leadIdB], references: [id], onDelete: Cascade)
+
+  @@unique([leadIdA, leadIdB])
+  @@index([status, score])
+  @@index([leadIdA])
+  @@index([leadIdB])
+  @@map("duplicate_candidates")
 }
