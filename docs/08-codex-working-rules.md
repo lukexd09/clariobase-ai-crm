@@ -58,7 +58,7 @@ Rules:
 - Do not commit real lead exports.
 - Do not commit secrets.
 - Do not commit `.env` files.
-- Treat files in `ai_exchange/inbox`, `outbox`, `processed` and `rejected` as local runtime data.
+- Treat files in `data/ai-exchange/inbox`, `processing`, `outbox`, `archive` and `error` as local runtime data.
 - Only schemas and anonymized samples should be committed.
 
 ## AI import rules

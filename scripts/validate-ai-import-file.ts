@@ -1,40 +1,62 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { importFileSchema } from "@/lib/import-contract";
+import { LeadPriority, LeadStatus, PackageFit } from "../src/generated/prisma/client";
+import { z } from "zod";
 
-type ValidationIssueLike = {
-  path: Array<string | number | symbol>;
-  message: string;
-};
+const importRowSchema = z.object({
+  customerId: z.string().trim().min(1).optional(),
+  businessName: z.string().trim().min(1),
+  category: z.string().trim().min(1).optional().nullable(),
+  city: z.string().trim().min(1).optional().nullable(),
+  region: z.string().trim().min(1).optional().nullable(),
+  country: z.string().trim().min(1).optional().nullable(),
+  source: z.string().trim().min(1).optional().nullable(),
+  sourceRecordId: z.string().trim().min(1).optional().nullable(),
+  googlePlaceId: z.string().trim().min(1).optional().nullable(),
+  websiteUrl: z.string().trim().min(1).url().optional().nullable(),
+  instagramUrl: z.string().trim().min(1).url().optional().nullable(),
+  facebookUrl: z.string().trim().min(1).url().optional().nullable(),
+  phone: z.string().trim().min(1).optional().nullable(),
+  email: z.string().trim().min(1).email().optional().nullable(),
+  address: z.string().trim().min(1).optional().nullable(),
+  leadStatus: z.nativeEnum(LeadStatus).optional().nullable(),
+  priority: z.nativeEnum(LeadPriority).optional().nullable(),
+  packageFit: z.nativeEnum(PackageFit).optional().nullable(),
+  scoreTotal: z.number().int().optional().nullable(),
+  scoreLabel: z.string().trim().min(1).optional().nullable(),
+  nextActionAt: z.string().datetime().optional().nullable(),
+  lastReviewedAt: z.string().datetime().optional().nullable(),
+  lastImportedAt: z.string().datetime().optional().nullable()
+});
 
-function flattenIssues(issues: ValidationIssueLike[]) {
+const importFileSchema = z.array(importRowSchema);
+
+function flattenIssues(issues: Array<{ path: Array<string | number | symbol>; message: string }>) {
   return issues.map((issue) => {
-    const rowIndex = typeof issue.path[0] === "number" ? issue.path[0] + 1 : 1;
-    const fieldPath = issue.path
-      .slice(1)
-      .map((segment) => String(segment))
-      .join(".");
+    const rowNumber = typeof issue.path[0] === "number" ? issue.path[0] + 1 : 1;
+    const fieldPath = issue.path.slice(1).map(String).join(".");
+
     return {
-      row: rowIndex,
+      rowNumber,
       reason: fieldPath ? `${fieldPath}: ${issue.message}` : issue.message
     };
   });
 }
 
 async function main() {
-  const inputPath = process.argv[2];
+  const inputPath = process.argv.slice(2).find((value) => value !== "--");
 
   if (!inputPath) {
     throw new Error(
-      "Usage: pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json"
+      "Usage: corepack pnpm exec tsx scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json"
     );
   }
 
   const resolvedPath = path.resolve(inputPath);
   const raw = await fs.readFile(resolvedPath, "utf8");
 
-  let parsedJson: unknown;
+  let parsedJson;
   try {
     parsedJson = JSON.parse(raw);
   } catch (error) {
@@ -57,18 +79,21 @@ async function main() {
     return;
   }
 
-  const issues = flattenIssues(result.error.issues);
+  const issues = flattenIssues(result.error.issues as Array<{
+    path: Array<string | number | symbol>;
+    message: string;
+  }>);
+  const invalidRows = new Set(issues.map((issue) => issue.rowNumber)).size;
 
   console.log(`file: ${resolvedPath}`);
-  console.log(
-    `total rows: ${Array.isArray(parsedJson) ? parsedJson.length : 0}`
-  );
+  console.log(`total rows: ${Array.isArray(parsedJson) ? parsedJson.length : 0}`);
   console.log("valid rows: 0");
-  console.log(`invalid rows: ${issues.length}`);
+  console.log(`invalid rows: ${invalidRows}`);
   console.log("row errors:");
   for (const issue of issues) {
-    console.log(`  row ${issue.row}: ${issue.reason}`);
+    console.log(`  row ${issue.rowNumber}: ${issue.reason}`);
   }
+
   process.exitCode = 1;
 }
 

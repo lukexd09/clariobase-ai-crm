@@ -2,141 +2,58 @@
 
 ## Goal
 
-The CRM must support manual ChatGPT collaboration without calling external AI APIs in v1.
+ClarioBase uses a local, file-based ChatGPT workflow without external AI API calls in v1.
 
-The exchange is file-based:
-
-```text
-CRM export -> ChatGPT analysis -> structured response -> CRM import preview -> user approval -> apply changes
-```
-
-## Related work item coding
-
-AI exchange work belongs under:
+The implemented workflow is:
 
 ```text
-E002 - Implement file-based AI exchange
+CRM export -> user/ChatGPT review -> prepared import file -> validation -> manual import -> duplicate review
 ```
 
-Example future tasks:
+## Implemented path
+
+The current repository workflow uses:
 
 ```text
-E002.T001 - Validate AI response files against schema
-E002.T002 - Add AI import preview screen
-E002.T003 - Apply approved AI recommendations
+data/ai-exchange/
 ```
 
-See `docs/12-work-item-coding.md` for the full coding standard.
-
-## Folder structure
+Folders:
 
 ```text
-ai_exchange/
-- inbox/       # CRM-generated files for ChatGPT review
-- outbox/      # ChatGPT-generated files ready for CRM import
-- processed/   # Archived files after successful import
-- rejected/    # Invalid, unsafe or rejected responses
-- schemas/     # JSON schemas for file contracts
-- samples/     # Safe anonymized examples
+data/ai-exchange/
+- inbox/       # Prepared files waiting for validation
+- processing/  # Optional manual staging area
+- outbox/      # Exported CRM files for review or ChatGPT preparation
+- archive/     # Archived exchange files
+- error/       # Invalid or rejected files
 ```
 
-## Important rule
+## Current commands
 
-Real lead data should not be committed to the repository by default. The repository should contain schemas and anonymized samples. Real exports can live locally in the same folder structure.
+- Validate a prepared file with `corepack pnpm exec tsx scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json`
+- Import an approved file with `corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json`
 
-## Exchange principles
+## Contract boundaries
 
-- Every export must have a unique `batch_id`.
-- Every response must reference the original `batch_id`.
-- Every item must reference stable CRM IDs, usually `lead_id` and/or `customer_id`.
-- CRM must validate response structure before showing preview.
-- CRM must show preview before applying changes.
-- User must approve imports manually.
-- AI recommendations are advisory until approved.
-- AI output should never automatically send messages to clients.
+The current validator checks:
 
-## File naming convention
+- JSON parse
+- top-level array
+- row schema validation
+- row-level errors
 
-```text
-YYYY-MM-DD_workspace_purpose_batch-id.json
-YYYY-MM-DD_workspace_purpose_batch-id.md
-YYYY-MM-DD_workspace_purpose_batch-id__response.json
-YYYY-MM-DD_workspace_purpose_batch-id__response.md
-```
+## Current safety rules
 
-Examples:
+- No external AI API calls are made by the app.
+- No automatic ChatGPT invocation exists.
+- No file watcher or background sync is included.
+- No harvester DB data is exported or mutated.
+- No real lead data should be committed to the repository.
+- The export file is local-only and ignored by git.
 
-```text
-2026-06-09_clariobase_lead-review_batch-001.json
-2026-06-09_clariobase_mini-audit_batch-002.json
-2026-06-09_ugc_brand-review_batch-001.json
-```
+## Historical notes
 
-## Supported exchange purposes for v1
+The old `ai_exchange/` folder naming from earlier planning docs is deprecated. Use `data/ai-exchange/` for the implemented workflow.
 
-```text
-lead_review
-mini_audit_generation
-outreach_message_generation
-followup_recommendation
-pipeline_health_review
-lost_leads_analysis
-```
-
-## Minimal import lifecycle
-
-```text
-File found in ai_exchange/outbox
-  ->
-Schema validation
-  ->
-Business validation
-  ->
-Preview screen
-  ->
-User accepts selected items
-  ->
-CRM applies changes
-  ->
-Files moved to processed or rejected
-```
-
-## Business validation examples
-
-- Does `batch_id` exist?
-- Do all `lead_id` values exist?
-- Is `decision` one of allowed values?
-- Is `recommended_status` one of known statuses?
-- Is the response trying to modify protected fields?
-- Is the response empty or malformed?
-- Does it include suspicious or unsafe instructions?
-
-## Protected fields
-
-AI imports should not modify these directly in v1:
-
-```text
-customer_id
-source_record_id
-google_place_id
-created_at
-source
-raw harvested data
-```
-
-AI may recommend changes to:
-
-```text
-priority
-lead_status
-package_fit
-next_action_at
-mini_audit draft
-message draft
-tasks
-notes
-```
-
-## Human approval
-
-All imported recommendations should default to `pending` and require approval before becoming CRM state.
+Future work can extend this into a richer AI preview/approval experience, but that is not part of the current import/export sanity check.

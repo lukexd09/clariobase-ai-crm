@@ -99,13 +99,25 @@ E002 - Implement file-based AI exchange
 
 Potential deliverables:
 
-- Export AI review pack.
-- Export mini-audit generation pack.
-- Import AI response.
-- Validate response.
-- Preview recommendations.
-- Approve/reject selected items.
+- Local export for manual ChatGPT review.
+- Prepared-file validation before import.
+- Manual import of validated files.
+- Optional future preview/approval UI.
 - Store AI recommendations history.
+
+Implemented current workflow:
+
+```text
+data/ai-exchange/
+  ->
+local export
+  ->
+manual review/preparation
+  ->
+validation
+  ->
+manual import
+```
 
 ## Phase 4 - Harvester integration
 
