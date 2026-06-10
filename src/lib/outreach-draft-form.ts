@@ -27,7 +27,10 @@ export const outreachDraftFormSchema = z.object({
   callToAction: optionalText,
   notes: optionalText,
   sentAt: optionalDateTime,
-  miniAuditDraftId: z.string().trim().min(1).optional().nullable()
+  miniAuditDraftId: z.preprocess(
+    (value) => (value === "" || value === null || value === undefined ? null : value),
+    z.string().trim().min(1).nullable()
+  )
 });
 
 export type OutreachDraftFormData = z.infer<typeof outreachDraftFormSchema>;

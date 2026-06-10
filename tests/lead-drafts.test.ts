@@ -46,10 +46,31 @@ test("outreach draft schema accepts a complete draft", () => {
     message: "I had a look at your profile...",
     callToAction: "Would you like a quick audit?",
     notes: "Prepared for manual sending",
-    sentAt: "2026-06-10T10:30"
+    sentAt: "2026-06-10T10:30",
+    miniAuditDraftId: "mini_123"
   });
 
   assert.equal(result.success, true);
+  if (!result.success) return;
+  assert.equal(result.data.miniAuditDraftId, "mini_123");
+});
+
+test("outreach draft schema normalizes empty mini-audit link to null", () => {
+  const result = outreachDraftFormSchema.safeParse({
+    status: "READY",
+    channel: "EMAIL",
+    subject: "Quick idea",
+    openingHook: "Hello",
+    message: "I had a look at your profile...",
+    callToAction: "Would you like a quick audit?",
+    notes: "",
+    sentAt: "",
+    miniAuditDraftId: ""
+  });
+
+  assert.equal(result.success, true);
+  if (!result.success) return;
+  assert.equal(result.data.miniAuditDraftId, null);
 });
 
 test("outreach draft schema rejects invalid channels", () => {

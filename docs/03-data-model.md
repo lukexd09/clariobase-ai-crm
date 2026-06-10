@@ -226,7 +226,7 @@ Mini-audit statuses:
 
 ```text
 DRAFT
-READY
+READY_FOR_REVIEW
 APPROVED
 ARCHIVED
 ```
@@ -255,7 +255,7 @@ Outreach draft statuses:
 ```text
 DRAFT
 READY
-SENT
+SENT_MANUALLY
 ARCHIVED
 ```
 
