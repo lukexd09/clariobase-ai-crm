@@ -48,12 +48,14 @@ Rules:
 - Task IDs are scoped to the epic.
 - Branch and PR names must include the work item code.
 - Codex prompts must start with the work item code and title.
+- Codex prompts must include a `/goal` section to keep implementation inside the agreed boundaries.
 
 ## Non-negotiable principles
 
 - Do not start coding from vague ideas.
 - Every meaningful change must be tied to an issue or documented task.
 - Codex must receive narrow, explicit prompts.
+- Codex prompts must include a `/goal` guardrail before the task details.
 - Changes should be small enough to review.
 - No silent architecture changes.
 - Selected stack is Next.js App Router, TypeScript, PostgreSQL, Prisma, Zod, Tailwind CSS and shadcn/ui.
@@ -105,6 +107,7 @@ Codex is the implementation agent.
 Responsibilities:
 
 - reads required documentation before coding,
+- reads and follows the `/goal` guardrail before planning code changes,
 - implements only the requested scope,
 - works on a branch named with the work item code,
 - creates a PR or updates the existing PR for the same work item,
@@ -168,6 +171,26 @@ An epic or task is ready for Codex only when it has:
 - rollback considerations if data or migrations are involved.
 
 If these are missing, ChatGPT should refine the task before Codex starts.
+
+## Codex /goal guardrail
+
+Every Codex prompt must include a `/goal` section near the top of the prompt, before detailed task instructions.
+
+The `/goal` section exists to stop scope creep. It must tell Codex what outcome to deliver and what behavior to avoid.
+
+Standard `/goal` wording:
+
+```text
+/goal
+Deliver only the work item described below. Stay strictly inside the Scope and Out of scope sections. Do not add adjacent features, refactors, models, routes, integrations, UI redesigns, automation, or documentation changes unless they are explicitly required for this work item. If you notice useful extra work, list it as a follow-up suggestion in the PR notes instead of implementing it. If the task cannot be completed without expanding scope, stop and report the blocker.
+```
+
+Rules:
+
+- ChatGPT must include `/goal` in every Codex prompt.
+- Codex must treat `/goal` as a hard boundary, not as a suggestion.
+- Any idea outside `/goal`, Scope or Acceptance criteria must be listed as a follow-up, not implemented.
+- If Codex believes extra work is required to complete the task, it must state the blocker and wait for clarification instead of broadening the PR.
 
 ## First coding PR readiness
 
@@ -259,6 +282,9 @@ Parent epic: E001 - <epic name>
 ```text
 Work item: E001.T001 - <task name>
 
+/goal
+Deliver only the work item described below. Stay strictly inside the Scope and Out of scope sections. Do not add adjacent features, refactors, models, routes, integrations, UI redesigns, automation, or documentation changes unless they are explicitly required for this work item. If you notice useful extra work, list it as a follow-up suggestion in the PR notes instead of implementing it. If the task cannot be completed without expanding scope, stop and report the blocker.
+
 You are working in the `clariobase-ai-crm` repository.
 
 Read first:
@@ -288,6 +314,7 @@ Constraints:
 - Do not commit real lead data.
 - Do not change unrelated files.
 - Keep the change small and reviewable.
+- Do not expand beyond the `/goal`, Scope and Acceptance criteria.
 - Create a PR or update the existing PR for this work item before finishing.
 
 Acceptance criteria:
@@ -386,6 +413,7 @@ ChatGPT review should check:
 - Did Codex read and respect the relevant docs?
 - Are there unrelated changes?
 - Are there hidden scope expansions?
+- Did Codex stay inside the `/goal`, Scope and Out of scope sections?
 - Are database changes safe?
 - Does the change preserve separate CRM and harvester database boundaries?
 - Is error handling sufficient?
@@ -508,6 +536,7 @@ Do not build generic CRM features, multi-tenant SaaS, complex permissions, autom
 - Big vague tasks create confusion.
 - Clear file paths and exact expected outputs help Codex a lot.
 - Codex needs explicit out-of-scope boundaries.
+- Every Codex prompt needs a `/goal` guardrail to prevent helpful but unwanted scope expansion.
 - Existing working flows must be protected from accidental breakage.
 - UI labels and operational wording matter because the tool is used by a real operator.
 - Manual checkpoints are better than premature full automation.
