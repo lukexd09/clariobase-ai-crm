@@ -30,7 +30,10 @@ const leadListSelect = {
   priority: true,
   packageFit: true,
   scoreTotal: true,
-  nextActionAt: true
+  scoreLabel: true,
+  nextActionAt: true,
+  updatedAt: true,
+  lastImportedAt: true
 } satisfies Prisma.LeadSelect;
 
 export async function getLeads(filters: LeadFilters = {}) {

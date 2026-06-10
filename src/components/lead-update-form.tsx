@@ -56,7 +56,11 @@ export function LeadUpdateForm({
   );
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+    <form
+      id="quick-update"
+      action={formAction}
+      className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5"
+    >
       <div className="grid gap-4 md:grid-cols-2">
         <Field
           label="Lead status"

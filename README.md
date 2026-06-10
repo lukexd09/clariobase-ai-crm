@@ -130,6 +130,10 @@ Project foundation and implementation readiness phase.
 
 Open `/health` after starting the app to verify the skeleton is running.
 
+## Sales workbench
+
+Open `/work` to see the first daily sales workbench. It groups actionable leads into overdue, due today, upcoming, and no-next-action buckets, and links each record to the existing quick update form on the lead detail page.
+
 ## Local import
 
 Import a local JSON file with fake lead data:
