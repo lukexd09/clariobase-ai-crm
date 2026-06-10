@@ -23,7 +23,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-xl bg-cyan-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[#22D3EE] px-4 py-2 font-semibold text-[#00363e] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : "Add activity"}
     </button>
@@ -37,8 +37,8 @@ export function ActivityForm({ leadId }: { leadId: string }) {
   );
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-      <h3 className="text-lg font-medium">Add manual activity</h3>
+    <form action={formAction} className="space-y-4 rounded-3xl border border-[#1E293B] bg-[#11141D] p-6">
+      <h3 className="text-lg font-semibold text-[#F0F4F9]">Add manual activity</h3>
       <div className="grid gap-4 md:grid-cols-2">
         <Field
           label="Type"
@@ -93,29 +93,29 @@ export function ActivityTimeline({
   }[];
 }) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-      <h2 className="text-lg font-medium">Activity timeline</h2>
+    <section className="rounded-3xl border border-[#1E293B] bg-[#11141D] p-6">
+      <h2 className="text-lg font-semibold text-[#F0F4F9]">Activity timeline</h2>
       <div className="mt-4 space-y-4">
         {activities.length === 0 ? (
-          <p className="text-sm text-slate-400">No activities yet.</p>
+          <p className="text-sm text-[#94A3B8]">No activities yet.</p>
         ) : (
           activities.map((activity) => (
-            <article key={activity.id} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <article key={activity.id} className="rounded-2xl border border-[#1E293B] bg-[#0A0C10] p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusPill value={activity.type} />
-                <h3 className="text-base font-medium">{activity.title}</h3>
+                <h3 className="text-base font-medium text-[#F0F4F9]">{activity.title}</h3>
               </div>
-              <p className="mt-2 text-sm text-slate-300">{activity.body ?? "-"}</p>
-              <dl className="mt-3 grid gap-2 text-xs uppercase tracking-[0.25em] text-slate-500 sm:grid-cols-2">
+              <p className="mt-2 text-sm text-[#94A3B8]">{activity.body ?? "-"}</p>
+              <dl className="mt-3 grid gap-2 text-xs uppercase tracking-[0.25em] text-[#94A3B8] sm:grid-cols-2">
                 <div>
                   <dt>Occurred</dt>
-                  <dd className="mt-1 normal-case tracking-normal text-slate-300">
+                  <dd className="mt-1 normal-case tracking-normal text-[#F0F4F9]">
                     {formatDate(activity.occurredAt)}
                   </dd>
                 </div>
                 <div>
                   <dt>Created</dt>
-                  <dd className="mt-1 normal-case tracking-normal text-slate-300">
+                  <dd className="mt-1 normal-case tracking-normal text-[#F0F4F9]">
                     {formatDate(activity.createdAt)}
                   </dd>
                 </div>

@@ -30,7 +30,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-xl bg-cyan-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[#22D3EE] px-4 py-2 font-semibold text-[#00363e] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : "Save updates"}
     </button>
@@ -59,7 +59,7 @@ export function LeadUpdateForm({
     <form
       id="quick-update"
       action={formAction}
-      className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5"
+      className="space-y-4 rounded-2xl border border-[#1E293B] bg-[#0A0C10]/80 p-5"
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Field

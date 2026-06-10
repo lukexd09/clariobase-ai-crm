@@ -29,7 +29,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-xl bg-cyan-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[#22D3EE] px-4 py-2 font-semibold text-[#00363e] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : children}
     </button>
@@ -44,10 +44,10 @@ export function MiniAuditDraftSection({
   drafts: MiniAuditDraftRecord[];
 }) {
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+    <section className="space-y-4 rounded-3xl border border-[#1E293B] bg-[#11141D] p-6">
       <div>
-        <h2 className="text-lg font-medium">Mini-audit drafts</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-lg font-semibold text-[#F0F4F9]">Mini-audit drafts</h2>
+        <p className="mt-1 text-sm text-[#94A3B8]">
           Capture the first diagnosis, suggested package fit, and a draft message angle.
         </p>
       </div>
@@ -76,13 +76,13 @@ function MiniAuditDraftEditor({
   );
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+    <form action={formAction} className="space-y-4 rounded-2xl border border-[#1E293B] bg-[#0A0C10]/80 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-medium">
+          <h3 className="text-base font-medium text-[#F0F4F9]">
             {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create mini-audit draft"}
           </h3>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-[#94A3B8]">
             {draft ? "Update the existing draft below." : "Start a new draft for this lead."}
           </p>
         </div>
