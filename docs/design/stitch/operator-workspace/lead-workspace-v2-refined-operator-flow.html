@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ClarioBase - Lead Detail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#004e5a",
+                        "secondary-fixed": "#d8e3fb",
+                        "surface-container-low": "#1a1c20",
+                        "surface-raised": "#11141D",
+                        "primary-fixed": "#a2eeff",
+                        "text-secondary": "#94A3B8",
+                        "outline": "#859397",
+                        "on-surface-variant": "#bbc9cd",
+                        "error": "#ffb4ab",
+                        "text-primary": "#F0F4F9",
+                        "on-error": "#690005",
+                        "on-background": "#e2e2e8",
+                        "secondary-container": "#3e495d",
+                        "surface-deep": "#0A0C10",
+                        "on-tertiary-fixed-variant": "#643f00",
+                        "inverse-primary": "#006877",
+                        "on-secondary-fixed": "#111c2d",
+                        "on-tertiary-container": "#6e4600",
+                        "on-surface": "#e2e2e8",
+                        "on-primary": "#00363e",
+                        "on-error-container": "#ffdad6",
+                        "surface-dim": "#111318",
+                        "on-primary-fixed": "#001f25",
+                        "tertiary": "#ffd6a3",
+                        "primary-container": "#22d3ee",
+                        "secondary": "#bcc7de",
+                        "background": "#111318",
+                        "on-primary-container": "#005763",
+                        "border-subtle": "#1E293B",
+                        "outline-variant": "#3c494c",
+                        "warning-calm": "#F59E0B",
+                        "inverse-on-surface": "#2f3035",
+                        "surface-variant": "#333539",
+                        "success-calm": "#10B981",
+                        "primary": "#8aebff",
+                        "tertiary-fixed-dim": "#ffb957",
+                        "surface-tint": "#2fd9f4",
+                        "surface-container-lowest": "#0c0e12",
+                        "on-secondary": "#263143",
+                        "tertiary-fixed": "#ffddb5",
+                        "on-secondary-fixed-variant": "#3c475a",
+                        "inverse-surface": "#e2e2e8",
+                        "on-secondary-container": "#aeb9d0",
+                        "tertiary-container": "#ffb13b",
+                        "primary-fixed-dim": "#2fd9f4",
+                        "surface-container-high": "#282a2e",
+                        "surface-container-highest": "#333539",
+                        "on-tertiary-fixed": "#2a1800",
+                        "surface-container": "#1e2024",
+                        "surface-bright": "#37393e",
+                        "error-container": "#93000a",
+                        "on-tertiary": "#462b00",
+                        "surface": "#111318",
+                        "secondary-fixed-dim": "#bcc7de",
+                        "error-calm": "#EF4444"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-page": "32px",
+                        "gutter-grid": "24px",
+                        "stack-sm": "8px",
+                        "stack-lg": "32px",
+                        "base-unit": "4px",
+                        "stack-md": "16px",
+                        "padding-card": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-xl": ["Geist"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Geist"],
+                        "label-sm": ["Geist"],
+                        "label-md": ["Geist"],
+                        "headline-md": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "500"}],
+                        "label-sm": ["12px", {"lineHeight": "14px", "fontWeight": "500"}],
+                        "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .glass-card {
+                @apply bg-surface-raised border border-border-subtle rounded-xl p-padding-card shadow-[0_10px_30px_rgba(0,0,0,0.5)];
+            }
+            .btn-primary {
+                @apply bg-primary-container text-on-primary-container font-label-md text-label-md px-4 py-2 rounded-lg hover:brightness-110 transition-all duration-200;
+            }
+            .btn-secondary {
+                @apply bg-transparent border border-border-subtle text-text-primary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-variant/50 transition-all duration-200;
+            }
+            .ai-border {
+                position: relative;
+            }
+            .ai-border::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                border-radius: inherit;
+                padding: 1px;
+                background: linear-gradient(to right, #22D3EE, #4C1D95);
+                -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                -webkit-mask-composite: xor;
+                mask-composite: exclude;
+                pointer-events: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-surface-deep text-text-primary font-body-md text-body-md h-screen flex overflow-hidden">
+<!-- TopNavBar (Mobile) -->
+<nav class="md:hidden fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-page h-16 bg-background dark:bg-background border-b border-border-subtle">
+<div class="text-headline-sm font-headline-md font-bold text-primary-container dark:text-primary-container">ClarioBase</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-text-secondary">search</span>
+<span class="material-symbols-outlined text-text-secondary">menu</span>
+</div>
+</nav>
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full flex-col py-stack-lg bg-surface-container-lowest dark:bg-surface-container-lowest border-r border-border-subtle w-64 z-50">
+<div class="px-6 mb-8 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center">
+<span class="font-headline-sm text-headline-sm font-black text-on-primary-container">C</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-black text-primary">ClarioBase</h1>
+<p class="font-label-sm text-label-sm text-text-secondary">Sales Operator</p>
+</div>
+</div>
+<div class="px-4 mb-6">
+<button class="w-full flex items-center justify-center gap-2 bg-primary-container text-on-primary-container font-label-md text-label-md py-2.5 rounded-lg hover:brightness-110 transition-all shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+                New Lead
+            </button>
+</div>
+<ul class="flex-1 px-3 space-y-1">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-secondary-container text-on-secondary-container rounded-lg font-bold scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">filter_list</span>
+<span class="font-label-md text-label-md">Leads</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="font-label-md text-label-md">Pipeline</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="font-label-md text-label-md">Analytics</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-md text-label-md">Team</span>
+</a>
+</li>
+</ul>
+<div class="px-3 mt-auto">
+<ul class="space-y-1 border-t border-border-subtle pt-4">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-64 mt-16 md:mt-0 overflow-y-auto bg-surface-deep relative">
+<div class="max-w-7xl mx-auto px-margin-page py-8 space-y-stack-lg pb-32">
+<!-- Compact Header -->
+<header class="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-border-subtle">
+<div class="space-y-2">
+<div class="flex items-center gap-3">
+<h1 class="font-headline-xl text-headline-xl text-text-primary">Stellar Dynamics</h1>
+<a class="text-text-secondary hover:text-primary-container transition-colors" href="#">
+<span class="material-symbols-outlined text-sm">open_in_new</span>
+</a>
+</div>
+<div class="flex items-center gap-2 text-text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span>Austin, TX</span>
+<span class="px-2">•</span>
+<span class="material-symbols-outlined text-sm">factory</span>
+<span>Manufacturing Tech</span>
+</div>
+<div class="flex flex-wrap gap-2 pt-2">
+<span class="bg-surface-container-high text-on-surface px-2.5 py-1 rounded border border-border-subtle font-label-sm text-label-sm flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-warning-calm"></div>
+                            In Progress
+                        </span>
+<span class="bg-surface-container-high text-on-surface px-2.5 py-1 rounded border border-border-subtle font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-error-calm">local_fire_department</span>
+                            High Priority
+                        </span>
+<span class="bg-surface-container-high text-on-surface px-2.5 py-1 rounded border border-border-subtle font-label-sm text-label-sm text-success-calm">
+                            Enterprise Fit
+                        </span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-right">
+<div class="font-label-sm text-label-sm text-text-secondary mb-1 uppercase tracking-wider">Lead Score</div>
+<div class="font-headline-lg text-headline-lg text-primary-container">94<span class="text-text-secondary text-headline-sm">/100</span></div>
+</div>
+<div class="w-12 h-12 rounded-full border-4 border-surface-variant relative flex items-center justify-center">
+<svg class="absolute inset-0 w-full h-full transform -rotate-90">
+<circle cx="20" cy="20" fill="transparent" r="18" stroke="#333539" stroke-width="4"></circle>
+<circle cx="20" cy="20" fill="transparent" r="18" stroke="#22D3EE" stroke-dasharray="113" stroke-dashoffset="6" stroke-width="4"></circle>
+</svg>
+<span class="material-symbols-outlined text-primary-container text-sm z-10" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+</div>
+</div>
+</header>
+<!-- Main Layout Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-grid">
+<!-- Left Column (Wider) -->
+<div class="lg:col-span-8 space-y-stack-lg">
+<!-- Primary Command Panel -->
+<div class="glass-card ai-border bg-surface-dim relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-6xl">auto_awesome</span>
+</div>
+<div class="flex items-start justify-between gap-4 mb-4 relative z-10">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary-container text-sm">robot_2</span>
+<h2 class="font-label-md text-label-md text-primary-container uppercase tracking-widest">Next Recommended Action</h2>
+</div>
+<h3 class="font-headline-md text-headline-md text-text-primary mt-2">Schedule Technical Deep-Dive</h3>
+<p class="font-body-sm text-body-sm text-text-secondary mt-2 max-w-xl">
+                                    Prospect opened the security whitepaper 3 times in the last 24 hours. High intent signal detected. Recommend pitching the Enterprise Tier integration capabilities.
+                                </p>
+</div>
+<button class="btn-primary flex items-center gap-2 whitespace-nowrap">
+                                Execute Task
+                                <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<div class="mt-6 pt-6 border-t border-border-subtle relative z-10">
+<div class="flex gap-2">
+<input class="w-full bg-surface-container border border-border-subtle rounded-lg px-4 py-2 font-body-sm text-body-sm text-text-primary focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container/50 transition-all placeholder:text-text-secondary/50" placeholder="Quick log activity (e.g. 'Left voicemail...')" type="text"/>
+<button class="btn-secondary px-3">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Business Context Card -->
+<div class="glass-card">
+<div class="flex items-center justify-between mb-6 pb-4 border-b border-border-subtle">
+<h2 class="font-headline-sm text-headline-sm text-text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary">corporate_fare</span>
+                                Business Context
+                            </h2>
+<button class="text-text-secondary hover:text-text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+<div class="space-y-4">
+<div>
+<div class="font-label-sm text-label-sm text-text-secondary mb-1">Primary Contact</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center border border-border-subtle">
+<span class="material-symbols-outlined text-text-secondary">person</span>
+</div>
+<div>
+<div class="font-body-md text-body-md font-medium">Sarah Jenkins</div>
+<div class="font-body-sm text-body-sm text-text-secondary">VP of Operations</div>
+</div>
+</div>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-text-secondary mb-1">Source</div>
+<div class="font-body-md text-body-md">Inbound - Q3 Webinar</div>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-text-secondary mb-1">Estimated Deal Size</div>
+<div class="font-body-md text-body-md">$45,000 - $60,000 ARR</div>
+</div>
+</div>
+<div class="space-y-4">
+<div>
+<div class="font-label-sm text-label-sm text-text-secondary mb-1">Qualification Notes</div>
+<p class="font-body-sm text-body-sm text-text-secondary bg-surface-container rounded-lg p-3 border border-border-subtle">
+                                        Looking to consolidate 3 legacy tools. Main pain point is lack of real-time visibility across global manufacturing hubs. Timeline is urgent (Q4 implementation).
+                                    </p>
+</div>
+<div class="flex gap-2 mt-2">
+<span class="bg-success-calm/10 text-success-calm border border-success-calm/20 px-2 py-1 rounded font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Budget Approved
+                                    </span>
+<span class="bg-warning-calm/10 text-warning-calm border border-warning-calm/20 px-2 py-1 rounded font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">warning</span> Competitor Evaluating
+                                    </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Sales Workflow Section -->
+<div>
+<h2 class="font-headline-sm text-headline-sm text-text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary">account_tree</span>
+                            Sales Workflow
+                        </h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Card 1 -->
+<div class="bg-surface-raised border border-success-calm/30 rounded-xl p-4 shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-success-calm"></div>
+<div class="flex justify-between items-start mb-3">
+<div class="font-label-md text-label-md text-text-primary">Mini-Audit</div>
+<span class="material-symbols-outlined text-success-calm text-sm">check_circle</span>
+</div>
+<div class="font-body-sm text-body-sm text-text-secondary mb-4 line-clamp-2">
+                                    Completed analysis of current tech stack. Identified 3 core redundancies.
+                                </div>
+<div class="flex items-center justify-between mt-auto">
+<span class="font-label-sm text-label-sm text-text-secondary text-[10px]">Updated 2d ago</span>
+<button class="text-text-secondary hover:text-primary-container transition-colors text-sm">View</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-raised border border-primary-container/50 rounded-xl p-4 shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary-container shadow-[0_0_10px_#22d3ee]"></div>
+<div class="flex justify-between items-start mb-3">
+<div class="font-label-md text-label-md text-text-primary">Outreach Sequence</div>
+<span class="bg-primary-container/20 text-primary-container px-1.5 py-0.5 rounded text-[10px] font-bold">ACTIVE</span>
+</div>
+<div class="font-body-sm text-body-sm text-text-secondary mb-4">
+                                    Step 3: Technical Value Prop email sent. Waiting on reply.
+                                </div>
+<div class="flex items-center justify-between mt-auto">
+<span class="font-label-sm text-label-sm text-text-secondary text-[10px]">Updated 4h ago</span>
+<button class="text-text-secondary hover:text-primary-container transition-colors text-sm">Edit</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-raised border border-border-subtle rounded-xl p-4 shadow-sm relative overflow-hidden opacity-70">
+<div class="flex justify-between items-start mb-3">
+<div class="font-label-md text-label-md text-text-primary">Offer Generation</div>
+<span class="material-symbols-outlined text-text-secondary text-sm">lock</span>
+</div>
+<div class="font-body-sm text-body-sm text-text-secondary mb-4 italic">
+                                    Requires audit completion and discovery call to unlock.
+                                </div>
+<div class="flex items-center justify-between mt-auto">
+<span class="font-label-sm text-label-sm text-text-secondary text-[10px]">-</span>
+<button class="text-text-secondary/50 cursor-not-allowed text-sm">Draft</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Narrower) -->
+<div class="lg:col-span-4 space-y-stack-lg">
+<!-- Activity Timeline -->
+<div class="glass-card h-full flex flex-col max-h-[800px]">
+<div class="flex items-center justify-between mb-6 pb-4 border-b border-border-subtle">
+<h2 class="font-headline-sm text-headline-sm text-text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-text-secondary">history</span>
+                                Activity Log
+                            </h2>
+<button class="text-text-secondary hover:text-text-primary transition-colors">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto pr-2 space-y-6 scrollbar-hide relative">
+<!-- Vertical Line -->
+<div class="absolute left-3.5 top-2 bottom-2 w-px bg-border-subtle"></div>
+<!-- Event 1 -->
+<div class="relative pl-10">
+<div class="absolute left-2 top-1 w-3 h-3 rounded-full bg-primary-container shadow-[0_0_8px_#22d3ee]"></div>
+<div class="font-label-sm text-label-sm text-text-secondary mb-1">Today, 10:42 AM</div>
+<div class="bg-surface-container rounded-lg p-3 border border-border-subtle">
+<div class="font-label-md text-label-md text-text-primary mb-1">Email Opened</div>
+<div class="font-body-sm text-body-sm text-text-secondary">Sarah Jenkins opened "Q4 Integration Capabilities" (3rd time).</div>
+</div>
+</div>
+<!-- Event 2 -->
+<div class="relative pl-10">
+<div class="absolute left-2 top-1 w-3 h-3 rounded-full bg-surface-variant border border-border-subtle"></div>
+<div class="font-label-sm text-label-sm text-text-secondary mb-1">Yesterday, 3:15 PM</div>
+<div class="font-body-sm text-body-sm text-text-primary">
+<span class="font-medium text-primary-container">System</span> moved lead stage to <span class="text-text-primary font-medium">In Progress</span> based on engagement score.
+                                </div>
+</div>
+<!-- Event 3 -->
+<div class="relative pl-10">
+<div class="absolute left-2 top-1 w-3 h-3 rounded-full bg-surface-variant border border-border-subtle flex items-center justify-center">
+<div class="w-1 h-1 bg-text-secondary rounded-full"></div>
+</div>
+<div class="font-label-sm text-label-sm text-text-secondary mb-1">Oct 12, 11:00 AM</div>
+<div class="bg-surface-container rounded-lg p-3 border border-border-subtle">
+<div class="font-label-md text-label-md text-text-primary mb-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">call</span> Note logged by You
+                                    </div>
+<div class="font-body-sm text-body-sm text-text-secondary">Had initial 15m disco call. Verified timeline is tight for Q4. Action item: Send technical specs.</div>
+</div>
+</div>
+<!-- Event 4 -->
+<div class="relative pl-10">
+<div class="absolute left-2 top-1 w-3 h-3 rounded-full bg-surface-variant border border-border-subtle"></div>
+<div class="font-label-sm text-label-sm text-text-secondary mb-1">Oct 10, 09:23 AM</div>
+<div class="font-body-sm text-body-sm text-text-primary">
+                                    Lead created via <span class="font-medium">HubSpot Integration</span> (Inbound Webinar).
+                                </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="w-full flex justify-between items-center px-margin-page py-4 bg-surface-deep border-t border-border-subtle absolute bottom-0">
+<div class="font-body-sm text-body-sm text-text-secondary">
+                ClarioBase v2.4.1 | Operator ID: 8829 | Lead ID: LD-99281A
+            </div>
+<div class="flex gap-4">
+<a class="font-label-sm text-label-sm text-text-secondary hover:text-on-surface transition-colors" href="#">Technical Docs</a>
+<a class="font-label-sm text-label-sm text-text-secondary hover:text-on-surface transition-colors" href="#">System Status</a>
+</div>
+</footer>
+</main>
+</body></html>
