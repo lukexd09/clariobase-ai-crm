@@ -10,7 +10,7 @@ import {
   type OfferDraftStatusValue,
   type PackageFitValue
 } from "@/lib/lead-values";
-import type { OfferDraftRecord } from "@/lib/offer-drafts";
+import type { OfferDraftClientRecord } from "@/lib/offer-drafts";
 
 type DraftState = {
   ok: boolean;
@@ -41,7 +41,7 @@ export function OfferDraftSection({
   drafts
 }: {
   leadId: string;
-  drafts: OfferDraftRecord[];
+  drafts: OfferDraftClientRecord[];
 }) {
   return (
     <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
@@ -69,7 +69,7 @@ function OfferDraftEditor({
   draft
 }: {
   leadId: string;
-  draft?: OfferDraftRecord;
+  draft?: OfferDraftClientRecord;
 }) {
   const [state, formAction] = useActionState<DraftState, FormData>(
     async (_previous, formData) => saveOfferDraftAction(leadId, formData),
@@ -288,5 +288,5 @@ function asDateTimeLocal(value: Date | null | undefined) {
 
 function asInputNumberValue(value: unknown) {
   if (value === null || value === undefined) return "";
-  return Number(value);
+  return typeof value === "string" ? Number(value) : Number(value);
 }

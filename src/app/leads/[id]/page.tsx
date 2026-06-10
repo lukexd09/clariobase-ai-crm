@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLeadActivities } from "@/lib/activities";
 import { getLeadById } from "@/lib/leads";
-import { getLeadOfferDrafts } from "@/lib/offer-drafts";
+import { getLeadOfferDrafts, toOfferDraftClientRecord } from "@/lib/offer-drafts";
 import { getLeadMiniAuditDrafts } from "@/lib/mini-audits";
 import { getLeadOutreachDrafts } from "@/lib/outreach-drafts";
 import { ActivityForm, ActivityTimeline } from "@/components/activity-form";
@@ -125,7 +125,7 @@ export default async function LeadDetailPage({
 
             <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
             <OutreachDraftSection leadId={lead.id} drafts={outreachDrafts} miniAuditDrafts={miniAuditDrafts} />
-            <OfferDraftSection leadId={lead.id} drafts={offerDrafts} />
+            <OfferDraftSection leadId={lead.id} drafts={offerDrafts.map(toOfferDraftClientRecord)} />
 
             <ActivityForm leadId={lead.id} />
             <ActivityTimeline activities={activities} />

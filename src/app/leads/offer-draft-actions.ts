@@ -70,7 +70,7 @@ export async function saveOfferDraftAction(leadId: string, formData: FormData) {
   if (!parsed.data.draftId) {
     await createLeadActivity({
       leadId,
-      type: "AUDIT",
+      type: "NOTE",
       title: "Offer draft created",
       body: [
         `Title: ${draftPayload.title}`,

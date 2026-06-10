@@ -25,6 +25,10 @@ export type OfferDraftRecord = Prisma.OfferDraftGetPayload<{
   select: typeof offerDraftSelect;
 }>;
 
+export type OfferDraftClientRecord = Omit<OfferDraftRecord, "priceNet"> & {
+  priceNet: string | null;
+};
+
 export type OfferDraftInput = {
   status: Prisma.OfferDraftUncheckedCreateInput["status"];
   title: string;
@@ -40,6 +44,13 @@ export type OfferDraftInput = {
   rejectedAt: Date | null;
   rejectionReason: string | null;
 };
+
+export function toOfferDraftClientRecord(draft: OfferDraftRecord): OfferDraftClientRecord {
+  return {
+    ...draft,
+    priceNet: draft.priceNet === null ? null : draft.priceNet.toString()
+  };
+}
 
 export async function getLeadOfferDrafts(leadId: string) {
   return prisma.offerDraft.findMany({
