@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { HOME_ACTION_CARDS, HOME_POSITIONING, HOME_STATUS_ITEMS } from "@/lib/homepage";
+import {
+  HOME_PRIMARY_ACTION_CARDS,
+  HOME_POSITIONING,
+  HOME_STATUS_ITEMS,
+  HOME_SYSTEM_LINK
+} from "@/lib/homepage";
 
 export default function HomePage() {
   return (
@@ -17,9 +22,9 @@ export default function HomePage() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-sm font-medium text-slate-500">Light CRM visual foundation</p>
+              <p className="text-sm font-medium text-slate-500">Light CRM home</p>
               <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-                A calm entry point for lead review, work, reporting, imports, and duplicates.
+                Manage leads, follow-ups, and sales work in one calm workspace.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-slate-600">{HOME_POSITIONING}</p>
             </div>
@@ -47,8 +52,8 @@ export default function HomePage() {
             <div className="space-y-2">
               <p className="text-2xl font-semibold text-slate-950">Ready for daily sales work</p>
               <p className="text-sm leading-6 text-slate-600">
-                The CRM is live with lead review, workbench, reporting, imports, duplicates, and a
-                file-based AI workflow.
+                Lead work stays organized here, while imports, duplicates, reporting, and AI
+                review files stay under your control.
               </p>
             </div>
             <ul className="space-y-2 text-sm text-slate-600">
@@ -63,7 +68,7 @@ export default function HomePage() {
         </header>
 
         <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {HOME_ACTION_CARDS.map((card) => (
+          {HOME_PRIMARY_ACTION_CARDS.map((card) => (
             <Link
               key={card.href}
               href={card.href}
@@ -71,8 +76,8 @@ export default function HomePage() {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">
-                    Route
+                  <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">
+                    {card.label}
                   </p>
                   <h2 className="text-2xl font-semibold text-slate-950">{card.title}</h2>
                   <p className="text-sm leading-6 text-slate-600">{card.description}</p>
@@ -88,10 +93,22 @@ export default function HomePage() {
           ))}
         </section>
 
-        <footer className="mt-8 flex flex-col gap-3 rounded-[24px] border border-slate-200 bg-white px-6 py-5 text-sm text-slate-600 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:flex-row sm:items-center sm:justify-between">
-          <p>Designed for a solo operator to move quickly without a heavy admin-dashboard feel.</p>
-          <p className="font-medium text-slate-500">No real data is shown on the homepage.</p>
-        </footer>
+        <section className="mt-8 rounded-[24px] border border-slate-200 bg-white px-6 py-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-600">
+              Built for focused lead review, controlled imports, and calm daily sales work.
+            </p>
+            <Link
+              href={HOME_SYSTEM_LINK.href}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-sky-200 hover:text-sky-700"
+            >
+              <span>{HOME_SYSTEM_LINK.title}</span>
+              <span aria-hidden="true" className="text-slate-400">
+                &rarr;
+              </span>
+            </Link>
+          </div>
+        </section>
       </div>
     </main>
   );
