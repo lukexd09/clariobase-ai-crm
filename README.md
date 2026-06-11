@@ -105,7 +105,16 @@ clariobase-ai-crm/
 
 ## Current status
 
-Project foundation and implementation readiness phase.
+Post-UI implementation and workflow stabilization phase.
+
+Implemented now:
+
+- lead list and lead detail,
+- the lead detail operator workspace,
+- the daily sales workbench,
+- sales reporting,
+- import audit and duplicate review,
+- file-based AI export and validation.
 
 ## Sales workbench
 
@@ -237,7 +246,7 @@ This writes a JSON file into `data/ai-exchange/outbox/` containing local CRM lea
 ### Validate a prepared import file
 
 ```bash
-corepack pnpm exec tsx scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json
+corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
 ```
 
 The validator checks that the file is valid JSON, contains a top-level array, and matches the same row contract used by `leads:import`. It prints total rows, valid rows, invalid rows, and row-level validation errors. A non-zero exit code means the file should not be imported yet.
