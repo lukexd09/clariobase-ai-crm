@@ -85,6 +85,10 @@ For harvester integration work, first create/update:
 
 - `docs/11-harvester-integration-analysis.md`
 
+For the E007 lead detail operator workspace redesign, also read the binding Stitch reference set:
+
+- `docs/design/stitch/operator-workspace/`
+
 ## Repository structure
 
 ```text

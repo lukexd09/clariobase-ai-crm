@@ -23,6 +23,9 @@ const initialState: LeadUpdateState = {
   message: ""
 };
 
+const fieldInputClassName =
+  "w-full rounded-2xl border border-[#1E293B] bg-[#0A0C10] px-4 py-3 text-sm text-[#F0F4F9] outline-none transition placeholder:text-[#64748B] focus:border-[#22D3EE] focus:ring-2 focus:ring-[#22D3EE]/25";
+
 function SubmitButton() {
   const { pending } = useFormStatus();
 
@@ -30,7 +33,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-xl bg-cyan-500 px-4 py-2 font-medium text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[#22D3EE] px-4 py-2 font-semibold text-[#00363e] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : "Save updates"}
     </button>
@@ -59,14 +62,14 @@ export function LeadUpdateForm({
     <form
       id="quick-update"
       action={formAction}
-      className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5"
+      className="space-y-4 rounded-2xl border border-[#1E293B] bg-[#0A0C10]/80 p-5"
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Field
           label="Lead status"
           value={<StatusPill value={leadStatus} />}
           control={
-            <select name="leadStatus" defaultValue={leadStatus} className="input">
+            <select name="leadStatus" defaultValue={leadStatus} className={fieldInputClassName}>
               {LEAD_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -79,7 +82,7 @@ export function LeadUpdateForm({
           label="Priority"
           value={<StatusPill value={priority} />}
           control={
-            <select name="priority" defaultValue={priority} className="input">
+            <select name="priority" defaultValue={priority} className={fieldInputClassName}>
               {LEAD_PRIORITY_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -92,7 +95,7 @@ export function LeadUpdateForm({
           label="Package fit"
           value={<StatusPill value={packageFit} />}
           control={
-            <select name="packageFit" defaultValue={packageFit} className="input">
+            <select name="packageFit" defaultValue={packageFit} className={fieldInputClassName}>
               {PACKAGE_FIT_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -109,7 +112,7 @@ export function LeadUpdateForm({
               name="nextActionAt"
               type="datetime-local"
               defaultValue={nextActionAt}
-              className="input"
+              className={fieldInputClassName}
             />
           }
         />
