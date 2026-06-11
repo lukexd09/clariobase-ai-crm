@@ -89,6 +89,10 @@ For the E007 lead detail operator workspace redesign, also read the binding Stit
 
 - `docs/design/stitch/operator-workspace/`
 
+For the E009 light CRM homepage and future screen-by-screen visual work, also read:
+
+- `docs/design/light-crm-visual-direction.md`
+
 ## Repository structure
 
 ```text
@@ -105,7 +109,7 @@ clariobase-ai-crm/
 
 ## Current status
 
-Post-UI implementation and workflow stabilization phase.
+Post-UI implementation, workflow stabilization, and light CRM visual foundation phase.
 
 Implemented now:
 
@@ -115,6 +119,7 @@ Implemented now:
 - sales reporting,
 - import audit and duplicate review,
 - file-based AI export and validation.
+- a light CRM homepage that introduces the new business-friendly visual direction.
 
 ## Sales workbench
 
