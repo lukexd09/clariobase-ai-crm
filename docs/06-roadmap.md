@@ -90,6 +90,17 @@ Potential deliverables:
 - Package fit.
 - Basic reporting.
 
+Implemented current state:
+
+- lead list and lead detail pages,
+- the lead detail operator workspace,
+- the daily sales workbench,
+- activity logging and timeline,
+- mini-audit drafts,
+- outreach drafts,
+- offer drafts,
+- sales reporting.
+
 ## Phase 3 - File-based AI exchange
 
 Goal: make ChatGPT collaboration operational.
@@ -121,6 +132,11 @@ validation
   ->
 manual import
 ```
+
+Future follow-up:
+
+- AI preview / approval UI.
+- Stored AI recommendation history.
 
 ## Phase 4 - Harvester integration
 

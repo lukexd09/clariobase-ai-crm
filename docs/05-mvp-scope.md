@@ -105,7 +105,8 @@ Implemented path:
 data/ai-exchange/
 ```
 
-The current workflow does not include external AI API calls, automatic preview screens, or automatic inbox ingestion.
+The current workflow does not include external AI API calls or automatic inbox ingestion.
+Manual review happens outside the app before import, and any future preview/approval UI is a separate follow-up.
 
 ## 8. Basic reporting
 
@@ -147,7 +148,7 @@ Initial CRM implementation should not directly mutate harvester tables.
 ## Non-negotiable requirements
 
 - Real data must not be committed by default.
-- AI imports require preview and manual approval.
+- AI imports are validated locally before manual import.
 - Database must keep AI recommendations separate from approved CRM state.
 - CRM PostgreSQL database must remain the CRM source of truth.
 - Harvester and CRM databases must stay separate.
