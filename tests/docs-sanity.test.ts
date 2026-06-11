@@ -15,7 +15,7 @@ test("README documents the current post-UI CRM state and scripts", () => {
     scripts: Record<string, string>;
   };
 
-  assert.match(readme, /Post-UI implementation and workflow stabilization phase\./);
+  assert.match(readme, /Post-UI implementation, workflow stabilization, and light CRM visual foundation phase\./);
   assert.match(readme, /lead detail operator workspace/);
   assert.match(readme, /Open `\/work`/);
   assert.match(readme, /Open `\/reports\/sales`/);
