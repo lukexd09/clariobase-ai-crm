@@ -22,6 +22,9 @@ const initialState: DraftState = {
   message: ""
 };
 
+const fieldInputClassName =
+  "w-full rounded-2xl border border-[#1E293B] bg-[#0A0C10] px-4 py-3 text-sm text-[#F0F4F9] outline-none transition placeholder:text-[#64748B] focus:border-[#22D3EE] focus:ring-2 focus:ring-[#22D3EE]/25";
+
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
 
@@ -98,7 +101,7 @@ function MiniAuditDraftEditor({
         <DraftField
           label="Status"
           control={
-            <select name="status" defaultValue={draft?.status ?? "DRAFT"} className="input">
+            <select name="status" defaultValue={draft?.status ?? "DRAFT"} className={fieldInputClassName}>
               {MINI_AUDIT_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -111,7 +114,11 @@ function MiniAuditDraftEditor({
         <DraftField
           label="Suggested package"
           control={
-            <select name="suggestedPackage" defaultValue={draft?.suggestedPackage ?? "UNKNOWN"} className="input">
+            <select
+              name="suggestedPackage"
+              defaultValue={draft?.suggestedPackage ?? "UNKNOWN"}
+              className={fieldInputClassName}
+            >
               {PACKAGE_FIT_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -123,17 +130,17 @@ function MiniAuditDraftEditor({
         />
         <DraftField
           label="Problem 1"
-          control={<input name="problem1" defaultValue={draft?.problem1 ?? ""} className="input" />}
+          control={<input name="problem1" defaultValue={draft?.problem1 ?? ""} className={fieldInputClassName} />}
           value="First core issue"
         />
         <DraftField
           label="Problem 2"
-          control={<input name="problem2" defaultValue={draft?.problem2 ?? ""} className="input" />}
+          control={<input name="problem2" defaultValue={draft?.problem2 ?? ""} className={fieldInputClassName} />}
           value="Second core issue"
         />
         <DraftField
           label="Problem 3"
-          control={<input name="problem3" defaultValue={draft?.problem3 ?? ""} className="input" />}
+          control={<input name="problem3" defaultValue={draft?.problem3 ?? ""} className={fieldInputClassName} />}
           value="Third core issue"
         />
         <DraftField
@@ -143,7 +150,7 @@ function MiniAuditDraftEditor({
               name="approvedAt"
               type="datetime-local"
               defaultValue={asDateTimeLocal(draft?.approvedAt)}
-              className="input"
+              className={fieldInputClassName}
             />
           }
           value="Optional review timestamp"
@@ -155,7 +162,7 @@ function MiniAuditDraftEditor({
               name="recommendation"
               rows={3}
               defaultValue={draft?.recommendation ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="Short recommendation summary"
@@ -167,7 +174,7 @@ function MiniAuditDraftEditor({
               name="outreachAngle"
               rows={3}
               defaultValue={draft?.outreachAngle ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="Lead-in for the first message"
@@ -179,7 +186,7 @@ function MiniAuditDraftEditor({
               name="draftMessage"
               rows={5}
               defaultValue={draft?.draftMessage ?? ""}
-              className="input min-h-32 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-32 resize-y md:col-span-2`}
             />
           }
           value="Prepared message text"
@@ -191,7 +198,7 @@ function MiniAuditDraftEditor({
               name="riskNotes"
               rows={3}
               defaultValue={draft?.riskNotes ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="Potential objections or caveats"

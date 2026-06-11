@@ -23,6 +23,9 @@ const initialState: DraftState = {
   message: ""
 };
 
+const fieldInputClassName =
+  "w-full rounded-2xl border border-[#1E293B] bg-[#0A0C10] px-4 py-3 text-sm text-[#F0F4F9] outline-none transition placeholder:text-[#64748B] focus:border-[#22D3EE] focus:ring-2 focus:ring-[#22D3EE]/25";
+
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
 
@@ -108,7 +111,7 @@ function OutreachDraftEditor({
         <DraftField
           label="Status"
           control={
-            <select name="status" defaultValue={draft?.status ?? "DRAFT"} className="input">
+            <select name="status" defaultValue={draft?.status ?? "DRAFT"} className={fieldInputClassName}>
               {OUTREACH_DRAFT_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -121,7 +124,7 @@ function OutreachDraftEditor({
         <DraftField
           label="Channel"
           control={
-            <select name="channel" defaultValue={draft?.channel ?? "EMAIL"} className="input">
+            <select name="channel" defaultValue={draft?.channel ?? "EMAIL"} className={fieldInputClassName}>
               {OUTREACH_CHANNEL_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -137,7 +140,7 @@ function OutreachDraftEditor({
             <select
               name="miniAuditDraftId"
               defaultValue={draft?.miniAuditDraftId ?? ""}
-              className="input"
+              className={fieldInputClassName}
             >
               <option value="">None</option>
               {miniAuditDrafts.map((miniAuditDraft) => (
@@ -152,7 +155,7 @@ function OutreachDraftEditor({
         />
         <DraftField
           label="Subject"
-          control={<input name="subject" defaultValue={draft?.subject ?? ""} className="input" />}
+          control={<input name="subject" defaultValue={draft?.subject ?? ""} className={fieldInputClassName} />}
           value="Optional email subject"
         />
         <DraftField
@@ -162,7 +165,7 @@ function OutreachDraftEditor({
               name="sentAt"
               type="datetime-local"
               defaultValue={asDateTimeLocal(draft?.sentAt)}
-              className="input"
+              className={fieldInputClassName}
             />
           }
           value="Optional manual sent timestamp"
@@ -174,7 +177,7 @@ function OutreachDraftEditor({
               name="openingHook"
               rows={3}
               defaultValue={draft?.openingHook ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="Lead-specific opening line"
@@ -186,7 +189,7 @@ function OutreachDraftEditor({
               name="message"
               rows={5}
               defaultValue={draft?.message ?? ""}
-              className="input min-h-32 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-32 resize-y md:col-span-2`}
             />
           }
           value="Prepared outreach text"
@@ -198,7 +201,7 @@ function OutreachDraftEditor({
               name="callToAction"
               rows={3}
               defaultValue={draft?.callToAction ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="What should the lead do next"
@@ -210,7 +213,7 @@ function OutreachDraftEditor({
               name="notes"
               rows={3}
               defaultValue={draft?.notes ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="Internal context or reminders"

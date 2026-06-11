@@ -16,6 +16,9 @@ const initialState: ActivityFormState = {
   message: ""
 };
 
+const fieldInputClassName =
+  "w-full rounded-2xl border border-[#1E293B] bg-[#0A0C10] px-4 py-3 text-sm text-[#F0F4F9] outline-none transition placeholder:text-[#64748B] focus:border-[#22D3EE] focus:ring-2 focus:ring-[#22D3EE]/25";
+
 function SubmitButton() {
   const { pending } = useFormStatus();
 
@@ -43,7 +46,7 @@ export function ActivityForm({ leadId }: { leadId: string }) {
         <Field
           label="Type"
           control={
-            <select name="type" defaultValue="NOTE" className="input">
+            <select name="type" defaultValue="NOTE" className={fieldInputClassName}>
               {ACTIVITY_TYPE_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -55,17 +58,24 @@ export function ActivityForm({ leadId }: { leadId: string }) {
         />
         <Field
           label="Title"
-          control={<input name="title" defaultValue="" className="input" placeholder="Quick call summary" />}
+          control={<input name="title" defaultValue="" className={fieldInputClassName} placeholder="Quick call summary" />}
           value="Short summary of what happened"
         />
         <Field
           label="Occurred at"
-          control={<input name="occurredAt" type="datetime-local" className="input" />}
+          control={<input name="occurredAt" type="datetime-local" className={fieldInputClassName} />}
           value="Defaults to now if empty"
         />
         <Field
           label="Body"
-          control={<textarea name="body" rows={4} className="input min-h-28 resize-y" placeholder="Notes, context, or next step..." />}
+          control={
+            <textarea
+              name="body"
+              rows={4}
+              className={`${fieldInputClassName} min-h-28 resize-y`}
+              placeholder="Notes, context, or next step..."
+            />
+          }
           value="Optional notes and context"
         />
       </div>

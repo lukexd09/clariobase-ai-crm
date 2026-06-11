@@ -22,6 +22,9 @@ const initialState: DraftState = {
   message: ""
 };
 
+const fieldInputClassName =
+  "w-full rounded-2xl border border-[#1E293B] bg-[#0A0C10] px-4 py-3 text-sm text-[#F0F4F9] outline-none transition placeholder:text-[#64748B] focus:border-[#22D3EE] focus:ring-2 focus:ring-[#22D3EE]/25";
+
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
 
@@ -99,7 +102,7 @@ function OfferDraftEditor({
         <DraftField
           label="Status"
           control={
-            <select name="status" defaultValue={draft?.status ?? "DRAFT"} className="input">
+            <select name="status" defaultValue={draft?.status ?? "DRAFT"} className={fieldInputClassName}>
               {OFFER_DRAFT_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {value.replaceAll("_", " ")}
@@ -115,7 +118,7 @@ function OfferDraftEditor({
             <select
               name="packageFit"
               defaultValue={draft?.packageFit ?? "UNKNOWN"}
-              className="input"
+              className={fieldInputClassName}
             >
               {PACKAGE_FIT_VALUES.map((value) => (
                 <option key={value} value={value}>
@@ -128,7 +131,7 @@ function OfferDraftEditor({
         />
         <DraftField
           label="Title"
-          control={<input name="title" defaultValue={draft?.title ?? ""} className="input" />}
+          control={<input name="title" defaultValue={draft?.title ?? ""} className={fieldInputClassName} />}
           value="Required offer title"
         />
         <DraftField
@@ -140,14 +143,14 @@ function OfferDraftEditor({
               min="0"
               step="0.01"
               defaultValue={asInputNumberValue(draft?.priceNet)}
-              className="input"
+              className={fieldInputClassName}
             />
           }
           value="Optional numeric price"
         />
         <DraftField
           label="Currency"
-          control={<input name="currency" defaultValue={draft?.currency ?? "PLN"} className="input" />}
+          control={<input name="currency" defaultValue={draft?.currency ?? "PLN"} className={fieldInputClassName} />}
           value="Defaults to PLN"
         />
         <DraftField
@@ -157,7 +160,7 @@ function OfferDraftEditor({
               name="validUntil"
               type="datetime-local"
               defaultValue={asDateTimeLocal(draft?.validUntil)}
-              className="input"
+              className={fieldInputClassName}
             />
           }
           value="Optional expiry timestamp"
@@ -169,7 +172,7 @@ function OfferDraftEditor({
               name="sentAt"
               type="datetime-local"
               defaultValue={asDateTimeLocal(draft?.sentAt)}
-              className="input"
+              className={fieldInputClassName}
             />
           }
           value="Manual send timestamp"
@@ -181,7 +184,7 @@ function OfferDraftEditor({
               name="acceptedAt"
               type="datetime-local"
               defaultValue={asDateTimeLocal(draft?.acceptedAt)}
-              className="input"
+              className={fieldInputClassName}
             />
           }
           value="Optional acceptance timestamp"
@@ -193,7 +196,7 @@ function OfferDraftEditor({
               name="rejectedAt"
               type="datetime-local"
               defaultValue={asDateTimeLocal(draft?.rejectedAt)}
-              className="input"
+              className={fieldInputClassName}
             />
           }
           value="Optional rejection timestamp"
@@ -205,7 +208,7 @@ function OfferDraftEditor({
               name="scopeSummary"
               rows={3}
               defaultValue={draft?.scopeSummary ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="What is included in the offer"
@@ -217,7 +220,7 @@ function OfferDraftEditor({
               name="assumptions"
               rows={3}
               defaultValue={draft?.assumptions ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="What the price assumes"
@@ -229,7 +232,7 @@ function OfferDraftEditor({
               name="nextStep"
               rows={3}
               defaultValue={draft?.nextStep ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="What should happen after this draft"
@@ -241,7 +244,7 @@ function OfferDraftEditor({
               name="rejectionReason"
               rows={3}
               defaultValue={draft?.rejectionReason ?? ""}
-              className="input min-h-24 resize-y md:col-span-2"
+              className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
           value="Optional rejection note"

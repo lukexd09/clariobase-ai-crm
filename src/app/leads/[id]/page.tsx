@@ -61,6 +61,8 @@ export default async function LeadDetailPage({
   if (!lead) notFound();
 
   const clientOfferDrafts = offerDrafts.map(toOfferDraftClientRecord);
+  const miniAuditPanelPackage = getMiniAuditPanelPackage(miniAuditDrafts);
+  const offerPanelPackage = getOfferPanelPackage(clientOfferDrafts);
   const recommendation = getNextRecommendedAction({
     miniAuditDrafts,
     outreachDrafts,
@@ -70,6 +72,7 @@ export default async function LeadDetailPage({
   return (
     <main className="min-h-screen bg-[#0A0C10] text-[#F0F4F9]">
       <div className="mx-auto max-w-7xl px-6 py-8">
+        <LeadDetailSidebar />
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/leads"
@@ -103,11 +106,11 @@ export default async function LeadDetailPage({
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#94A3B8]">
                 <span>{lead.city ?? "-"}</span>
-                <span>•</span>
+                <span>|</span>
                 <span>{lead.region ?? "-"}</span>
-                <span>•</span>
+                <span>|</span>
                 <span>{lead.country ?? "-"}</span>
-                <span>•</span>
+                <span>|</span>
                 <span>{lead.category ?? "Unspecified category"}</span>
               </div>
 
@@ -227,20 +230,16 @@ export default async function LeadDetailPage({
             </section>
 
             <section className="space-y-4" id="lead-artifacts">
-              <ArtifactPanel
-                id="mini-audit"
-                label="Mini-audit"
-                title={getArtifactPanelTitle("Mini-audit", miniAuditDrafts.length)}
-                description={getMiniAuditPanelDescription(miniAuditDrafts)}
-                statusBadge={<StatusPill value={getMiniAuditPanelStatus(miniAuditDrafts)} />}
-                packageBadge={
-                  getMiniAuditPanelPackage(miniAuditDrafts) ? (
-                    <StatusPill value={getMiniAuditPanelPackage(miniAuditDrafts)} />
-                  ) : null
-                }
-                updatedAt={getMiniAuditPanelUpdatedAt(miniAuditDrafts)}
-                actionLabel={getMiniAuditPanelAction(miniAuditDrafts)}
-              >
+                <ArtifactPanel
+                  id="mini-audit"
+                  label="Mini-audit"
+                  title={getArtifactPanelTitle("Mini-audit", miniAuditDrafts.length)}
+                  description={getMiniAuditPanelDescription(miniAuditDrafts)}
+                  statusBadge={<StatusPill value={getMiniAuditPanelStatus(miniAuditDrafts)} />}
+                  packageBadge={miniAuditPanelPackage ? <StatusPill value={miniAuditPanelPackage} /> : null}
+                  updatedAt={getMiniAuditPanelUpdatedAt(miniAuditDrafts)}
+                  actionLabel={getMiniAuditPanelAction(miniAuditDrafts)}
+                >
                 <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
               </ArtifactPanel>
 
@@ -261,20 +260,16 @@ export default async function LeadDetailPage({
                 />
               </ArtifactPanel>
 
-              <ArtifactPanel
-                id="offer"
-                label="Offer generation"
-                title={getOfferPanelTitle(clientOfferDrafts)}
-                description={getOfferPanelDescription(clientOfferDrafts)}
-                statusBadge={<StatusPill value={getOfferPanelStatus(clientOfferDrafts)} />}
-                packageBadge={
-                  getOfferPanelPackage(clientOfferDrafts) ? (
-                    <StatusPill value={getOfferPanelPackage(clientOfferDrafts)} />
-                  ) : null
-                }
-                updatedAt={getOfferPanelUpdatedAt(clientOfferDrafts)}
-                actionLabel={getOfferPanelAction(clientOfferDrafts)}
-              >
+                <ArtifactPanel
+                  id="offer"
+                  label="Offer generation"
+                  title={getOfferPanelTitle(clientOfferDrafts)}
+                  description={getOfferPanelDescription(clientOfferDrafts)}
+                  statusBadge={<StatusPill value={getOfferPanelStatus(clientOfferDrafts)} />}
+                  packageBadge={offerPanelPackage ? <StatusPill value={offerPanelPackage} /> : null}
+                  updatedAt={getOfferPanelUpdatedAt(clientOfferDrafts)}
+                  actionLabel={getOfferPanelAction(clientOfferDrafts)}
+                >
                 <OfferDraftSection leadId={lead.id} drafts={clientOfferDrafts} />
               </ArtifactPanel>
             </section>
@@ -504,7 +499,7 @@ function getOfferPanelDescription(drafts: OfferDraftClientRecord[]) {
   }
 
   const price = latest.priceNet ? `${latest.currency} ${latest.priceNet}` : "No price set yet";
-  return [latest.packageFit.replaceAll("_", " "), price].join(" • ");
+  return [latest.packageFit.replaceAll("_", " "), price].join(" | ");
 }
 
 function getOfferPanelStatus(drafts: OfferDraftClientRecord[]) {
@@ -605,7 +600,7 @@ function ArtifactPanel({
               {actionLabel}
             </span>
             <span className="rounded-full border border-[#1E293B] bg-[#0A0C10] px-3 py-2 text-[#94A3B8] transition group-open:text-[#22D3EE]">
-              <span className="text-lg leading-none transition-transform group-open:rotate-180">⌄</span>
+              <span className="text-lg leading-none transition-transform group-open:rotate-180">v</span>
             </span>
           </div>
         </div>
@@ -627,7 +622,7 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
       rel="noreferrer"
     >
       {label}
-      <span aria-hidden="true">↗</span>
+      <span aria-hidden="true">&rarr;</span>
     </a>
   );
 }
@@ -640,3 +635,44 @@ function MetaChip({ label, value }: { label: string; value: string }) {
     </span>
   );
 }
+
+function LeadDetailSidebar() {
+  const links = [
+    { href: "/", label: "Home" },
+    { href: "/work", label: "Work" },
+    { href: "/leads", label: "Leads" },
+    { href: "/reports/sales", label: "Sales reports" }
+  ];
+
+  return (
+    <aside className="mb-6 hidden lg:float-left lg:mr-6 lg:block lg:w-[240px]">
+      <div className="sticky top-8 space-y-4 rounded-3xl border border-[#1E293B] bg-[#11141D] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#22D3EE]">
+            Operator sidebar
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-[#F0F4F9]">Workspace routes</h2>
+          <p className="mt-1 text-sm text-[#94A3B8]">
+            Fast access to the core CRM routes used in the Stitch reference.
+          </p>
+        </div>
+
+        <nav className="space-y-2">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex items-center justify-between rounded-2xl border border-[#1E293B] bg-[#0A0C10] px-4 py-3 text-sm font-medium text-[#F0F4F9] transition hover:border-[#22D3EE] hover:text-[#22D3EE]"
+            >
+              <span>{link.label}</span>
+              <span aria-hidden="true" className="text-[#94A3B8]">
+                &rarr;
+              </span>
+            </Link>
+          ))}
+        </nav>
+      </div>
+    </aside>
+  );
+}
+
