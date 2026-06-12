@@ -27,20 +27,15 @@ export default async function SalesReportPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
               Operational pipeline report
             </h1>
-            <p className="max-w-4xl text-sm leading-6 text-slate-600">
-              This is a lightweight operational report, not a BI dashboard. It summarizes lead
-              status usage, workbench health, draft readiness, and activity volume using existing
-              CRM data only.
-            </p>
           </div>
         </header>
 
         <section className="mb-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Metric label="Total leads" value={report.totalLeads} />
           <Metric label="Active leads" value={report.activeLeads} />
-          <Metric label="Overdue work items" value={report.workbenchBucketCounts.overdue} />
+          <Metric label="Overdue work items" value={report.workbenchBucketCounts.overdue} tone="overdue" />
           <Metric label="Activities logged" value={report.activityTotalCount} />
-          <Metric label="Due today" value={report.workbenchBucketCounts.dueToday} />
+          <Metric label="Due today" value={report.workbenchBucketCounts.dueToday} tone="dueToday" />
           <Metric label="Leads with mini-audit drafts" value={report.leadsWithMiniAuditDrafts} />
           <Metric label="Leads with outreach drafts" value={report.leadsWithOutreachDrafts} />
           <Metric label="Leads with offer drafts" value={report.leadsWithOfferDrafts} />
@@ -171,10 +166,35 @@ export default async function SalesReportPage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({
+  label,
+  value,
+  tone
+}: {
+  label: string;
+  value: number;
+  tone?: "overdue" | "dueToday";
+}) {
+  const classes =
+    tone && value > 0
+      ? tone === "overdue"
+        ? "border-rose-200 bg-rose-50"
+        : "border-amber-200 bg-amber-50"
+      : "border-slate-200 bg-white";
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</p>
+    <div className={`rounded-2xl border p-4 shadow-sm ${classes}`}>
+      <p
+        className={`text-xs font-semibold uppercase tracking-[0.24em] ${
+          tone && value > 0
+            ? tone === "overdue"
+              ? "text-rose-700"
+              : "text-amber-700"
+            : "text-slate-500"
+        }`}
+      >
+        {label}
+      </p>
       <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{value}</p>
     </div>
   );

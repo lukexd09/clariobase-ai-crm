@@ -7,6 +7,20 @@ type FilterOptions = {
   packageFit: string[];
 };
 
+const filterLabels: Record<keyof FilterOptions, string> = {
+  status: "Status",
+  priority: "Priority",
+  city: "City",
+  packageFit: "Package"
+};
+
+function formatFilterValue(value: string) {
+  return value
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export function LeadFilters({
   filters,
   options
@@ -50,6 +64,36 @@ export function LeadFilters({
           </div>
         </div>
       </fieldset>
+
+      {(
+        [
+          ["status", filters.status],
+          ["priority", filters.priority],
+          ["city", filters.city],
+          ["packageFit", filters.packageFit]
+        ] as const
+      ).some(([, value]) => Boolean(value)) ? (
+        <ul aria-label="Active filters" className="mt-3 flex flex-wrap gap-2">
+          {(
+            [
+              ["status", filters.status],
+              ["priority", filters.priority],
+              ["city", filters.city],
+              ["packageFit", filters.packageFit]
+            ] as const
+          ).map(([key, value]) =>
+            value ? (
+              <li
+                key={key}
+                className="inline-flex min-h-9 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700"
+              >
+                <span className="text-slate-500">{filterLabels[key]}:</span>
+                <span className="ml-1 text-slate-900">{formatFilterValue(value)}</span>
+              </li>
+            ) : null
+          )}
+        </ul>
+      ) : null}
     </form>
   );
 }

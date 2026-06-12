@@ -13,43 +13,104 @@ function formatDate(value: Date | null) {
     : "-";
 }
 
+const workIndicatorToneMap = {
+  overdue: {
+    card: "border-rose-200 bg-rose-50",
+    label: "text-rose-700",
+    marker: "bg-rose-500"
+  },
+  dueToday: {
+    card: "border-amber-200 bg-amber-50",
+    label: "text-amber-700",
+    marker: "bg-amber-500"
+  },
+  upcoming: {
+    card: "border-sky-200 bg-sky-50",
+    label: "text-sky-700",
+    marker: "bg-sky-500"
+  },
+  noAction: {
+    card: "border-violet-200 bg-violet-50",
+    label: "text-violet-700",
+    marker: "bg-violet-500"
+  },
+  neutral: {
+    card: "border-slate-200 bg-white",
+    label: "text-slate-600",
+    marker: "bg-slate-300"
+  }
+} as const;
+
+type WorkBucketKey = keyof typeof workIndicatorToneMap;
+
+function getWorkIndicatorStyles(key: WorkBucketKey, count: number) {
+  if (count === 0) {
+    return workIndicatorToneMap.neutral;
+  }
+
+  return workIndicatorToneMap[key];
+}
+
+function WorkIndicatorCard({
+  bucketKey,
+  label,
+  count
+}: {
+  bucketKey: WorkBucketKey;
+  label: string;
+  count: number;
+}) {
+  const styles = getWorkIndicatorStyles(bucketKey, count);
+
+  return (
+    <div className={`flex min-h-20 flex-col justify-between rounded-2xl border p-3 ${styles.card}`}>
+      <div className="flex items-start justify-between gap-3">
+        <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${styles.label}`}>
+          {label}
+        </p>
+        <span aria-hidden="true" className={`mt-0.5 h-2.5 w-2.5 rounded-full ${styles.marker}`} />
+      </div>
+      <p className="pt-2 text-2xl font-semibold leading-none tabular-nums text-slate-950">{count}</p>
+    </div>
+  );
+}
+
 export default async function WorkPage() {
   const leads = await getLeads();
   const buckets = getWorkBuckets(leads);
+  const indicatorLabels: Record<string, string> = {
+    overdue: "Overdue",
+    dueToday: "Due today",
+    upcoming: "Upcoming",
+    noAction: "No next action"
+  };
   const bucketCounts = buckets.map((bucket) => ({
     key: bucket.key,
-    title: bucket.title,
+    label: indicatorLabels[bucket.key] ?? bucket.title,
     count: bucket.leads.length
   }));
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-6">
-        <header className="mb-5 grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)] lg:p-5">
+        <header className="mb-5 grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(220px,0.75fr)_minmax(0,1.6fr)] lg:p-5">
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Sales workbench</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+              Sales workbench
+            </p>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
               Work queue
             </h1>
-            <p className="max-w-2xl text-sm leading-6 text-slate-600">
-              Open the day here, see which leads need attention first, and jump straight into the
-              existing quick update form on each lead.
-            </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {bucketCounts.map((bucket) => (
-              <div
+              <WorkIndicatorCard
                 key={bucket.key}
-                className="flex min-h-24 flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4"
-              >
-                <p className="min-h-10 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  {bucket.title}
-                </p>
-                <p className="mt-auto pt-2 text-2xl font-semibold leading-none tabular-nums text-slate-950">
-                  {bucket.count}
-                </p>
-              </div>
+                bucketKey={bucket.key as WorkBucketKey}
+                label={bucket.label}
+                count={bucket.count}
+              />
             ))}
           </div>
         </header>
