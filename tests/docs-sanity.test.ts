@@ -65,4 +65,8 @@ test("light CRM visual direction covers shell navigation guidance", () => {
   assert.match(doc, /Main navigation/);
   assert.match(doc, /focus-visible/);
   assert.match(doc, /business work entries above system entries/i);
+  assert.match(doc, /color scheme/i);
+  assert.match(doc, /minimum important text size/i);
+  assert.match(doc, /manual keyboard and contrast checks/i);
+  assert.match(doc, /active navigation state is visible without color alone/i);
 });
