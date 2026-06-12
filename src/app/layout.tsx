@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ClarioBase AI CRM",
-  description: "ClarioBase AI CRM technical skeleton"
+  description: "ClarioBase AI CRM light CRM workspace"
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }

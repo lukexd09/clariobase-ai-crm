@@ -39,3 +39,11 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Keep operator pages practical and uncluttered.
 - Use this document as design guidance, not as runtime code.
 - Exported design assets, when present, remain reference-only and are not imported directly.
+
+## Shell guidance
+
+- Use semantic navigation with an explicit `Main navigation` label.
+- Keep business work entries above system entries.
+- Make the active route visible with more than color alone.
+- Preserve visible focus-visible states on all navigation links and shell-level actions.
+- Keep the shell light, calm, and compact rather than admin-heavy.
