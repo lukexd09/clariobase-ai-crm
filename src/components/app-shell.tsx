@@ -73,9 +73,6 @@ export function AppShell({ children }: AppShellProps) {
           ))}
         </nav>
 
-        <div className="mt-auto hidden rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500 lg:block">
-          Business work stays primary. System checks stay available, but secondary.
-        </div>
       </aside>
 
       <div className="min-w-0 flex-1">{children}</div>

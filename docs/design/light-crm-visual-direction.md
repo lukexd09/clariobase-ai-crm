@@ -44,6 +44,26 @@ It is a practical implementation guide for future screen-by-screen UI work.
 
 - Use semantic navigation with an explicit `Main navigation` label.
 - Keep business work entries above system entries.
-- Make the active route visible with more than color alone.
+- Active navigation state is visible without color alone.
 - Preserve visible focus-visible states on all navigation links and shell-level actions.
 - Keep the shell light, calm, and compact rather than admin-heavy.
+
+## UI foundation
+
+- The app should default to a light color scheme.
+- Do not use a dark global body background as the baseline.
+- Minimum important text size should generally be at least `text-xs`.
+- Tiny uppercase labels should stay decorative or supportive only.
+- Secondary text must keep readable contrast against the background.
+- System and admin areas should remain visually secondary to business work.
+- Future UI PRs should include manual keyboard and contrast checks.
+
+## Future UI checklist
+
+- Can the screen be used with keyboard Tab?
+- Is focus visible on every interactive element?
+- Is the active navigation state visible without color alone?
+- Is important text readable?
+- Are system or admin elements visually secondary?
+- Does the screen follow the light CRM direction?
+- Is the screen avoiding a mix of light shell and dark legacy content unless intentionally deferred?
