@@ -39,20 +39,40 @@ export default async function LeadsPage({
   );
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <header className="mb-8 space-y-3">
-          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Lead CRM</p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Leads</h1>
-          <p className="max-w-3xl text-sm leading-6 text-slate-300">
-            Review leads, filter the daily queue, and open each record for operational updates.
-          </p>
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <header className="mb-6 grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] lg:p-6">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Lead CRM</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Leads
+            </h1>
+            <p className="max-w-3xl text-sm leading-6 text-slate-600">
+              Review leads, filter the daily queue, and open each record for operational updates.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Current filter
+              </p>
+              <p className="mt-3 text-lg font-semibold text-slate-950">
+                {filters.status || filters.priority || filters.city || filters.packageFit
+                  ? "Filtered view"
+                  : "All leads"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Visible rows
+              </p>
+              <p className="mt-3 text-lg font-semibold text-slate-950">{leads.length}</p>
+            </div>
+          </div>
         </header>
 
-        <LeadTable
-          leads={leads}
-          filterControls={filterControls}
-        />
+        <LeadTable leads={leads} filterControls={filterControls} />
       </div>
     </main>
   );

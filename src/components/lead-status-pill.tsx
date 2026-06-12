@@ -73,7 +73,8 @@ const variants: Record<string, string> = {
 
 export function StatusPill({
   value,
-  className
+  className,
+  appearance = "default"
 }: {
   value:
     | LeadStatusValue
@@ -89,12 +90,18 @@ export function StatusPill({
     | OutreachChannelValue
     | ActivityTypeValue;
   className?: string;
+  appearance?: "default" | "light";
 }) {
+  const variantClassName =
+    appearance === "light"
+      ? "bg-white text-slate-700 border-slate-200 shadow-sm"
+      : variants[value];
+
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-wide",
-        variants[value],
+        variantClassName,
         className
       )}
     >
