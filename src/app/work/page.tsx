@@ -63,14 +63,16 @@ function WorkIndicatorCard({
   const styles = getWorkIndicatorStyles(bucketKey, count);
 
   return (
-    <div className={`flex min-h-20 flex-col justify-between rounded-2xl border p-3 ${styles.card}`}>
-      <div className="flex items-start justify-between gap-3">
-        <p className={`text-xs font-semibold uppercase tracking-[0.12em] ${styles.label}`}>
+    <div className={`flex min-h-16 items-center justify-between gap-4 rounded-2xl border px-4 py-3 ${styles.card}`}>
+      <div className="flex min-w-0 items-center gap-2">
+        <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${styles.marker}`} />
+        <p className={`min-w-0 text-xs font-semibold uppercase tracking-[0.12em] ${styles.label}`}>
           {label}
         </p>
-        <span aria-hidden="true" className={`mt-0.5 h-2.5 w-2.5 rounded-full ${styles.marker}`} />
       </div>
-      <p className="pt-2 text-2xl font-semibold leading-none tabular-nums text-slate-950">{count}</p>
+      <p className="shrink-0 text-right text-2xl font-semibold leading-none tabular-nums text-slate-950">
+        {count}
+      </p>
     </div>
   );
 }
