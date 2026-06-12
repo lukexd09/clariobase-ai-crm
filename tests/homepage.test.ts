@@ -18,6 +18,7 @@ test("homepage no longer uses the technical skeleton message", () => {
   assert.doesNotMatch(pageSource, /Light CRM visual foundation/);
   assert.doesNotMatch(pageSource, /Route/);
   assert.match(pageSource, /Open leads/);
+  assert.match(pageSource, /prefetch=\{false\}/);
 });
 
 test("homepage exposes the core CRM navigation actions", () => {

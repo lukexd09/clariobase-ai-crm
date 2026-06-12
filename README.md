@@ -126,7 +126,7 @@ Implemented now:
 
 The main CRM screens use a shared light shell with grouped left navigation on desktop.
 Business work entries stay higher priority than system entries.
-The homepage remains a standalone entry screen.
+The homepage now acts as the Dashboard entry screen inside the shell.
 
 ## Sales workbench
 

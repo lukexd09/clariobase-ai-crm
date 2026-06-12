@@ -11,15 +11,12 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname() ?? "/";
 
-  if (pathname === "/") {
-    return <>{children}</>;
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 lg:flex">
       <aside className="border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-80 lg:flex-col lg:border-b-0 lg:border-r lg:px-5 lg:py-5">
         <Link
           href="/"
+          prefetch={false}
           className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-sky-200 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         >
           <span className="space-y-0.5">
@@ -42,6 +39,7 @@ export function AppShell({ children }: AppShellProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={false}
                       aria-current={active ? "page" : undefined}
                       className={[
                         "group flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
@@ -84,4 +82,3 @@ export function AppShell({ children }: AppShellProps) {
     </div>
   );
 }
-

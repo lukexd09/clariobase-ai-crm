@@ -14,7 +14,7 @@ test("navigation config keeps business routes separate from system routes", () =
 
   assert.deepEqual(
     mainRoutes.map((item) => item.href),
-    ["/work", "/leads", "/reports/sales", "/imports", "/duplicates"]
+    ["/", "/work", "/leads", "/reports/sales", "/imports", "/duplicates"]
   );
   assert.deepEqual(systemRoutes.map((item) => item.href), ["/health"]);
   assert.ok(mainRoutes.every((item) => item.priority === "primary"));
@@ -22,11 +22,11 @@ test("navigation config keeps business routes separate from system routes", () =
 });
 
 test("navigation activity helper handles nested routes", () => {
+  assert.equal(isNavigationItemActive("/", "/"), true);
+  assert.equal(isNavigationItemActive("/", "/work"), false);
   assert.equal(isNavigationItemActive("/work", "/work"), true);
   assert.equal(isNavigationItemActive("/work", "/work/123"), true);
   assert.equal(isNavigationItemActive("/work", "/leads"), false);
-  assert.equal(isNavigationItemActive("/", "/"), true);
-  assert.equal(isNavigationItemActive("/", "/work"), false);
 });
 
 test("app shell source uses semantic navigation and focus-visible styles", () => {
@@ -35,4 +35,6 @@ test("app shell source uses semantic navigation and focus-visible styles", () =>
   assert.match(shellSource, /nav aria-label="Main navigation"/);
   assert.match(shellSource, /focus-visible:outline-none/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
+  assert.doesNotMatch(shellSource, /pathname === "\/"\)\s*\{\s*return <>\{children\}<\/>;/s);
+  assert.match(shellSource, /prefetch=\{false\}/);
 });

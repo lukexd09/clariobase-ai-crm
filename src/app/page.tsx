@@ -32,12 +32,14 @@ export default function HomePage() {
             <div className="flex flex-wrap gap-2.5">
               <Link
                 href="/leads"
+                prefetch={false}
                 className="rounded-full bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
               >
                 Open leads
               </Link>
               <Link
                 href="/work"
+                prefetch={false}
                 className="rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-sky-300 hover:text-sky-700"
               >
                 Open workbench
@@ -72,6 +74,7 @@ export default function HomePage() {
             <Link
               key={card.href}
               href={card.href}
+              prefetch={false}
               className="group rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-[0_16px_40px_rgba(14,165,233,0.12)]"
             >
               <div className="flex items-start justify-between gap-3">
@@ -100,6 +103,7 @@ export default function HomePage() {
             </p>
             <Link
               href={HOME_SYSTEM_LINK.href}
+              prefetch={false}
               className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:border-sky-200 hover:text-sky-700"
             >
               <span>{HOME_SYSTEM_LINK.title}</span>

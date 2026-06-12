@@ -17,6 +17,12 @@ export const NAVIGATION_SECTIONS = [
     title: "Main work",
     items: [
       {
+        href: "/",
+        label: "Dashboard",
+        description: "Start from the CRM overview.",
+        priority: "primary"
+      },
+      {
         href: "/work",
         label: "Daily work",
         description: "Open the workbench and clear the day.",
@@ -72,4 +78,3 @@ export function isNavigationItemActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
-
