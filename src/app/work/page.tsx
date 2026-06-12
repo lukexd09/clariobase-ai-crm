@@ -3,6 +3,8 @@ import { getLeads } from "@/lib/leads";
 import { getWorkBuckets } from "@/lib/work-view";
 import { StatusPill } from "@/components/lead-status-pill";
 
+export const dynamic = "force-dynamic";
+
 function formatDate(value: Date | null) {
   return value
     ? new Intl.DateTimeFormat("en-GB", {

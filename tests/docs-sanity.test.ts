@@ -57,3 +57,12 @@ test("Stitch operator workspace reference stays reference-only", () => {
   assert.match(stitchReadme, /reference material, not a runtime dependency/);
   assert.match(stitchReadme, /Do not import the exported HTML directly into the app/);
 });
+
+test("light CRM visual direction covers shell navigation guidance", () => {
+  const doc = read("docs/design/light-crm-visual-direction.md");
+
+  assert.match(doc, /semantic navigation/);
+  assert.match(doc, /Main navigation/);
+  assert.match(doc, /focus-visible/);
+  assert.match(doc, /business work entries above system entries/i);
+});

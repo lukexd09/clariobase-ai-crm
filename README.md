@@ -120,6 +120,13 @@ Implemented now:
 - import audit and duplicate review,
 - file-based AI export and validation.
 - a light CRM homepage that introduces the new business-friendly visual direction.
+- a shared light CRM app shell with left navigation on the main CRM screens.
+
+## App shell
+
+The main CRM screens use a shared light shell with grouped left navigation on desktop.
+Business work entries stay higher priority than system entries.
+The homepage now acts as the Dashboard entry screen inside the shell.
 
 ## Sales workbench
 

@@ -19,6 +19,8 @@ import {
   type PackageFitValue
 } from "@/lib/lead-values";
 
+export const dynamic = "force-dynamic";
+
 function formatDate(value: Date | null | undefined) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("en-GB", {

@@ -3,6 +3,8 @@ import { LeadTable } from "@/components/lead-table";
 import { LeadFilters } from "@/components/lead-filters";
 import { getLeadFilterOptions } from "@/lib/leads";
 
+export const dynamic = "force-dynamic";
+
 type SearchParams = Record<string, string | string[] | undefined>;
 
 function firstValue(value: string | string[] | undefined) {
