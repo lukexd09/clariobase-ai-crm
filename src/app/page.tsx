@@ -8,10 +8,10 @@ import {
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#f8fafc_0%,#eef2ff_42%,#ffffff_100%)] text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-5 py-5 lg:px-6 lg:py-6">
-        <header className="flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white/85 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl space-y-4">
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto flex min-h-screen w-full max-w-none flex-col px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10">
+        <header className="flex flex-col gap-4 rounded-[28px] border border-slate-200 bg-white p-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl space-y-3">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">
               <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1">
                 ClarioBase AI CRM
@@ -23,36 +23,36 @@ export default function HomePage() {
 
             <div className="space-y-2">
               <p className="text-sm font-medium text-slate-500">Light CRM home</p>
-              <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl lg:text-[2.5rem] lg:leading-[1.05]">
+              <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.35rem] lg:leading-[1.05]">
                 Manage leads, follow-ups, and sales work in one calm workspace.
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-600">{HOME_POSITIONING}</p>
+              <p className="max-w-2xl text-sm leading-6 text-slate-600">{HOME_POSITIONING}</p>
             </div>
 
             <div className="flex flex-wrap gap-2.5">
               <Link
                 href="/leads"
                 prefetch={false}
-                className="rounded-full bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-500"
+                className="rounded-full bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
               >
                 Open leads
               </Link>
               <Link
                 href="/work"
                 prefetch={false}
-                className="rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-sky-300 hover:text-sky-700"
+                className="rounded-full border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
               >
                 Open workbench
               </Link>
             </div>
           </div>
 
-          <aside className="grid gap-2.5 rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:min-w-[300px]">
+          <aside className="grid gap-2 rounded-[24px] border border-slate-200 bg-slate-50 p-4 sm:min-w-[300px]">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
               Current operational state
             </p>
             <div className="space-y-1.5">
-              <p className="text-xl font-semibold text-slate-950">Ready for daily sales work</p>
+              <p className="text-lg font-semibold text-slate-950">Ready for daily sales work</p>
               <p className="text-sm leading-[1.35] text-slate-600">
                 Lead work stays organized here, while imports, duplicates, reporting, and AI
                 review files stay under your control.
@@ -75,14 +75,14 @@ export default function HomePage() {
               key={card.href}
               href={card.href}
               prefetch={false}
-              className="group rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-[0_16px_40px_rgba(14,165,233,0.12)]"
+              className="group rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-[0_16px_40px_rgba(14,165,233,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1.5">
-                  <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-sky-700">
+                  <p className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
                     {card.label}
                   </p>
-                  <h2 className="text-xl font-semibold text-slate-950">{card.title}</h2>
+                  <h2 className="text-lg font-semibold text-slate-950">{card.title}</h2>
                   <p className="text-sm leading-[1.35] text-slate-600">{card.description}</p>
                 </div>
                 <span
@@ -104,7 +104,7 @@ export default function HomePage() {
             <Link
               href={HOME_SYSTEM_LINK.href}
               prefetch={false}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:border-sky-200 hover:text-sky-700"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:border-sky-200 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
             >
               <span>{HOME_SYSTEM_LINK.title}</span>
               <span aria-hidden="true" className="text-slate-400">

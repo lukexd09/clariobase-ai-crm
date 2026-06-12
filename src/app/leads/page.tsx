@@ -40,8 +40,8 @@ export default async function LeadsPage({
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <header className="mb-6 grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] lg:p-6">
+      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-6">
+        <header className="mb-5 grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] lg:p-5">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Lead CRM</p>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
@@ -52,22 +52,22 @@ export default async function LeadsPage({
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <div className="flex flex-wrap gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
                 Current filter
-              </p>
-              <p className="mt-3 text-lg font-semibold text-slate-950">
+              </span>
+              <span className="font-medium text-slate-900">
                 {filters.status || filters.priority || filters.city || filters.packageFit
                   ? "Filtered view"
                   : "All leads"}
-              </p>
+              </span>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
                 Visible rows
-              </p>
-              <p className="mt-3 text-lg font-semibold text-slate-950">{leads.length}</p>
+              </span>
+              <span className="font-medium text-slate-900">{leads.length}</span>
             </div>
           </div>
         </header>

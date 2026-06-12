@@ -17,7 +17,7 @@ export function LeadFilters({
   return (
     <form
       method="get"
-      className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:grid-cols-4"
+      className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
     >
       <FilterSelect label="Status" name="status" value={filters.status ?? ""} options={options.status} />
       <FilterSelect
@@ -33,16 +33,16 @@ export function LeadFilters({
         value={filters.packageFit ?? ""}
         options={options.packageFit}
       />
-      <div className="flex flex-wrap items-center gap-3 md:col-span-4">
+      <div className="flex flex-wrap items-center gap-3 md:col-span-2 xl:col-span-1 xl:justify-end">
         <button
           type="submit"
-          className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-sky-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         >
           Apply filters
         </button>
         <Link
           href="/leads"
-          className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         >
           Clear filters
         </Link>

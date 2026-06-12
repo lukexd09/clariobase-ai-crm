@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { StatusPill } from "@/components/lead-status-pill";
 import { ACTIVITY_TYPE_VALUES } from "@/lib/activity-values";
 import { getSalesReport } from "@/lib/sales-report";
@@ -19,8 +18,8 @@ export default async function SalesReportPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-        <header className="mb-6 grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)] lg:p-6">
+      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-6">
+        <header className="mb-5 grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)] lg:p-5">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">
               Sales reporting
@@ -34,30 +33,9 @@ export default async function SalesReportPage() {
               CRM data only.
             </p>
           </div>
-
-          <div className="flex flex-wrap gap-3 lg:justify-end lg:content-start">
-            <Link
-              href="/"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              Home
-            </Link>
-            <Link
-              href="/work"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              Open workbench
-            </Link>
-            <Link
-              href="/leads"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              Open leads
-            </Link>
-          </div>
         </header>
 
-        <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Metric label="Total leads" value={report.totalLeads} />
           <Metric label="Active leads" value={report.activeLeads} />
           <Metric label="Overdue work items" value={report.workbenchBucketCounts.overdue} />
@@ -69,7 +47,7 @@ export default async function SalesReportPage() {
           <Metric label="Activities in last 7 days" value={report.activityLast7DaysCount} />
         </section>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           <ReportSection
             title="Lead status summary"
             description="Archived leads are excluded from active totals, while WON, LOST and DO_NOT_CONTACT remain visible as separate operational states."
@@ -77,13 +55,14 @@ export default async function SalesReportPage() {
             <div className="overflow-hidden rounded-2xl border border-slate-200">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <caption className="sr-only">Lead status summary table</caption>
                   <thead className="bg-slate-50">
                     <tr className="text-left text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Group</th>
-                      <th className="px-4 py-3">Meaning</th>
-                      <th className="px-4 py-3">Next action</th>
-                      <th className="px-4 py-3">Count</th>
+                      <th scope="col" className="px-4 py-3">Status</th>
+                      <th scope="col" className="px-4 py-3">Group</th>
+                      <th scope="col" className="px-4 py-3">Meaning</th>
+                      <th scope="col" className="px-4 py-3">Next action</th>
+                      <th scope="col" className="px-4 py-3">Count</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -194,9 +173,9 @@ export default async function SalesReportPage() {
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</p>
-      <p className="mt-3 text-3xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-3xl font-semibold text-slate-950">{value}</p>
     </div>
   );
 }
@@ -211,7 +190,7 @@ function ReportSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
       <div className="mb-4">
         <h2 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
         <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
@@ -230,9 +209,14 @@ function SimpleCountTable({
 }) {
   return (
     <div className="space-y-3">
-      {heading ? <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{heading}</h3> : null}
+      {heading ? (
+        <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+          {heading}
+        </h3>
+      ) : null}
       <div className="overflow-hidden rounded-2xl border border-slate-200">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <caption className="sr-only">{heading ?? "Sales summary table"}</caption>
           <tbody className="divide-y divide-slate-200">
             {rows.map((row) => (
               <tr key={row.label} className="transition hover:bg-slate-50">
