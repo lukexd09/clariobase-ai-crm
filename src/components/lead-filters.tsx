@@ -15,38 +15,41 @@ export function LeadFilters({
   options: FilterOptions;
 }) {
   return (
-    <form
-      method="get"
-      className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
-    >
-      <FilterSelect label="Status" name="status" value={filters.status ?? ""} options={options.status} />
-      <FilterSelect
-        label="Priority"
-        name="priority"
-        value={filters.priority ?? ""}
-        options={options.priority}
-      />
-      <FilterSelect label="City" name="city" value={filters.city ?? ""} options={options.city} />
-      <FilterSelect
-        label="Package fit"
-        name="packageFit"
-        value={filters.packageFit ?? ""}
-        options={options.packageFit}
-      />
-      <div className="flex flex-wrap items-center gap-3 md:col-span-2 xl:col-span-1 xl:justify-end">
-        <button
-          type="submit"
-          className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-        >
-          Apply filters
-        </button>
-        <Link
-          href="/leads"
-          className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-        >
-          Clear filters
-        </Link>
-      </div>
+    <form method="get" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <fieldset>
+        <legend className="sr-only">Filter leads</legend>
+
+        <div className="grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(150px,1fr))_auto]">
+          <FilterSelect label="Status" name="status" value={filters.status ?? ""} options={options.status} />
+          <FilterSelect
+            label="Priority"
+            name="priority"
+            value={filters.priority ?? ""}
+            options={options.priority}
+          />
+          <FilterSelect label="City" name="city" value={filters.city ?? ""} options={options.city} />
+          <FilterSelect
+            label="Package fit"
+            name="packageFit"
+            value={filters.packageFit ?? ""}
+            options={options.packageFit}
+          />
+          <div className="flex items-center gap-2 md:col-span-2 xl:col-span-1 xl:justify-end">
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            >
+              Apply filters
+            </button>
+            <Link
+              href="/leads"
+              className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            >
+              Clear filters
+            </Link>
+          </div>
+        </div>
+      </fieldset>
     </form>
   );
 }
@@ -63,14 +66,12 @@ function FilterSelect({
   options: string[];
 }) {
   return (
-    <label className="space-y-2">
-      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-        {label}
-      </span>
+    <label className="space-y-1.5">
+      <span className="block text-sm font-medium text-slate-700">{label}</span>
       <select
         name={name}
         defaultValue={value}
-        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-200"
+        className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
       >
         {options.map((option) => (
           <option key={option || "all"} value={option}>

@@ -52,22 +52,18 @@ export default async function LeadsPage({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                Current filter
-              </span>
+          <div className="flex flex-wrap items-start gap-2 self-start lg:justify-end">
+            <div className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <span className="text-sm font-medium text-slate-700">Current filter</span>
               <span className="font-medium text-slate-900">
                 {filters.status || filters.priority || filters.city || filters.packageFit
                   ? "Filtered view"
                   : "All leads"}
               </span>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                Visible rows
-              </span>
-              <span className="font-medium text-slate-900">{leads.length}</span>
+            <div className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <span className="text-sm font-medium text-slate-700">Visible rows</span>
+              <span className="font-medium tabular-nums text-slate-900">{leads.length}</span>
             </div>
           </div>
         </header>

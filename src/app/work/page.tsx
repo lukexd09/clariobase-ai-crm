@@ -39,11 +39,16 @@ export default async function WorkPage() {
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {bucketCounts.map((bucket) => (
-              <div key={bucket.key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+              <div
+                key={bucket.key}
+                className="flex min-h-24 flex-col rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <p className="min-h-10 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                   {bucket.title}
                 </p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{bucket.count}</p>
+                <p className="mt-auto pt-2 text-2xl font-semibold leading-none tabular-nums text-slate-950">
+                  {bucket.count}
+                </p>
               </div>
             ))}
           </div>
@@ -57,7 +62,7 @@ export default async function WorkPage() {
                   <h2 className="text-lg font-semibold tracking-tight text-slate-950">{bucket.title}</h2>
                   <p className="mt-1 text-sm leading-6 text-slate-600">{bucket.description}</p>
                 </div>
-                <p className="text-sm font-medium text-slate-500">{bucket.leads.length} leads</p>
+                <p className="text-sm font-medium tabular-nums text-slate-500">{bucket.leads.length} leads</p>
               </div>
 
               <div className="overflow-hidden rounded-2xl border border-slate-200">
@@ -81,12 +86,12 @@ export default async function WorkPage() {
                       {bucket.leads.map((lead) => (
                         <tr key={lead.id} className="transition hover:bg-slate-50">
                           <td className="px-4 py-3 align-top">
-                          <Link
-                            href={`/leads/${lead.id}#quick-update`}
-                              className="font-medium text-slate-900 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                          >
-                            {lead.businessName}
-                          </Link>
+                            <Link
+                              href={`/leads/${lead.id}#quick-update`}
+                              className="font-semibold text-slate-900 transition hover:text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                            >
+                              {lead.businessName}
+                            </Link>
                           </td>
                           <td className="px-4 py-3 align-top text-slate-600">{lead.city ?? "-"}</td>
                           <td className="px-4 py-3 align-top text-slate-600">{lead.category ?? "-"}</td>
@@ -99,9 +104,9 @@ export default async function WorkPage() {
                           <td className="px-4 py-3 align-top">
                             <StatusPill value={lead.packageFit} appearance="light" />
                           </td>
-                          <td className="px-4 py-3 align-top text-slate-700">
+                          <td className="px-4 py-3 align-top tabular-nums text-slate-700">
                             <div className="space-y-1">
-                              <p className="font-medium text-slate-900">{lead.scoreTotal}</p>
+                              <p className="font-medium tabular-nums text-slate-900">{lead.scoreTotal}</p>
                               {lead.scoreLabel ? (
                                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
                                   {lead.scoreLabel}
@@ -109,14 +114,14 @@ export default async function WorkPage() {
                               ) : null}
                             </div>
                           </td>
-                          <td className="px-4 py-3 align-top text-slate-600">{formatDate(lead.nextActionAt)}</td>
+                          <td className="px-4 py-3 align-top tabular-nums text-slate-600">{formatDate(lead.nextActionAt)}</td>
                           <td className="px-4 py-3 align-top">
-                          <Link
-                            href={`/leads/${lead.id}#quick-update`}
-                              className="inline-flex rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                          >
-                            Quick update
-                          </Link>
+                            <Link
+                              href={`/leads/${lead.id}#quick-update`}
+                              className="inline-flex min-h-9 whitespace-nowrap items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                            >
+                              Quick update
+                            </Link>
                           </td>
                         </tr>
                       ))}

@@ -50,22 +50,35 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.doesNotMatch(salesReportPage, /Open workbench/);
   assert.doesNotMatch(salesReportPage, /Open leads/);
   assert.match(salesReportPage, /md:grid-cols-2 lg:grid-cols-3/);
+  assert.match(salesReportPage, /tabular-nums/);
   assert.match(salesReportPage, /scope="col"/);
   assert.match(salesReportPage, /caption className="sr-only"/);
 
+  assert.match(leadFilters, /fieldset/);
+  assert.match(leadFilters, /legend className="sr-only">Filter leads<\/legend>/);
   assert.match(leadFilters, /bg-sky-600/);
   assert.match(leadFilters, /text-white/);
-  assert.match(leadFilters, /xl:grid-cols-\[repeat\(4,minmax\(0,1fr\)\)_auto\]/);
+  assert.match(leadFilters, /h-10/);
+  assert.match(leadFilters, /text-sm font-medium text-slate-700/);
+  assert.match(leadFilters, /xl:grid-cols-\[repeat\(4,minmax\(150px,1fr\)\)_auto\]/);
   assert.match(leadFilters, /focus-visible:ring-2/);
 
   assert.match(leadTable, /scope="col"/);
   assert.match(leadTable, /caption className="sr-only"/);
   assert.match(leadTable, /focus-visible:ring-2/);
+  assert.match(leadTable, /font-semibold text-slate-900 transition hover:text-sky-700 hover:underline/);
+  assert.match(leadTable, /tabular-nums/);
 
   assert.match(workPage, /grid-cols-2/);
   assert.match(workPage, /xl:grid-cols-4/);
+  assert.match(workPage, /min-h-24/);
+  assert.match(workPage, /min-h-10/);
+  assert.match(workPage, /mt-auto pt-2 text-2xl font-semibold leading-none tabular-nums/);
+  assert.match(workPage, /min-h-9 whitespace-nowrap items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium/);
+  assert.match(workPage, /tabular-nums/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
 
   assert.match(homepage, /focus-visible:ring-2/);
+  assert.match(homepage, /text-xs font-semibold uppercase tracking-\[0\.24em\]/);
 });

@@ -74,7 +74,7 @@ export default async function SalesReportPage() {
                         <td className="px-4 py-4 align-top text-slate-600">{entry.group}</td>
                         <td className="px-4 py-4 align-top text-slate-600">{entry.description}</td>
                         <td className="px-4 py-4 align-top text-slate-600">{entry.nextAction}</td>
-                        <td className="px-4 py-4 align-top font-medium text-slate-900">
+                        <td className="px-4 py-4 align-top font-medium tabular-nums text-slate-900">
                           {report.leadStatusCounts[entry.status]}
                         </td>
                       </tr>
@@ -175,7 +175,7 @@ function Metric({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{value}</p>
     </div>
   );
 }
@@ -221,7 +221,7 @@ function SimpleCountTable({
             {rows.map((row) => (
               <tr key={row.label} className="transition hover:bg-slate-50">
                 <td className="px-4 py-3 text-slate-600">{row.label}</td>
-                <td className="px-4 py-3 text-right font-medium text-slate-950">{row.value}</td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums text-slate-950">{row.value}</td>
               </tr>
             ))}
           </tbody>

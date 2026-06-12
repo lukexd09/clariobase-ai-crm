@@ -52,7 +52,7 @@ export function LeadTable({
                   <td className="px-4 py-3 align-top">
                     <Link
                       href={`/leads/${lead.id}`}
-                      className="font-medium text-slate-900 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                      className="font-semibold text-slate-900 transition hover:text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                     >
                       {lead.businessName}
                     </Link>
@@ -68,12 +68,14 @@ export function LeadTable({
                   <td className="px-4 py-3 align-top">
                     <StatusPill value={lead.packageFit} appearance="light" />
                   </td>
-                  <td className="px-4 py-3 align-top text-slate-700">
+                  <td className="px-4 py-3 align-top tabular-nums text-slate-700">
                     <div className="space-y-1">
-                      <p className="font-medium text-slate-900">{lead.scoreTotal}</p>
+                      <p className="font-medium tabular-nums text-slate-900">{lead.scoreTotal}</p>
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-top text-slate-600">{formatDate(lead.nextActionAt)}</td>
+                  <td className="px-4 py-3 align-top tabular-nums text-slate-600">
+                    {formatDate(lead.nextActionAt)}
+                  </td>
                 </tr>
               ))}
               {leads.length === 0 ? (
