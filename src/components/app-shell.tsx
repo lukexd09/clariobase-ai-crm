@@ -13,7 +13,7 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 lg:flex">
-      <aside className="border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-80 lg:flex-col lg:border-b-0 lg:border-r lg:px-5 lg:py-5">
+      <aside className="border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-72 lg:flex-col lg:border-b-0 lg:border-r lg:px-5 lg:py-5">
         <Link
           href="/"
           prefetch={false}

@@ -71,9 +71,67 @@ const variants: Record<string, string> = {
   ACCEPTED: "bg-emerald-500/15 text-emerald-200 border-emerald-500/30"
 };
 
+const lightVariants: Record<string, string> = {
+  NEW: "bg-sky-50 text-sky-700 border-sky-200",
+  QUALIFIED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  TO_AUDIT: "bg-amber-50 text-amber-700 border-amber-200",
+  AUDITED: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  CONTACTED: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  REPLIED: "bg-lime-50 text-lime-700 border-lime-200",
+  DISCOVERY_SCHEDULED: "bg-violet-50 text-violet-700 border-violet-200",
+  OFFER_SENT: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  WON: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  LOST: "bg-rose-50 text-rose-700 border-rose-200",
+  NURTURE: "bg-slate-50 text-slate-700 border-slate-200",
+  BAD_FIT: "bg-orange-50 text-orange-700 border-orange-200",
+  DO_NOT_CONTACT: "bg-red-50 text-red-700 border-red-200",
+  ARCHIVED: "bg-zinc-50 text-zinc-700 border-zinc-200",
+  LOW: "bg-slate-50 text-slate-700 border-slate-200",
+  MEDIUM: "bg-blue-50 text-blue-700 border-blue-200",
+  HIGH: "bg-orange-50 text-orange-700 border-orange-200",
+  URGENT: "bg-red-50 text-red-700 border-red-200",
+  UNKNOWN: "bg-white text-slate-700 border-slate-200 shadow-sm",
+  BASE: "bg-blue-50 text-blue-700 border-blue-200",
+  CLARITY: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  MOMENTUM: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  NOT_FIT: "bg-rose-50 text-rose-700 border-rose-200",
+  CREATED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  UPDATED: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  REJECTED: "bg-rose-50 text-rose-700 border-rose-200",
+  SKIPPED: "bg-slate-50 text-slate-700 border-slate-200",
+  RUNNING: "bg-sky-50 text-sky-700 border-sky-200",
+  COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  COMPLETED_WITH_ERRORS: "bg-amber-50 text-amber-700 border-amber-200",
+  FAILED: "bg-rose-50 text-rose-700 border-rose-200",
+  LOCAL_JSON: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  HARVESTER_EXPORT: "bg-violet-50 text-violet-700 border-violet-200",
+  MANUAL_AI_PREPARED_FILE: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  OPEN: "bg-sky-50 text-sky-700 border-sky-200",
+  NEEDS_REVIEW: "bg-amber-50 text-amber-700 border-amber-200",
+  DISMISSED: "bg-slate-50 text-slate-700 border-slate-200",
+  RESOLVED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  NOTE: "bg-sky-50 text-sky-700 border-sky-200",
+  CALL: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  MESSAGE: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  STATUS_CHANGE: "bg-violet-50 text-violet-700 border-violet-200",
+  AUDIT: "bg-amber-50 text-amber-700 border-amber-200",
+  OTHER: "bg-slate-50 text-slate-700 border-slate-200",
+  DRAFT: "bg-slate-50 text-slate-700 border-slate-200",
+  READY: "bg-blue-50 text-blue-700 border-blue-200",
+  READY_FOR_REVIEW: "bg-blue-50 text-blue-700 border-blue-200",
+  SENT_MANUALLY: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  EMAIL: "bg-cyan-50 text-cyan-700 border-cyan-200",
+  INSTAGRAM_DM: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  FACEBOOK_DM: "bg-blue-50 text-blue-700 border-blue-200",
+  PHONE_CALL: "bg-orange-50 text-orange-700 border-orange-200",
+  APPROVED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  ACCEPTED: "bg-emerald-50 text-emerald-700 border-emerald-200"
+};
+
 export function StatusPill({
   value,
-  className
+  className,
+  appearance = "default"
 }: {
   value:
     | LeadStatusValue
@@ -89,12 +147,16 @@ export function StatusPill({
     | OutreachChannelValue
     | ActivityTypeValue;
   className?: string;
+  appearance?: "default" | "light";
 }) {
+  const variantClassName =
+    appearance === "light" ? lightVariants[value] ?? lightVariants.UNKNOWN : variants[value];
+
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-wide",
-        variants[value],
+        variantClassName,
         className
       )}
     >

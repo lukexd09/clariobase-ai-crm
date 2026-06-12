@@ -39,20 +39,25 @@ export default async function LeadsPage({
   );
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <header className="mb-8 space-y-3">
-          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Lead CRM</p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Leads</h1>
-          <p className="max-w-3xl text-sm leading-6 text-slate-300">
-            Review leads, filter the daily queue, and open each record for operational updates.
-          </p>
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-6">
+        <header className="mb-5 grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)] lg:p-5">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Lead CRM</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Leads
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap items-start gap-2 self-start lg:justify-end">
+            <div className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700">
+              <span className="tabular-nums text-slate-900">{leads.length}</span>
+              <span>{leads.length === 1 ? "lead" : "leads"}</span>
+            </div>
+          </div>
         </header>
 
-        <LeadTable
-          leads={leads}
-          filterControls={filterControls}
-        />
+        <LeadTable leads={leads} filterControls={filterControls} />
       </div>
     </main>
   );

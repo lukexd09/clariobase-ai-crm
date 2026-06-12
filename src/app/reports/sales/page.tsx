@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { StatusPill } from "@/components/lead-status-pill";
 import { ACTIVITY_TYPE_VALUES } from "@/lib/activity-values";
 import { getSalesReport } from "@/lib/sales-report";
@@ -18,82 +17,66 @@ export default async function SalesReportPage() {
   const statusEntries = getSalesStatusEntries();
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <header className="mb-8 space-y-3">
-          <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Sales reporting</p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Operational pipeline report
-          </h1>
-          <p className="max-w-4xl text-sm leading-6 text-slate-300">
-            This is a lightweight operational report, not a BI dashboard. It summarizes lead
-            status usage, workbench health, draft readiness, and activity volume using existing CRM
-            data only.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/"
-              className="rounded-xl border border-slate-700 px-4 py-2 font-medium text-slate-100 transition hover:border-cyan-500 hover:text-cyan-200"
-            >
-              Home
-            </Link>
-            <Link
-              href="/work"
-              className="rounded-xl border border-slate-700 px-4 py-2 font-medium text-slate-100 transition hover:border-cyan-500 hover:text-cyan-200"
-            >
-              Open workbench
-            </Link>
-            <Link
-              href="/leads"
-              className="rounded-xl border border-slate-700 px-4 py-2 font-medium text-slate-100 transition hover:border-cyan-500 hover:text-cyan-200"
-            >
-              Open leads
-            </Link>
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-6">
+        <header className="mb-5 grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)] lg:p-5">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">
+              Sales reporting
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Operational pipeline report
+            </h1>
           </div>
         </header>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Metric label="Total leads" value={report.totalLeads} />
           <Metric label="Active leads" value={report.activeLeads} />
-          <Metric label="Overdue work items" value={report.workbenchBucketCounts.overdue} />
+          <Metric label="Overdue work items" value={report.workbenchBucketCounts.overdue} tone="overdue" />
           <Metric label="Activities logged" value={report.activityTotalCount} />
-          <Metric label="Due today" value={report.workbenchBucketCounts.dueToday} />
+          <Metric label="Due today" value={report.workbenchBucketCounts.dueToday} tone="dueToday" />
           <Metric label="Leads with mini-audit drafts" value={report.leadsWithMiniAuditDrafts} />
           <Metric label="Leads with outreach drafts" value={report.leadsWithOutreachDrafts} />
           <Metric label="Leads with offer drafts" value={report.leadsWithOfferDrafts} />
           <Metric label="Activities in last 7 days" value={report.activityLast7DaysCount} />
         </section>
 
-        <div className="space-y-8">
+        <div className="space-y-5">
           <ReportSection
             title="Lead status summary"
             description="Archived leads are excluded from active totals, while WON, LOST and DO_NOT_CONTACT remain visible as separate operational states."
           >
-            <div className="overflow-hidden rounded-2xl border border-slate-800">
-              <table className="min-w-full divide-y divide-slate-800 text-sm">
-                <thead className="bg-slate-900">
-                  <tr className="text-left text-slate-400">
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Group</th>
-                    <th className="px-4 py-3">Meaning</th>
-                    <th className="px-4 py-3">Next action</th>
-                    <th className="px-4 py-3">Count</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {statusEntries.map((entry) => (
-                    <tr key={entry.status} className="hover:bg-slate-800/40">
-                      <td className="px-4 py-4">
-                        <StatusPill value={entry.status} />
-                      </td>
-                      <td className="px-4 py-4 text-slate-300">{entry.group}</td>
-                      <td className="px-4 py-4 text-slate-300">{entry.description}</td>
-                      <td className="px-4 py-4 text-slate-300">{entry.nextAction}</td>
-                      <td className="px-4 py-4 text-slate-100">{report.leadStatusCounts[entry.status]}</td>
+            <div className="overflow-hidden rounded-2xl border border-slate-200">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <caption className="sr-only">Lead status summary table</caption>
+                  <thead className="bg-slate-50">
+                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                      <th scope="col" className="px-4 py-3">Status</th>
+                      <th scope="col" className="px-4 py-3">Group</th>
+                      <th scope="col" className="px-4 py-3">Meaning</th>
+                      <th scope="col" className="px-4 py-3">Next action</th>
+                      <th scope="col" className="px-4 py-3">Count</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {statusEntries.map((entry) => (
+                      <tr key={entry.status} className="transition hover:bg-slate-50">
+                        <td className="px-4 py-4 align-top">
+                          <StatusPill value={entry.status} appearance="light" />
+                        </td>
+                        <td className="px-4 py-4 align-top text-slate-600">{entry.group}</td>
+                        <td className="px-4 py-4 align-top text-slate-600">{entry.description}</td>
+                        <td className="px-4 py-4 align-top text-slate-600">{entry.nextAction}</td>
+                        <td className="px-4 py-4 align-top font-medium tabular-nums text-slate-900">
+                          {report.leadStatusCounts[entry.status]}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </ReportSection>
 
@@ -171,7 +154,7 @@ export default async function SalesReportPage() {
                     value: report.activityTypeCounts[value]
                   }))}
                 />
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-slate-600">
                   Total activities in the last 7 days: {report.activityLast7DaysCount}
                 </p>
               </div>
@@ -183,11 +166,36 @@ export default async function SalesReportPage() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
+function Metric({
+  label,
+  value,
+  tone
+}: {
+  label: string;
+  value: number;
+  tone?: "overdue" | "dueToday";
+}) {
+  const classes =
+    tone && value > 0
+      ? tone === "overdue"
+        ? "border-rose-200 bg-rose-50"
+        : "border-amber-200 bg-amber-50"
+      : "border-slate-200 bg-white";
+
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-      <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{label}</p>
-      <p className="mt-3 text-3xl font-semibold text-slate-100">{value}</p>
+    <div className={`rounded-2xl border p-4 shadow-sm ${classes}`}>
+      <p
+        className={`text-xs font-semibold uppercase tracking-[0.24em] ${
+          tone && value > 0
+            ? tone === "overdue"
+              ? "text-rose-700"
+              : "text-amber-700"
+            : "text-slate-500"
+        }`}
+      >
+        {label}
+      </p>
+      <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{value}</p>
     </div>
   );
 }
@@ -202,10 +210,10 @@ function ReportSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
       <div className="mb-4">
-        <h2 className="text-xl font-medium">{title}</h2>
-        <p className="mt-1 text-sm text-slate-400">{description}</p>
+        <h2 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
       </div>
       {children}
     </section>
@@ -221,14 +229,19 @@ function SimpleCountTable({
 }) {
   return (
     <div className="space-y-3">
-      {heading ? <h3 className="text-sm uppercase tracking-[0.3em] text-slate-400">{heading}</h3> : null}
-      <div className="overflow-hidden rounded-2xl border border-slate-800">
-        <table className="min-w-full divide-y divide-slate-800 text-sm">
-          <tbody className="divide-y divide-slate-800">
+      {heading ? (
+        <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+          {heading}
+        </h3>
+      ) : null}
+      <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <caption className="sr-only">{heading ?? "Sales summary table"}</caption>
+          <tbody className="divide-y divide-slate-200">
             {rows.map((row) => (
-              <tr key={row.label} className="hover:bg-slate-800/40">
-                <td className="px-4 py-3 text-slate-300">{row.label}</td>
-                <td className="px-4 py-3 text-right font-medium text-slate-100">{row.value}</td>
+              <tr key={row.label} className="transition hover:bg-slate-50">
+                <td className="px-4 py-3 text-slate-600">{row.label}</td>
+                <td className="px-4 py-3 text-right font-medium tabular-nums text-slate-950">{row.value}</td>
               </tr>
             ))}
           </tbody>
