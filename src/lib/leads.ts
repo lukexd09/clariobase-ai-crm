@@ -47,13 +47,16 @@ export async function getLeadPage(
   const where = buildLeadWhere(filters);
   const totalCount = await prisma.lead.count({ where });
   const pagination = getLeadPageWindow(page, totalCount, pageSize);
-  const leads = await prisma.lead.findMany({
-    where,
-    orderBy: [{ updatedAt: "desc" }, { businessName: "asc" }, { id: "asc" }],
-    skip: pagination.skip,
-    take: pagination.take,
-    select: leadListSelect
-  });
+  const [, leads] = await prisma.$transaction([
+    prisma.lead.count({ where }),
+    prisma.lead.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { businessName: "asc" }, { id: "asc" }],
+      skip: pagination.skip,
+      take: pagination.take,
+      select: leadListSelect
+    })
+  ]);
 
   return {
     leads,
