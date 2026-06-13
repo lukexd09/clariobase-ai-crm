@@ -1,4 +1,8 @@
-import Link from "next/link";
+"use client";
+
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
+import { buildLeadUrl, type LeadFilters as LeadFilterState } from "@/lib/lead-query";
 
 type FilterOptions = {
   status: string[];
@@ -23,56 +27,108 @@ function formatFilterValue(value: string) {
 
 export function LeadFilters({
   filters,
-  options
+  options,
+  resultSummary
 }: {
-  filters: Record<string, string | undefined>;
+  filters: LeadFilterState;
   options: FilterOptions;
+  resultSummary: string;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const hasActiveFilters = Boolean(
+    filters.status || filters.priority || filters.city || filters.packageFit
+  );
+  const searchParamsValue = searchParams.toString();
+
+  function updateFilter(name: keyof LeadFilterState, value: string) {
+    startTransition(() => {
+      router.replace(buildLeadUrl(pathname, searchParamsValue, { [name]: value || null }), {
+        scroll: false
+      });
+    });
+  }
+
+  function clearFilters() {
+    startTransition(() => {
+      router.replace(buildLeadUrl(pathname, searchParamsValue, {
+        status: null,
+        priority: null,
+        city: null,
+        packageFit: null,
+        page: 1
+      }), {
+        scroll: false
+      });
+    });
+  }
+
   return (
-    <form method="get" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+    <section
+      aria-busy={isPending}
+      className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700">
+          <span className="tabular-nums text-slate-900">{resultSummary}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isPending ? (
+            <span className="text-xs font-medium text-slate-500" aria-live="polite">
+              Updating...
+            </span>
+          ) : null}
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            >
+              Clear filters
+            </button>
+          ) : null}
+        </div>
+      </div>
+
       <fieldset>
         <legend className="sr-only">Filter leads</legend>
 
-        <div className="grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(150px,1fr))_auto]">
-          <FilterSelect label="Status" name="status" value={filters.status ?? ""} options={options.status} />
+        <div className="grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(150px,1fr))]">
+          <FilterSelect
+            label="Status"
+            name="status"
+            value={filters.status ?? ""}
+            options={options.status}
+            onChange={(value) => updateFilter("status", value)}
+          />
           <FilterSelect
             label="Priority"
             name="priority"
             value={filters.priority ?? ""}
             options={options.priority}
+            onChange={(value) => updateFilter("priority", value)}
           />
-          <FilterSelect label="City" name="city" value={filters.city ?? ""} options={options.city} />
+          <FilterSelect
+            label="City"
+            name="city"
+            value={filters.city ?? ""}
+            options={options.city}
+            onChange={(value) => updateFilter("city", value)}
+          />
           <FilterSelect
             label="Package fit"
             name="packageFit"
             value={filters.packageFit ?? ""}
             options={options.packageFit}
+            onChange={(value) => updateFilter("packageFit", value)}
           />
-          <div className="flex items-center gap-2 md:col-span-2 xl:col-span-1 xl:justify-end">
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              Apply filters
-            </button>
-            <Link
-              href="/leads"
-              className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              Clear filters
-            </Link>
-          </div>
         </div>
       </fieldset>
 
-      {(
-        [
-          ["status", filters.status],
-          ["priority", filters.priority],
-          ["city", filters.city],
-          ["packageFit", filters.packageFit]
-        ] as const
-      ).some(([, value]) => Boolean(value)) ? (
+      {hasActiveFilters ? (
         <ul aria-label="Active filters" className="mt-3 flex flex-wrap gap-2">
           {(
             [
@@ -94,7 +150,7 @@ export function LeadFilters({
           )}
         </ul>
       ) : null}
-    </form>
+    </section>
   );
 }
 
@@ -102,19 +158,22 @@ function FilterSelect({
   label,
   name,
   value,
-  options
+  options,
+  onChange
 }: {
   label: string;
-  name: string;
+  name: keyof FilterOptions;
   value: string;
   options: string[];
+  onChange: (value: string) => void;
 }) {
   return (
     <label className="space-y-1.5">
       <span className="block text-sm font-medium text-slate-700">{label}</span>
       <select
         name={name}
-        defaultValue={value}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
         className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
       >
         {options.map((option) => (

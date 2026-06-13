@@ -56,12 +56,13 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
 
   assert.match(leadFilters, /fieldset/);
   assert.match(leadFilters, /legend className="sr-only">Filter leads<\/legend>/);
-  assert.match(leadFilters, /bg-sky-600/);
-  assert.match(leadFilters, /text-white/);
   assert.match(leadFilters, /h-10/);
   assert.match(leadFilters, /text-sm font-medium text-slate-700/);
-  assert.match(leadFilters, /xl:grid-cols-\[repeat\(4,minmax\(150px,1fr\)\)_auto\]/);
+  assert.match(leadFilters, /xl:grid-cols-\[repeat\(4,minmax\(150px,1fr\)\)\]/);
   assert.match(leadFilters, /focus-visible:ring-2/);
+  assert.match(leadFilters, /resultSummary/);
+  assert.match(leadFilters, /Clear filters/);
+  assert.doesNotMatch(leadFilters, /Apply filters/);
 
   assert.match(leadTable, /scope="col"/);
   assert.match(leadTable, /caption className="sr-only"/);
@@ -106,12 +107,13 @@ test("leads screen keeps a compact operational header and active filter chips", 
   );
   assert.doesNotMatch(leadsPage, /Current filter/);
   assert.doesNotMatch(leadsPage, /Visible rows/);
-  assert.match(leadsPage, /inline-flex min-h-9 items-center gap-1\.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700/);
-  assert.match(leadsPage, /leads\.length === 1 \? "lead" : "leads"/);
+  assert.doesNotMatch(leadsPage, /leads\.length === 1 \? "lead" : "leads"/);
   assert.match(leadFilters, /aria-label="Active filters"/);
   assert.match(leadFilters, /min-h-9 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700/);
   assert.match(leadFilters, /filterLabels: Record<keyof FilterOptions, string>/);
   assert.match(leadFilters, /formatFilterValue\(value: string\)/);
+  assert.match(leadFilters, /router\.replace\(/);
+  assert.match(leadFilters, /useTransition/);
 });
 
 test("sales report header stays compact and KPI emphasis is conditional", () => {
