@@ -93,6 +93,11 @@ For the E009 light CRM homepage and future screen-by-screen visual work, also re
 
 - `docs/design/light-crm-visual-direction.md`
 
+For the E014 containerized runtime foundation, also read:
+
+- `docs/runtime/container-runtime.md`
+- `docs/decisions/adr-e014-container-runtime.md`
+
 ## Repository structure
 
 ```text
@@ -171,6 +176,8 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 ## Health check
 
 Open `/health` after starting the app to verify the skeleton is running.
+`/health` is the current HTTP liveness check.
+The approved container runtime contract and planned database readiness semantics for E014 are documented in `docs/runtime/container-runtime.md`.
 
 ## Lead activity, mini-audit, outreach and offer drafts
 
