@@ -120,8 +120,8 @@ test("lead data layer keeps paginated and unpaginated query paths separate", () 
 
   assert.match(leadsSource, /export async function getLeadPage\(/);
   assert.match(leadsSource, /const where = buildLeadWhere\(filters\);/);
-  assert.match(leadsSource, /count\(\{ where \}\)/);
-  assert.match(leadsSource, /const \[, leads\] = await prisma\.\$transaction\(\[/);
+  assert.match(leadsSource, /return prisma\.\$transaction\(async \(tx\) => \{/);
+  assert.match(leadsSource, /const totalCount = await tx\.lead\.count\(\{ where \}\);/);
   assert.match(
     leadsSource,
     /findMany\(\{\s*where,\s*orderBy: \[\{ updatedAt: "desc" \}, \{ businessName: "asc" \}, \{ id: "asc" \}\],\s*skip: pagination\.skip,\s*take: pagination\.take,\s*select: leadListSelect\s*\}\)/s
