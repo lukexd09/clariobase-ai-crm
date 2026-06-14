@@ -97,6 +97,8 @@ For the E014 containerized runtime foundation, also read:
 
 - `docs/runtime/container-runtime.md`
 - `docs/runtime/container-image.md`
+- `docs/operations/container-operations.md`
+- `docs/architecture/container-orchestration.md`
 - `docs/decisions/adr-e014-container-runtime.md`
 - `.env.compose.example` for the safe Compose variable contract template
 
