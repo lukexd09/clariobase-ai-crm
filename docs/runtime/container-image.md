@@ -79,7 +79,7 @@ docker run --rm --name clariobase-ai-crm \
 
 Notes:
 
-- the image starts the app with `pnpm start`;
+- the image starts the app with `node ./node_modules/next/dist/bin/next start`;
 - the image exposes container port `3000`;
 - host binding and the default two-service operator flow are handled later by the repository-local Compose setup in `E014.T003`;
 - runtime credentials stay outside the image and must be supplied at runtime.
@@ -95,6 +95,7 @@ The runtime image intentionally includes:
 - `src/generated/` generated during the image build.
 
 The runtime image intentionally keeps the Prisma CLI available because the approved E014 first-run migration flow uses a one-off `prisma migrate deploy` command from the CRM app image.
+The long-lived container start path does not depend on runtime `pnpm` resolution because the Dockerfile launches the Next.js production server directly.
 
 ## Automated image verification command
 
@@ -105,7 +106,7 @@ corepack pnpm docker:test-image
 ```
 
 The command builds the image, starts a disposable container, waits for `/health` to return HTTP `200`, checks that generated Prisma artifacts exist inside the image, and verifies that `.env.local`, `data/ai-exchange/`, and `ai_exchange/` are not present in the image filesystem.
-The command also creates a disposable PostgreSQL 16 container, applies `prisma migrate deploy` from the CRM image, and confirms that the Prisma-backed `/imports` page returns HTTP `200`.
+The command also creates a disposable PostgreSQL 16 container, applies `prisma migrate deploy` from the CRM image with `node ./node_modules/prisma/build/index.js migrate deploy`, and confirms that the Prisma-backed `/imports` page returns HTTP `200`.
 
 ## Files intentionally excluded from the build context and image
 

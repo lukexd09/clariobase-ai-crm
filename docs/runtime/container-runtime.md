@@ -75,6 +75,7 @@ Host operator
 
 The Compose stack is the default first-run topology for local production-like use.
 An external server-level PostgreSQL instance may be added later as an explicit override path, but it is not the default contract for E014 first run.
+The implemented repository-local Compose assets are `compose.yaml` and `.env.compose.example`.
 
 ## Service ownership and database separation contract
 

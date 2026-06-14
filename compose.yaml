@@ -1,0 +1,37 @@
+services:
+  crm-postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${CRM_POSTGRES_DB}
+      POSTGRES_USER: ${CRM_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${CRM_POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - crm-postgres-data:/var/lib/postgresql/data
+
+  crm-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      crm-postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${CRM_POSTGRES_USER}:${CRM_POSTGRES_PASSWORD}@crm-postgres:5432/${CRM_POSTGRES_DB}?schema=public
+    ports:
+      - "${CRM_BIND_ADDRESS}:${CRM_HOST_PORT}:3000"
+    volumes:
+      - type: bind
+        source: ${AI_EXCHANGE_HOST_PATH}
+        target: /app/data/ai-exchange
+
+volumes:
+  crm-postgres-data:

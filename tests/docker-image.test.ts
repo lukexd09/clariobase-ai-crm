@@ -34,7 +34,7 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(imageDoc, /document_id: DOC-E014-CONTAINER-IMAGE/);
   assert.match(imageDoc, /docker build -t clariobase-ai-crm:local \./);
   assert.match(imageDoc, /corepack pnpm docker:test-image/);
-  assert.match(imageDoc, /pnpm start/);
+  assert.match(imageDoc, /node \.\/node_modules\/next\/dist\/bin\/next start/);
   assert.match(imageDoc, /Prisma CLI available/i);
   assert.match(imageDoc, /data\/ai-exchange/);
   assert.match(imageDoc, /PostgreSQL 16/);
@@ -51,7 +51,7 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(dockerfile, /COPY --chown=node:node --from=builder \/app\/prisma \.\/prisma/);
   assert.match(dockerfile, /COPY --chown=node:node --from=builder \/app\/src\/generated \.\/src\/generated/);
   assert.match(dockerfile, /EXPOSE 3000/);
-  assert.match(dockerfile, /CMD \["pnpm", "start"\]/);
+  assert.match(dockerfile, /CMD \["node", "\.\/node_modules\/next\/dist\/bin\/next", "start"\]/);
 
   assert.match(dockerignore, /^\.env$/m);
   assert.match(dockerignore, /^!\.env\.example$/m);

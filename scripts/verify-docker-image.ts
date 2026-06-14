@@ -98,7 +98,7 @@ function runMigrations() {
       "sh",
       imageTag,
       "-lc",
-      "pnpm exec prisma migrate deploy"
+      "node ./node_modules/prisma/build/index.js migrate deploy"
     ],
     { stdio: "inherit" }
   );
