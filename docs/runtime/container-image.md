@@ -60,7 +60,7 @@ The Dockerfile uses a multi-stage Node 24 build and keeps the standard applicati
 4. inject a build-only placeholder `BUILD_DATABASE_URL` so `next build` can evaluate pages without using a real runtime secret;
 5. run `pnpm build`;
 6. rely on the existing `prebuild` hook so `pnpm prisma:generate` runs inside the image build;
-7. copy only the runtime assets needed for `pnpm start`.
+7. copy the runtime assets needed for `next start` and one-off operator CLI commands.
 
 This means Prisma Client is generated during the image build even when `src/generated/` is missing from the host build context.
 The build-only placeholder `BUILD_DATABASE_URL` is not a runtime secret and does not replace the real runtime `DATABASE_URL`.
@@ -79,7 +79,7 @@ docker run --rm --name clariobase-ai-crm \
 
 Notes:
 
-- the image starts the app with `pnpm start`;
+- the image starts the app with `node ./node_modules/next/dist/bin/next start`;
 - the image exposes container port `3000`;
 - host binding and the default two-service operator flow are handled later by the repository-local Compose setup in `E014.T003`;
 - runtime credentials stay outside the image and must be supplied at runtime.
@@ -91,10 +91,15 @@ The runtime image intentionally includes:
 - `.next/` production build output;
 - `node_modules/` needed by `next start`;
 - `prisma/` so migrations remain available to the image;
+- `scripts/` for one-off operator commands launched directly with `node ./node_modules/tsx/dist/cli.mjs ...`;
+- `src/` and `tsconfig.json` so those TypeScript operator commands can resolve shared internal modules at runtime;
 - `prisma.config.ts` and `next.config.ts`;
-- `src/generated/` generated during the image build.
+- generated Prisma client files inside `src/generated/`.
 
 The runtime image intentionally keeps the Prisma CLI available because the approved E014 first-run migration flow uses a one-off `prisma migrate deploy` command from the CRM app image.
+The long-lived container start path does not depend on runtime `pnpm` resolution because the Dockerfile launches the Next.js production server directly.
+The one-off CLI commands use `--env-file-if-exists=.env.local`, so they work both in host local development and inside the containerized Compose runtime where `DATABASE_URL` is injected directly.
+The containerized operator flow should call those commands directly with `node ./node_modules/tsx/dist/cli.mjs ...` instead of `pnpm ...`, which avoids any runtime Corepack download dependency.
 
 ## Automated image verification command
 
@@ -105,7 +110,7 @@ corepack pnpm docker:test-image
 ```
 
 The command builds the image, starts a disposable container, waits for `/health` to return HTTP `200`, checks that generated Prisma artifacts exist inside the image, and verifies that `.env.local`, `data/ai-exchange/`, and `ai_exchange/` are not present in the image filesystem.
-The command also creates a disposable PostgreSQL 16 container, applies `prisma migrate deploy` from the CRM image, and confirms that the Prisma-backed `/imports` page returns HTTP `200`.
+The command also creates a disposable PostgreSQL 16 container, applies `prisma migrate deploy` from the CRM image with `node ./node_modules/prisma/build/index.js migrate deploy`, and confirms that the Prisma-backed `/imports` page returns HTTP `200`.
 
 ## Files intentionally excluded from the build context and image
 

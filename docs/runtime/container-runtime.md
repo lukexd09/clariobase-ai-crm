@@ -75,6 +75,7 @@ Host operator
 
 The Compose stack is the default first-run topology for local production-like use.
 An external server-level PostgreSQL instance may be added later as an explicit override path, but it is not the default contract for E014 first run.
+The implemented repository-local Compose assets are `compose.yaml` and `.env.compose.example`.
 
 ## Service ownership and database separation contract
 
@@ -97,6 +98,7 @@ The approved runtime contract uses the following exact variables.
 | Variable | Scope | Required | Meaning |
 | --- | --- | --- | --- |
 | `DATABASE_URL` | `crm-app` | yes | Prisma and app connection string for the dedicated CRM database. |
+| `CRM_DATABASE_URL` | Compose override | no | Optional explicit Compose override for `DATABASE_URL`, used when credentials need URI encoding. |
 | `CRM_BIND_ADDRESS` | Compose host binding | yes | Host interface for published HTTP access. Default: `127.0.0.1`. |
 | `CRM_HOST_PORT` | Compose host binding | yes | Host port mapped to the CRM container. Default: `3000`. Test override: `3002`. |
 | `AI_EXCHANGE_HOST_PATH` | Compose bind mount | yes | Host path mounted into the container so `data/ai-exchange/` stays host-accessible. |
@@ -109,6 +111,8 @@ Supporting runtime rules:
 - the internal application port is fixed at `3000`;
 - `CRM_BIND_ADDRESS` and `CRM_HOST_PORT` control host exposure, not application code behavior;
 - the default contract keeps PostgreSQL private to the Compose network instead of exposing it publicly;
+- `compose.yaml` carries safe inline defaults for non-secret values, while `CRM_POSTGRES_PASSWORD` remains a required runtime secret supplied through the operator environment or a copied local env file;
+- `CRM_DATABASE_URL` may override the derived DSN when the username, password, or database name must be URI-encoded explicitly;
 - `.env.example` remains sanitized and may be used only for safe placeholders, not real runtime secrets.
 
 ## Network and port-binding policy
@@ -142,6 +146,7 @@ Rules for `data/ai-exchange/`:
 
 - the directory must remain host-accessible for the manual file-based ChatGPT workflow;
 - the directory must be mounted at runtime instead of baked into the image;
+- one-off Compose operator commands such as `docker compose run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts` must work against the mounted directory and the containerized CRM database without requiring a package-manager download at runtime;
 - real lead exports and operator runtime files remain uncommitted;
 - automated E014 verification uses an isolated disposable host path that is separate from the operator's real runtime files;
 - E014 must preserve the current manual export -> review -> validate -> import workflow from [docs/04-ai-file-exchange.md](../04-ai-file-exchange.md).
