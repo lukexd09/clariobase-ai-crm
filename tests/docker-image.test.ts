@@ -30,12 +30,12 @@ test("Docker image assets enforce the E014 image contract", () => {
 
   assert.match(readme, /docs\/runtime\/container-image\.md/);
   assert.equal(packageJson.scripts["docker:test-image"], "tsx scripts/verify-docker-image.ts");
-  assert.match(packageJson.scripts["prisma:migrate"], /--env-file-if-exists=\.env\.local/);
-  assert.match(packageJson.scripts["prisma:seed"], /--env-file-if-exists=\.env\.local/);
-  assert.match(packageJson.scripts["leads:import"], /--env-file-if-exists=\.env\.local/);
-  assert.match(packageJson.scripts["leads:detect-duplicates"], /--env-file-if-exists=\.env\.local/);
-  assert.match(packageJson.scripts["ai:export-leads"], /--env-file-if-exists=\.env\.local/);
-  assert.match(packageJson.scripts["ai:validate-import-file"], /--env-file-if-exists=\.env\.local/);
+  assert.match(packageJson.scripts["prisma:migrate"], /--env-file=\.env\.local/);
+  assert.match(packageJson.scripts["prisma:seed"], /--env-file=\.env\.local/);
+  assert.match(packageJson.scripts["leads:import"], /--env-file=\.env\.local/);
+  assert.match(packageJson.scripts["leads:detect-duplicates"], /--env-file=\.env\.local/);
+  assert.match(packageJson.scripts["ai:export-leads"], /--env-file=\.env\.local/);
+  assert.match(packageJson.scripts["ai:validate-import-file"], /--env-file=\.env\.local/);
 
   assert.match(imageDoc, /document_id: DOC-E014-CONTAINER-IMAGE/);
   assert.match(imageDoc, /docker build -t clariobase-ai-crm:local \./);

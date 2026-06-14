@@ -111,7 +111,7 @@ Supporting runtime rules:
 - the internal application port is fixed at `3000`;
 - `CRM_BIND_ADDRESS` and `CRM_HOST_PORT` control host exposure, not application code behavior;
 - the default contract keeps PostgreSQL private to the Compose network instead of exposing it publicly;
-- `compose.yaml` carries safe inline defaults for non-secret values, while `CRM_POSTGRES_PASSWORD` remains a required runtime secret supplied through the operator environment or env file;
+- `compose.yaml` carries safe inline defaults for non-secret values, while `CRM_POSTGRES_PASSWORD` remains a required runtime secret supplied through the operator environment or a copied local env file;
 - `CRM_DATABASE_URL` may override the derived DSN when the username, password, or database name must be URI-encoded explicitly;
 - `.env.example` remains sanitized and may be used only for safe placeholders, not real runtime secrets.
 

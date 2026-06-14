@@ -98,14 +98,15 @@ For the E014 containerized runtime foundation, also read:
 - `docs/runtime/container-runtime.md`
 - `docs/runtime/container-image.md`
 - `docs/decisions/adr-e014-container-runtime.md`
-- `.env.compose.example` for the safe Compose variable contract and the required local runtime-secret values
+- `.env.compose.example` for the safe Compose variable contract template
 
 For a fresh repository-local Compose startup, use this sequence:
 
-1. Set `CRM_POSTGRES_PASSWORD` in your local Compose env file or shell environment.
-2. `docker compose --env-file .env.compose.example up -d crm-postgres`
-3. `docker compose --env-file .env.compose.example run --rm crm-app sh -lc "node ./node_modules/prisma/build/index.js migrate deploy"`
-4. `docker compose --env-file .env.compose.example up -d crm-app`
+1. Copy `.env.compose.example` to a local env file such as `.env.compose.local`.
+2. Set `CRM_POSTGRES_PASSWORD` in that local env file.
+3. `docker compose --env-file .env.compose.local up -d crm-postgres`
+4. `docker compose --env-file .env.compose.local run --rm crm-app sh -lc "node ./node_modules/prisma/build/index.js migrate deploy"`
+5. `docker compose --env-file .env.compose.local up -d crm-app`
 
 That sequence matches the approved E014 runtime contract for a fresh PostgreSQL volume.
 When you use the Compose runtime, run one-off CRM CLI workflows through direct `node` + `tsx` commands inside `crm-app` so they target the containerized CRM database while still using the bind-mounted `data/ai-exchange/` directory without depending on Corepack network access.
@@ -295,10 +296,10 @@ corepack pnpm leads:detect-duplicates
 With the repository-local Compose runtime, use the same workflow through the app container:
 
 ```bash
-docker compose --env-file .env.compose.example run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts
-docker compose --env-file .env.compose.example run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json
-docker compose --env-file .env.compose.example run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/import-leads.ts ./data/ai-exchange/inbox/prepared-leads.json
-docker compose --env-file .env.compose.example run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/detect-duplicates.ts
+docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts
+docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json
+docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/import-leads.ts ./data/ai-exchange/inbox/prepared-leads.json
+docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/detect-duplicates.ts
 ```
 
 ### Safety rules

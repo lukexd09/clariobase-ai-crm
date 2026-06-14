@@ -83,7 +83,7 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(composeEnvExample, /^AI_EXCHANGE_HOST_PATH=\.\/data\/ai-exchange$/m);
   assert.match(composeEnvExample, /^CRM_POSTGRES_DB=clariobase_crm$/m);
   assert.match(composeEnvExample, /^CRM_POSTGRES_USER=clariobase_crm_user$/m);
-  assert.match(composeEnvExample, /^CRM_POSTGRES_PASSWORD=replace-with-local-secret$/m);
+  assert.match(composeEnvExample, /^CRM_POSTGRES_PASSWORD=$/m);
   assert.match(composeEnvExample, /^CRM_DATABASE_URL=$/m);
 
   assert.match(runtimeContract, /crm-app/);
@@ -99,20 +99,40 @@ test("Compose config resolves the documented first-run env-file contract", () =>
     return;
   }
 
-  const result = spawnSync("docker", ["compose", "--env-file", ".env.compose.example", "config"], {
-    cwd: repoRoot,
-    encoding: "utf8"
-  });
+  const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-defaults-${process.pid}`);
+  const envPath = path.join(tmpRoot, "compose.env");
 
-  assert.equal(result.status, 0, `docker compose config should pass: ${result.stderr}`);
-  assert.match(result.stdout, /host_ip: 127\.0\.0\.1/);
-  assert.match(result.stdout, /published: "3000"/);
-  assert.match(result.stdout, /target: 3000/);
-  assert.match(result.stdout, /POSTGRES_DB: clariobase_crm/);
-  assert.match(result.stdout, /POSTGRES_USER: clariobase_crm_user/);
-  assert.match(result.stdout, /POSTGRES_PASSWORD: replace-with-local-secret/);
-  assert.match(result.stdout, /DATABASE_URL: postgres(?:ql)?:\/\/clariobase_crm_user:replace-with-local-secret@crm-postgres:5432\/clariobase_crm\?schema=public/);
-  assert.match(result.stdout, /data\/ai-exchange|data\\ai-exchange/);
+  fs.mkdirSync(tmpRoot, { recursive: true });
+  fs.writeFileSync(
+    envPath,
+    [
+      "CRM_BIND_ADDRESS=127.0.0.1",
+      "CRM_HOST_PORT=3000",
+      "AI_EXCHANGE_HOST_PATH=./data/ai-exchange",
+      "CRM_POSTGRES_DB=clariobase_crm",
+      "CRM_POSTGRES_USER=clariobase_crm_user",
+      "CRM_POSTGRES_PASSWORD=clariobase_test_password"
+    ].join("\n")
+  );
+
+  try {
+    const result = spawnSync("docker", ["compose", "--env-file", envPath, "config"], {
+      cwd: repoRoot,
+      encoding: "utf8"
+    });
+
+    assert.equal(result.status, 0, `docker compose config should pass: ${result.stderr}`);
+    assert.match(result.stdout, /host_ip: 127\.0\.0\.1/);
+    assert.match(result.stdout, /published: "3000"/);
+    assert.match(result.stdout, /target: 3000/);
+    assert.match(result.stdout, /POSTGRES_DB: clariobase_crm/);
+    assert.match(result.stdout, /POSTGRES_USER: clariobase_crm_user/);
+    assert.match(result.stdout, /POSTGRES_PASSWORD: clariobase_test_password/);
+    assert.match(result.stdout, /DATABASE_URL: postgres(?:ql)?:\/\/clariobase_crm_user:clariobase_test_password@crm-postgres:5432\/clariobase_crm\?schema=public/);
+    assert.match(result.stdout, /data\/ai-exchange|data\\ai-exchange/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
 });
 
 test("Compose config accepts an explicit CRM_DATABASE_URL override for URI-encoded credentials", () => {
