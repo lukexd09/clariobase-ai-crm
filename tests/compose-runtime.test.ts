@@ -57,6 +57,7 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(runtimeContract, /CRM_BIND_ADDRESS/);
   assert.match(runtimeContract, /CRM_HOST_PORT/);
   assert.match(runtimeContract, /AI_EXCHANGE_HOST_PATH/);
+  assert.match(runtimeContract, /reserve a free localhost port dynamically/i);
   assert.match(runtimeContract, /\/api\/ready/);
   assert.match(runtimeContract, /returns HTTP `503` when the configured CRM database is unavailable/i);
 });

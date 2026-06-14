@@ -101,7 +101,7 @@ The approved runtime contract uses the following exact variables.
 | `DATABASE_URL` | `crm-app` | yes | Prisma and app connection string for the dedicated CRM database. |
 | `CRM_DATABASE_URL` | Compose override | no | Optional explicit Compose override for `DATABASE_URL`, used when credentials need URI encoding. |
 | `CRM_BIND_ADDRESS` | Compose host binding | yes | Host interface for published HTTP access. Default: `127.0.0.1`. |
-| `CRM_HOST_PORT` | Compose host binding | yes | Host port mapped to the CRM container. Default: `3000`. Test override: `3002`. |
+| `CRM_HOST_PORT` | Compose host binding | yes | Host port mapped to the CRM container. Default: `3000`. Isolated verification should use a dynamically reserved free localhost port. |
 | `AI_EXCHANGE_HOST_PATH` | Compose bind mount | yes | Host path mounted into the container so `data/ai-exchange/` stays host-accessible. |
 | `CRM_POSTGRES_DB` | `crm-postgres` | yes | CRM-only database name. Recommended default: `clariobase_crm`. |
 | `CRM_POSTGRES_USER` | `crm-postgres` | yes | CRM-only PostgreSQL username. |
@@ -123,7 +123,7 @@ The canonical network policy is:
 - inside the container, the CRM application listens on port `3000`;
 - by default, the host publishes the CRM only on `127.0.0.1`;
 - the default host port is `3000`;
-- automated E014 verification should prefer `CRM_HOST_PORT=3002`;
+- automated E014 verification should reserve a free localhost port dynamically instead of hard-coding one shared test port;
 - a LAN operator may intentionally override `CRM_BIND_ADDRESS=0.0.0.0`, but only for internal-network use;
 - E014 must not add public internet exposure, TLS, reverse proxying, or cloud ingress.
 
