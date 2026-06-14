@@ -14,6 +14,7 @@ related_components:
   - COMP-CRM-POSTGRES
 related_documents:
   - docs/decisions/adr-e014-container-runtime.md
+  - docs/runtime/container-image.md
   - docs/04-ai-file-exchange.md
   - docs/10-technical-stack-decision.md
   - docs/11-harvester-integration-analysis.md
@@ -204,6 +205,8 @@ The runtime contract already fixes the following image-build rules for later E01
 - a sanitized safe placeholder may be used for build-time Prisma needs if required, but no real credentials may be committed.
 
 These rules exist because `src/generated/` is ignored and cannot be assumed in a clean Docker context.
+
+The implemented image-build details now live in [docs/runtime/container-image.md](container-image.md).
 
 ## Migration and startup-safety contract
 

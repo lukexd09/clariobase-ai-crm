@@ -96,6 +96,7 @@ For the E009 light CRM homepage and future screen-by-screen visual work, also re
 For the E014 containerized runtime foundation, also read:
 
 - `docs/runtime/container-runtime.md`
+- `docs/runtime/container-image.md`
 - `docs/decisions/adr-e014-container-runtime.md`
 
 ## Repository structure
@@ -164,6 +165,7 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 - `pnpm start` - run the production server
 - `pnpm lint` - run ESLint
 - `pnpm test` - run the Node test suite
+- `pnpm docker:test-image` - build and smoke-test the production CRM image
 - `pnpm prisma:generate` - generate Prisma Client
 - `pnpm prisma:validate` - validate the Prisma schema
 - `pnpm prisma:migrate` - apply local CRM migrations
