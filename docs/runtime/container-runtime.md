@@ -9,6 +9,7 @@ last_updated: 2026-06-14
 related_epic: E014
 related_tasks:
   - E014.T001
+  - E014.T004
 related_components:
   - COMP-CRM-APP
   - COMP-CRM-POSTGRES
@@ -197,6 +198,33 @@ The CRM runtime uses separate liveness and readiness signals.
 
 The PostgreSQL service healthcheck is separate from the CRM app readiness endpoint.
 Later E014 tasks wire the application service to depend on the database service without collapsing both signals into one ambiguous check.
+
+### Compose app healthcheck contract
+
+`crm-app` uses `/api/ready` as the Compose container healthcheck.
+
+`crm-app` healthcheck semantics:
+
+- reports healthy only when the Next.js process can serve requests and the configured CRM database is reachable;
+- transitions to unhealthy when `/api/ready` returns HTTP `503`;
+- does not replace the simpler `/health` liveness endpoint;
+- is intended for local runtime verification and restart/failure behavior checks, not for public monitoring exposure.
+
+## Automated runtime verification contract
+
+The canonical repository-level runtime verification command is:
+
+```bash
+corepack pnpm docker:test-runtime
+```
+
+The verification command must cover:
+
+- the approved first-run migration sequence;
+- `/health` success and `/api/ready` success behavior;
+- `/api/ready` failure behavior when the CRM database becomes unavailable;
+- restart recovery and persistence on isolated disposable test resources;
+- the containerized AI exchange workflow against a bind-mounted host path.
 
 ## Build and image contract
 

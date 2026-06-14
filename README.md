@@ -178,6 +178,7 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 - `pnpm lint` - run ESLint
 - `pnpm test` - run the Node test suite
 - `pnpm docker:test-image` - build and smoke-test the production CRM image
+- `pnpm docker:test-runtime` - verify the Compose runtime, readiness, restart, and failure behavior
 - `pnpm prisma:generate` - generate Prisma Client
 - `pnpm prisma:validate` - validate the Prisma schema
 - `pnpm prisma:migrate` - apply local CRM migrations
@@ -190,8 +191,10 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 ## Health check
 
 Open `/health` after starting the app to verify the skeleton is running.
-`/health` is the current HTTP liveness check.
-The approved container runtime contract and planned database readiness semantics for E014 are documented in `docs/runtime/container-runtime.md`.
+`/health` is the HTTP liveness check for the Next.js process.
+`/api/ready` is the database-aware readiness check and returns HTTP `503` when the configured CRM PostgreSQL database is unavailable.
+Run `corepack pnpm docker:test-runtime` to verify the documented Compose startup, readiness, failure-path, and restart behavior against isolated test resources.
+The approved container runtime contract and runtime verification semantics for E014 are documented in `docs/runtime/container-runtime.md`.
 
 ## Lead activity, mini-audit, outreach and offer drafts
 

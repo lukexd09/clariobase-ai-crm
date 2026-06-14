@@ -131,7 +131,6 @@ Current limitations of the image-only step:
 
 - the image does not yet create the default `crm-postgres` topology on its own;
 - the image does not yet define container healthchecks;
-- the image does not yet implement `/api/ready`;
 - the image build guide is not the full operator runbook;
 - bind mounts for `data/ai-exchange/` are implemented later by Compose.
 
