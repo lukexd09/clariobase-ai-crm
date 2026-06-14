@@ -96,6 +96,7 @@ For the E009 light CRM homepage and future screen-by-screen visual work, also re
 For the E014 containerized runtime foundation, also read:
 
 - `docs/runtime/container-runtime.md`
+- `docs/runtime/container-image.md`
 - `docs/decisions/adr-e014-container-runtime.md`
 
 ## Repository structure
