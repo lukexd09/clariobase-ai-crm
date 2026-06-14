@@ -84,11 +84,23 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(runtimeContract, /document_id: DOC-E014-CONTAINER-RUNTIME/);
   assert.match(runtimeContract, /COMP-CRM-APP/);
   assert.match(runtimeContract, /COMP-CRM-POSTGRES/);
+  assert.match(runtimeContract, /exactly two services/i);
+  assert.match(runtimeContract, /crm-app/);
+  assert.match(runtimeContract, /crm-postgres/);
+  assert.match(runtimeContract, /PostgreSQL 16/);
   assert.match(runtimeContract, /CRM_BIND_ADDRESS/);
   assert.match(runtimeContract, /CRM_HOST_PORT/);
   assert.match(runtimeContract, /AI_EXCHANGE_HOST_PATH/);
+  assert.match(runtimeContract, /must never connect to or mutate the harvester or gatherer database/i);
+  assert.match(runtimeContract, /must be mounted at runtime instead of baked into the image/i);
+  assert.match(runtimeContract, /returns HTTP `200` when the Next\.js process can respond/);
   assert.match(runtimeContract, /\/api\/ready/);
+  assert.match(runtimeContract, /returns HTTP `200` only when the CRM application can execute a lightweight query/i);
+  assert.match(runtimeContract, /returns HTTP `503` when the configured CRM database is unavailable/i);
   assert.match(runtimeContract, /Current repository baseline before E014 implementation/);
+  assert.match(runtimeContract, /Approved first-run migration sequence/);
+  assert.match(runtimeContract, /one-off operator-invoked `prisma migrate deploy` step/i);
+  assert.match(runtimeContract, /normal `crm-app` container startup must not rerun migrations automatically/i);
   assert.match(runtimeContract, /Planned evolution after the default E014 runtime/);
   assert.doesNotMatch(runtimeContract, /\.codex-tmp/);
 

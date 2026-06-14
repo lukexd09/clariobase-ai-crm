@@ -212,7 +212,21 @@ The runtime contract for database changes is:
 - do not run `prisma migrate dev` against a shared or operator-owned runtime database;
 - isolated E014 verification may use a disposable database only;
 - production-like startup must not silently mutate a real operator database on every container start unless a later reviewed design explicitly approves it;
-- later operator runbook steps must prefer production-safe migration execution such as `prisma migrate deploy`.
+- first-run schema setup must use a one-off operator-invoked `prisma migrate deploy` step against the dedicated CRM database;
+- normal `crm-app` container startup must not rerun migrations automatically.
+
+### Approved first-run migration sequence
+
+The approved first-run schema path for the default two-service runtime is:
+
+1. start `crm-postgres`;
+2. wait for the `crm-postgres` healthcheck to pass;
+3. run a one-off migration command from the `crm-app` image against the dedicated CRM database using `prisma migrate deploy`;
+4. start `crm-app` for normal service;
+5. treat `/api/ready` as not-ready until the one-off migration step succeeds and the CRM database can answer the readiness query.
+
+This contract keeps the runtime at two long-lived services while avoiding automatic schema mutation on every application start.
+Later E014 implementation tasks and operator documentation must expose the exact migration command and startup sequence in a way that follows this contract.
 
 ## Planned evolution after the default E014 runtime
 

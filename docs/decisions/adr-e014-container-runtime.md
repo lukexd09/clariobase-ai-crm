@@ -110,6 +110,19 @@ This separation avoids the misleading pattern of treating a static page as datab
 The default runtime uses a named Docker volume for CRM PostgreSQL persistence.
 That volume protects data across normal restarts, but it is not a backup strategy.
 
+### First-run schema initialization
+
+The runtime does not add a third long-lived migration service and does not auto-run migrations on every application startup.
+
+The approved path is:
+
+- start `crm-postgres`;
+- wait for PostgreSQL health;
+- run a one-off operator-invoked `prisma migrate deploy` command from the `crm-app` image against the dedicated CRM database;
+- then run `crm-app` as the normal long-lived application service.
+
+This keeps first-run behavior explicit and production-like while preserving the two-service topology.
+
 ## Alternatives considered
 
 ## Connect the CRM directly to an existing server-level PostgreSQL instance by default

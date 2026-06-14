@@ -148,6 +148,7 @@ E003 - Build ClarioBase sales workflow
 E004 - Connect CRM with harvester data
 E005 - Prepare future UGC outreach pipeline
 E006 - Establish delivery process and Ways of Working
+E007 - Redesign lead detail operator workspace
 E008 - Stabilize CRM documentation and quality after UI redesign
 E009 - Redesign CRM visual direction for lightweight business and UGC use
 E010 - Add localization and language preference foundation
