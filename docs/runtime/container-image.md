@@ -105,6 +105,7 @@ corepack pnpm docker:test-image
 ```
 
 The command builds the image, starts a disposable container, waits for `/health` to return HTTP `200`, checks that generated Prisma artifacts exist inside the image, and verifies that `.env.local`, `data/ai-exchange/`, and `ai_exchange/` are not present in the image filesystem.
+The command also creates a disposable PostgreSQL 16 container, applies `prisma migrate deploy` from the CRM image, and confirms that the Prisma-backed `/imports` page returns HTTP `200`.
 
 ## Files intentionally excluded from the build context and image
 
