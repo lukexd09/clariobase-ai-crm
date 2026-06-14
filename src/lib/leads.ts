@@ -4,14 +4,9 @@ import {
   LeadStatus,
   PackageFit
 } from "@/generated/prisma/client";
+import { DEFAULT_LEAD_PAGE_SIZE, getLeadPageWindow } from "@/lib/lead-pagination";
+import { type LeadFilters } from "@/lib/lead-query";
 import { prisma } from "@/lib/prisma";
-
-export type LeadFilters = {
-  status?: string;
-  priority?: string;
-  city?: string;
-  packageFit?: string;
-};
 
 export type LeadUpdateInput = {
   leadStatus: LeadStatus;
@@ -38,23 +33,34 @@ const leadListSelect = {
 
 export async function getLeads(filters: LeadFilters = {}) {
   return prisma.lead.findMany({
-    where: {
-      ...(filters.status ? { leadStatus: filters.status as LeadStatus } : {}),
-      ...(filters.priority ? { priority: filters.priority as LeadPriority } : {}),
-      ...(filters.city
-        ? {
-            city: {
-              contains: filters.city,
-              mode: "insensitive"
-            }
-          }
-        : {}),
-      ...(filters.packageFit
-        ? { packageFit: filters.packageFit as PackageFit }
-        : {})
-    },
+    where: buildLeadWhere(filters),
     orderBy: [{ updatedAt: "desc" }, { businessName: "asc" }],
     select: leadListSelect
+  });
+}
+
+export async function getLeadPage(
+  filters: LeadFilters = {},
+  page = 1,
+  pageSize = DEFAULT_LEAD_PAGE_SIZE
+) {
+  const where = buildLeadWhere(filters);
+
+  return prisma.$transaction(async (tx) => {
+    const totalCount = await tx.lead.count({ where });
+    const pagination = getLeadPageWindow(page, totalCount, pageSize);
+    const leads = await tx.lead.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { businessName: "asc" }, { id: "asc" }],
+      skip: pagination.skip,
+      take: pagination.take,
+      select: leadListSelect
+    });
+
+    return {
+      leads,
+      ...pagination
+    };
   });
 }
 
@@ -67,19 +73,19 @@ export async function getLeadById(id: string) {
 export async function getLeadFilterOptions(filters: LeadFilters = {}) {
   const [statusRows, priorityRows, cityRows, packageRows] = await Promise.all([
     prisma.lead.findMany({
-      where: leadFiltersToWhere(filters, "status"),
+      where: buildLeadWhere({ ...filters, status: undefined }),
       select: { leadStatus: true }
     }),
     prisma.lead.findMany({
-      where: leadFiltersToWhere(filters, "priority"),
+      where: buildLeadWhere({ ...filters, priority: undefined }),
       select: { priority: true }
     }),
     prisma.lead.findMany({
-      where: leadFiltersToWhere(filters, "city"),
+      where: buildLeadWhere({ ...filters, city: undefined }),
       select: { city: true }
     }),
     prisma.lead.findMany({
-      where: leadFiltersToWhere(filters, "packageFit"),
+      where: buildLeadWhere({ ...filters, packageFit: undefined }),
       select: { packageFit: true }
     })
   ]);
@@ -104,28 +110,19 @@ export async function updateLeadOperationalFields(id: string, input: LeadUpdateI
   });
 }
 
-function leadFiltersToWhere(
-  filters: LeadFilters,
-  omitKey?: keyof LeadFilters
-): Prisma.LeadWhereInput {
+export function buildLeadWhere(filters: LeadFilters): Prisma.LeadWhereInput {
   return {
-    ...(omitKey === "status" || !filters.status
-      ? {}
-      : { leadStatus: filters.status as LeadStatus }),
-    ...(omitKey === "priority" || !filters.priority
-      ? {}
-      : { priority: filters.priority as LeadPriority }),
-    ...(omitKey === "city" || !filters.city
-      ? {}
-      : {
+    ...(filters.status ? { leadStatus: filters.status as LeadStatus } : {}),
+    ...(filters.priority ? { priority: filters.priority as LeadPriority } : {}),
+    ...(filters.city
+      ? {
           city: {
             contains: filters.city,
             mode: "insensitive"
           }
-        }),
-    ...(omitKey === "packageFit" || !filters.packageFit
-      ? {}
-      : { packageFit: filters.packageFit as PackageFit })
+        }
+      : {}),
+    ...(filters.packageFit ? { packageFit: filters.packageFit as PackageFit } : {})
   };
 }
 
