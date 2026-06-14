@@ -64,6 +64,7 @@ The Dockerfile uses a multi-stage Node 24 build and keeps the standard applicati
 
 This means Prisma Client is generated during the image build even when `src/generated/` is missing from the host build context.
 The build-only placeholder `BUILD_DATABASE_URL` is not a runtime secret and does not replace the real runtime `DATABASE_URL`.
+The image also activates `pnpm@9.15.0` during the Docker build so runtime startup does not depend on a network fetch.
 
 ## Runtime command
 
@@ -94,6 +95,16 @@ The runtime image intentionally includes:
 - `src/generated/` generated during the image build.
 
 The runtime image intentionally keeps the Prisma CLI available because the approved E014 first-run migration flow uses a one-off `prisma migrate deploy` command from the CRM app image.
+
+## Automated image verification command
+
+Run the repository-level automated image verification with:
+
+```bash
+corepack pnpm docker:test-image
+```
+
+The command builds the image, starts a disposable container, waits for `/health` to return HTTP `200`, checks that generated Prisma artifacts exist inside the image, and verifies that `.env.local`, `data/ai-exchange/`, and `ai_exchange/` are not present in the image filesystem.
 
 ## Files intentionally excluded from the build context and image
 

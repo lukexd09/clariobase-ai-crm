@@ -14,17 +14,23 @@ test("Docker image assets enforce the E014 image contract", () => {
   const dockerignore = read(".dockerignore");
   const imageDoc = read("docs/runtime/container-image.md");
   const readme = read("README.md");
+  const packageJson = JSON.parse(read("package.json")) as {
+    scripts: Record<string, string>;
+  };
 
   assert.match(readme, /docs\/runtime\/container-image\.md/);
+  assert.equal(packageJson.scripts["docker:test-image"], "tsx scripts/verify-docker-image.ts");
 
   assert.match(imageDoc, /document_id: DOC-E014-CONTAINER-IMAGE/);
   assert.match(imageDoc, /docker build -t clariobase-ai-crm:local \./);
+  assert.match(imageDoc, /corepack pnpm docker:test-image/);
   assert.match(imageDoc, /pnpm start/);
   assert.match(imageDoc, /Prisma CLI available/i);
   assert.match(imageDoc, /data\/ai-exchange/);
 
   assert.match(dockerfile, /FROM node:24-bookworm-slim AS base/);
   assert.match(dockerfile, /apt-get install -y --no-install-recommends openssl/);
+  assert.match(dockerfile, /corepack prepare pnpm@9\.15\.0 --activate/);
   assert.match(dockerfile, /pnpm install --frozen-lockfile/);
   assert.match(dockerfile, /ARG BUILD_DATABASE_URL=/);
   assert.match(dockerfile, /ENV DATABASE_URL="\$BUILD_DATABASE_URL"/);

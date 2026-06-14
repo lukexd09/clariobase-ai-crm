@@ -165,6 +165,7 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 - `pnpm start` - run the production server
 - `pnpm lint` - run ESLint
 - `pnpm test` - run the Node test suite
+- `pnpm docker:test-image` - build and smoke-test the production CRM image
 - `pnpm prisma:generate` - generate Prisma Client
 - `pnpm prisma:validate` - validate the Prisma schema
 - `pnpm prisma:migrate` - apply local CRM migrations
