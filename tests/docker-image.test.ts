@@ -42,7 +42,7 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(imageDoc, /corepack pnpm docker:test-image/);
   assert.match(imageDoc, /node \.\/node_modules\/next\/dist\/bin\/next start/);
   assert.match(imageDoc, /Prisma CLI available/i);
-  assert.match(imageDoc, /pnpm ai:export-leads/);
+  assert.match(imageDoc, /node \.\/node_modules\/tsx\/dist\/cli\.mjs/);
   assert.match(imageDoc, /data\/ai-exchange/);
   assert.match(imageDoc, /PostgreSQL 16/);
   assert.match(imageDoc, /\/imports/);

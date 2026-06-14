@@ -72,7 +72,8 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(composeFile, /pg_isready/);
   assert.match(composeFile, /condition: service_healthy/);
   assert.match(composeFile, /crm-postgres-data:\/var\/lib\/postgresql\/data/);
-  assert.match(composeFile, /DATABASE_URL: \$\{CRM_DATABASE_URL:-postgresql:\/\/\$\{CRM_POSTGRES_USER:-clariobase_crm_user\}:\$\{CRM_POSTGRES_PASSWORD:-change-me\}@crm-postgres:5432\/\$\{CRM_POSTGRES_DB:-clariobase_crm\}\?schema=public\}/);
+  assert.match(composeFile, /POSTGRES_PASSWORD: \$\{CRM_POSTGRES_PASSWORD:\?Set_CRM_POSTGRES_PASSWORD\}/);
+  assert.match(composeFile, /DATABASE_URL: \$\{CRM_DATABASE_URL:-postgresql:\/\/\$\{CRM_POSTGRES_USER:-clariobase_crm_user\}:\$\{CRM_POSTGRES_PASSWORD:\?Set_CRM_POSTGRES_PASSWORD\}@crm-postgres:5432\/\$\{CRM_POSTGRES_DB:-clariobase_crm\}\?schema=public\}/);
   assert.match(composeFile, /\$\{CRM_BIND_ADDRESS:-127\.0\.0\.1\}:\$\{CRM_HOST_PORT:-3000\}:3000/);
   assert.match(composeFile, /source: \$\{AI_EXCHANGE_HOST_PATH:-\.\/data\/ai-exchange\}/);
   assert.match(composeFile, /target: \/app\/data\/ai-exchange/);
@@ -82,7 +83,7 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(composeEnvExample, /^AI_EXCHANGE_HOST_PATH=\.\/data\/ai-exchange$/m);
   assert.match(composeEnvExample, /^CRM_POSTGRES_DB=clariobase_crm$/m);
   assert.match(composeEnvExample, /^CRM_POSTGRES_USER=clariobase_crm_user$/m);
-  assert.match(composeEnvExample, /^CRM_POSTGRES_PASSWORD=change-me$/m);
+  assert.match(composeEnvExample, /^CRM_POSTGRES_PASSWORD=replace-with-local-secret$/m);
   assert.match(composeEnvExample, /^CRM_DATABASE_URL=$/m);
 
   assert.match(runtimeContract, /crm-app/);
@@ -93,12 +94,12 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(runtimeContract, /AI_EXCHANGE_HOST_PATH/);
 });
 
-test("Compose config resolves safe defaults for first-run local runtime", () => {
+test("Compose config resolves the documented first-run env-file contract", () => {
   if (!hasDocker()) {
     return;
   }
 
-  const result = spawnSync("docker", ["compose", "config"], {
+  const result = spawnSync("docker", ["compose", "--env-file", ".env.compose.example", "config"], {
     cwd: repoRoot,
     encoding: "utf8"
   });
@@ -109,8 +110,8 @@ test("Compose config resolves safe defaults for first-run local runtime", () => 
   assert.match(result.stdout, /target: 3000/);
   assert.match(result.stdout, /POSTGRES_DB: clariobase_crm/);
   assert.match(result.stdout, /POSTGRES_USER: clariobase_crm_user/);
-  assert.match(result.stdout, /POSTGRES_PASSWORD: change-me/);
-  assert.match(result.stdout, /DATABASE_URL: postgres(?:ql)?:\/\/clariobase_crm_user:change-me@crm-postgres:5432\/clariobase_crm\?schema=public/);
+  assert.match(result.stdout, /POSTGRES_PASSWORD: replace-with-local-secret/);
+  assert.match(result.stdout, /DATABASE_URL: postgres(?:ql)?:\/\/clariobase_crm_user:replace-with-local-secret@crm-postgres:5432\/clariobase_crm\?schema=public/);
   assert.match(result.stdout, /data\/ai-exchange|data\\ai-exchange/);
 });
 
@@ -223,7 +224,20 @@ test("Compose verification follows the approved first-run migration sequence", a
     await waitForHttp200(`http://127.0.0.1:${hostPort}/imports`);
 
     result = runDocker(
-      ["compose", "--project-name", project, "--env-file", envPath, "run", "--rm", "crm-app", "pnpm", "ai:export-leads"],
+      [
+        "compose",
+        "--project-name",
+        project,
+        "--env-file",
+        envPath,
+        "run",
+        "--rm",
+        "crm-app",
+        "node",
+        "--env-file-if-exists=.env.local",
+        "./node_modules/tsx/dist/cli.mjs",
+        "scripts/export-ai-leads.ts"
+      ],
       { stdio: "inherit" }
     );
     assert.equal(result.status, 0, "compose AI export command should pass");
@@ -242,8 +256,10 @@ test("Compose verification follows the approved first-run migration sequence", a
         "run",
         "--rm",
         "crm-app",
-        "pnpm",
-        "ai:validate-import-file",
+        "node",
+        "--env-file-if-exists=.env.local",
+        "./node_modules/tsx/dist/cli.mjs",
+        "scripts/validate-ai-import-file.ts",
         "./data/ai-exchange/inbox/prepared-leads.json"
       ],
       { stdio: "inherit" }
@@ -260,8 +276,10 @@ test("Compose verification follows the approved first-run migration sequence", a
         "run",
         "--rm",
         "crm-app",
-        "pnpm",
-        "leads:import",
+        "node",
+        "--env-file-if-exists=.env.local",
+        "./node_modules/tsx/dist/cli.mjs",
+        "scripts/import-leads.ts",
         "./data/ai-exchange/inbox/prepared-leads.json"
       ],
       { stdio: "inherit" }
@@ -269,7 +287,20 @@ test("Compose verification follows the approved first-run migration sequence", a
     assert.equal(result.status, 0, "compose lead import command should pass");
 
     result = runDocker(
-      ["compose", "--project-name", project, "--env-file", envPath, "run", "--rm", "crm-app", "pnpm", "leads:detect-duplicates"],
+      [
+        "compose",
+        "--project-name",
+        project,
+        "--env-file",
+        envPath,
+        "run",
+        "--rm",
+        "crm-app",
+        "node",
+        "--env-file-if-exists=.env.local",
+        "./node_modules/tsx/dist/cli.mjs",
+        "scripts/detect-duplicates.ts"
+      ],
       { stdio: "inherit" }
     );
     assert.equal(result.status, 0, "compose duplicate detection command should pass");

@@ -91,7 +91,7 @@ The runtime image intentionally includes:
 - `.next/` production build output;
 - `node_modules/` needed by `next start`;
 - `prisma/` so migrations remain available to the image;
-- `scripts/` for one-off operator commands such as `pnpm ai:export-leads`, `pnpm ai:validate-import-file`, `pnpm leads:import`, and `pnpm leads:detect-duplicates`;
+- `scripts/` for one-off operator commands launched directly with `node ./node_modules/tsx/dist/cli.mjs ...`;
 - `src/` and `tsconfig.json` so those TypeScript operator commands can resolve shared internal modules at runtime;
 - `prisma.config.ts` and `next.config.ts`;
 - generated Prisma client files inside `src/generated/`.
@@ -99,6 +99,7 @@ The runtime image intentionally includes:
 The runtime image intentionally keeps the Prisma CLI available because the approved E014 first-run migration flow uses a one-off `prisma migrate deploy` command from the CRM app image.
 The long-lived container start path does not depend on runtime `pnpm` resolution because the Dockerfile launches the Next.js production server directly.
 The one-off CLI commands use `--env-file-if-exists=.env.local`, so they work both in host local development and inside the containerized Compose runtime where `DATABASE_URL` is injected directly.
+The containerized operator flow should call those commands directly with `node ./node_modules/tsx/dist/cli.mjs ...` instead of `pnpm ...`, which avoids any runtime Corepack download dependency.
 
 ## Automated image verification command
 

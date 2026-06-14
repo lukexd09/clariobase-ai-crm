@@ -111,7 +111,7 @@ Supporting runtime rules:
 - the internal application port is fixed at `3000`;
 - `CRM_BIND_ADDRESS` and `CRM_HOST_PORT` control host exposure, not application code behavior;
 - the default contract keeps PostgreSQL private to the Compose network instead of exposing it publicly;
-- `compose.yaml` carries safe inline defaults that match `.env.compose.example` for first-run local operation;
+- `compose.yaml` carries safe inline defaults for non-secret values, while `CRM_POSTGRES_PASSWORD` remains a required runtime secret supplied through the operator environment or env file;
 - `CRM_DATABASE_URL` may override the derived DSN when the username, password, or database name must be URI-encoded explicitly;
 - `.env.example` remains sanitized and may be used only for safe placeholders, not real runtime secrets.
 
@@ -146,7 +146,7 @@ Rules for `data/ai-exchange/`:
 
 - the directory must remain host-accessible for the manual file-based ChatGPT workflow;
 - the directory must be mounted at runtime instead of baked into the image;
-- one-off Compose operator commands such as `docker compose run --rm crm-app pnpm ai:export-leads` must work against the mounted directory and the containerized CRM database;
+- one-off Compose operator commands such as `docker compose run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts` must work against the mounted directory and the containerized CRM database without requiring a package-manager download at runtime;
 - real lead exports and operator runtime files remain uncommitted;
 - automated E014 verification uses an isolated disposable host path that is separate from the operator's real runtime files;
 - E014 must preserve the current manual export -> review -> validate -> import workflow from [docs/04-ai-file-exchange.md](../04-ai-file-exchange.md).
