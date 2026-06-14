@@ -100,6 +100,14 @@ For the E014 containerized runtime foundation, also read:
 - `docs/decisions/adr-e014-container-runtime.md`
 - `.env.compose.example` for the safe Compose variable contract and optional `docker compose --env-file .env.compose.example ...` flow
 
+For a fresh repository-local Compose startup, use this sequence:
+
+1. `docker compose up -d crm-postgres`
+2. `docker compose run --rm crm-app sh -lc "node ./node_modules/prisma/build/index.js migrate deploy"`
+3. `docker compose up -d crm-app`
+
+That sequence matches the approved E014 runtime contract for a fresh PostgreSQL volume.
+
 ## Repository structure
 
 ```text
