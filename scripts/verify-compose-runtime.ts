@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
@@ -10,8 +11,8 @@ const project = `clariobase-e014-runtime-${process.pid}`;
 const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-verify-${process.pid}`);
 const aiPath = path.join(tmpRoot, "ai-exchange");
 const envPath = path.join(tmpRoot, "compose.env");
-const hostPort = "3018";
-const baseUrl = `http://127.0.0.1:${hostPort}`;
+let hostPort = "";
+let baseUrl = "";
 
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
@@ -27,6 +28,34 @@ function runDocker(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
 
 function runCompose(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
   return runDocker(["compose", "--project-name", project, "--env-file", envPath, ...args], options);
+}
+
+function reserveFreePort() {
+  return new Promise<string>((resolve, reject) => {
+    const server = net.createServer();
+
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+
+      if (!address || typeof address === "string") {
+        server.close();
+        reject(new Error("Could not reserve a free localhost port for Compose verification."));
+        return;
+      }
+
+      const reservedPort = String(address.port);
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(reservedPort);
+      });
+    });
+
+    server.on("error", reject);
+  });
 }
 
 async function waitForDockerHealth(containerName: string, expectedStatus: "healthy" | "unhealthy" = "healthy") {
@@ -107,9 +136,13 @@ function runComposeNodeScript(scriptName: string, ...scriptArgs: string[]) {
 
 async function main() {
   const preparedImportPath = path.join(aiPath, "inbox", "prepared-leads.json");
+  const outboxDir = path.join(aiPath, "outbox");
+
+  hostPort = await reserveFreePort();
+  baseUrl = `http://127.0.0.1:${hostPort}`;
 
   fs.mkdirSync(path.dirname(preparedImportPath), { recursive: true });
-  fs.mkdirSync(path.join(aiPath, "outbox"), { recursive: true });
+  fs.mkdirSync(outboxDir, { recursive: true });
   fs.writeFileSync(preparedImportPath, read("data/ai-exchange/inbox/sample-prepared-leads.json"));
   fs.writeFileSync(
     envPath,
@@ -131,6 +164,16 @@ async function main() {
     assert.equal(result.status, 0, "docker compose up -d crm-postgres should pass");
     await waitForDockerHealth(`${project}-crm-postgres-1`);
 
+    result = runCompose(["up", "-d", "crm-app"], { stdio: "inherit" });
+    assert.equal(result.status, 0, "docker compose up -d crm-app before migrations should pass");
+
+    await waitForHttpStatus(`${baseUrl}/health`, 200);
+    await assertReadyStatus(503, "unavailable");
+    await waitForDockerHealth(`${project}-crm-app-1`, "unhealthy");
+
+    result = runCompose(["stop", "crm-app"], { stdio: "inherit" });
+    assert.equal(result.status, 0, "docker compose stop crm-app before migrations should pass");
+
     result = runCompose(
       ["run", "--rm", "crm-app", "sh", "-lc", "node ./node_modules/prisma/build/index.js migrate deploy"],
       { stdio: "inherit" }
@@ -148,6 +191,10 @@ async function main() {
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, "compose AI export command should pass");
     assert.match(result.stdout, /row count: 0/);
+    assert.ok(
+      fs.readdirSync(outboxDir).some((fileName) => /^clariobase_leads_export_.*\.json$/.test(fileName)),
+      "compose AI export should create a host-visible outbox file"
+    );
 
     result = runComposeNodeScript("validate-ai-import-file.ts", "./data/ai-exchange/inbox/prepared-leads.json");
     assert.equal(result.status, 0, "compose AI validation command should pass");
@@ -162,6 +209,10 @@ async function main() {
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, "compose post-import export command should pass");
     assert.match(result.stdout, /row count: 2/);
+    assert.ok(
+      fs.readdirSync(outboxDir).some((fileName) => /^clariobase_leads_export_.*\.json$/.test(fileName)),
+      "compose post-import export should keep producing host-visible outbox files"
+    );
 
     result = runCompose(["stop", "crm-postgres"], { stdio: "inherit" });
     assert.equal(result.status, 0, "docker compose stop crm-postgres should pass");

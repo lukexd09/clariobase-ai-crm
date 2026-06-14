@@ -188,6 +188,7 @@ The CRM runtime uses separate liveness and readiness signals.
 `/api/ready` semantics:
 
 - returns HTTP `200` only when the CRM application can execute a lightweight query against its configured CRM PostgreSQL database;
+- the readiness query must depend on migrated CRM application schema so a pre-migration database remains not-ready;
 - returns HTTP `503` when the configured CRM database is unavailable;
 - must not expose credentials, raw connection strings, or sensitive infrastructure details;
 - proves readiness for CRM application work, not just container startup.

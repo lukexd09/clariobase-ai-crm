@@ -16,7 +16,11 @@ export type RuntimeReadinessResult = {
 
 async function defaultProbe() {
   const { prisma } = await import("@/lib/prisma");
-  await prisma.$queryRaw`SELECT 1`;
+  await prisma.importBatch.findFirst({
+    select: {
+      id: true
+    }
+  });
 }
 
 export async function getRuntimeReadiness(
