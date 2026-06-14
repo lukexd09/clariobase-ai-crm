@@ -98,7 +98,7 @@ For the E014 containerized runtime foundation, also read:
 - `docs/runtime/container-runtime.md`
 - `docs/runtime/container-image.md`
 - `docs/decisions/adr-e014-container-runtime.md`
-- `.env.compose.example`
+- `.env.compose.example` for the safe Compose variable contract and optional `docker compose --env-file .env.compose.example ...` flow
 
 ## Repository structure
 

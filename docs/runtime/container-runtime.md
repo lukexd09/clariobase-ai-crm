@@ -110,6 +110,7 @@ Supporting runtime rules:
 - the internal application port is fixed at `3000`;
 - `CRM_BIND_ADDRESS` and `CRM_HOST_PORT` control host exposure, not application code behavior;
 - the default contract keeps PostgreSQL private to the Compose network instead of exposing it publicly;
+- `compose.yaml` carries safe inline defaults that match `.env.compose.example` for first-run local operation;
 - `.env.example` remains sanitized and may be used only for safe placeholders, not real runtime secrets.
 
 ## Network and port-binding policy
