@@ -142,7 +142,7 @@ Rules for `data/ai-exchange/`:
 - the directory must remain host-accessible for the manual file-based ChatGPT workflow;
 - the directory must be mounted at runtime instead of baked into the image;
 - real lead exports and operator runtime files remain uncommitted;
-- automated E014 verification uses an isolated disposable path under `.codex-tmp`;
+- automated E014 verification uses an isolated disposable host path that is separate from the operator's real runtime files;
 - E014 must preserve the current manual export -> review -> validate -> import workflow from [docs/04-ai-file-exchange.md](../04-ai-file-exchange.md).
 
 ## Persistence and backup semantics

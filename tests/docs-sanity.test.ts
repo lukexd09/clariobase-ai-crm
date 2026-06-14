@@ -75,9 +75,11 @@ test("container runtime docs stay canonical and discoverable", () => {
   const readme = read("README.md");
   const runtimeContract = read("docs/runtime/container-runtime.md");
   const adr = read("docs/decisions/adr-e014-container-runtime.md");
+  const workItemCoding = read("docs/12-work-item-coding.md");
 
   assert.match(readme, /docs\/runtime\/container-runtime\.md/);
   assert.match(readme, /docs\/decisions\/adr-e014-container-runtime\.md/);
+  assert.match(workItemCoding, /E014 - Add containerized local production runtime foundation/);
 
   assert.match(runtimeContract, /document_id: DOC-E014-CONTAINER-RUNTIME/);
   assert.match(runtimeContract, /COMP-CRM-APP/);
@@ -88,6 +90,7 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(runtimeContract, /\/api\/ready/);
   assert.match(runtimeContract, /Current repository baseline before E014 implementation/);
   assert.match(runtimeContract, /Planned evolution after the default E014 runtime/);
+  assert.doesNotMatch(runtimeContract, /\.codex-tmp/);
 
   assert.match(adr, /document_id: ADR-E014-CONTAINER-RUNTIME/);
   assert.match(adr, /crm-app/);

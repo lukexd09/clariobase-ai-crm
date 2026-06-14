@@ -148,6 +148,14 @@ E003 - Build ClarioBase sales workflow
 E004 - Connect CRM with harvester data
 E005 - Prepare future UGC outreach pipeline
 E006 - Establish delivery process and Ways of Working
+E008 - Stabilize CRM documentation and quality after UI redesign
+E009 - Redesign CRM visual direction for lightweight business and UGC use
+E010 - Add localization and language preference foundation
+E011 - Add local network access and user account foundation
+E012 - Add workspace type foundation for agency and UGC workflows
+E013 - Add controlled gatherer operations from CRM
+E014 - Add containerized local production runtime foundation
+E015 - Add private workspace document storage foundation
 ```
 
 ## Current first task
