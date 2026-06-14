@@ -34,6 +34,7 @@ data/ai-exchange/
 - Export local CRM context with `corepack pnpm ai:export-leads`
 - Validate a prepared file with `corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json`
 - Import an approved file with `corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json`
+- In the repository-local Compose runtime, run the same commands through `docker compose run --rm crm-app pnpm ...` so they operate on the containerized CRM database while using the bind-mounted `data/ai-exchange/` directory.
 
 ## Contract boundaries
 

@@ -107,6 +107,7 @@ For a fresh repository-local Compose startup, use this sequence:
 3. `docker compose up -d crm-app`
 
 That sequence matches the approved E014 runtime contract for a fresh PostgreSQL volume.
+When you use the Compose runtime, run one-off CRM CLI workflows through `docker compose run --rm crm-app ...` so they target the containerized CRM database while still using the bind-mounted `data/ai-exchange/` directory.
 
 ## Repository structure
 
@@ -288,6 +289,15 @@ The validator checks that the file is valid JSON, contains a top-level array, an
 corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
 corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json
 corepack pnpm leads:detect-duplicates
+```
+
+With the repository-local Compose runtime, use the same workflow through the app container:
+
+```bash
+docker compose run --rm crm-app pnpm ai:export-leads
+docker compose run --rm crm-app pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
+docker compose run --rm crm-app pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json
+docker compose run --rm crm-app pnpm leads:detect-duplicates
 ```
 
 ### Safety rules

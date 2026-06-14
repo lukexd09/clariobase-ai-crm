@@ -72,7 +72,7 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(composeFile, /pg_isready/);
   assert.match(composeFile, /condition: service_healthy/);
   assert.match(composeFile, /crm-postgres-data:\/var\/lib\/postgresql\/data/);
-  assert.match(composeFile, /DATABASE_URL: postgresql:\/\/\$\{CRM_POSTGRES_USER:-clariobase_crm_user\}:\$\{CRM_POSTGRES_PASSWORD:-change-me\}@crm-postgres:5432\/\$\{CRM_POSTGRES_DB:-clariobase_crm\}\?schema=public/);
+  assert.match(composeFile, /DATABASE_URL: \$\{CRM_DATABASE_URL:-postgresql:\/\/\$\{CRM_POSTGRES_USER:-clariobase_crm_user\}:\$\{CRM_POSTGRES_PASSWORD:-change-me\}@crm-postgres:5432\/\$\{CRM_POSTGRES_DB:-clariobase_crm\}\?schema=public\}/);
   assert.match(composeFile, /\$\{CRM_BIND_ADDRESS:-127\.0\.0\.1\}:\$\{CRM_HOST_PORT:-3000\}:3000/);
   assert.match(composeFile, /source: \$\{AI_EXCHANGE_HOST_PATH:-\.\/data\/ai-exchange\}/);
   assert.match(composeFile, /target: \/app\/data\/ai-exchange/);
@@ -83,9 +83,11 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(composeEnvExample, /^CRM_POSTGRES_DB=clariobase_crm$/m);
   assert.match(composeEnvExample, /^CRM_POSTGRES_USER=clariobase_crm_user$/m);
   assert.match(composeEnvExample, /^CRM_POSTGRES_PASSWORD=change-me$/m);
+  assert.match(composeEnvExample, /^CRM_DATABASE_URL=$/m);
 
   assert.match(runtimeContract, /crm-app/);
   assert.match(runtimeContract, /crm-postgres/);
+  assert.match(runtimeContract, /CRM_DATABASE_URL/);
   assert.match(runtimeContract, /CRM_BIND_ADDRESS/);
   assert.match(runtimeContract, /CRM_HOST_PORT/);
   assert.match(runtimeContract, /AI_EXCHANGE_HOST_PATH/);
@@ -112,6 +114,45 @@ test("Compose config resolves safe defaults for first-run local runtime", () => 
   assert.match(result.stdout, /data\/ai-exchange|data\\ai-exchange/);
 });
 
+test("Compose config accepts an explicit CRM_DATABASE_URL override for URI-encoded credentials", () => {
+  if (!hasDocker()) {
+    return;
+  }
+
+  const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-config-${process.pid}`);
+  const envPath = path.join(tmpRoot, "compose.env");
+
+  fs.mkdirSync(tmpRoot, { recursive: true });
+  fs.writeFileSync(
+    envPath,
+    [
+      "CRM_BIND_ADDRESS=127.0.0.1",
+      "CRM_HOST_PORT=3017",
+      "AI_EXCHANGE_HOST_PATH=./data/ai-exchange",
+      "CRM_POSTGRES_DB=clariobase_crm_encoded",
+      "CRM_POSTGRES_USER=clariobase_crm_user",
+      "CRM_POSTGRES_PASSWORD=p@ss:word",
+      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:p%40ss%3Aword@crm-postgres:5432/clariobase_crm_encoded?schema=public"
+    ].join("\n")
+  );
+
+  try {
+    const result = spawnSync("docker", ["compose", "--env-file", envPath, "config"], {
+      cwd: repoRoot,
+      encoding: "utf8"
+    });
+
+    assert.equal(result.status, 0, `docker compose config with CRM_DATABASE_URL override should pass: ${result.stderr}`);
+    assert.match(result.stdout, /POSTGRES_PASSWORD: p@ss:word/);
+    assert.match(
+      result.stdout,
+      /DATABASE_URL: postgres(?:ql)?:\/\/clariobase_crm_user:p%40ss%3Aword@crm-postgres:5432\/clariobase_crm_encoded\?schema=public/
+    );
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
 test("Compose verification follows the approved first-run migration sequence", async () => {
   if (!hasDocker()) {
     return;
@@ -122,8 +163,11 @@ test("Compose verification follows the approved first-run migration sequence", a
   const aiPath = path.join(tmpRoot, "ai-exchange");
   const envPath = path.join(tmpRoot, "compose.env");
   const hostPort = "3016";
+  const preparedImportPath = path.join(aiPath, "inbox", "prepared-leads.json");
 
-  fs.mkdirSync(aiPath, { recursive: true });
+  fs.mkdirSync(path.dirname(preparedImportPath), { recursive: true });
+  fs.mkdirSync(path.join(aiPath, "outbox"), { recursive: true });
+  fs.writeFileSync(preparedImportPath, read("data/ai-exchange/inbox/sample-prepared-leads.json"));
   fs.writeFileSync(
     envPath,
     [
@@ -177,6 +221,58 @@ test("Compose verification follows the approved first-run migration sequence", a
 
     await waitForHttp200(`http://127.0.0.1:${hostPort}/health`);
     await waitForHttp200(`http://127.0.0.1:${hostPort}/imports`);
+
+    result = runDocker(
+      ["compose", "--project-name", project, "--env-file", envPath, "run", "--rm", "crm-app", "pnpm", "ai:export-leads"],
+      { stdio: "inherit" }
+    );
+    assert.equal(result.status, 0, "compose AI export command should pass");
+    assert.ok(
+      fs.readdirSync(path.join(aiPath, "outbox")).some((name) => /^clariobase_leads_export_.*\.json$/.test(name)),
+      "compose AI export should create an outbox file on the host bind mount"
+    );
+
+    result = runDocker(
+      [
+        "compose",
+        "--project-name",
+        project,
+        "--env-file",
+        envPath,
+        "run",
+        "--rm",
+        "crm-app",
+        "pnpm",
+        "ai:validate-import-file",
+        "./data/ai-exchange/inbox/prepared-leads.json"
+      ],
+      { stdio: "inherit" }
+    );
+    assert.equal(result.status, 0, "compose AI import validation command should pass");
+
+    result = runDocker(
+      [
+        "compose",
+        "--project-name",
+        project,
+        "--env-file",
+        envPath,
+        "run",
+        "--rm",
+        "crm-app",
+        "pnpm",
+        "leads:import",
+        "./data/ai-exchange/inbox/prepared-leads.json"
+      ],
+      { stdio: "inherit" }
+    );
+    assert.equal(result.status, 0, "compose lead import command should pass");
+
+    result = runDocker(
+      ["compose", "--project-name", project, "--env-file", envPath, "run", "--rm", "crm-app", "pnpm", "leads:detect-duplicates"],
+      { stdio: "inherit" }
+    );
+    assert.equal(result.status, 0, "compose duplicate detection command should pass");
   } finally {
     runDocker(
       ["compose", "--project-name", project, "--env-file", envPath, "down", "-v"],

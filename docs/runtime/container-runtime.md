@@ -98,6 +98,7 @@ The approved runtime contract uses the following exact variables.
 | Variable | Scope | Required | Meaning |
 | --- | --- | --- | --- |
 | `DATABASE_URL` | `crm-app` | yes | Prisma and app connection string for the dedicated CRM database. |
+| `CRM_DATABASE_URL` | Compose override | no | Optional explicit Compose override for `DATABASE_URL`, used when credentials need URI encoding. |
 | `CRM_BIND_ADDRESS` | Compose host binding | yes | Host interface for published HTTP access. Default: `127.0.0.1`. |
 | `CRM_HOST_PORT` | Compose host binding | yes | Host port mapped to the CRM container. Default: `3000`. Test override: `3002`. |
 | `AI_EXCHANGE_HOST_PATH` | Compose bind mount | yes | Host path mounted into the container so `data/ai-exchange/` stays host-accessible. |
@@ -111,6 +112,7 @@ Supporting runtime rules:
 - `CRM_BIND_ADDRESS` and `CRM_HOST_PORT` control host exposure, not application code behavior;
 - the default contract keeps PostgreSQL private to the Compose network instead of exposing it publicly;
 - `compose.yaml` carries safe inline defaults that match `.env.compose.example` for first-run local operation;
+- `CRM_DATABASE_URL` may override the derived DSN when the username, password, or database name must be URI-encoded explicitly;
 - `.env.example` remains sanitized and may be used only for safe placeholders, not real runtime secrets.
 
 ## Network and port-binding policy
@@ -144,6 +146,7 @@ Rules for `data/ai-exchange/`:
 
 - the directory must remain host-accessible for the manual file-based ChatGPT workflow;
 - the directory must be mounted at runtime instead of baked into the image;
+- one-off Compose operator commands such as `docker compose run --rm crm-app pnpm ai:export-leads` must work against the mounted directory and the containerized CRM database;
 - real lead exports and operator runtime files remain uncommitted;
 - automated E014 verification uses an isolated disposable host path that is separate from the operator's real runtime files;
 - E014 must preserve the current manual export -> review -> validate -> import workflow from [docs/04-ai-file-exchange.md](../04-ai-file-exchange.md).

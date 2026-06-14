@@ -27,6 +27,7 @@ COPY package.json pnpm-lock.yaml ./
 COPY .env.example ./
 COPY next.config.ts prisma.config.ts tsconfig.json next-env.d.ts ./
 COPY eslint.config.mjs postcss.config.mjs tailwind.config.ts components.json ./
+COPY scripts/import-leads.ts scripts/detect-duplicates.ts scripts/export-ai-leads.ts scripts/validate-ai-import-file.ts ./scripts/
 COPY prisma ./prisma
 COPY src ./src
 
@@ -38,11 +39,12 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 COPY --chown=node:node package.json pnpm-lock.yaml ./
-COPY --chown=node:node next.config.ts prisma.config.ts ./
+COPY --chown=node:node next.config.ts prisma.config.ts tsconfig.json ./
 COPY --chown=node:node --from=deps /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/.next ./.next
 COPY --chown=node:node --from=builder /app/prisma ./prisma
-COPY --chown=node:node --from=builder /app/src/generated ./src/generated
+COPY --chown=node:node --from=builder /app/scripts ./scripts
+COPY --chown=node:node --from=builder /app/src ./src
 
 USER node
 

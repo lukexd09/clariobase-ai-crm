@@ -117,6 +117,12 @@ function inspectImageFilesystem() {
         "test ! -e /app/.env.local",
         "test ! -e /app/data/ai-exchange",
         "test ! -e /app/ai_exchange",
+        "test -e /app/scripts/export-ai-leads.ts",
+        "test -e /app/scripts/import-leads.ts",
+        "test -e /app/scripts/detect-duplicates.ts",
+        "test -e /app/scripts/validate-ai-import-file.ts",
+        "test -e /app/tsconfig.json",
+        "test -e /app/src/lib/import-contract.ts",
         "test -e /app/src/generated/prisma/client.ts",
         "test -e /app/prisma/schema.prisma",
         "test -e /app/node_modules/prisma/package.json"

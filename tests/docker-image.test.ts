@@ -30,12 +30,19 @@ test("Docker image assets enforce the E014 image contract", () => {
 
   assert.match(readme, /docs\/runtime\/container-image\.md/);
   assert.equal(packageJson.scripts["docker:test-image"], "tsx scripts/verify-docker-image.ts");
+  assert.match(packageJson.scripts["prisma:migrate"], /--env-file-if-exists=\.env\.local/);
+  assert.match(packageJson.scripts["prisma:seed"], /--env-file-if-exists=\.env\.local/);
+  assert.match(packageJson.scripts["leads:import"], /--env-file-if-exists=\.env\.local/);
+  assert.match(packageJson.scripts["leads:detect-duplicates"], /--env-file-if-exists=\.env\.local/);
+  assert.match(packageJson.scripts["ai:export-leads"], /--env-file-if-exists=\.env\.local/);
+  assert.match(packageJson.scripts["ai:validate-import-file"], /--env-file-if-exists=\.env\.local/);
 
   assert.match(imageDoc, /document_id: DOC-E014-CONTAINER-IMAGE/);
   assert.match(imageDoc, /docker build -t clariobase-ai-crm:local \./);
   assert.match(imageDoc, /corepack pnpm docker:test-image/);
   assert.match(imageDoc, /node \.\/node_modules\/next\/dist\/bin\/next start/);
   assert.match(imageDoc, /Prisma CLI available/i);
+  assert.match(imageDoc, /pnpm ai:export-leads/);
   assert.match(imageDoc, /data\/ai-exchange/);
   assert.match(imageDoc, /PostgreSQL 16/);
   assert.match(imageDoc, /\/imports/);
@@ -47,9 +54,12 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(dockerfile, /ARG BUILD_DATABASE_URL=/);
   assert.match(dockerfile, /ENV DATABASE_URL="\$BUILD_DATABASE_URL"/);
   assert.match(dockerfile, /COPY \.env\.example \.\/$/m);
+  assert.match(dockerfile, /COPY scripts\/import-leads\.ts scripts\/detect-duplicates\.ts scripts\/export-ai-leads\.ts scripts\/validate-ai-import-file\.ts \.\/scripts\//);
+  assert.match(dockerfile, /COPY --chown=node:node next\.config\.ts prisma\.config\.ts tsconfig\.json \.\//);
   assert.match(dockerfile, /RUN pnpm build/);
   assert.match(dockerfile, /COPY --chown=node:node --from=builder \/app\/prisma \.\/prisma/);
-  assert.match(dockerfile, /COPY --chown=node:node --from=builder \/app\/src\/generated \.\/src\/generated/);
+  assert.match(dockerfile, /COPY --chown=node:node --from=builder \/app\/scripts \.\/scripts/);
+  assert.match(dockerfile, /COPY --chown=node:node --from=builder \/app\/src \.\/src/);
   assert.match(dockerfile, /EXPOSE 3000/);
   assert.match(dockerfile, /CMD \["node", "\.\/node_modules\/next\/dist\/bin\/next", "start"\]/);
 
