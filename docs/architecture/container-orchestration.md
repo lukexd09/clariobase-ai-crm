@@ -85,7 +85,7 @@ CRM and gatherer keep separate databases.
 Future server-level orchestration may choose to replace `crm-postgres` with an external PostgreSQL instance, but only under these rules:
 
 - the external instance still contains a dedicated CRM-only database;
-- the CRM connection string stays explicit through `CRM_DATABASE_URL` or `DATABASE_URL`;
+- the CRM connection string stays explicit through `CRM_DATABASE_URL`;
 - migrations remain operator-invoked and reviewed;
 - gatherer does not reuse the CRM schema or credentials;
 - the override is documented as an explicit operator decision, not as a silent default.

@@ -78,7 +78,7 @@ Rules:
 - set `CRM_POSTGRES_PASSWORD` before first run;
 - keep `.env.compose.local` uncommitted;
 - use `CRM_DATABASE_URL` only when the derived DSN is not sufficient;
-- do not point `DATABASE_URL` or `CRM_DATABASE_URL` at the harvester or gatherer database.
+- do not point `CRM_DATABASE_URL` at the harvester or gatherer database.
 
 ## First run
 
@@ -259,20 +259,23 @@ Persistence details:
 Create a logical backup inside the running database container:
 
 ```bash
+mkdir -p backups
 docker compose --env-file .env.compose.local exec crm-postgres sh -lc "mkdir -p /tmp/backups && pg_dump -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" > /tmp/backups/clariobase_crm.sql"
 docker compose --env-file .env.compose.local cp crm-postgres:/tmp/backups/clariobase_crm.sql backups/clariobase_crm.sql
 ```
 
-Restore a logical backup into the current CRM database:
+Restore a logical backup into the current CRM database only after stopping the app and resetting the target database:
 
 ```bash
+docker compose --env-file .env.compose.local stop crm-app
 docker compose --env-file .env.compose.local cp backups/clariobase_crm.sql crm-postgres:/tmp/clariobase_crm.sql
-docker compose --env-file .env.compose.local exec crm-postgres sh -lc "psql -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" < /tmp/clariobase_crm.sql"
+docker compose --env-file .env.compose.local exec crm-postgres sh -lc "psql -U \"$POSTGRES_USER\" postgres -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$POSTGRES_DB' AND pid <> pg_backend_pid();\" && dropdb -U \"$POSTGRES_USER\" --if-exists \"$POSTGRES_DB\" && createdb -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" && psql -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" < /tmp/clariobase_crm.sql"
+docker compose --env-file .env.compose.local up -d crm-app
 ```
 
 Backup and restore warnings:
 
-- stop `crm-app` before a restore to avoid serving inconsistent state;
+- restore only from a reviewed backup file after the target CRM database has been reset;
 - confirm the target database is the CRM database, not the harvester/gatherer database;
 - keep backups outside ignored runtime folders if they must survive a repo cleanup.
 
@@ -303,7 +306,7 @@ If a later operator intentionally uses an external server-level PostgreSQL insta
 
 - keep a dedicated CRM-only database;
 - keep dedicated CRM-only credentials;
-- provide a reviewed `CRM_DATABASE_URL` or `DATABASE_URL`;
+- provide a reviewed `CRM_DATABASE_URL`;
 - remove or ignore `crm-postgres` only as an explicit override path;
 - do not collapse CRM into the harvester or gatherer database.
 
