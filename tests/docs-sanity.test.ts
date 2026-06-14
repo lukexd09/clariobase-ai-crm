@@ -74,11 +74,15 @@ test("light CRM visual direction covers shell navigation guidance", () => {
 test("container runtime docs stay canonical and discoverable", () => {
   const readme = read("README.md");
   const runtimeContract = read("docs/runtime/container-runtime.md");
+  const operationsRunbook = read("docs/operations/container-operations.md");
+  const orchestrationDoc = read("docs/architecture/container-orchestration.md");
   const adr = read("docs/decisions/adr-e014-container-runtime.md");
   const workItemCoding = read("docs/12-work-item-coding.md");
 
   assert.match(readme, /docs\/runtime\/container-runtime\.md/);
   assert.match(readme, /docs\/decisions\/adr-e014-container-runtime\.md/);
+  assert.match(readme, /docs\/operations\/container-operations\.md/);
+  assert.match(readme, /docs\/architecture\/container-orchestration\.md/);
   assert.match(workItemCoding, /E014 - Add containerized local production runtime foundation/);
 
   assert.match(runtimeContract, /document_id: DOC-E014-CONTAINER-RUNTIME/);
@@ -108,4 +112,23 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(adr, /crm-app/);
   assert.match(adr, /crm-postgres/);
   assert.match(adr, /localhost-only host binding by default/);
+
+  assert.match(operationsRunbook, /document_id: DOC-E014-CONTAINER-OPERATIONS/);
+  assert.match(operationsRunbook, /canonical operator runbook/i);
+  assert.match(operationsRunbook, /docker compose --env-file \.env\.compose\.local up -d crm-postgres/);
+  assert.match(operationsRunbook, /node \.\/node_modules\/prisma\/build\/index\.js migrate deploy/);
+  assert.match(operationsRunbook, /corepack pnpm docker:test-runtime/);
+  assert.match(operationsRunbook, /CRM_DATABASE_URL/);
+  assert.match(operationsRunbook, /crm-postgres-data/);
+  assert.match(operationsRunbook, /backup/i);
+  assert.match(operationsRunbook, /restore/i);
+  assert.match(operationsRunbook, /CRM_BIND_ADDRESS=0\.0\.0\.0/);
+
+  assert.match(orchestrationDoc, /document_id: DOC-E014-CONTAINER-ORCHESTRATION/);
+  assert.match(orchestrationDoc, /future server-level orchestration direction/i);
+  assert.match(orchestrationDoc, /CRM-only runtime/i);
+  assert.match(orchestrationDoc, /separate databases/i);
+  assert.match(orchestrationDoc, /no shared schema/i);
+  assert.match(orchestrationDoc, /CRM_DATABASE_URL/);
+  assert.match(orchestrationDoc, /does not orchestrate the gatherer or harvester runtime/i);
 });
