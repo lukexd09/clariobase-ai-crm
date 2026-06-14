@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { setTimeout as delay } from "node:timers/promises";
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -20,50 +19,15 @@ function hasDocker() {
   return result.status === 0;
 }
 
-function runDocker(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
-  return spawnSync("docker", args, {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: options?.stdio ?? "pipe"
-  });
-}
-
-async function waitForDockerHealth(containerName: string) {
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const result = runDocker(["inspect", "--format={{.State.Health.Status}}", containerName]);
-
-    if (result.status === 0 && result.stdout.trim() === "healthy") {
-      return;
-    }
-
-    await delay(1000);
-  }
-
-  throw new Error(`Container ${containerName} did not become healthy in time.`);
-}
-
-async function waitForHttp200(url: string) {
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    try {
-      const response = await fetch(url);
-
-      if (response.status === 200) {
-        return;
-      }
-    } catch {
-      // Retry until the service becomes available.
-    }
-
-    await delay(1000);
-  }
-
-  throw new Error(`${url} did not return HTTP 200 in time.`);
-}
-
 test("Compose runtime assets enforce the E014 local topology contract", () => {
   const composeFile = read("compose.yaml");
   const composeEnvExample = read(".env.compose.example");
   const runtimeContract = read("docs/runtime/container-runtime.md");
+  const packageJson = JSON.parse(read("package.json")) as {
+    scripts: Record<string, string>;
+  };
+
+  assert.equal(packageJson.scripts["docker:test-runtime"], "tsx scripts/verify-compose-runtime.ts");
 
   assert.match(composeFile, /crm-app:/);
   assert.match(composeFile, /crm-postgres:/);
@@ -74,6 +38,7 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(composeFile, /crm-postgres-data:\/var\/lib\/postgresql\/data/);
   assert.match(composeFile, /POSTGRES_PASSWORD: \$\{CRM_POSTGRES_PASSWORD:\?Set_CRM_POSTGRES_PASSWORD\}/);
   assert.match(composeFile, /DATABASE_URL: \$\{CRM_DATABASE_URL:-postgresql:\/\/\$\{CRM_POSTGRES_USER:-clariobase_crm_user\}:\$\{CRM_POSTGRES_PASSWORD:\?Set_CRM_POSTGRES_PASSWORD\}@crm-postgres:5432\/\$\{CRM_POSTGRES_DB:-clariobase_crm\}\?schema=public\}/);
+  assert.match(composeFile, /crm-app:[\s\S]*healthcheck:[\s\S]*\/api\/ready/);
   assert.match(composeFile, /\$\{CRM_BIND_ADDRESS:-127\.0\.0\.1\}:\$\{CRM_HOST_PORT:-3000\}:3000/);
   assert.match(composeFile, /source: \$\{AI_EXCHANGE_HOST_PATH:-\.\/data\/ai-exchange\}/);
   assert.match(composeFile, /target: \/app\/data\/ai-exchange/);
@@ -92,6 +57,9 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(runtimeContract, /CRM_BIND_ADDRESS/);
   assert.match(runtimeContract, /CRM_HOST_PORT/);
   assert.match(runtimeContract, /AI_EXCHANGE_HOST_PATH/);
+  assert.match(runtimeContract, /reserve a free localhost port dynamically/i);
+  assert.match(runtimeContract, /\/api\/ready/);
+  assert.match(runtimeContract, /returns HTTP `503` when the configured CRM database is unavailable/i);
 });
 
 test("Compose config resolves the documented first-run env-file contract", () => {
@@ -174,161 +142,16 @@ test("Compose config accepts an explicit CRM_DATABASE_URL override for URI-encod
   }
 });
 
-test("Compose verification follows the approved first-run migration sequence", async () => {
+test("Compose runtime verification covers readiness, failure path and restart behavior", () => {
   if (!hasDocker()) {
     return;
   }
 
-  const project = `clariobase-e014-compose-test-${process.pid}`;
-  const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-test-${process.pid}`);
-  const aiPath = path.join(tmpRoot, "ai-exchange");
-  const envPath = path.join(tmpRoot, "compose.env");
-  const hostPort = "3016";
-  const preparedImportPath = path.join(aiPath, "inbox", "prepared-leads.json");
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+  const result = spawnSync(process.execPath, [tsxCli, "scripts/verify-compose-runtime.ts"], {
+    cwd: repoRoot,
+    stdio: "inherit"
+  });
 
-  fs.mkdirSync(path.dirname(preparedImportPath), { recursive: true });
-  fs.mkdirSync(path.join(aiPath, "outbox"), { recursive: true });
-  fs.writeFileSync(preparedImportPath, read("data/ai-exchange/inbox/sample-prepared-leads.json"));
-  fs.writeFileSync(
-    envPath,
-    [
-      "CRM_BIND_ADDRESS=127.0.0.1",
-      `CRM_HOST_PORT=${hostPort}`,
-      `AI_EXCHANGE_HOST_PATH=${aiPath.replace(/\\\\/g, "/")}`,
-      "CRM_POSTGRES_DB=clariobase_crm_compose_test",
-      "CRM_POSTGRES_USER=clariobase_crm_user",
-      "CRM_POSTGRES_PASSWORD=clariobase_test_password"
-    ].join("\n")
-  );
-
-  try {
-    let result = runDocker(
-      ["compose", "--project-name", project, "--env-file", envPath, "build"],
-      { stdio: "inherit" }
-    );
-    assert.equal(result.status, 0, "docker compose build should pass");
-
-    result = runDocker(
-      ["compose", "--project-name", project, "--env-file", envPath, "up", "-d", "crm-postgres"],
-      { stdio: "inherit" }
-    );
-    assert.equal(result.status, 0, "docker compose up -d crm-postgres should pass");
-
-    await waitForDockerHealth(`${project}-crm-postgres-1`);
-
-    result = runDocker(
-      [
-        "compose",
-        "--project-name",
-        project,
-        "--env-file",
-        envPath,
-        "run",
-        "--rm",
-        "crm-app",
-        "sh",
-        "-lc",
-        "node ./node_modules/prisma/build/index.js migrate deploy"
-      ],
-      { stdio: "inherit" }
-    );
-    assert.equal(result.status, 0, "one-off compose migration command should pass");
-
-    result = runDocker(
-      ["compose", "--project-name", project, "--env-file", envPath, "up", "-d", "crm-app"],
-      { stdio: "inherit" }
-    );
-    assert.equal(result.status, 0, "docker compose up -d crm-app should pass");
-
-    await waitForHttp200(`http://127.0.0.1:${hostPort}/health`);
-    await waitForHttp200(`http://127.0.0.1:${hostPort}/imports`);
-
-    result = runDocker(
-      [
-        "compose",
-        "--project-name",
-        project,
-        "--env-file",
-        envPath,
-        "run",
-        "--rm",
-        "crm-app",
-        "node",
-        "--env-file-if-exists=.env.local",
-        "./node_modules/tsx/dist/cli.mjs",
-        "scripts/export-ai-leads.ts"
-      ],
-      { stdio: "inherit" }
-    );
-    assert.equal(result.status, 0, "compose AI export command should pass");
-    assert.ok(
-      fs.readdirSync(path.join(aiPath, "outbox")).some((name) => /^clariobase_leads_export_.*\.json$/.test(name)),
-      "compose AI export should create an outbox file on the host bind mount"
-    );
-
-    result = runDocker(
-      [
-        "compose",
-        "--project-name",
-        project,
-        "--env-file",
-        envPath,
-        "run",
-        "--rm",
-        "crm-app",
-        "node",
-        "--env-file-if-exists=.env.local",
-        "./node_modules/tsx/dist/cli.mjs",
-        "scripts/validate-ai-import-file.ts",
-        "./data/ai-exchange/inbox/prepared-leads.json"
-      ],
-      { stdio: "inherit" }
-    );
-    assert.equal(result.status, 0, "compose AI import validation command should pass");
-
-    result = runDocker(
-      [
-        "compose",
-        "--project-name",
-        project,
-        "--env-file",
-        envPath,
-        "run",
-        "--rm",
-        "crm-app",
-        "node",
-        "--env-file-if-exists=.env.local",
-        "./node_modules/tsx/dist/cli.mjs",
-        "scripts/import-leads.ts",
-        "./data/ai-exchange/inbox/prepared-leads.json"
-      ],
-      { stdio: "inherit" }
-    );
-    assert.equal(result.status, 0, "compose lead import command should pass");
-
-    result = runDocker(
-      [
-        "compose",
-        "--project-name",
-        project,
-        "--env-file",
-        envPath,
-        "run",
-        "--rm",
-        "crm-app",
-        "node",
-        "--env-file-if-exists=.env.local",
-        "./node_modules/tsx/dist/cli.mjs",
-        "scripts/detect-duplicates.ts"
-      ],
-      { stdio: "inherit" }
-    );
-    assert.equal(result.status, 0, "compose duplicate detection command should pass");
-  } finally {
-    runDocker(
-      ["compose", "--project-name", project, "--env-file", envPath, "down", "-v"],
-      { stdio: "inherit" }
-    );
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
-  }
+  assert.equal(result.status, 0, "compose runtime verification should pass");
 });

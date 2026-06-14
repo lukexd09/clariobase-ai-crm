@@ -9,6 +9,7 @@ last_updated: 2026-06-14
 related_epic: E014
 related_tasks:
   - E014.T001
+  - E014.T004
 related_components:
   - COMP-CRM-APP
   - COMP-CRM-POSTGRES
@@ -100,7 +101,7 @@ The approved runtime contract uses the following exact variables.
 | `DATABASE_URL` | `crm-app` | yes | Prisma and app connection string for the dedicated CRM database. |
 | `CRM_DATABASE_URL` | Compose override | no | Optional explicit Compose override for `DATABASE_URL`, used when credentials need URI encoding. |
 | `CRM_BIND_ADDRESS` | Compose host binding | yes | Host interface for published HTTP access. Default: `127.0.0.1`. |
-| `CRM_HOST_PORT` | Compose host binding | yes | Host port mapped to the CRM container. Default: `3000`. Test override: `3002`. |
+| `CRM_HOST_PORT` | Compose host binding | yes | Host port mapped to the CRM container. Default: `3000`. Isolated verification should use a dynamically reserved free localhost port. |
 | `AI_EXCHANGE_HOST_PATH` | Compose bind mount | yes | Host path mounted into the container so `data/ai-exchange/` stays host-accessible. |
 | `CRM_POSTGRES_DB` | `crm-postgres` | yes | CRM-only database name. Recommended default: `clariobase_crm`. |
 | `CRM_POSTGRES_USER` | `crm-postgres` | yes | CRM-only PostgreSQL username. |
@@ -122,7 +123,7 @@ The canonical network policy is:
 - inside the container, the CRM application listens on port `3000`;
 - by default, the host publishes the CRM only on `127.0.0.1`;
 - the default host port is `3000`;
-- automated E014 verification should prefer `CRM_HOST_PORT=3002`;
+- automated E014 verification should reserve a free localhost port dynamically instead of hard-coding one shared test port;
 - a LAN operator may intentionally override `CRM_BIND_ADDRESS=0.0.0.0`, but only for internal-network use;
 - E014 must not add public internet exposure, TLS, reverse proxying, or cloud ingress.
 
@@ -187,6 +188,7 @@ The CRM runtime uses separate liveness and readiness signals.
 `/api/ready` semantics:
 
 - returns HTTP `200` only when the CRM application can execute a lightweight query against its configured CRM PostgreSQL database;
+- the readiness query must depend on migrated CRM application schema so a pre-migration database remains not-ready;
 - returns HTTP `503` when the configured CRM database is unavailable;
 - must not expose credentials, raw connection strings, or sensitive infrastructure details;
 - proves readiness for CRM application work, not just container startup.
@@ -197,6 +199,33 @@ The CRM runtime uses separate liveness and readiness signals.
 
 The PostgreSQL service healthcheck is separate from the CRM app readiness endpoint.
 Later E014 tasks wire the application service to depend on the database service without collapsing both signals into one ambiguous check.
+
+### Compose app healthcheck contract
+
+`crm-app` uses `/api/ready` as the Compose container healthcheck.
+
+`crm-app` healthcheck semantics:
+
+- reports healthy only when the Next.js process can serve requests and the configured CRM database is reachable;
+- transitions to unhealthy when `/api/ready` returns HTTP `503`;
+- does not replace the simpler `/health` liveness endpoint;
+- is intended for local runtime verification and restart/failure behavior checks, not for public monitoring exposure.
+
+## Automated runtime verification contract
+
+The canonical repository-level runtime verification command is:
+
+```bash
+corepack pnpm docker:test-runtime
+```
+
+The verification command must cover:
+
+- the approved first-run migration sequence;
+- `/health` success and `/api/ready` success behavior;
+- `/api/ready` failure behavior when the CRM database becomes unavailable;
+- restart recovery and persistence on isolated disposable test resources;
+- the containerized AI exchange workflow against a bind-mounted host path.
 
 ## Build and image contract
 
