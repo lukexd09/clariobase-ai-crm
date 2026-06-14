@@ -70,3 +70,27 @@ test("light CRM visual direction covers shell navigation guidance", () => {
   assert.match(doc, /manual keyboard and contrast checks/i);
   assert.match(doc, /active navigation state is visible without color alone/i);
 });
+
+test("container runtime docs stay canonical and discoverable", () => {
+  const readme = read("README.md");
+  const runtimeContract = read("docs/runtime/container-runtime.md");
+  const adr = read("docs/decisions/adr-e014-container-runtime.md");
+
+  assert.match(readme, /docs\/runtime\/container-runtime\.md/);
+  assert.match(readme, /docs\/decisions\/adr-e014-container-runtime\.md/);
+
+  assert.match(runtimeContract, /document_id: DOC-E014-CONTAINER-RUNTIME/);
+  assert.match(runtimeContract, /COMP-CRM-APP/);
+  assert.match(runtimeContract, /COMP-CRM-POSTGRES/);
+  assert.match(runtimeContract, /CRM_BIND_ADDRESS/);
+  assert.match(runtimeContract, /CRM_HOST_PORT/);
+  assert.match(runtimeContract, /AI_EXCHANGE_HOST_PATH/);
+  assert.match(runtimeContract, /\/api\/ready/);
+  assert.match(runtimeContract, /Current repository baseline before E014 implementation/);
+  assert.match(runtimeContract, /Planned evolution after the default E014 runtime/);
+
+  assert.match(adr, /document_id: ADR-E014-CONTAINER-RUNTIME/);
+  assert.match(adr, /crm-app/);
+  assert.match(adr, /crm-postgres/);
+  assert.match(adr, /localhost-only host binding by default/);
+});
