@@ -21,12 +21,12 @@ type Options = {
 };
 
 function parseArgs(argv: string[]): Options {
-  const parsed = {
+  const parsed: Options = {
     dryRun: false,
     previewEnvFile: undefined,
     requestedRef: "stop-preview",
     resolvedSha: undefined
-  } satisfies Options;
+  };
 
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
