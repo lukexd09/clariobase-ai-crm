@@ -59,6 +59,7 @@ Canonical repository-level verification commands:
 
 - `corepack pnpm docker:test-image`
 - `corepack pnpm docker:test-runtime`
+- `corepack pnpm docker:test-backup-restore`
 
 ## Exact environment variables
 
@@ -259,8 +260,8 @@ Persistence details:
 Create a logical backup inside the running database container:
 
 ```bash
-mkdir -p backups
-docker compose --env-file .env.compose.local exec crm-postgres sh -lc "mkdir -p /tmp/backups && pg_dump -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" > /tmp/backups/clariobase_crm.sql"
+mkdir backups
+docker compose --env-file .env.compose.local exec -T crm-postgres sh -lc 'mkdir -p /tmp/backups && pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > /tmp/backups/clariobase_crm.sql'
 docker compose --env-file .env.compose.local cp crm-postgres:/tmp/backups/clariobase_crm.sql backups/clariobase_crm.sql
 ```
 
@@ -269,7 +270,7 @@ Restore a logical backup into the current CRM database only after stopping the a
 ```bash
 docker compose --env-file .env.compose.local stop crm-app
 docker compose --env-file .env.compose.local cp backups/clariobase_crm.sql crm-postgres:/tmp/clariobase_crm.sql
-docker compose --env-file .env.compose.local exec crm-postgres sh -lc "psql -U \"$POSTGRES_USER\" postgres -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$POSTGRES_DB' AND pid <> pg_backend_pid();\" && dropdb -U \"$POSTGRES_USER\" --if-exists \"$POSTGRES_DB\" && createdb -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" && psql -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" < /tmp/clariobase_crm.sql"
+docker compose --env-file .env.compose.local exec -T crm-postgres sh -lc 'db_name="$POSTGRES_DB"; db_user="$POSTGRES_USER"; dropdb -U "$db_user" --force --if-exists "$db_name" && createdb -U "$db_user" "$db_name" && psql -U "$db_user" "$db_name" < /tmp/clariobase_crm.sql'
 docker compose --env-file .env.compose.local up -d crm-app
 ```
 
@@ -277,6 +278,7 @@ Backup and restore warnings:
 
 - restore only from a reviewed backup file after the target CRM database has been reset;
 - confirm the target database is the CRM database, not the harvester/gatherer database;
+- use `corepack pnpm docker:test-backup-restore` when you want to rehearse the documented flow on disposable resources;
 - keep backups outside ignored runtime folders if they must survive a repo cleanup.
 
 ## Localhost and LAN configuration

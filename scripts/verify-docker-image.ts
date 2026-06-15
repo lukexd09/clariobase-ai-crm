@@ -1,15 +1,22 @@
 import { execFileSync } from "node:child_process";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
+import {
+  createDockerRunId,
+  ensureDockerOrReportSkip,
+  reportVerificationStatus,
+  reserveFreePort
+} from "./docker-test-support";
 
-const imageTag = "clariobase-ai-crm:test-verify";
-const networkName = `clariobase-t002-network-${process.pid}`;
-const databaseContainerName = `clariobase-t002-db-${process.pid}`;
-const containerName = `clariobase-t002-verify-${process.pid}`;
-const hostPort = "3015";
+const runId = createDockerRunId("clariobase-t002");
+const imageTag = `clariobase-ai-crm:test-verify-${runId}`;
+const networkName = `${runId}-network`;
+const databaseContainerName = `${runId}-db`;
+const containerName = `${runId}-verify`;
 const databaseName = "clariobase_crm";
 const databaseUser = "clariobase_crm_user";
 const databasePassword = "change-me";
+let hostPort = "";
 const databaseUrl =
   `postgresql://${databaseUser}:${databasePassword}@${databaseContainerName}:5432/${databaseName}?schema=public`;
 
@@ -133,6 +140,12 @@ function inspectImageFilesystem() {
 }
 
 async function main() {
+  if (!ensureDockerOrReportSkip("docker:test-image")) {
+    return;
+  }
+
+  hostPort = await reserveFreePort();
+
   try {
     runDocker(["build", "-t", imageTag, "."], { stdio: "inherit" });
 
@@ -182,6 +195,7 @@ async function main() {
     await waitForHealth();
     await waitForImportsPage();
     inspectImageFilesystem();
+    reportVerificationStatus("PASS", `docker:test-image completed for ${imageTag} on 127.0.0.1:${hostPort}.`);
   } finally {
     try {
       runDocker(["rm", "-f", containerName], { stdio: "inherit" });

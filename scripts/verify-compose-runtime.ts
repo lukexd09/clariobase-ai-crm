@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
-import net from "node:net";
 import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
+import {
+  createDockerRunId,
+  ensureDockerOrReportSkip,
+  reportVerificationStatus,
+  reserveFreePort
+} from "./docker-test-support";
 
 const repoRoot = path.resolve(__dirname, "..");
-const project = `clariobase-e014-runtime-${process.pid}`;
+const project = createDockerRunId("clariobase-e014-runtime");
 const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-verify-${process.pid}`);
 const aiPath = path.join(tmpRoot, "ai-exchange");
 const envPath = path.join(tmpRoot, "compose.env");
@@ -28,34 +33,6 @@ function runDocker(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
 
 function runCompose(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
   return runDocker(["compose", "--project-name", project, "--env-file", envPath, ...args], options);
-}
-
-function reserveFreePort() {
-  return new Promise<string>((resolve, reject) => {
-    const server = net.createServer();
-
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-
-      if (!address || typeof address === "string") {
-        server.close();
-        reject(new Error("Could not reserve a free localhost port for Compose verification."));
-        return;
-      }
-
-      const reservedPort = String(address.port);
-      server.close((error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve(reservedPort);
-      });
-    });
-
-    server.on("error", reject);
-  });
 }
 
 async function waitForDockerHealth(containerName: string, expectedStatus: "healthy" | "unhealthy" = "healthy") {
@@ -135,6 +112,10 @@ function runComposeNodeScript(scriptName: string, ...scriptArgs: string[]) {
 }
 
 async function main() {
+  if (!ensureDockerOrReportSkip("docker:test-runtime")) {
+    return;
+  }
+
   const preparedImportPath = path.join(aiPath, "inbox", "prepared-leads.json");
   const outboxDir = path.join(aiPath, "outbox");
 
@@ -237,6 +218,7 @@ async function main() {
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, "compose export after restart should pass");
     assert.match(result.stdout, /row count: 2/);
+    reportVerificationStatus("PASS", `docker:test-runtime completed for project ${project}.`);
   } finally {
     runCompose(["down", "-v"], { stdio: "inherit" });
     fs.rmSync(tmpRoot, { recursive: true, force: true });
