@@ -90,6 +90,21 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(preflightScript, /runnerVersion/);
 });
 
+test("E016 telemetry keeps implementation evidence separate from dynamic PR metadata", () => {
+  const telemetry = read("docs/verification/e016-budget-telemetry.yaml");
+  const assurance = read("docs/verification/e016-integrated-assurance.md");
+
+  assert.match(telemetry, /implementation_evidence:/);
+  assert.match(telemetry, /final_pr_evidence:/);
+  assert.match(telemetry, /head_sha: dynamic/);
+  assert.match(telemetry, /verification_rule: resolve from GitHub after the final documentation commit/);
+  assert.doesNotMatch(telemetry, /final_pr_head_sha:/);
+  assert.doesNotMatch(telemetry, /final_ci_run_id:/);
+  assert.doesNotMatch(telemetry, /final_ci_conclusion:/);
+  assert.match(assurance, /`final PR head` is resolved dynamically from GitHub PR metadata/i);
+  assert.match(assurance, /documentation-only commits do not invalidate earlier runtime or Docker evidence/i);
+});
+
 test("trusted preview ref validation rejects fork-style and pull-request refs", () => {
   assert.equal(normalizeRequestedRef("refs/heads/main"), "main");
   assert.equal(normalizeRequestedRef("refs/tags/v1.2.3"), "v1.2.3");

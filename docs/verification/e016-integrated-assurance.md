@@ -86,7 +86,7 @@ Correction delta:
 - the final CI-aligned correction cycle fixed the deploy dry-run contract so the source checkout SHA is validated from the source tree instead of the trusted control checkout;
 - the latest correction cycle added an explicit preview build-context override plus a secret-free stop env fixture so `docker compose config` remains source-aware without a real password;
 - the last compatibility-only correction cycle upgraded GitHub Actions to `actions/checkout@v5` and `actions/setup-node@v5`, disabled automatic package-manager caching, and documented the runner minimum version;
-- the final evidence-alignment correction cycle refreshed the assurance artefacts to the exact PR head `87a6c448e8beb55e33bb6ee4b16fb11217d48df1` and final CI run `27570170420`;
+- the final evidence-alignment correction cycle refreshed the assurance artefacts to the exact PR head visible in GitHub metadata and final CI run `27570170420`;
 - affected checks rerun: `corepack pnpm build`, `corepack pnpm test`, `corepack pnpm docker:test-runtime`, `corepack pnpm docker:test-backup-restore`, and focused preview workflow/runtime tests;
 - no broader risk boundary was reopened, so a delta correction cycle was sufficient.
 
@@ -263,6 +263,14 @@ Residual-risk conclusion:
 5. Open `http://Serwer:3001` from another LAN device and confirm `/api/ready` returns `database: ok`.
 6. Run `Stop Preview` from GitHub Actions.
 7. Reconfirm production health for `clariobase-crm`.
+
+## Final evidence model
+
+- `verified implementation SHA` is a stable implementation evidence SHA for the audited commit set;
+- `final PR head` is resolved dynamically from GitHub PR metadata after the last documentation commit;
+- `final exact-head CI` is resolved dynamically from GitHub Actions metadata for that PR head;
+- documentation-only commits do not invalidate earlier runtime or Docker evidence;
+- each new PR head only needs exact-head CI and a delta review for the changed scope.
 
 ## Final verdict
 

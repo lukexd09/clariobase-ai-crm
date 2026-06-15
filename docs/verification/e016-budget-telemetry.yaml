@@ -2,16 +2,24 @@ root_work_item: E016
 profile: STRICT
 budget_mode: PROXY
 base_sha: c230d3800114c57afc9a5911a334b7a2f19f3172
-verified_implementation_sha: 87a6c448e8beb55e33bb6ee4b16fb11217d48df1
+implementation_evidence:
+  verified_implementation_sha: 87a6c448e8beb55e33bb6ee4b16fb11217d48df1
+  implementation_ci_run_id: 27570170420
+  implementation_ci_conclusion: success
+final_pr_evidence:
+  source: github_pr_metadata
+  repository: lukexd09/clariobase-ai-crm
+  pull_request: 76
+  head_sha: dynamic
+  ci_run_id: dynamic
+  ci_conclusion: dynamic
+  verification_rule: resolve from GitHub after the final documentation commit
 aggregate:
   agents_started: 0
   review_gates: 4
   correction_cycles: 6
   full_suite_runs: 1
 main_cost_driver: final integrated verification on Docker-backed runtime checks
-final_pr_head_sha: 87a6c448e8beb55e33bb6ee4b16fb11217d48df1
-final_ci_run_id: 27570170420
-final_ci_conclusion: success
 model_usage:
   - phase: implementation
     tier: routine
