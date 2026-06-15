@@ -1,0 +1,73 @@
+name: Stop Preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clariobase-manual-preview-slot
+  cancel-in-progress: false
+
+jobs:
+  stop-preview:
+    runs-on:
+      - self-hosted
+      - windows
+      - x64
+      - clariobase-preview
+    environment: e016-preview-operator
+    if: github.actor == github.repository_owner
+
+    steps:
+      - name: Check out trusted control checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Enable Corepack
+        shell: pwsh
+        working-directory: control
+        run: corepack enable
+
+      - name: Install dependencies
+        shell: pwsh
+        working-directory: control
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Stop preview
+        shell: pwsh
+        working-directory: control
+        run: |
+          $resultPath = Join-Path $PWD "stop-preview-result.json"
+          powershell -ExecutionPolicy Bypass -File .\scripts\stop-preview.ps1 `
+            -RequestedRef stop-preview `
+            -ControlCheckoutPath $PWD | Tee-Object -FilePath $resultPath
+
+      - name: Write job summary
+        shell: pwsh
+        working-directory: control
+        run: |
+          @"
+          Result: PASS
+
+          Requested ref: `stop-preview`
+          Preview URL: `http://Serwer:3001`
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Cleanup secrets and job artifacts
+        if: always()
+        shell: pwsh
+        working-directory: control
+        run: |
+          Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue

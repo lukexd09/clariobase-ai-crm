@@ -24,6 +24,8 @@ const cleanup = createCleanupController("docker:test-runtime");
 let hostPort = "";
 let baseUrl = "";
 
+fs.mkdirSync(path.dirname(tmpRoot), { recursive: true });
+
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
@@ -91,6 +93,14 @@ function assertNoSensitiveData(payload: unknown) {
   assert.doesNotMatch(serialized, /postgres(?:ql)?:\/\//i);
 }
 
+function makePathWritable(targetPath: string) {
+  try {
+    fs.chmodSync(targetPath, 0o777);
+  } catch {
+    // Best-effort: some Docker-created files may already be owned read-only.
+  }
+}
+
 async function assertReadyStatus(expectedHttpStatus: 200 | 503, expectedDatabaseStatus: "ok" | "unavailable") {
   const response = await waitForHttpStatus(`${baseUrl}/api/ready`, expectedHttpStatus);
   const payload = await response.json() as {
@@ -140,6 +150,9 @@ async function main() {
 
   fs.mkdirSync(path.dirname(preparedImportPath), { recursive: true });
   fs.mkdirSync(outboxDir, { recursive: true });
+  fs.chmodSync(aiPath, 0o777);
+  fs.chmodSync(path.dirname(preparedImportPath), 0o777);
+  fs.chmodSync(outboxDir, 0o777);
   fs.writeFileSync(preparedImportPath, read("data/ai-exchange/inbox/sample-prepared-leads.json"));
   fs.writeFileSync(
     envPath,
@@ -149,7 +162,8 @@ async function main() {
       `AI_EXCHANGE_HOST_PATH=${aiPath.replace(/\\/g, "/")}`,
       "CRM_POSTGRES_DB=clariobase_crm_compose_test",
       "CRM_POSTGRES_USER=clariobase_crm_user",
-      "CRM_POSTGRES_PASSWORD=clariobase_test_password"
+      "CRM_POSTGRES_PASSWORD=clariobase_test_password",
+      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:clariobase_test_password@crm-postgres:5432/clariobase_crm_compose_test?schema=public"
     ].join("\n")
   );
 
@@ -188,7 +202,11 @@ async function main() {
     await waitForHttpStatus(`${baseUrl}/imports`, 200);
 
     result = runComposeNodeScript("export-ai-leads.ts");
-    assert.equal(result.status, 0, "compose AI export command should pass");
+    assert.equal(result.status, 0, `compose AI export command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+    for (const fileName of fs.readdirSync(outboxDir)) {
+      makePathWritable(path.join(outboxDir, fileName));
+    }
+    makePathWritable(outboxDir);
     assert.match(result.stdout, /row count: 0/);
     assert.ok(
       fs.readdirSync(outboxDir).some((fileName) => /^clariobase_leads_export_.*\.json$/.test(fileName)),
@@ -196,17 +214,21 @@ async function main() {
     );
 
     result = runComposeNodeScript("validate-ai-import-file.ts", "./data/ai-exchange/inbox/prepared-leads.json");
-    assert.equal(result.status, 0, "compose AI validation command should pass");
+    assert.equal(result.status, 0, `compose AI validation command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 
     result = runComposeNodeScript("import-leads.ts", "./data/ai-exchange/inbox/prepared-leads.json");
-    assert.equal(result.status, 0, "compose lead import command should pass");
+    assert.equal(result.status, 0, `compose lead import command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
     assert.match(result.stdout, /created: 2/);
 
     result = runComposeNodeScript("detect-duplicates.ts");
-    assert.equal(result.status, 0, "compose duplicate detection command should pass");
+    assert.equal(result.status, 0, `compose duplicate detection command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 
     result = runComposeNodeScript("export-ai-leads.ts");
-    assert.equal(result.status, 0, "compose post-import export command should pass");
+    assert.equal(result.status, 0, `compose post-import export command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+    for (const fileName of fs.readdirSync(outboxDir)) {
+      makePathWritable(path.join(outboxDir, fileName));
+    }
+    makePathWritable(outboxDir);
     assert.match(result.stdout, /row count: 2/);
     assert.ok(
       fs.readdirSync(outboxDir).some((fileName) => /^clariobase_leads_export_.*\.json$/.test(fileName)),

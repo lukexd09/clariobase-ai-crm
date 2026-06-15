@@ -78,6 +78,11 @@ test("light CRM visual direction covers shell navigation guidance", () => {
 test("container runtime docs stay canonical and discoverable", () => {
   const readme = read("README.md");
   const runtimeContract = read("docs/runtime/container-runtime.md");
+  const previewContract = read("docs/architecture/preview-environment.md");
+  const previewAdr = read("docs/decisions/adr-e016-manual-preview.md");
+  const previewRunbook = read("docs/operations/preview-operations.md");
+  const runnerRunbook = read("docs/operations/windows-self-hosted-runner.md");
+  const assuranceReport = read("docs/verification/e016-integrated-assurance.md");
   const operationsRunbook = read("docs/operations/container-operations.md");
   const orchestrationDoc = read("docs/architecture/container-orchestration.md");
   const auditReport = read("docs/verification/e014-epic-quality-audit.md");
@@ -89,7 +94,14 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(readme, /docs\/operations\/container-operations\.md/);
   assert.match(readme, /docs\/architecture\/container-orchestration\.md/);
   assert.match(readme, /docs\/verification\/e014-epic-quality-audit\.md/);
+  assert.match(readme, /docs\/architecture\/preview-environment\.md/);
+  assert.match(readme, /docs\/decisions\/adr-e016-manual-preview\.md/);
+  assert.match(readme, /docs\/operations\/preview-operations\.md/);
+  assert.match(readme, /docs\/operations\/windows-self-hosted-runner\.md/);
+  assert.match(readme, /docs\/verification\/e016-integrated-assurance\.md/);
+  assert.match(readme, /\.env\.compose\.preview\.example/);
   assert.match(workItemCoding, /E014 - Add containerized local production runtime foundation/);
+  assert.match(workItemCoding, /E016 - Add manual branch preview environment and CI foundation/);
 
   assert.match(runtimeContract, /document_id: DOC-E014-CONTAINER-RUNTIME/);
   assert.match(runtimeContract, /COMP-CRM-APP/);
@@ -122,6 +134,43 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(adr, /crm-app/);
   assert.match(adr, /crm-postgres/);
   assert.match(adr, /localhost-only host binding by default/);
+
+  assert.match(previewContract, /document_id: DOC-E016-PREVIEW-ENVIRONMENT/);
+  assert.match(previewContract, /clariobase-crm-preview/);
+  assert.match(previewContract, /http:\/\/Serwer:3001/);
+  assert.match(previewContract, /clariobase_crm_preview/);
+  assert.match(previewContract, /trusted repository ref/i);
+  assert.match(previewContract, /must never reuse production `?\.env\.compose\.local`?/i);
+  assert.match(previewContract, /docker system prune/);
+  assert.match(previewContract, /workflow_dispatch/);
+  assert.match(previewContract, /post-merge manual gate/i);
+
+  assert.match(previewAdr, /document_id: ADR-E016-MANUAL-PREVIEW/);
+  assert.match(previewAdr, /one manually controlled preview slot/i);
+  assert.match(previewAdr, /trusted same-repository refs only/i);
+  assert.match(previewAdr, /fail-closed cleanup/i);
+
+  assert.match(previewRunbook, /document_id: DOC-E016-PREVIEW-OPERATIONS/);
+  assert.match(previewRunbook, /scripts\/deploy-preview\.ps1/);
+  assert.match(previewRunbook, /scripts\/stop-preview\.ps1/);
+  assert.match(previewRunbook, /\.env\.compose\.preview\.example/);
+  assert.match(previewRunbook, /clariobase-crm-preview-postgres-data/);
+  assert.match(previewRunbook, /clariobase-crm-preview-network/);
+  assert.match(previewRunbook, /migrate deploy/);
+  assert.match(previewRunbook, /docker system prune/);
+
+  assert.match(runnerRunbook, /document_id: DOC-E016-WINDOWS-RUNNER/);
+  assert.match(runnerRunbook, /clariobase-preview/);
+  assert.match(runnerRunbook, /scripts\/runner-preflight\.ps1/);
+  assert.match(runnerRunbook, /short-lived repository-scoped registration token/i);
+  assert.match(runnerRunbook, /start automatically after host restart/i);
+
+  assert.match(assuranceReport, /document_id: DOC-E016-INTEGRATED-ASSURANCE/);
+  assert.match(assuranceReport, /Result: `PASS`/);
+  assert.match(assuranceReport, /Automated test audit/i);
+  assert.match(assuranceReport, /Workflow definition audit/i);
+  assert.match(assuranceReport, /Acceptance-criteria evidence matrix/i);
+  assert.match(assuranceReport, /Manual post-merge smoke-test checklist/i);
 
   assert.match(operationsRunbook, /document_id: DOC-E014-CONTAINER-OPERATIONS/);
   assert.match(operationsRunbook, /canonical operator runbook/i);

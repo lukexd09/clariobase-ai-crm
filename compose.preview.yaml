@@ -1,0 +1,26 @@
+services:
+  crm-postgres:
+    labels:
+      io.clariobase.runtime-scope: preview
+      io.clariobase.preview-slot: manual
+
+  crm-app:
+    labels:
+      io.clariobase.runtime-scope: preview
+      io.clariobase.preview-slot: manual
+    build:
+      context: ${CRM_BUILD_CONTEXT:?Set_CRM_BUILD_CONTEXT}
+
+networks:
+  default:
+    name: clariobase-crm-preview-network
+    labels:
+      io.clariobase.runtime-scope: preview
+      io.clariobase.preview-slot: manual
+
+volumes:
+  crm-postgres-data:
+    name: clariobase-crm-preview-postgres-data
+    labels:
+      io.clariobase.runtime-scope: preview
+      io.clariobase.preview-slot: manual

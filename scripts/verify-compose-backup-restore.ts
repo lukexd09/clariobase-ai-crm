@@ -24,6 +24,8 @@ const backupDir = path.join(tmpRoot, "backups");
 const backupFilePath = path.join(backupDir, "clariobase_crm.sql");
 const cleanup = createCleanupController("docker:test-backup-restore");
 
+fs.mkdirSync(path.dirname(tmpRoot), { recursive: true });
+
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
@@ -106,6 +108,14 @@ function runSql(command: string, description: string) {
   assert.equal(result.status, 0, `${description} should pass`);
 }
 
+function makePathWritable(targetPath: string) {
+  try {
+    fs.chmodSync(targetPath, 0o777);
+  } catch {
+    // Best-effort cleanup hardening for Docker-created export files.
+  }
+}
+
 async function main() {
   if (!ensureDockerOrReportSkip("docker:test-backup-restore")) {
     return;
@@ -116,10 +126,16 @@ async function main() {
   cleanup.registerTempPath(tmpRoot);
 
   const preparedImportPath = path.join(aiPath, "inbox", "prepared-leads.json");
+  const outboxDir = path.join(aiPath, "outbox");
   const hostPort = await reserveFreePort();
 
   fs.mkdirSync(path.dirname(preparedImportPath), { recursive: true });
+  fs.mkdirSync(outboxDir, { recursive: true });
   fs.mkdirSync(backupDir, { recursive: true });
+  fs.chmodSync(aiPath, 0o777);
+  fs.chmodSync(path.dirname(preparedImportPath), 0o777);
+  fs.chmodSync(outboxDir, 0o777);
+  fs.chmodSync(backupDir, 0o777);
   fs.writeFileSync(preparedImportPath, read("data/ai-exchange/inbox/sample-prepared-leads.json"));
   fs.writeFileSync(
     envPath,
@@ -129,7 +145,8 @@ async function main() {
       `AI_EXCHANGE_HOST_PATH=${aiPath.replace(/\\/g, "/")}`,
       "CRM_POSTGRES_DB=clariobase_crm_backup_restore_test",
       "CRM_POSTGRES_USER=clariobase_crm_user",
-      "CRM_POSTGRES_PASSWORD=clariobase_test_password"
+      "CRM_POSTGRES_PASSWORD=clariobase_test_password",
+      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:clariobase_test_password@crm-postgres:5432/clariobase_crm_backup_restore_test?schema=public"
     ].join("\n")
   );
 
@@ -150,7 +167,7 @@ async function main() {
     assertDockerSuccess(result, "compose migration command");
 
     result = runComposeNodeScript("import-leads.ts", "./data/ai-exchange/inbox/prepared-leads.json");
-    assert.equal(result.status, 0, "compose lead import command should pass");
+    assert.equal(result.status, 0, `compose lead import command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
     assert.match(result.stdout, /created: 2/);
 
     const initialSnapshot = queryLeadSnapshot();
@@ -188,7 +205,11 @@ async function main() {
     assert.deepEqual(queryLeadSnapshot(), initialSnapshot);
 
     result = runComposeNodeScript("export-ai-leads.ts");
-    assert.equal(result.status, 0, "compose export after restore should pass");
+    assert.equal(result.status, 0, `compose export after restore should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+    for (const fileName of fs.readdirSync(backupDir)) {
+      makePathWritable(path.join(backupDir, fileName));
+    }
+    makePathWritable(backupDir);
     assert.match(result.stdout, /row count: 2/);
   } catch (error) {
     mainError = error;

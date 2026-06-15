@@ -103,6 +103,15 @@ For the E014 containerized runtime foundation, also read:
 - `docs/verification/e014-epic-quality-audit.md`
 - `.env.compose.example` for the safe Compose variable contract template
 
+For the E016 manual preview foundation, also read:
+
+- `docs/architecture/preview-environment.md`
+- `docs/decisions/adr-e016-manual-preview.md`
+- `docs/operations/preview-operations.md`
+- `docs/operations/windows-self-hosted-runner.md`
+- `docs/verification/e016-integrated-assurance.md`
+- `.env.compose.preview.example`
+
 For a fresh repository-local Compose startup, use this sequence:
 
 1. Copy `.env.compose.example` to a local env file such as `.env.compose.local`.
@@ -113,6 +122,7 @@ For a fresh repository-local Compose startup, use this sequence:
 
 That sequence matches the approved E014 runtime contract for a fresh PostgreSQL volume.
 When you use the Compose runtime, run one-off CRM CLI workflows through direct `node` + `tsx` commands inside `crm-app` so they target the containerized CRM database while still using the bind-mounted `data/ai-exchange/` directory without depending on Corepack network access.
+E016 extends that runtime with a separate manual preview slot and must never reuse the protected production identity `clariobase-crm`.
 
 ## Repository structure
 

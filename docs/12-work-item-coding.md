@@ -157,6 +157,7 @@ E012 - Add workspace type foundation for agency and UGC workflows
 E013 - Add controlled gatherer operations from CRM
 E014 - Add containerized local production runtime foundation
 E015 - Add private workspace document storage foundation
+E016 - Add manual branch preview environment and CI foundation
 ```
 
 ## Current first task
