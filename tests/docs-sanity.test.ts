@@ -28,6 +28,9 @@ test("README documents the current post-UI CRM state and scripts", () => {
     "start",
     "lint",
     "test",
+    "docker:test-image",
+    "docker:test-runtime",
+    "docker:test-backup-restore",
     "prisma:generate",
     "prisma:validate",
     "prisma:migrate",
@@ -69,4 +72,88 @@ test("light CRM visual direction covers shell navigation guidance", () => {
   assert.match(doc, /minimum important text size/i);
   assert.match(doc, /manual keyboard and contrast checks/i);
   assert.match(doc, /active navigation state is visible without color alone/i);
+});
+
+test("container runtime docs stay canonical and discoverable", () => {
+  const readme = read("README.md");
+  const runtimeContract = read("docs/runtime/container-runtime.md");
+  const operationsRunbook = read("docs/operations/container-operations.md");
+  const orchestrationDoc = read("docs/architecture/container-orchestration.md");
+  const auditReport = read("docs/verification/e014-epic-quality-audit.md");
+  const adr = read("docs/decisions/adr-e014-container-runtime.md");
+  const workItemCoding = read("docs/12-work-item-coding.md");
+
+  assert.match(readme, /docs\/runtime\/container-runtime\.md/);
+  assert.match(readme, /docs\/decisions\/adr-e014-container-runtime\.md/);
+  assert.match(readme, /docs\/operations\/container-operations\.md/);
+  assert.match(readme, /docs\/architecture\/container-orchestration\.md/);
+  assert.match(readme, /docs\/verification\/e014-epic-quality-audit\.md/);
+  assert.match(workItemCoding, /E014 - Add containerized local production runtime foundation/);
+
+  assert.match(runtimeContract, /document_id: DOC-E014-CONTAINER-RUNTIME/);
+  assert.match(runtimeContract, /COMP-CRM-APP/);
+  assert.match(runtimeContract, /COMP-CRM-POSTGRES/);
+  assert.match(runtimeContract, /exactly two services/i);
+  assert.match(runtimeContract, /crm-app/);
+  assert.match(runtimeContract, /crm-postgres/);
+  assert.match(runtimeContract, /PostgreSQL 16/);
+  assert.match(runtimeContract, /CRM_BIND_ADDRESS/);
+  assert.match(runtimeContract, /CRM_HOST_PORT/);
+  assert.match(runtimeContract, /AI_EXCHANGE_HOST_PATH/);
+  assert.match(runtimeContract, /must never connect to or mutate the harvester or gatherer database/i);
+  assert.match(runtimeContract, /must be mounted at runtime instead of baked into the image/i);
+  assert.match(runtimeContract, /returns HTTP `200` when the Next\.js process can respond/);
+  assert.match(runtimeContract, /\/api\/ready/);
+  assert.match(runtimeContract, /returns HTTP `200` only when the CRM application can execute a lightweight query/i);
+  assert.match(runtimeContract, /returns HTTP `503` when the configured CRM database is unavailable/i);
+  assert.match(runtimeContract, /corepack pnpm docker:test-backup-restore/);
+  assert.match(runtimeContract, /Current repository baseline before E014 implementation/);
+  assert.match(runtimeContract, /Approved first-run migration sequence/);
+  assert.match(runtimeContract, /one-off operator-invoked `prisma migrate deploy` step/i);
+  assert.match(runtimeContract, /normal `crm-app` container startup must not rerun migrations automatically/i);
+  assert.match(runtimeContract, /Planned evolution after the default E014 runtime/);
+  assert.doesNotMatch(runtimeContract, /\.codex-tmp/);
+
+  assert.match(adr, /document_id: ADR-E014-CONTAINER-RUNTIME/);
+  assert.match(adr, /crm-app/);
+  assert.match(adr, /crm-postgres/);
+  assert.match(adr, /localhost-only host binding by default/);
+
+  assert.match(operationsRunbook, /document_id: DOC-E014-CONTAINER-OPERATIONS/);
+  assert.match(operationsRunbook, /canonical operator runbook/i);
+  assert.match(operationsRunbook, /docker compose --env-file \.env\.compose\.local up -d crm-postgres/);
+  assert.match(operationsRunbook, /node \.\/node_modules\/prisma\/build\/index\.js migrate deploy/);
+  assert.match(operationsRunbook, /corepack pnpm docker:test-runtime/);
+  assert.match(operationsRunbook, /corepack pnpm docker:test-backup-restore/);
+  assert.match(operationsRunbook, /CRM_DATABASE_URL/);
+  assert.match(operationsRunbook, /crm-postgres-data/);
+  assert.match(operationsRunbook, /backup/i);
+  assert.match(operationsRunbook, /restore/i);
+  assert.match(operationsRunbook, /CRM_BIND_ADDRESS=0\.0\.0\.0/);
+
+  assert.match(orchestrationDoc, /document_id: DOC-E014-CONTAINER-ORCHESTRATION/);
+  assert.match(orchestrationDoc, /future server-level orchestration direction/i);
+  assert.match(orchestrationDoc, /CRM-only runtime/i);
+  assert.match(orchestrationDoc, /separate databases/i);
+  assert.match(orchestrationDoc, /no shared schema/i);
+  assert.match(orchestrationDoc, /CRM_DATABASE_URL/);
+  assert.match(orchestrationDoc, /does not orchestrate the gatherer or harvester runtime/i);
+
+  assert.match(auditReport, /document_id: DOC-E014-EPIC-QUALITY-AUDIT/);
+  assert.match(auditReport, /Result: `PASS`/);
+  assert.match(auditReport, /Automated test audit/i);
+  assert.match(auditReport, /Documentation accuracy audit/i);
+  assert.match(auditReport, /RAG readiness audit/i);
+  assert.match(auditReport, /Acceptance-criteria coverage matrix/i);
+  assert.match(auditReport, /Residual risk assessment/i);
+  assert.match(auditReport, /corepack pnpm docker:test-image/);
+  assert.match(auditReport, /corepack pnpm docker:test-runtime/);
+  assert.match(auditReport, /corepack pnpm docker:test-backup-restore/);
+  assert.match(auditReport, /\| Final whole-epic review passes \| PASS \|/);
+  assert.match(auditReport, /\| One final Draft PR exists from `epic\/e014-containerized-runtime` to `main` \| PASS \|/);
+  assert.match(auditReport, /Draft PR \[#67\]/);
+  assert.match(auditReport, /Codex does not merge the final PR or close issues/i);
+  assert.match(auditReport, /epic plus child issues remain open by contract/i);
+  assert.doesNotMatch(auditReport, /final whole-epic review remains the next required gate/i);
+  assert.doesNotMatch(auditReport, /draft PR creation is a later epic step/i);
 });

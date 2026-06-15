@@ -93,6 +93,27 @@ For the E009 light CRM homepage and future screen-by-screen visual work, also re
 
 - `docs/design/light-crm-visual-direction.md`
 
+For the E014 containerized runtime foundation, also read:
+
+- `docs/runtime/container-runtime.md`
+- `docs/runtime/container-image.md`
+- `docs/operations/container-operations.md`
+- `docs/architecture/container-orchestration.md`
+- `docs/decisions/adr-e014-container-runtime.md`
+- `docs/verification/e014-epic-quality-audit.md`
+- `.env.compose.example` for the safe Compose variable contract template
+
+For a fresh repository-local Compose startup, use this sequence:
+
+1. Copy `.env.compose.example` to a local env file such as `.env.compose.local`.
+2. Set `CRM_POSTGRES_PASSWORD` in that local env file.
+3. `docker compose --env-file .env.compose.local up -d crm-postgres`
+4. `docker compose --env-file .env.compose.local run --rm crm-app sh -lc "node ./node_modules/prisma/build/index.js migrate deploy"`
+5. `docker compose --env-file .env.compose.local up -d crm-app`
+
+That sequence matches the approved E014 runtime contract for a fresh PostgreSQL volume.
+When you use the Compose runtime, run one-off CRM CLI workflows through direct `node` + `tsx` commands inside `crm-app` so they target the containerized CRM database while still using the bind-mounted `data/ai-exchange/` directory without depending on Corepack network access.
+
 ## Repository structure
 
 ```text
@@ -159,6 +180,9 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 - `pnpm start` - run the production server
 - `pnpm lint` - run ESLint
 - `pnpm test` - run the Node test suite
+- `pnpm docker:test-image` - build and smoke-test the production CRM image
+- `pnpm docker:test-runtime` - verify the Compose runtime, readiness, restart, and failure behavior
+- `pnpm docker:test-backup-restore` - verify logical backup and restore on a disposable CRM database
 - `pnpm prisma:generate` - generate Prisma Client
 - `pnpm prisma:validate` - validate the Prisma schema
 - `pnpm prisma:migrate` - apply local CRM migrations
@@ -171,6 +195,11 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 ## Health check
 
 Open `/health` after starting the app to verify the skeleton is running.
+`/health` is the HTTP liveness check for the Next.js process.
+`/api/ready` is the database-aware readiness check and returns HTTP `503` when the configured CRM PostgreSQL database is unavailable.
+Run `corepack pnpm docker:test-runtime` to verify the documented Compose startup, readiness, failure-path, and restart behavior against isolated test resources.
+Run `corepack pnpm docker:test-backup-restore` to verify the documented logical backup and restore flow against isolated disposable CRM data.
+The approved container runtime contract and runtime verification semantics for E014 are documented in `docs/runtime/container-runtime.md`.
 
 ## Lead activity, mini-audit, outreach and offer drafts
 
@@ -270,6 +299,15 @@ The validator checks that the file is valid JSON, contains a top-level array, an
 corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
 corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json
 corepack pnpm leads:detect-duplicates
+```
+
+With the repository-local Compose runtime, use the same workflow through the app container:
+
+```bash
+docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts
+docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json
+docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/import-leads.ts ./data/ai-exchange/inbox/prepared-leads.json
+docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/detect-duplicates.ts
 ```
 
 ### Safety rules
