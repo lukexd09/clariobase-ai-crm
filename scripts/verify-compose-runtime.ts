@@ -151,7 +151,8 @@ async function main() {
       `AI_EXCHANGE_HOST_PATH=${aiPath.replace(/\\/g, "/")}`,
       "CRM_POSTGRES_DB=clariobase_crm_compose_test",
       "CRM_POSTGRES_USER=clariobase_crm_user",
-      "CRM_POSTGRES_PASSWORD=clariobase_test_password"
+      "CRM_POSTGRES_PASSWORD=clariobase_test_password",
+      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:clariobase_test_password@crm-postgres:5432/clariobase_crm_compose_test?schema=public"
     ].join("\n")
   );
 
