@@ -142,6 +142,9 @@ async function main() {
 
   fs.mkdirSync(path.dirname(preparedImportPath), { recursive: true });
   fs.mkdirSync(outboxDir, { recursive: true });
+  fs.chmodSync(aiPath, 0o777);
+  fs.chmodSync(path.dirname(preparedImportPath), 0o777);
+  fs.chmodSync(outboxDir, 0o777);
   fs.writeFileSync(preparedImportPath, read("data/ai-exchange/inbox/sample-prepared-leads.json"));
   fs.writeFileSync(
     envPath,
