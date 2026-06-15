@@ -102,26 +102,42 @@ test("deploy preview dry-run validates the source checkout SHA independently fro
   const previewEnvDir = createSystemTmpDir("clariobase-deploy-preview-env-");
   const previewEnvFile = path.join(previewEnvDir, ".env.compose.preview.local");
   const currentHead = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repoRoot, encoding: "utf8" });
-  const parentHead = spawnSync("git", ["rev-parse", "HEAD~1"], { cwd: repoRoot, encoding: "utf8" });
 
   assert.equal(currentHead.status, 0);
-  assert.equal(parentHead.status, 0);
 
   try {
     fs.rmSync(sourceCheckout, { recursive: true, force: true });
-    const cloneResult = spawnSync("git", ["clone", "--no-checkout", repoRoot, sourceCheckout], {
-      cwd: tmpRoot,
-      encoding: "utf8"
-    });
+    fs.mkdirSync(sourceCheckout, { recursive: true });
 
-    assert.equal(cloneResult.status, 0, cloneResult.stderr);
+    const initResult = spawnSync("git", ["init"], { cwd: sourceCheckout, encoding: "utf8" });
+    assert.equal(initResult.status, 0, initResult.stderr);
 
-    const checkoutResult = spawnSync("git", ["checkout", "--detach", parentHead.stdout.trim()], {
+    const configEmail = spawnSync("git", ["config", "user.email", "codex@example.com"], {
       cwd: sourceCheckout,
       encoding: "utf8"
     });
+    assert.equal(configEmail.status, 0, configEmail.stderr);
 
-    assert.equal(checkoutResult.status, 0, checkoutResult.stderr);
+    const configName = spawnSync("git", ["config", "user.name", "Codex"], {
+      cwd: sourceCheckout,
+      encoding: "utf8"
+    });
+    assert.equal(configName.status, 0, configName.stderr);
+
+    fs.writeFileSync(path.join(sourceCheckout, "README.md"), "source checkout test\n");
+    let commitResult = spawnSync("git", ["add", "README.md"], { cwd: sourceCheckout, encoding: "utf8" });
+    assert.equal(commitResult.status, 0, commitResult.stderr);
+    commitResult = spawnSync("git", ["commit", "-m", "first"], { cwd: sourceCheckout, encoding: "utf8" });
+    assert.equal(commitResult.status, 0, commitResult.stderr);
+
+    fs.writeFileSync(path.join(sourceCheckout, "README.md"), "source checkout test v2\n");
+    commitResult = spawnSync("git", ["add", "README.md"], { cwd: sourceCheckout, encoding: "utf8" });
+    assert.equal(commitResult.status, 0, commitResult.stderr);
+    commitResult = spawnSync("git", ["commit", "-m", "second"], { cwd: sourceCheckout, encoding: "utf8" });
+    assert.equal(commitResult.status, 0, commitResult.stderr);
+
+    const sourceHead = spawnSync("git", ["rev-parse", "HEAD"], { cwd: sourceCheckout, encoding: "utf8" });
+    assert.equal(sourceHead.status, 0, sourceHead.stderr);
 
     fs.writeFileSync(
       previewEnvFile,
@@ -148,7 +164,7 @@ test("deploy preview dry-run validates the source checkout SHA independently fro
       "--source-checkout-path",
       sourceCheckout,
       "--resolved-sha",
-      parentHead.stdout.trim(),
+      sourceHead.stdout.trim(),
       "--preview-env-file",
       previewEnvFile
     ], {
@@ -162,7 +178,7 @@ test("deploy preview dry-run validates the source checkout SHA independently fro
 
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, new RegExp(`"controlHeadSha":\\s*"${currentHead.stdout.trim()}"`));
-    assert.match(result.stdout, new RegExp(`"sourceHeadSha":\\s*"${parentHead.stdout.trim()}"`));
+    assert.match(result.stdout, new RegExp(`"sourceHeadSha":\\s*"${sourceHead.stdout.trim()}"`));
     assert.match(result.stdout, /"requestedRef":\s*"feature\/preview"/);
   } finally {
     fs.rmSync(previewEnvDir, { recursive: true, force: true });
