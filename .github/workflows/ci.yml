@@ -9,6 +9,8 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://clariobase_crm_user:change-me@localhost:5432/clariobase_crm?schema=public
 
     steps:
       - name: Check out repository
