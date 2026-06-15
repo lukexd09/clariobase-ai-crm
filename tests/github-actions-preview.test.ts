@@ -30,6 +30,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(ciWorkflow, /actions\/checkout@v5/);
   assert.match(ciWorkflow, /actions\/setup-node@v5/);
   assert.match(ciWorkflow, /node-version: 22/);
+  assert.match(ciWorkflow, /package-manager-cache: false/);
   assert.match(ciWorkflow, /corepack pnpm install --frozen-lockfile/);
   assert.match(ciWorkflow, /corepack pnpm prisma:validate/);
   assert.match(ciWorkflow, /corepack pnpm prisma:generate/);
@@ -44,6 +45,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /actions\/checkout@v5/);
   assert.match(deployWorkflow, /actions\/setup-node@v5/);
   assert.match(deployWorkflow, /node-version: 22/);
+  assert.match(deployWorkflow, /package-manager-cache: false/);
   assert.match(deployWorkflow, /group: clariobase-manual-preview-slot/);
   assert.match(deployWorkflow, /ref: main/);
   assert.match(deployWorkflow, /path: control/);
@@ -62,6 +64,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(stopWorkflow, /actions\/checkout@v5/);
   assert.match(stopWorkflow, /actions\/setup-node@v5/);
   assert.match(stopWorkflow, /node-version: 22/);
+  assert.match(stopWorkflow, /package-manager-cache: false/);
   assert.match(stopWorkflow, /ref: main/);
   assert.match(stopWorkflow, /path: control/);
   assert.match(stopWorkflow, /persist-credentials: false/);
