@@ -42,7 +42,7 @@ This document records the final integrated assurance outcome for `E016 - Add man
 Audit target:
 
 - base SHA: `c230d3800114c57afc9a5911a334b7a2f19f3172`
-- verified implementation SHA: `1a358e0877afc91aff7dc7bc5657b74b521db69b`
+- verified implementation SHA: `72cee7183ba87416cb417fa06e9538ab4dab1852`
 - epic branch target: `epic/e016-manual-preview`
 - audit date: `2026-06-15`
 
@@ -85,6 +85,7 @@ Correction delta:
 - follow-up fixes added the trusted control-plane split, `.codex-tmp` root creation, tighter preview env validation, the source-checkout SHA check, and secret-free stop handling;
 - the final CI-aligned correction cycle fixed the deploy dry-run contract so the source checkout SHA is validated from the source tree instead of the trusted control checkout;
 - the latest correction cycle added an explicit preview build-context override plus a secret-free stop env fixture so `docker compose config` remains source-aware without a real password;
+- the last compatibility-only correction cycle upgraded GitHub Actions to `actions/checkout@v5` and `actions/setup-node@v5`, disabled automatic package-manager caching, and documented the runner minimum version;
 - affected checks rerun: `corepack pnpm build`, `corepack pnpm test`, `corepack pnpm docker:test-runtime`, `corepack pnpm docker:test-backup-restore`, and focused preview workflow/runtime tests;
 - no broader risk boundary was reopened, so a delta correction cycle was sufficient.
 
@@ -228,7 +229,7 @@ Recorded aggregate usage:
 
 - `agents_started: 0`
 - `review_gates: 4`
-- `correction_cycles: 4`
+- `correction_cycles: 5`
 - `full_suite_runs: 1`
 
 Context compliance:
