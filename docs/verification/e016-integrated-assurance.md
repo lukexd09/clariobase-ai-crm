@@ -42,7 +42,7 @@ This document records the final integrated assurance outcome for `E016 - Add man
 Audit target:
 
 - base SHA: `c230d3800114c57afc9a5911a334b7a2f19f3172`
-- verified implementation SHA: `01333516d86d69b36783e07d1f9bac06c6785474`
+- verified implementation SHA: `9092981`
 - epic branch target: `epic/e016-manual-preview`
 - audit date: `2026-06-15`
 
@@ -72,8 +72,8 @@ Fresh verification executed on `2026-06-15` with logs in `.codex-tmp/e016-assura
 | `corepack pnpm prisma:validate` | PASS | Prisma schema remained valid. Log: `.codex-tmp/e016-assurance/prisma-validate.log` |
 | `corepack pnpm prisma:generate` | PASS | Prisma Client generated successfully. Log: `.codex-tmp/e016-assurance/prisma-generate.log` |
 | `corepack pnpm lint` | PASS | ESLint completed without reported violations. Log: `.codex-tmp/e016-assurance/lint.log` |
-| `corepack pnpm build` | PASS | Next.js production build passed after one narrow T004 type-fix correction. Log: `.codex-tmp/e016-assurance/build.log` |
-| `corepack pnpm test` | PASS | `81` tests passed, `0` failed, `0` skipped, including preview workflow/runtime guard coverage. Log: `.codex-tmp/e016-assurance/test.log` |
+| `corepack pnpm build` | PASS | Next.js production build passed after the preview control-plane fix. Log: `.codex-tmp/e016-assurance/build.log` |
+| `corepack pnpm test` | PASS | `82` tests passed, `0` failed, `0` skipped, including the new preview workflow/runtime regression coverage. Log: `.codex-tmp/e016-assurance/test.log` |
 | `corepack pnpm docker:test-image` | PASS | Disposable image verification completed successfully. Log: `.codex-tmp/e016-assurance/docker-test-image.log` |
 | `corepack pnpm docker:test-runtime` | PASS | Disposable runtime verification completed for readiness, failure path, restart, and persistence. Log: `.codex-tmp/e016-assurance/docker-test-runtime.log` |
 | `corepack pnpm docker:test-backup-restore` | PASS | Disposable backup/restore rehearsal completed successfully. Log: `.codex-tmp/e016-assurance/docker-test-backup-restore.log` |
@@ -82,8 +82,8 @@ Fresh verification executed on `2026-06-15` with logs in `.codex-tmp/e016-assura
 Correction delta:
 
 - initial final build attempt found a TypeScript inference regression in `scripts/deploy-preview.ts`;
-- fix applied in `01333516d86d69b36783e07d1f9bac06c6785474`;
-- affected checks rerun: `corepack pnpm build` and focused preview workflow/runtime tests;
+- follow-up fix added the trusted control-plane split, `.codex-tmp` root creation, and tighter preview env validation in `9092981`;
+- affected checks rerun: `corepack pnpm build`, `corepack pnpm test`, `corepack pnpm docker:test-runtime`, `corepack pnpm docker:test-backup-restore`, and focused preview workflow/runtime tests;
 - no broader risk boundary was reopened, so a delta correction cycle was sufficient.
 
 ## Automated test audit
@@ -234,7 +234,7 @@ Context compliance:
 - loaded mandatory WoW core packet and project overlay from pinned `wow_ref`;
 - loaded only the needed standard and risk sections for `STRICT` execution;
 - avoided full README or full WoW repository loading as primary agent context;
-- used one integrated full-suite run on the final implementation SHA plus affected checks after the narrow correction.
+- used one integrated full-suite run on the final implementation SHA plus targeted reruns after the narrow correction.
 
 ## Residual-risk assessment
 
@@ -243,7 +243,8 @@ Residual risks accepted for the Draft PR gate:
 - GitHub UI `workflow_dispatch` execution remains unverified until the workflows exist on `main`;
 - repository-scoped runner registration and restart confirmation remain manual post-merge steps;
 - preview reachability from another LAN device remains a manual post-merge smoke test;
-- production health confirmation after manual GitHub workflow execution remains a post-merge operator check.
+- production health confirmation after manual GitHub workflow execution remains a post-merge operator check;
+- GitHub Actions CI success on the current head still needs to be observed after push.
 
 Residual-risk conclusion:
 
