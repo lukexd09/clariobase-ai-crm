@@ -37,3 +37,4 @@ data/ai-exchange/error/*.md
 !data/ai-exchange/**/.gitkeep
 !data/ai-exchange/inbox/sample-prepared-leads.json
 coverage/
+.codex-tmp/

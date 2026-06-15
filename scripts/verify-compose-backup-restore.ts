@@ -5,19 +5,24 @@ import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
 import {
+  createCleanupController,
   createDockerRunId,
+  createRuntimeArtifactName,
+  createVerificationFailure,
   ensureDockerOrReportSkip,
+  formatCleanupFailures,
   reportVerificationStatus,
   reserveFreePort
 } from "./docker-test-support";
 
 const repoRoot = path.resolve(__dirname, "..");
-const project = createDockerRunId("clariobase-e014-backup-restore");
-const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-backup-restore-${process.pid}`);
+const project = createDockerRunId("backup-restore");
+const tmpRoot = path.join(repoRoot, ".codex-tmp", createRuntimeArtifactName("compose-backup-restore"));
 const aiPath = path.join(tmpRoot, "ai-exchange");
 const envPath = path.join(tmpRoot, "compose.env");
 const backupDir = path.join(tmpRoot, "backups");
 const backupFilePath = path.join(backupDir, "clariobase_crm.sql");
+const cleanup = createCleanupController("docker:test-backup-restore");
 
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
@@ -29,6 +34,13 @@ function runDocker(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
     encoding: "utf8",
     stdio: options?.stdio ?? "pipe"
   });
+}
+
+function assertDockerSuccess(
+  result: ReturnType<typeof runDocker>,
+  description: string
+) {
+  assert.equal(result.status, 0, `${description} should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 }
 
 function runCompose(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
@@ -99,6 +111,10 @@ async function main() {
     return;
   }
 
+  cleanup.installProcessHandlers();
+  cleanup.registerDockerProject(project);
+  cleanup.registerTempPath(tmpRoot);
+
   const preparedImportPath = path.join(aiPath, "inbox", "prepared-leads.json");
   const hostPort = await reserveFreePort();
 
@@ -117,19 +133,21 @@ async function main() {
     ].join("\n")
   );
 
+  let mainError: unknown;
+
   try {
     let result = runCompose(["build", "crm-app"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose build crm-app should pass");
+    assertDockerSuccess(result, "docker compose build crm-app");
 
     result = runCompose(["up", "-d", "crm-postgres"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose up -d crm-postgres should pass");
+    assertDockerSuccess(result, "docker compose up -d crm-postgres");
     await waitForDockerHealth(`${project}-crm-postgres-1`);
 
     result = runCompose(
       ["run", "--rm", "crm-app", "sh", "-lc", "node ./node_modules/prisma/build/index.js migrate deploy"],
       { stdio: "inherit" }
     );
-    assert.equal(result.status, 0, "compose migration command should pass");
+    assertDockerSuccess(result, "compose migration command");
 
     result = runComposeNodeScript("import-leads.ts", "./data/ai-exchange/inbox/prepared-leads.json");
     assert.equal(result.status, 0, "compose lead import command should pass");
@@ -149,7 +167,7 @@ async function main() {
     result = runCompose(["cp", "crm-postgres:/tmp/backups/clariobase_crm.sql", backupFilePath], {
       stdio: "inherit"
     });
-    assert.equal(result.status, 0, "docker compose cp backup to host should pass");
+    assertDockerSuccess(result, "docker compose cp backup to host");
     assert.ok(fs.existsSync(backupFilePath), "backup file should be copied to the host");
 
     runSql(
@@ -161,7 +179,7 @@ async function main() {
     result = runCompose(["cp", backupFilePath, "crm-postgres:/tmp/clariobase_crm.sql"], {
       stdio: "inherit"
     });
-    assert.equal(result.status, 0, "docker compose cp backup back to container should pass");
+    assertDockerSuccess(result, "docker compose cp backup back to container");
 
     runSql(
       "db_name=\"$POSTGRES_DB\"; db_user=\"$POSTGRES_USER\"; dropdb -U \"$db_user\" --force --if-exists \"$db_name\" && createdb -U \"$db_user\" \"$db_name\" && psql -U \"$db_user\" \"$db_name\" < /tmp/clariobase_crm.sql",
@@ -172,12 +190,21 @@ async function main() {
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, "compose export after restore should pass");
     assert.match(result.stdout, /row count: 2/);
-
-    reportVerificationStatus("PASS", `docker:test-backup-restore completed for project ${project}.`);
-  } finally {
-    runCompose(["down", "-v"], { stdio: "inherit" });
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  } catch (error) {
+    mainError = error;
   }
+
+  const cleanupReport = cleanup.cleanup(mainError ? "failed verification" : "successful verification");
+
+  if (mainError) {
+    throw createVerificationFailure(mainError, cleanupReport.failures, "docker:test-backup-restore");
+  }
+
+  if (cleanupReport.failures.length > 0) {
+    throw new Error(formatCleanupFailures(cleanupReport.failures));
+  }
+
+  reportVerificationStatus("PASS", `docker:test-backup-restore completed for project ${project}.`);
 }
 
 main().catch((error) => {

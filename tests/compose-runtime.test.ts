@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
+import { createRuntimeArtifactName } from "../scripts/docker-test-support";
+
 const repoRoot = path.resolve(__dirname, "..");
 
 function read(filePath: string) {
@@ -28,8 +30,10 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   const packageJson = JSON.parse(read("package.json")) as {
     scripts: Record<string, string>;
   };
+  const verifierScript = read("scripts/verify-compose-runtime.ts");
 
   assert.equal(packageJson.scripts["docker:test-runtime"], "tsx scripts/verify-compose-runtime.ts");
+  assert.equal(packageJson.scripts["cleanup:test-runtime"], "tsx scripts/cleanup-test-runtime.ts");
 
   assert.match(composeFile, /crm-app:/);
   assert.match(composeFile, /crm-postgres:/);
@@ -60,12 +64,18 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(runtimeContract, /CRM_HOST_PORT/);
   assert.match(runtimeContract, /AI_EXCHANGE_HOST_PATH/);
   assert.match(runtimeContract, /reserve a free localhost port dynamically/i);
+  assert.match(runtimeContract, /must not be statically cached/i);
+  assert.match(runtimeContract, /corepack pnpm cleanup:test-runtime/);
   assert.match(runtimeContract, /\/api\/ready/);
   assert.match(runtimeContract, /returns HTTP `503` when the configured CRM database is unavailable/i);
+  assert.match(verifierScript, /createCleanupController\("docker:test-runtime"\)/);
+  assert.match(verifierScript, /cleanup\.registerDockerProject\(project\)/);
+  assert.match(verifierScript, /cleanup\.registerTempPath\(tmpRoot\)/);
+  assert.match(verifierScript, /const project = createDockerRunId\("compose"\)/);
 });
 
 test("Compose config resolves the documented first-run env-file contract", { skip: !dockerAvailable }, () => {
-  const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-defaults-${process.pid}`);
+  const tmpRoot = path.join(repoRoot, ".codex-tmp", createRuntimeArtifactName("compose-runtime-defaults"));
   const envPath = path.join(tmpRoot, "compose.env");
 
   fs.mkdirSync(tmpRoot, { recursive: true });
@@ -102,7 +112,7 @@ test("Compose config resolves the documented first-run env-file contract", { ski
 });
 
 test("Compose config accepts an explicit CRM_DATABASE_URL override for URI-encoded credentials", { skip: !dockerAvailable }, () => {
-  const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-config-${process.pid}`);
+  const tmpRoot = path.join(repoRoot, ".codex-tmp", createRuntimeArtifactName("compose-runtime-config"));
   const envPath = path.join(tmpRoot, "compose.env");
 
   fs.mkdirSync(tmpRoot, { recursive: true });
