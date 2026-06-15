@@ -74,6 +74,8 @@ async function waitForChildExit(child: ReturnType<typeof spawn>) {
 }
 
 function buildProductionApp() {
+  fs.rmSync(path.join(repoRoot, ".next"), { recursive: true, force: true });
+
   const result = spawnSync(process.execPath, [nextCli, "build"], {
     cwd: repoRoot,
     encoding: "utf8"

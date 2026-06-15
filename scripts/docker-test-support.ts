@@ -93,6 +93,57 @@ function validateDisposableProjectName(projectName: string) {
   }
 }
 
+function validateDisposableDockerResourceNamePrefix(kind: Exclude<DockerResourceKind, "image">, name: string) {
+  if (!name || name === DISPOSABLE_RUNTIME_PREFIX) {
+    throw new Error(`${kind} cleanup must target a specific disposable resource named ${DISPOSABLE_RUNTIME_PREFIX}*.`);
+  }
+
+  if (isProtectedDockerResourceName(name)) {
+    throw new Error(`Docker ${kind} cleanup must never target the protected ${PROTECTED_DOCKER_PROJECT} stack.`);
+  }
+
+  if (!matchesDisposableRuntimePrefix(name)) {
+    throw new Error(`Docker ${kind} cleanup must use the approved disposable prefix ${DISPOSABLE_RUNTIME_PREFIX}*.`);
+  }
+}
+
+function validateDisposableDockerResourceNameImage(name: string) {
+  if (!name) {
+    throw new Error(`Docker image cleanup must target a specific disposable image or verifier image.`);
+  }
+
+  if (isProtectedDockerResourceName(name)) {
+    throw new Error(`Docker image cleanup must never target the protected ${PROTECTED_DOCKER_PROJECT} stack.`);
+  }
+
+  if (matchesDisposableRuntimePrefix(name)) {
+    if (name === DISPOSABLE_RUNTIME_PREFIX) {
+      throw new Error("Docker image cleanup must target a specific disposable image, not the bare runtime prefix.");
+    }
+
+    return;
+  }
+
+  if (matchesOwnedVerifyImageTag(name)) {
+    if (name === VERIFY_IMAGE_TAG_PREFIX) {
+      throw new Error("Docker image cleanup must target a specific verifier image, not the bare verify prefix.");
+    }
+
+    return;
+  }
+
+  throw new Error(`Docker image cleanup must use the approved disposable prefixes ${DISPOSABLE_RUNTIME_PREFIX}* or ${VERIFY_IMAGE_TAG_PREFIX}*.`);
+}
+
+function validateDisposableDockerResourceName(kind: DockerResourceKind, name: string) {
+  if (kind === "image") {
+    validateDisposableDockerResourceNameImage(name);
+    return;
+  }
+
+  validateDisposableDockerResourceNamePrefix(kind, name);
+}
+
 function validateDisposableTempPath(targetPath: string) {
   const resolvedTargetPath = path.resolve(targetPath);
 
@@ -562,24 +613,32 @@ export function createCleanupController(
   }
 
   function registerDockerContainer(name: string, spawnCommand: SpawnCommand = defaultSpawnCommand) {
+    validateDisposableDockerResourceName("container", name);
+
     addTask(`container:${name}`, () => {
       removeDockerResource("container", name, spawnCommand);
     });
   }
 
   function registerDockerNetwork(name: string, spawnCommand: SpawnCommand = defaultSpawnCommand) {
+    validateDisposableDockerResourceName("network", name);
+
     addTask(`network:${name}`, () => {
       removeDockerResource("network", name, spawnCommand);
     });
   }
 
   function registerDockerVolume(name: string, spawnCommand: SpawnCommand = defaultSpawnCommand) {
+    validateDisposableDockerResourceName("volume", name);
+
     addTask(`volume:${name}`, () => {
       removeDockerResource("volume", name, spawnCommand);
     });
   }
 
   function registerDockerImage(name: string, spawnCommand: SpawnCommand = defaultSpawnCommand) {
+    validateDisposableDockerResourceName("image", name);
+
     addTask(`image:${name}`, () => {
       removeDockerResource("image", name, spawnCommand);
     });

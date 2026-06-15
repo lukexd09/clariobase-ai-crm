@@ -17,6 +17,7 @@ import {
   getDockerRequirementStatus,
   matchesDisposableImageName,
   PROTECTED_DOCKER_PROJECT,
+  VERIFY_IMAGE_TAG_PREFIX,
   resolveCleanupTestRuntimeStatus,
   selectDisposableResourceNames,
   terminateProcessTree
@@ -64,6 +65,17 @@ async function waitForChildExit(child: ReturnType<typeof spawn>) {
       resolve({ code, signal });
     });
   });
+}
+
+function createSuccessfulDockerSpawnMock() {
+  const calls: { command: string; args: string[] }[] = [];
+
+  const spawnCommand = (command: string, args: string[]) => {
+    calls.push({ command, args });
+    return { status: 0, stdout: "", stderr: "" } as ReturnType<typeof spawnSync>;
+  };
+
+  return { calls, spawnCommand };
 }
 
 test(".gitignore ignores .codex-tmp artifacts", () => {
@@ -268,6 +280,131 @@ test("destructive helpers reject unrelated and overbroad cleanup targets before 
   }, /approved disposable prefix/i);
 
   assert.equal(destructiveCalls, 0);
+});
+
+test("registerDockerContainer validates disposable container names before scheduling cleanup", () => {
+  const cleanup = createCleanupController("container-validation");
+  const reject = (name: string) => {
+    assert.throws(() => {
+      cleanup.registerDockerContainer(name);
+    });
+  };
+
+  for (const name of [
+    PROTECTED_DOCKER_PROJECT,
+    `${PROTECTED_DOCKER_PROJECT}-crm-app-1`,
+    `${PROTECTED_DOCKER_PROJECT}_default`,
+    "unrelated-resource",
+    "",
+    DISPOSABLE_RUNTIME_PREFIX
+  ]) {
+    reject(name);
+  }
+
+  const { calls, spawnCommand } = createSuccessfulDockerSpawnMock();
+  cleanup.registerDockerContainer(`${DISPOSABLE_RUNTIME_PREFIX}test-123-container`, spawnCommand);
+
+  const report = cleanup.cleanup("container validation");
+
+  assert.deepEqual(report.failures, []);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].command, "docker");
+});
+
+test("registerDockerNetwork validates disposable network names before scheduling cleanup", () => {
+  const cleanup = createCleanupController("network-validation");
+  const reject = (name: string) => {
+    assert.throws(() => {
+      cleanup.registerDockerNetwork(name);
+    });
+  };
+
+  for (const name of [
+    PROTECTED_DOCKER_PROJECT,
+    `${PROTECTED_DOCKER_PROJECT}-crm-app-1`,
+    `${PROTECTED_DOCKER_PROJECT}_default`,
+    "unrelated-resource",
+    "",
+    DISPOSABLE_RUNTIME_PREFIX
+  ]) {
+    reject(name);
+  }
+
+  const { calls, spawnCommand } = createSuccessfulDockerSpawnMock();
+  cleanup.registerDockerNetwork(`${DISPOSABLE_RUNTIME_PREFIX}test-123_default`, spawnCommand);
+
+  const report = cleanup.cleanup("network validation");
+
+  assert.deepEqual(report.failures, []);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].command, "docker");
+});
+
+test("registerDockerVolume validates disposable volume names before scheduling cleanup", () => {
+  const cleanup = createCleanupController("volume-validation");
+  const reject = (name: string) => {
+    assert.throws(() => {
+      cleanup.registerDockerVolume(name);
+    });
+  };
+
+  for (const name of [
+    PROTECTED_DOCKER_PROJECT,
+    `${PROTECTED_DOCKER_PROJECT}-crm-app-1`,
+    `${PROTECTED_DOCKER_PROJECT}_default`,
+    "unrelated-resource",
+    "",
+    DISPOSABLE_RUNTIME_PREFIX
+  ]) {
+    reject(name);
+  }
+
+  const { calls, spawnCommand } = createSuccessfulDockerSpawnMock();
+  cleanup.registerDockerVolume(`${DISPOSABLE_RUNTIME_PREFIX}test-123-data`, spawnCommand);
+
+  const report = cleanup.cleanup("volume validation");
+
+  assert.deepEqual(report.failures, []);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].command, "docker");
+});
+
+test("registerDockerImage validates disposable image names before scheduling cleanup", () => {
+  const cleanup = createCleanupController("image-validation");
+  const reject = (name: string) => {
+    assert.throws(() => {
+      cleanup.registerDockerImage(name);
+    });
+  };
+
+  for (const name of [
+    PROTECTED_DOCKER_PROJECT,
+    `${PROTECTED_DOCKER_PROJECT}-crm-app-1`,
+    `${PROTECTED_DOCKER_PROJECT}_default`,
+    "unrelated-resource",
+    "",
+    DISPOSABLE_RUNTIME_PREFIX,
+    "postgres:16-alpine",
+    "clariobase-ai-crm:latest",
+    `${VERIFY_IMAGE_TAG_PREFIX}`
+  ]) {
+    reject(name);
+  }
+
+  const verifierCleanup = createCleanupController("image-validation-verifier");
+  const verifierMock = createSuccessfulDockerSpawnMock();
+  verifierCleanup.registerDockerImage(`${VERIFY_IMAGE_TAG_PREFIX}image-123`, verifierMock.spawnCommand);
+  const runtimeCleanup = createCleanupController("image-validation-runtime");
+  const runtimeMock = createSuccessfulDockerSpawnMock();
+  runtimeCleanup.registerDockerImage(`${DISPOSABLE_RUNTIME_PREFIX}test-123-crm-app:latest`, runtimeMock.spawnCommand);
+
+  const verifierReport = verifierCleanup.cleanup("image validation");
+  const runtimeReport = runtimeCleanup.cleanup("image validation");
+
+  assert.deepEqual(verifierReport.failures, []);
+  assert.deepEqual(runtimeReport.failures, []);
+  assert.equal(verifierMock.calls.length, 1);
+  assert.equal(runtimeMock.calls.length, 1);
 });
 
 test("verification failure and cleanup failure are both preserved in the final error", () => {
