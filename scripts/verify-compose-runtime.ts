@@ -93,6 +93,14 @@ function assertNoSensitiveData(payload: unknown) {
   assert.doesNotMatch(serialized, /postgres(?:ql)?:\/\//i);
 }
 
+function makePathWritable(targetPath: string) {
+  try {
+    fs.chmodSync(targetPath, 0o777);
+  } catch {
+    // Best-effort: some Docker-created files may already be owned read-only.
+  }
+}
+
 async function assertReadyStatus(expectedHttpStatus: 200 | 503, expectedDatabaseStatus: "ok" | "unavailable") {
   const response = await waitForHttpStatus(`${baseUrl}/api/ready`, expectedHttpStatus);
   const payload = await response.json() as {
@@ -195,6 +203,10 @@ async function main() {
 
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, `compose AI export command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+    for (const fileName of fs.readdirSync(outboxDir)) {
+      makePathWritable(path.join(outboxDir, fileName));
+    }
+    makePathWritable(outboxDir);
     assert.match(result.stdout, /row count: 0/);
     assert.ok(
       fs.readdirSync(outboxDir).some((fileName) => /^clariobase_leads_export_.*\.json$/.test(fileName)),
@@ -213,6 +225,10 @@ async function main() {
 
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, `compose post-import export command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+    for (const fileName of fs.readdirSync(outboxDir)) {
+      makePathWritable(path.join(outboxDir, fileName));
+    }
+    makePathWritable(outboxDir);
     assert.match(result.stdout, /row count: 2/);
     assert.ok(
       fs.readdirSync(outboxDir).some((fileName) => /^clariobase_leads_export_.*\.json$/.test(fileName)),

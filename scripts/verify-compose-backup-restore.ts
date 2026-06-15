@@ -108,6 +108,14 @@ function runSql(command: string, description: string) {
   assert.equal(result.status, 0, `${description} should pass`);
 }
 
+function makePathWritable(targetPath: string) {
+  try {
+    fs.chmodSync(targetPath, 0o777);
+  } catch {
+    // Best-effort cleanup hardening for Docker-created export files.
+  }
+}
+
 async function main() {
   if (!ensureDockerOrReportSkip("docker:test-backup-restore")) {
     return;
@@ -195,6 +203,10 @@ async function main() {
 
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, `compose export after restore should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+    for (const fileName of fs.readdirSync(backupDir)) {
+      makePathWritable(path.join(backupDir, fileName));
+    }
+    makePathWritable(backupDir);
     assert.match(result.stdout, /row count: 2/);
   } catch (error) {
     mainError = error;
