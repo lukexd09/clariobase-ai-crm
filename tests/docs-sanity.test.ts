@@ -82,6 +82,7 @@ test("container runtime docs stay canonical and discoverable", () => {
   const previewAdr = read("docs/decisions/adr-e016-manual-preview.md");
   const previewRunbook = read("docs/operations/preview-operations.md");
   const runnerRunbook = read("docs/operations/windows-self-hosted-runner.md");
+  const assuranceReport = read("docs/verification/e016-integrated-assurance.md");
   const operationsRunbook = read("docs/operations/container-operations.md");
   const orchestrationDoc = read("docs/architecture/container-orchestration.md");
   const auditReport = read("docs/verification/e014-epic-quality-audit.md");
@@ -97,6 +98,7 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(readme, /docs\/decisions\/adr-e016-manual-preview\.md/);
   assert.match(readme, /docs\/operations\/preview-operations\.md/);
   assert.match(readme, /docs\/operations\/windows-self-hosted-runner\.md/);
+  assert.match(readme, /docs\/verification\/e016-integrated-assurance\.md/);
   assert.match(readme, /\.env\.compose\.preview\.example/);
   assert.match(workItemCoding, /E014 - Add containerized local production runtime foundation/);
   assert.match(workItemCoding, /E016 - Add manual branch preview environment and CI foundation/);
@@ -162,6 +164,13 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(runnerRunbook, /scripts\/runner-preflight\.ps1/);
   assert.match(runnerRunbook, /short-lived repository-scoped registration token/i);
   assert.match(runnerRunbook, /start automatically after host restart/i);
+
+  assert.match(assuranceReport, /document_id: DOC-E016-INTEGRATED-ASSURANCE/);
+  assert.match(assuranceReport, /Result: `PASS`/);
+  assert.match(assuranceReport, /Automated test audit/i);
+  assert.match(assuranceReport, /Workflow definition audit/i);
+  assert.match(assuranceReport, /Acceptance-criteria evidence matrix/i);
+  assert.match(assuranceReport, /Manual post-merge smoke-test checklist/i);
 
   assert.match(operationsRunbook, /document_id: DOC-E014-CONTAINER-OPERATIONS/);
   assert.match(operationsRunbook, /canonical operator runbook/i);

@@ -109,6 +109,7 @@ For the E016 manual preview foundation, also read:
 - `docs/decisions/adr-e016-manual-preview.md`
 - `docs/operations/preview-operations.md`
 - `docs/operations/windows-self-hosted-runner.md`
+- `docs/verification/e016-integrated-assurance.md`
 - `.env.compose.preview.example`
 
 For a fresh repository-local Compose startup, use this sequence:
