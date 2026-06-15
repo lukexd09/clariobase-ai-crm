@@ -42,7 +42,7 @@ This document records the final integrated assurance outcome for `E016 - Add man
 Audit target:
 
 - base SHA: `c230d3800114c57afc9a5911a334b7a2f19f3172`
-- verified implementation SHA: `b85abb12f623bc8442a9f59dd8ad9654b9b5c286`
+- verified implementation SHA: `ba6156a9c62433cc46b95e9fd0933e729d891536`
 - epic branch target: `epic/e016-manual-preview`
 - audit date: `2026-06-15`
 
@@ -82,7 +82,8 @@ Fresh verification executed on `2026-06-15` with logs in `.codex-tmp/e016-assura
 Correction delta:
 
 - initial final build attempt found a TypeScript inference regression in `scripts/deploy-preview.ts`;
-- follow-up fixes added the trusted control-plane split, `.codex-tmp` root creation, tighter preview env validation, the source-checkout SHA check, and secret-free stop handling in `b85abb12f623bc8442a9f59dd8ad9654b9b5c286`;
+- follow-up fixes added the trusted control-plane split, `.codex-tmp` root creation, tighter preview env validation, the source-checkout SHA check, and secret-free stop handling;
+- the final CI-aligned correction cycle fixed the deploy dry-run contract so the source checkout SHA is validated from the source tree instead of the trusted control checkout;
 - affected checks rerun: `corepack pnpm build`, `corepack pnpm test`, `corepack pnpm docker:test-runtime`, `corepack pnpm docker:test-backup-restore`, and focused preview workflow/runtime tests;
 - no broader risk boundary was reopened, so a delta correction cycle was sufficient.
 
@@ -226,7 +227,7 @@ Recorded aggregate usage:
 
 - `agents_started: 0`
 - `review_gates: 4`
-- `correction_cycles: 1`
+- `correction_cycles: 3`
 - `full_suite_runs: 1`
 
 Context compliance:
