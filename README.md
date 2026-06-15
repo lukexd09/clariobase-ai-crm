@@ -107,6 +107,8 @@ For the E016 manual preview foundation, also read:
 
 - `docs/architecture/preview-environment.md`
 - `docs/decisions/adr-e016-manual-preview.md`
+- `docs/operations/preview-operations.md`
+- `.env.compose.preview.example`
 
 For a fresh repository-local Compose startup, use this sequence:
 

@@ -80,6 +80,7 @@ test("container runtime docs stay canonical and discoverable", () => {
   const runtimeContract = read("docs/runtime/container-runtime.md");
   const previewContract = read("docs/architecture/preview-environment.md");
   const previewAdr = read("docs/decisions/adr-e016-manual-preview.md");
+  const previewRunbook = read("docs/operations/preview-operations.md");
   const operationsRunbook = read("docs/operations/container-operations.md");
   const orchestrationDoc = read("docs/architecture/container-orchestration.md");
   const auditReport = read("docs/verification/e014-epic-quality-audit.md");
@@ -93,6 +94,8 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(readme, /docs\/verification\/e014-epic-quality-audit\.md/);
   assert.match(readme, /docs\/architecture\/preview-environment\.md/);
   assert.match(readme, /docs\/decisions\/adr-e016-manual-preview\.md/);
+  assert.match(readme, /docs\/operations\/preview-operations\.md/);
+  assert.match(readme, /\.env\.compose\.preview\.example/);
   assert.match(workItemCoding, /E014 - Add containerized local production runtime foundation/);
   assert.match(workItemCoding, /E016 - Add manual branch preview environment and CI foundation/);
 
@@ -142,6 +145,15 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(previewAdr, /one manually controlled preview slot/i);
   assert.match(previewAdr, /trusted same-repository refs only/i);
   assert.match(previewAdr, /fail-closed cleanup/i);
+
+  assert.match(previewRunbook, /document_id: DOC-E016-PREVIEW-OPERATIONS/);
+  assert.match(previewRunbook, /scripts\/deploy-preview\.ps1/);
+  assert.match(previewRunbook, /scripts\/stop-preview\.ps1/);
+  assert.match(previewRunbook, /\.env\.compose\.preview\.example/);
+  assert.match(previewRunbook, /clariobase-crm-preview-postgres-data/);
+  assert.match(previewRunbook, /clariobase-crm-preview-network/);
+  assert.match(previewRunbook, /migrate deploy/);
+  assert.match(previewRunbook, /docker system prune/);
 
   assert.match(operationsRunbook, /document_id: DOC-E014-CONTAINER-OPERATIONS/);
   assert.match(operationsRunbook, /canonical operator runbook/i);
