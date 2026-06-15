@@ -76,6 +76,7 @@ test("container runtime docs stay canonical and discoverable", () => {
   const runtimeContract = read("docs/runtime/container-runtime.md");
   const operationsRunbook = read("docs/operations/container-operations.md");
   const orchestrationDoc = read("docs/architecture/container-orchestration.md");
+  const auditReport = read("docs/verification/e014-epic-quality-audit.md");
   const adr = read("docs/decisions/adr-e014-container-runtime.md");
   const workItemCoding = read("docs/12-work-item-coding.md");
 
@@ -83,6 +84,7 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(readme, /docs\/decisions\/adr-e014-container-runtime\.md/);
   assert.match(readme, /docs\/operations\/container-operations\.md/);
   assert.match(readme, /docs\/architecture\/container-orchestration\.md/);
+  assert.match(readme, /docs\/verification\/e014-epic-quality-audit\.md/);
   assert.match(workItemCoding, /E014 - Add containerized local production runtime foundation/);
 
   assert.match(runtimeContract, /document_id: DOC-E014-CONTAINER-RUNTIME/);
@@ -131,4 +133,17 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(orchestrationDoc, /no shared schema/i);
   assert.match(orchestrationDoc, /CRM_DATABASE_URL/);
   assert.match(orchestrationDoc, /does not orchestrate the gatherer or harvester runtime/i);
+
+  assert.match(auditReport, /document_id: DOC-E014-EPIC-QUALITY-AUDIT/);
+  assert.match(auditReport, /Result: `PASS`/);
+  assert.match(auditReport, /Automated test audit/i);
+  assert.match(auditReport, /Documentation accuracy audit/i);
+  assert.match(auditReport, /RAG readiness audit/i);
+  assert.match(auditReport, /Acceptance-criteria coverage matrix/i);
+  assert.match(auditReport, /Residual risk assessment/i);
+  assert.match(auditReport, /final whole-epic review remains the next required gate/i);
+  assert.match(auditReport, /One final Draft PR exists from `epic\/e014-containerized-runtime` to `main`/i);
+  assert.match(auditReport, /draft PR creation is a later epic step/i);
+  assert.match(auditReport, /Codex does not merge the final PR or close issues/i);
+  assert.match(auditReport, /epic plus child issues remain open by contract/i);
 });
