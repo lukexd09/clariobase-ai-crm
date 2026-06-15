@@ -8,7 +8,8 @@ import {
   DISPOSABLE_RUNTIME_PREFIX,
   formatCleanupFailures,
   hasDocker,
-  PROTECTED_DOCKER_PROJECT
+  PROTECTED_DOCKER_PROJECT,
+  resolveCleanupTestRuntimeStatus
 } from "./docker-test-support";
 
 const repoRoot = path.resolve(__dirname, "..");
@@ -17,6 +18,8 @@ const tmpRoot = path.join(repoRoot, ".codex-tmp");
 function main() {
   const dockerAvailable = hasDocker();
   let cleanupFailures: string[] = [];
+  let dockerCleanupStatus: "PASS" | "SKIPPED" | "NOT EXECUTED" = dockerAvailable ? "NOT EXECUTED" : "SKIPPED";
+  let tempCleanupStatus: "PASS" | "SKIPPED" | "NOT EXECUTED" = "NOT EXECUTED";
   let removedContainers: string[] = [];
   let removedNetworks: string[] = [];
   let removedVolumes: string[] = [];
@@ -40,15 +43,21 @@ function main() {
 
       if (report.failures.length > 0) {
         cleanupFailures.push(formatCleanupFailures(report.failures));
+        dockerCleanupStatus = "NOT EXECUTED";
+      } else {
+        dockerCleanupStatus = "PASS";
       }
     } catch (error) {
       cleanupFailures.push(`docker-prefix-cleanup: ${error instanceof Error ? error.message : String(error)}`);
+      dockerCleanupStatus = "NOT EXECUTED";
     }
   } else {
     console.log("SKIPPED: Docker cleanup skipped because Docker is not available.");
+    dockerCleanupStatus = "SKIPPED";
   }
 
   const tempReport = cleanupDisposableTempArtifacts(tmpRoot);
+  tempCleanupStatus = tempReport.failures.length > 0 ? "NOT EXECUTED" : "PASS";
 
   if (tempReport.failures.length > 0) {
     cleanupFailures.push(formatCleanupFailures(tempReport.failures));
@@ -63,10 +72,18 @@ function main() {
   console.log(`Removed .codex-tmp disposable entries: ${tempReport.removed.length}`);
   console.log(`Skipped unrelated .codex-tmp entries: ${tempReport.skippedUnrelated.length}`);
   console.log(`Removed .codex-tmp root: ${!fs.existsSync(tmpRoot)}`);
+  console.log(`Docker cleanup status: ${dockerCleanupStatus}`);
+  console.log(`.codex-tmp cleanup status: ${tempCleanupStatus}`);
 
   if (protectedResourcesEncountered) {
     console.log(`SKIPPED: Protected Docker resources remained untouched under ${PROTECTED_DOCKER_PROJECT}.`);
   }
+
+  const finalStatus = resolveCleanupTestRuntimeStatus({
+    dockerAvailable,
+    dockerCleanupFailures: dockerAvailable ? cleanupFailures : [],
+    tempCleanupFailures: tempReport.failures.map((failure) => failure.message)
+  });
 
   if (cleanupFailures.length > 0) {
     console.error("FAIL: cleanup:test-runtime encountered cleanup errors.");
@@ -75,7 +92,17 @@ function main() {
     return;
   }
 
-  console.log("PASS: cleanup:test-runtime removed only approved disposable runtime artifacts.");
+  if (finalStatus === "SKIPPED") {
+    console.log("SKIPPED: cleanup:test-runtime completed .codex-tmp cleanup while Docker cleanup was unavailable.");
+    return;
+  }
+
+  if (finalStatus === "PASS") {
+    console.log("PASS: cleanup:test-runtime removed only approved disposable runtime artifacts.");
+    return;
+  }
+
+  console.log("SKIPPED: cleanup:test-runtime completed with a partial cleanup result.");
 }
 
 main();

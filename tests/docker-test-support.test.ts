@@ -11,11 +11,13 @@ import { setTimeout as delay } from "node:timers/promises";
 import {
   cleanupDisposableTempArtifacts,
   createCleanupController,
+  createVerificationFailure,
   createRuntimeArtifactName,
   DISPOSABLE_RUNTIME_PREFIX,
   getDockerRequirementStatus,
   matchesDisposableImageName,
   PROTECTED_DOCKER_PROJECT,
+  resolveCleanupTestRuntimeStatus,
   selectDisposableResourceNames,
   terminateProcessTree
 } from "../scripts/docker-test-support";
@@ -89,6 +91,26 @@ test("Docker-unavailable verification status is reported as explicit SKIPPED", (
     status: "SKIPPED",
     message: "docker:test-runtime requires Docker, but Docker is not available."
   });
+});
+
+test("cleanup:test-runtime status logic stays SKIPPED when Docker is unavailable and PASS only when all cleanup succeeds", () => {
+  assert.equal(resolveCleanupTestRuntimeStatus({
+    dockerAvailable: false,
+    dockerCleanupFailures: [],
+    tempCleanupFailures: []
+  }), "SKIPPED");
+
+  assert.equal(resolveCleanupTestRuntimeStatus({
+    dockerAvailable: true,
+    dockerCleanupFailures: [],
+    tempCleanupFailures: []
+  }), "PASS");
+
+  assert.equal(resolveCleanupTestRuntimeStatus({
+    dockerAvailable: false,
+    dockerCleanupFailures: [],
+    tempCleanupFailures: ["temp failed"]
+  }), "FAIL");
 });
 
 test("cleanup planning removes only approved disposable resources and protects clariobase-crm", () => {
@@ -207,6 +229,61 @@ test("cleanup controller handles SIGTERM with one-shot cleanup", () => {
   assert.equal(runs, 1);
   assert.deepEqual(exitCodes, [143]);
   assert.equal(fakeProcess.exitCode, 143);
+});
+
+test("destructive helpers reject unrelated and overbroad cleanup targets before running callbacks", () => {
+  const cleanup = createCleanupController("validation-test");
+  let destructiveCalls = 0;
+
+  assert.throws(() => {
+    cleanup.registerDockerProject(PROTECTED_DOCKER_PROJECT, () => {
+      destructiveCalls += 1;
+    });
+  }, /protected clariobase-crm stack/i);
+
+  assert.throws(() => {
+    cleanup.registerDockerProject("unrelated-project", () => {
+      destructiveCalls += 1;
+    });
+  }, /approved disposable prefix/i);
+
+  assert.throws(() => {
+    cleanup.registerDockerProject("", () => {
+      destructiveCalls += 1;
+    });
+  }, /approved disposable prefix/i);
+
+  assert.throws(() => {
+    cleanup.registerDockerProject("clariobase-e014-runtime-", () => {
+      destructiveCalls += 1;
+    });
+  }, /specific disposable project/i);
+
+  assert.throws(() => {
+    cleanup.registerTempPath(path.resolve(repoRoot, "outside", "tmp"));
+  }, /stay within/i);
+
+  assert.throws(() => {
+    cleanup.registerTempPath(path.join(repoRoot, ".codex-tmp", "manual-entry"));
+  }, /approved disposable prefix/i);
+
+  assert.equal(destructiveCalls, 0);
+});
+
+test("verification failure and cleanup failure are both preserved in the final error", () => {
+  const verificationError = new Error("verification failed");
+  const combined = createVerificationFailure(verificationError, [
+    {
+      label: "cleanup-task",
+      message: "cleanup failed"
+    }
+  ], "docker:test-runtime");
+
+  assert.ok(combined instanceof AggregateError);
+  assert.match(combined.message, /docker:test-runtime failed during verification and cleanup/i);
+  assert.equal(combined.errors.length, 2);
+  assert.match(String(combined.errors[0]), /verification failed/);
+  assert.match(String(combined.errors[1]), /cleanup-task/);
 });
 
 test("failed verification paths still invoke cleanup through process-exit hooks", async () => {

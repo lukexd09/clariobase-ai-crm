@@ -33,6 +33,8 @@ type ExitLikeProcess = Pick<
 >;
 
 const noSuchResourcePattern = /No such (container|network|volume|image)|reference does not exist/i;
+const repoRoot = path.resolve(__dirname, "..");
+const codexTmpRoot = path.join(repoRoot, ".codex-tmp");
 
 function defaultSpawnCommand(
   command: string,
@@ -59,6 +61,56 @@ function normalizeLines(output: string | null | undefined) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+function isWithinParentDirectory(parentDir: string, targetPath: string) {
+  const relative = path.relative(parentDir, targetPath);
+
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function validateDisposablePrefix(prefix: string, context: string) {
+  if (!prefix || !prefix.startsWith(DISPOSABLE_RUNTIME_PREFIX)) {
+    throw new Error(`${context} must use the approved disposable prefix ${DISPOSABLE_RUNTIME_PREFIX}*.`);
+  }
+}
+
+function validateDisposableImagePrefix(prefix: string) {
+  if (!prefix || !prefix.startsWith(VERIFY_IMAGE_TAG_PREFIX)) {
+    throw new Error(`Disposable image cleanup must use the approved verify image prefix ${VERIFY_IMAGE_TAG_PREFIX}*.`);
+  }
+}
+
+function validateDisposableProjectName(projectName: string) {
+  if (isProtectedDockerResourceName(projectName)) {
+    throw new Error(`Docker project cleanup must never target the protected ${PROTECTED_DOCKER_PROJECT} stack.`);
+  }
+
+  validateDisposablePrefix(projectName, "Docker project cleanup");
+
+  if (projectName === DISPOSABLE_RUNTIME_PREFIX) {
+    throw new Error("Docker project cleanup must target a specific disposable project, not the bare runtime prefix.");
+  }
+}
+
+function validateDisposableTempPath(targetPath: string) {
+  const resolvedTargetPath = path.resolve(targetPath);
+
+  if (!isWithinParentDirectory(codexTmpRoot, resolvedTargetPath)) {
+    throw new Error(`Temporary cleanup must stay within ${codexTmpRoot}.`);
+  }
+
+  if (path.basename(resolvedTargetPath) === ".codex-tmp") {
+    throw new Error("Temporary cleanup must target disposable entries inside .codex-tmp, not the root directory.");
+  }
+
+  if (!path.basename(resolvedTargetPath).startsWith(DISPOSABLE_RUNTIME_PREFIX)) {
+    throw new Error(`Temporary cleanup entry names must use the approved disposable prefix ${DISPOSABLE_RUNTIME_PREFIX}*.`);
+  }
+
+  if (path.basename(resolvedTargetPath) === DISPOSABLE_RUNTIME_PREFIX) {
+    throw new Error("Temporary cleanup must target a specific disposable entry, not the bare runtime prefix.");
+  }
 }
 
 function isMissingDockerResource(result: SpawnSyncReturns<string>) {
@@ -261,6 +313,9 @@ export function cleanupDisposableResourcesByPrefix(
   imageTagPrefix = VERIFY_IMAGE_TAG_PREFIX,
   spawnCommand: SpawnCommand = defaultSpawnCommand
 ) {
+  validateDisposablePrefix(prefix, "Disposable Docker resource cleanup");
+  validateDisposableImagePrefix(imageTagPrefix);
+
   const failures: CleanupFailure[] = [];
   const removed = {
     containers: [] as string[],
@@ -360,6 +415,8 @@ export function cleanupDisposableResourcesByPrefix(
 }
 
 export function cleanupDisposableTempArtifacts(rootDir: string, prefix = DISPOSABLE_RUNTIME_PREFIX) {
+  validateDisposablePrefix(prefix, "Disposable temp cleanup");
+
   const removed: string[] = [];
   const failures: CleanupFailure[] = [];
   const skippedUnrelated: string[] = [];
@@ -494,6 +551,8 @@ export function createCleanupController(
   }
 
   function registerTempPath(targetPath: string) {
+    validateDisposableTempPath(targetPath);
+
     addTask(`temp:${path.basename(targetPath) || targetPath}`, () => {
       fs.rmSync(targetPath, {
         recursive: true,
@@ -527,6 +586,8 @@ export function createCleanupController(
   }
 
   function registerDockerProject(projectName: string, spawnCommand: SpawnCommand = defaultSpawnCommand) {
+    validateDisposableProjectName(projectName);
+
     addTask(`project:${projectName}`, () => {
       for (const [kind, names] of [
         ["container", listDockerResourceNames("container", spawnCommand)],
@@ -595,4 +656,39 @@ export function formatCleanupFailures(failures: CleanupFailure[]) {
   return failures
     .map((failure) => `${failure.label}: ${failure.message}`)
     .join("\n");
+}
+
+export function createVerificationFailure(
+  verificationError: unknown,
+  cleanupFailures: CleanupFailure[],
+  cleanupReason: string
+) {
+  const verificationCause = verificationError instanceof Error ? verificationError : new Error(String(verificationError));
+
+  if (cleanupFailures.length === 0) {
+    return verificationCause;
+  }
+
+  return new AggregateError(
+    [verificationCause, new Error(formatCleanupFailures(cleanupFailures))],
+    `${cleanupReason} failed during verification and cleanup.`
+  );
+}
+
+export function resolveCleanupTestRuntimeStatus(input: {
+  dockerAvailable: boolean;
+  dockerCleanupFailures: string[];
+  tempCleanupFailures: string[];
+}) {
+  const hasFailures = input.dockerCleanupFailures.length > 0 || input.tempCleanupFailures.length > 0;
+
+  if (hasFailures) {
+    return "FAIL" as const;
+  }
+
+  if (!input.dockerAvailable) {
+    return "SKIPPED" as const;
+  }
+
+  return "PASS" as const;
 }

@@ -8,6 +8,7 @@ import {
   createCleanupController,
   createDockerRunId,
   createRuntimeArtifactName,
+  createVerificationFailure,
   ensureDockerOrReportSkip,
   formatCleanupFailures,
   reportVerificationStatus,
@@ -242,7 +243,7 @@ async function main() {
   const cleanupReport = cleanup.cleanup(mainError ? "failed verification" : "successful verification");
 
   if (mainError) {
-    throw mainError;
+    throw createVerificationFailure(mainError, cleanupReport.failures, "docker:test-runtime");
   }
 
   if (cleanupReport.failures.length > 0) {
