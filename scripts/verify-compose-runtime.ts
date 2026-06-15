@@ -5,17 +5,21 @@ import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
 import {
+  createCleanupController,
   createDockerRunId,
+  createRuntimeArtifactName,
   ensureDockerOrReportSkip,
+  formatCleanupFailures,
   reportVerificationStatus,
   reserveFreePort
 } from "./docker-test-support";
 
 const repoRoot = path.resolve(__dirname, "..");
-const project = createDockerRunId("clariobase-e014-runtime");
-const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-verify-${process.pid}`);
+const project = createDockerRunId("compose");
+const tmpRoot = path.join(repoRoot, ".codex-tmp", createRuntimeArtifactName("compose-runtime-verify"));
 const aiPath = path.join(tmpRoot, "ai-exchange");
 const envPath = path.join(tmpRoot, "compose.env");
+const cleanup = createCleanupController("docker:test-runtime");
 let hostPort = "";
 let baseUrl = "";
 
@@ -29,6 +33,13 @@ function runDocker(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
     encoding: "utf8",
     stdio: options?.stdio ?? "pipe"
   });
+}
+
+function assertDockerSuccess(
+  result: ReturnType<typeof runDocker>,
+  description: string
+) {
+  assert.equal(result.status, 0, `${description} should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 }
 
 function runCompose(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
@@ -116,6 +127,10 @@ async function main() {
     return;
   }
 
+  cleanup.installProcessHandlers();
+  cleanup.registerDockerProject(project);
+  cleanup.registerTempPath(tmpRoot);
+
   const preparedImportPath = path.join(aiPath, "inbox", "prepared-leads.json");
   const outboxDir = path.join(aiPath, "outbox");
 
@@ -137,32 +152,34 @@ async function main() {
     ].join("\n")
   );
 
+  let mainError: unknown;
+
   try {
     let result = runCompose(["build"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose build should pass");
+    assertDockerSuccess(result, "docker compose build");
 
     result = runCompose(["up", "-d", "crm-postgres"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose up -d crm-postgres should pass");
+    assertDockerSuccess(result, "docker compose up -d crm-postgres");
     await waitForDockerHealth(`${project}-crm-postgres-1`);
 
     result = runCompose(["up", "-d", "crm-app"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose up -d crm-app before migrations should pass");
+    assertDockerSuccess(result, "docker compose up -d crm-app before migrations");
 
     await waitForHttpStatus(`${baseUrl}/health`, 200);
     await assertReadyStatus(503, "unavailable");
     await waitForDockerHealth(`${project}-crm-app-1`, "unhealthy");
 
     result = runCompose(["stop", "crm-app"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose stop crm-app before migrations should pass");
+    assertDockerSuccess(result, "docker compose stop crm-app before migrations");
 
     result = runCompose(
       ["run", "--rm", "crm-app", "sh", "-lc", "node ./node_modules/prisma/build/index.js migrate deploy"],
       { stdio: "inherit" }
     );
-    assert.equal(result.status, 0, "compose migration command should pass");
+    assertDockerSuccess(result, "compose migration command");
 
     result = runCompose(["up", "-d", "crm-app"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose up -d crm-app should pass");
+    assertDockerSuccess(result, "docker compose up -d crm-app");
 
     await waitForDockerHealth(`${project}-crm-app-1`);
     await waitForHttpStatus(`${baseUrl}/health`, 200);
@@ -196,20 +213,20 @@ async function main() {
     );
 
     result = runCompose(["stop", "crm-postgres"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose stop crm-postgres should pass");
+    assertDockerSuccess(result, "docker compose stop crm-postgres");
 
     await assertReadyStatus(503, "unavailable");
     await waitForDockerHealth(`${project}-crm-app-1`, "unhealthy");
 
     result = runCompose(["start", "crm-postgres"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose start crm-postgres should pass");
+    assertDockerSuccess(result, "docker compose start crm-postgres");
 
     await waitForDockerHealth(`${project}-crm-postgres-1`);
     await assertReadyStatus(200, "ok");
     await waitForDockerHealth(`${project}-crm-app-1`);
 
     result = runCompose(["restart", "crm-app"], { stdio: "inherit" });
-    assert.equal(result.status, 0, "docker compose restart crm-app should pass");
+    assertDockerSuccess(result, "docker compose restart crm-app");
 
     await waitForDockerHealth(`${project}-crm-app-1`);
     await waitForHttpStatus(`${baseUrl}/health`, 200);
@@ -218,11 +235,21 @@ async function main() {
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, "compose export after restart should pass");
     assert.match(result.stdout, /row count: 2/);
-    reportVerificationStatus("PASS", `docker:test-runtime completed for project ${project}.`);
-  } finally {
-    runCompose(["down", "-v"], { stdio: "inherit" });
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  } catch (error) {
+    mainError = error;
   }
+
+  const cleanupReport = cleanup.cleanup(mainError ? "failed verification" : "successful verification");
+
+  if (mainError) {
+    throw mainError;
+  }
+
+  if (cleanupReport.failures.length > 0) {
+    throw new Error(formatCleanupFailures(cleanupReport.failures));
+  }
+
+  reportVerificationStatus("PASS", `docker:test-runtime completed for project ${project}.`);
 }
 
 main().catch((error) => {

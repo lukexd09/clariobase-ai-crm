@@ -183,6 +183,7 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 - `pnpm docker:test-image` - build and smoke-test the production CRM image
 - `pnpm docker:test-runtime` - verify the Compose runtime, readiness, restart, and failure behavior
 - `pnpm docker:test-backup-restore` - verify logical backup and restore on a disposable CRM database
+- `pnpm cleanup:test-runtime` - remove only approved disposable E014 runtime artifacts and approved disposable `.codex-tmp/` entries
 - `pnpm prisma:generate` - generate Prisma Client
 - `pnpm prisma:validate` - validate the Prisma schema
 - `pnpm prisma:migrate` - apply local CRM migrations
@@ -195,10 +196,11 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 ## Health check
 
 Open `/health` after starting the app to verify the skeleton is running.
-`/health` is the HTTP liveness check for the Next.js process.
+`/health` is the HTTP liveness check for the Next.js process, returns a fresh timestamp on every request, and is intentionally non-cacheable.
 `/api/ready` is the database-aware readiness check and returns HTTP `503` when the configured CRM PostgreSQL database is unavailable.
 Run `corepack pnpm docker:test-runtime` to verify the documented Compose startup, readiness, failure-path, and restart behavior against isolated test resources.
 Run `corepack pnpm docker:test-backup-restore` to verify the documented logical backup and restore flow against isolated disposable CRM data.
+Run `corepack pnpm cleanup:test-runtime` to remove only disposable E014 runtime artifacts and approved disposable `.codex-tmp/` entries. It must never target the persistent operator stack `clariobase-crm`.
 The approved container runtime contract and runtime verification semantics for E014 are documented in `docs/runtime/container-runtime.md`.
 
 ## Lead activity, mini-audit, outreach and offer drafts

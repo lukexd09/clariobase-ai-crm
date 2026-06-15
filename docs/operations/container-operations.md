@@ -5,7 +5,7 @@ document_type: operations-runbook
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-14
+last_updated: 2026-06-15
 related_epic: E014
 related_tasks:
   - E014.T005
@@ -60,6 +60,7 @@ Canonical repository-level verification commands:
 - `corepack pnpm docker:test-image`
 - `corepack pnpm docker:test-runtime`
 - `corepack pnpm docker:test-backup-restore`
+- `corepack pnpm cleanup:test-runtime`
 
 ## Exact environment variables
 
@@ -129,7 +130,7 @@ corepack pnpm docker:test-runtime
 
 Expected semantics:
 
-- `/health` returns HTTP `200` when the Next.js process is alive;
+- `/health` returns HTTP `200` when the Next.js process is alive, with a fresh timestamp on every request and non-cacheable response headers;
 - `/api/ready` returns HTTP `200` only after migrations are applied and the CRM database is usable;
 - `crm-app` healthcheck becomes healthy only when `/api/ready` returns HTTP `200`.
 
@@ -215,6 +216,19 @@ docker inspect --format='{{.State.Health.Status}}' clariobase-ai-crm-crm-postgre
 
 If the project name differs, use the actual container names from `docker compose ps`.
 
+Disposable test-runtime cleanup:
+
+```bash
+corepack pnpm cleanup:test-runtime
+```
+
+Cleanup safety rules:
+
+- the cleanup command is limited to disposable E014 verification artifacts and approved disposable `.codex-tmp/` entries only;
+- it may remove only resources created by the current run or names under the approved disposable prefix `clariobase-e014-runtime-*`;
+- it must never target the persistent operator stack `clariobase-crm`;
+- it must never use broad cleanup commands such as `docker system prune`.
+
 ## AI exchange workflow in the containerized runtime
 
 Use the bind-mounted host directory through one-off app-container commands:
@@ -279,6 +293,7 @@ Backup and restore warnings:
 - restore only from a reviewed backup file after the target CRM database has been reset;
 - confirm the target database is the CRM database, not the harvester/gatherer database;
 - use `corepack pnpm docker:test-backup-restore` when you want to rehearse the documented flow on disposable resources;
+- use `corepack pnpm cleanup:test-runtime` to remove only disposable verification leftovers after interrupted test runs;
 - keep backups outside ignored runtime folders if they must survive a repo cleanup.
 
 ## Localhost and LAN configuration

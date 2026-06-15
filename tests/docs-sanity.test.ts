@@ -31,6 +31,7 @@ test("README documents the current post-UI CRM state and scripts", () => {
     "docker:test-image",
     "docker:test-runtime",
     "docker:test-backup-restore",
+    "cleanup:test-runtime",
     "prisma:generate",
     "prisma:validate",
     "prisma:migrate",
@@ -103,16 +104,19 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(runtimeContract, /must never connect to or mutate the harvester or gatherer database/i);
   assert.match(runtimeContract, /must be mounted at runtime instead of baked into the image/i);
   assert.match(runtimeContract, /returns HTTP `200` when the Next\.js process can respond/);
+  assert.match(runtimeContract, /fresh timestamp on each request/i);
+  assert.match(runtimeContract, /must not be statically cached/i);
   assert.match(runtimeContract, /\/api\/ready/);
   assert.match(runtimeContract, /returns HTTP `200` only when the CRM application can execute a lightweight query/i);
   assert.match(runtimeContract, /returns HTTP `503` when the configured CRM database is unavailable/i);
   assert.match(runtimeContract, /corepack pnpm docker:test-backup-restore/);
+  assert.match(runtimeContract, /corepack pnpm cleanup:test-runtime/);
   assert.match(runtimeContract, /Current repository baseline before E014 implementation/);
   assert.match(runtimeContract, /Approved first-run migration sequence/);
   assert.match(runtimeContract, /one-off operator-invoked `prisma migrate deploy` step/i);
   assert.match(runtimeContract, /normal `crm-app` container startup must not rerun migrations automatically/i);
   assert.match(runtimeContract, /Planned evolution after the default E014 runtime/);
-  assert.doesNotMatch(runtimeContract, /\.codex-tmp/);
+  assert.match(runtimeContract, /\.codex-tmp/);
 
   assert.match(adr, /document_id: ADR-E014-CONTAINER-RUNTIME/);
   assert.match(adr, /crm-app/);
@@ -125,11 +129,14 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(operationsRunbook, /node \.\/node_modules\/prisma\/build\/index\.js migrate deploy/);
   assert.match(operationsRunbook, /corepack pnpm docker:test-runtime/);
   assert.match(operationsRunbook, /corepack pnpm docker:test-backup-restore/);
+  assert.match(operationsRunbook, /corepack pnpm cleanup:test-runtime/);
   assert.match(operationsRunbook, /CRM_DATABASE_URL/);
   assert.match(operationsRunbook, /crm-postgres-data/);
   assert.match(operationsRunbook, /backup/i);
   assert.match(operationsRunbook, /restore/i);
   assert.match(operationsRunbook, /CRM_BIND_ADDRESS=0\.0\.0\.0/);
+  assert.match(operationsRunbook, /clariobase-crm/);
+  assert.match(operationsRunbook, /must never target/i);
 
   assert.match(orchestrationDoc, /document_id: DOC-E014-CONTAINER-ORCHESTRATION/);
   assert.match(orchestrationDoc, /future server-level orchestration direction/i);

@@ -5,7 +5,7 @@ document_type: architecture
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-14
+last_updated: 2026-06-15
 related_epic: E014
 related_tasks:
   - E014.T001
@@ -177,6 +177,8 @@ The CRM runtime uses separate liveness and readiness signals.
 `/health` semantics:
 
 - returns HTTP `200` when the Next.js process can respond;
+- returns a fresh timestamp on each request for human diagnostics;
+- must not be statically cached by Next.js or intermediary caches;
 - does not prove database reachability;
 - may remain a simple app-process response;
 - must not be described as database readiness.
@@ -225,6 +227,12 @@ The canonical repository-level logical backup and restore rehearsal command is:
 corepack pnpm docker:test-backup-restore
 ```
 
+The canonical repository-level disposable runtime cleanup command is:
+
+```bash
+corepack pnpm cleanup:test-runtime
+```
+
 The verification command must cover:
 
 - the approved first-run migration sequence;
@@ -240,6 +248,13 @@ The backup and restore rehearsal command must cover:
 - mutating or deleting the disposable CRM data;
 - restoring the logical backup into a reset disposable CRM database;
 - confirming the original CRM data is recovered correctly.
+
+Cleanup safety rules:
+
+- cleanup for stale disposable resources must target only resources created by the current run or names under the approved disposable prefix `clariobase-e014-runtime-*`;
+- cleanup must never remove, stop, recreate, or mutate the persistent operator stack `clariobase-crm`;
+- cleanup failures must be reported clearly and must not be treated as a passing verification result;
+- only approved disposable `.codex-tmp/` artifacts that belong to the runtime verification flow may be removed by `corepack pnpm cleanup:test-runtime`.
 
 ## Build and image contract
 

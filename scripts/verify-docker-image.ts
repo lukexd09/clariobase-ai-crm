@@ -1,14 +1,17 @@
-import { execFileSync } from "node:child_process";
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
 import {
+  createCleanupController,
   createDockerRunId,
   ensureDockerOrReportSkip,
+  formatCleanupFailures,
   reportVerificationStatus,
   reserveFreePort
 } from "./docker-test-support";
 
-const runId = createDockerRunId("clariobase-t002");
+const runId = createDockerRunId("image");
 const imageTag = `clariobase-ai-crm:test-verify-${runId}`;
 const networkName = `${runId}-network`;
 const databaseContainerName = `${runId}-db`;
@@ -16,15 +19,24 @@ const containerName = `${runId}-verify`;
 const databaseName = "clariobase_crm";
 const databaseUser = "clariobase_crm_user";
 const databasePassword = "change-me";
+const cleanup = createCleanupController("docker:test-image");
 let hostPort = "";
+
 const databaseUrl =
   `postgresql://${databaseUser}:${databasePassword}@${databaseContainerName}:5432/${databaseName}?schema=public`;
 
 function runDocker(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
-  return execFileSync("docker", args, {
+  return spawnSync("docker", args, {
     encoding: "utf8",
     stdio: options?.stdio ?? "pipe"
   });
+}
+
+function assertDockerSuccess(
+  result: ReturnType<typeof runDocker>,
+  description: string
+) {
+  assert.equal(result.status, 0, `${description} should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 }
 
 async function waitForHealth() {
@@ -32,7 +44,11 @@ async function waitForHealth() {
 
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
-      const response = await fetch(healthUrl);
+      const response = await fetch(healthUrl, {
+        headers: {
+          "Cache-Control": "no-store"
+        }
+      });
 
       if (response.status === 200) {
         return;
@@ -52,7 +68,11 @@ async function waitForImportsPage() {
 
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
-      const response = await fetch(importsUrl);
+      const response = await fetch(importsUrl, {
+        headers: {
+          "Cache-Control": "no-store"
+        }
+      });
 
       if (response.status === 200) {
         return;
@@ -69,31 +89,31 @@ async function waitForImportsPage() {
 
 async function waitForDatabase() {
   for (let attempt = 0; attempt < 30; attempt += 1) {
-    try {
-      runDocker(
-        [
-          "exec",
-          databaseContainerName,
-          "pg_isready",
-          "-U",
-          databaseUser,
-          "-d",
-          databaseName
-        ],
-        { stdio: "inherit" }
-      );
+    const result = runDocker(
+      [
+        "exec",
+        databaseContainerName,
+        "pg_isready",
+        "-U",
+        databaseUser,
+        "-d",
+        databaseName
+      ],
+      { stdio: "inherit" }
+    );
 
+    if (result.status === 0) {
       return;
-    } catch {
-      await delay(1000);
     }
+
+    await delay(1000);
   }
 
   throw new Error("The disposable PostgreSQL container did not become ready in time.");
 }
 
 function runMigrations() {
-  runDocker(
+  const result = runDocker(
     [
       "run",
       "--rm",
@@ -109,10 +129,12 @@ function runMigrations() {
     ],
     { stdio: "inherit" }
   );
+
+  assertDockerSuccess(result, "docker run migration command");
 }
 
 function inspectImageFilesystem() {
-  runDocker(
+  const result = runDocker(
     [
       "run",
       "--rm",
@@ -137,6 +159,8 @@ function inspectImageFilesystem() {
     ],
     { stdio: "inherit" }
   );
+
+  assertDockerSuccess(result, "image filesystem inspection");
 }
 
 async function main() {
@@ -144,14 +168,24 @@ async function main() {
     return;
   }
 
+  cleanup.installProcessHandlers();
+  cleanup.registerDockerImage(imageTag);
+  cleanup.registerDockerNetwork(networkName);
+  cleanup.registerDockerContainer(databaseContainerName);
+  cleanup.registerDockerContainer(containerName);
+
   hostPort = await reserveFreePort();
 
+  let mainError: unknown;
+
   try {
-    runDocker(["build", "-t", imageTag, "."], { stdio: "inherit" });
+    let result = runDocker(["build", "-t", imageTag, "."], { stdio: "inherit" });
+    assertDockerSuccess(result, "docker build");
 
-    runDocker(["network", "create", networkName], { stdio: "inherit" });
+    result = runDocker(["network", "create", networkName], { stdio: "inherit" });
+    assertDockerSuccess(result, "docker network create");
 
-    runDocker(
+    result = runDocker(
       [
         "run",
         "-d",
@@ -170,11 +204,12 @@ async function main() {
       ],
       { stdio: "inherit" }
     );
+    assertDockerSuccess(result, "docker run postgres");
 
     await waitForDatabase();
     runMigrations();
 
-    runDocker(
+    result = runDocker(
       [
         "run",
         "-d",
@@ -191,36 +226,26 @@ async function main() {
       ],
       { stdio: "inherit" }
     );
+    assertDockerSuccess(result, "docker run app");
 
     await waitForHealth();
     await waitForImportsPage();
     inspectImageFilesystem();
-    reportVerificationStatus("PASS", `docker:test-image completed for ${imageTag} on 127.0.0.1:${hostPort}.`);
-  } finally {
-    try {
-      runDocker(["rm", "-f", containerName], { stdio: "inherit" });
-    } catch {
-      // The container may already be gone when cleanup runs.
-    }
-
-    try {
-      runDocker(["rm", "-f", databaseContainerName], { stdio: "inherit" });
-    } catch {
-      // The database container may already be gone when cleanup runs.
-    }
-
-    try {
-      runDocker(["network", "rm", networkName], { stdio: "inherit" });
-    } catch {
-      // The disposable network may already be gone when cleanup runs.
-    }
-
-    try {
-      runDocker(["image", "rm", imageTag], { stdio: "inherit" });
-    } catch {
-      // Leave cleanup best-effort so earlier failures remain visible.
-    }
+  } catch (error) {
+    mainError = error;
   }
+
+  const cleanupReport = cleanup.cleanup(mainError ? "failed verification" : "successful verification");
+
+  if (mainError) {
+    throw mainError;
+  }
+
+  if (cleanupReport.failures.length > 0) {
+    throw new Error(formatCleanupFailures(cleanupReport.failures));
+  }
+
+  reportVerificationStatus("PASS", `docker:test-image completed for ${imageTag} on 127.0.0.1:${hostPort}.`);
 }
 
 main().catch((error) => {

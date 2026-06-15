@@ -34,6 +34,7 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(readme, /docs\/runtime\/container-image\.md/);
   assert.equal(packageJson.scripts["docker:test-image"], "tsx scripts/verify-docker-image.ts");
   assert.equal(packageJson.scripts["docker:test-backup-restore"], "tsx scripts/verify-compose-backup-restore.ts");
+  assert.equal(packageJson.scripts["cleanup:test-runtime"], "tsx scripts/cleanup-test-runtime.ts");
   assert.match(packageJson.scripts["prisma:migrate"], /--env-file=\.env\.local/);
   assert.match(packageJson.scripts["prisma:seed"], /--env-file=\.env\.local/);
   assert.match(packageJson.scripts["leads:import"], /--env-file=\.env\.local/);
@@ -47,6 +48,7 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(imageDoc, /free localhost port dynamically/i);
   assert.match(imageDoc, /unique image tag/i);
   assert.match(imageDoc, /reports `SKIPPED` explicitly/i);
+  assert.match(imageDoc, /cleanup:test-runtime/);
   assert.match(imageDoc, /node \.\/node_modules\/next\/dist\/bin\/next start/);
   assert.match(imageDoc, /Prisma CLI available/i);
   assert.match(imageDoc, /node \.\/node_modules\/tsx\/dist\/cli\.mjs/);
@@ -69,6 +71,10 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(dockerfile, /COPY --chown=node:node --from=builder \/app\/src \.\/src/);
   assert.match(dockerfile, /EXPOSE 3000/);
   assert.match(dockerfile, /CMD \["node", "\.\/node_modules\/next\/dist\/bin\/next", "start"\]/);
+  assert.match(verifierScript, /createCleanupController\("docker:test-image"\)/);
+  assert.match(verifierScript, /cleanup\.registerDockerImage\(imageTag\)/);
+  assert.match(verifierScript, /cleanup\.registerDockerContainer\(containerName\)/);
+  assert.match(verifierScript, /cleanup\.registerDockerNetwork\(networkName\)/);
   assert.match(verifierScript, /ensureDockerOrReportSkip\("docker:test-image"\)/);
   assert.match(verifierScript, /const imageTag = `clariobase-ai-crm:test-verify-\$\{runId\}`/);
   assert.match(verifierScript, /hostPort = await reserveFreePort\(\)/);
@@ -78,6 +84,7 @@ test("Docker image assets enforce the E014 image contract", () => {
 
   assert.match(dockerignore, /^\.env$/m);
   assert.match(dockerignore, /^!\.env\.example$/m);
+  assert.match(dockerignore, /^\.codex-tmp$/m);
   assert.match(dockerignore, /^src\/generated$/m);
   assert.match(dockerignore, /^data$/m);
   assert.match(dockerignore, /^ai_exchange$/m);

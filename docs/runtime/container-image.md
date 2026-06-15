@@ -5,7 +5,7 @@ document_type: build-guide
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-14
+last_updated: 2026-06-15
 related_epic: E014
 related_tasks:
   - E014.T002
@@ -111,7 +111,16 @@ corepack pnpm docker:test-image
 
 The command builds the image, reserves a free localhost port dynamically, starts a disposable container with a unique image tag for that run, waits for `/health` to return HTTP `200`, checks that generated Prisma artifacts exist inside the image, and verifies that `.env.local`, `data/ai-exchange/`, and `ai_exchange/` are not present in the image filesystem.
 The command also creates a disposable PostgreSQL 16 container, applies `prisma migrate deploy` from the CRM image with `node ./node_modules/prisma/build/index.js migrate deploy`, and confirms that the Prisma-backed `/imports` page returns HTTP `200`.
+Cleanup is idempotent, runs across success/failure/interrupt paths as far as the Node runtime permits, and remains scoped to the current run so it never targets the persistent operator stack `clariobase-crm`.
 If Docker is unavailable, the command reports `SKIPPED` explicitly instead of silently succeeding.
+
+For stale disposable leftovers from interrupted runs, use:
+
+```bash
+corepack pnpm cleanup:test-runtime
+```
+
+That cleanup command removes only approved disposable runtime resources plus approved disposable `.codex-tmp/` entries and must never touch the persistent operator stack `clariobase-crm`.
 
 ## Files intentionally excluded from the build context and image
 
