@@ -85,6 +85,8 @@ test("trusted preview ref validation rejects fork-style and pull-request refs", 
 test("preview workflows keep the requested SHA as source input while control scripts come from the trusted checkout", () => {
   const deployWorkflow = read(".github/workflows/deploy-preview.yml");
   const stopWorkflow = read(".github/workflows/stop-preview.yml");
+  const deployWrapper = read("scripts/deploy-preview.ps1");
+  const stopWrapper = read("scripts/stop-preview.ps1");
 
   assert.match(deployWorkflow, /Check out trusted workflow revision/);
   assert.match(deployWorkflow, /Check out requested source SHA/);
@@ -94,6 +96,9 @@ test("preview workflows keep the requested SHA as source input while control scr
   assert.match(deployWorkflow, /Resolved SHA:/);
   assert.match(stopWorkflow, /Stop preview/);
   assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
+  assert.match(deployWrapper, /ControlCheckoutPath/);
+  assert.match(deployWrapper, /SourceCheckoutPath/);
+  assert.match(stopWrapper, /ControlCheckoutPath/);
 });
 
 test("deploy preview dry-run validates the source checkout SHA independently from the control checkout", () => {

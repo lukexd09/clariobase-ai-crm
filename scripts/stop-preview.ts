@@ -10,7 +10,7 @@ import {
   assertSuccessfulCommand,
   getHeadSha,
   getRepoRoot,
-  runCommand,
+  runCommandWithEnv,
   validateResolvedSha
 } from "./preview-runtime-support";
 
@@ -75,7 +75,7 @@ async function main() {
   const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : ".";
   const resolvedSha = validateResolvedSha(getHeadSha(controlCheckoutPath), options.resolvedSha);
   const repoRoot = getRepoRoot();
-  const stopPlan = buildStopPlan(path.join(repoRoot, ".env.compose.preview.example"));
+  const stopPlan = buildStopPlan(path.join(repoRoot, ".env.compose.preview.stop.example"));
   const summary = createPreviewSummary(options.requestedRef, resolvedSha);
 
   if (options.dryRun) {
@@ -96,7 +96,9 @@ async function main() {
     return;
   }
 
-  const result = runCommand("docker", stopPlan.down);
+  const result = runCommandWithEnv("docker", stopPlan.down, {
+    CRM_BUILD_CONTEXT: controlCheckoutPath
+  });
   assertSuccessfulCommand(result, "docker compose down -v --remove-orphans");
 
   console.log(

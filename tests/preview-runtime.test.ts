@@ -166,6 +166,96 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   assert.equal(summary.networkName, PREVIEW_NETWORK_NAME);
 });
 
+test("preview compose config uses the requested source checkout as the build context", { skip: !dockerAvailable }, () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "preview-source-build-context-");
+  const sourceCheckoutPath = path.join(tmpRoot, "source-checkout");
+  const previewEnvFilePath = path.join(tmpRoot, PREVIEW_ENV_FILE_NAME);
+
+  fs.mkdirSync(sourceCheckoutPath, { recursive: true });
+  fs.writeFileSync(
+    previewEnvFilePath,
+    [
+      "CRM_BIND_ADDRESS=0.0.0.0",
+      "CRM_HOST_PORT=3001",
+      "AI_EXCHANGE_HOST_PATH=./data/ai-exchange-preview",
+      "CRM_POSTGRES_DB=clariobase_crm_preview",
+      "CRM_POSTGRES_USER=clariobase_crm_preview_user",
+      "CRM_POSTGRES_PASSWORD=preview-password"
+    ].join("\n"),
+    "utf8"
+  );
+
+  try {
+    const result = spawnSync(
+      "docker",
+      [
+        ...buildDeployPlan(previewEnvFilePath).buildApp.slice(0, 8),
+        "compose.preview.yaml",
+        "config"
+      ],
+      {
+        cwd: repoRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CRM_BUILD_CONTEXT: sourceCheckoutPath
+        }
+      }
+    );
+
+    assert.equal(result.status, 0, `preview docker compose config should pass: ${result.stderr}`);
+    assert.match(result.stdout, new RegExp(`context:\\s*${sourceCheckoutPath.replace(/\\/g, "\\\\")}`));
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("secret-free stop preview config stays on preview-only resources", { skip: !dockerAvailable }, () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "preview-stop-config-");
+  const stopEnvFilePath = path.join(tmpRoot, ".env.compose.preview.stop.local");
+
+  fs.writeFileSync(
+    stopEnvFilePath,
+    [
+      "CRM_BIND_ADDRESS=0.0.0.0",
+      "CRM_HOST_PORT=3001",
+      "AI_EXCHANGE_HOST_PATH=./data/ai-exchange-preview",
+      "CRM_POSTGRES_DB=clariobase_crm_preview",
+      "CRM_POSTGRES_USER=clariobase_crm_preview_user",
+      "CRM_POSTGRES_PASSWORD=unused-for-stop",
+      "CRM_DATABASE_URL="
+    ].join("\n"),
+    "utf8"
+  );
+
+  try {
+    const result = spawnSync(
+      "docker",
+      [
+        ...buildStopPlan(stopEnvFilePath).down.slice(0, 8),
+        "compose.preview.yaml",
+        "config"
+      ],
+      {
+        cwd: repoRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CRM_BUILD_CONTEXT: repoRoot
+        }
+      }
+    );
+
+    assert.equal(result.status, 0, `secret-free stop compose config should pass: ${result.stderr}`);
+    assert.match(result.stdout, /clariobase-crm-preview-network/);
+    assert.match(result.stdout, /clariobase-crm-preview-postgres-data/);
+    assert.match(result.stdout, /unused-for-stop/);
+    assert.doesNotMatch(result.stdout, /Set_CRM_POSTGRES_PASSWORD/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
 test("preview compose config keeps the app on port 3001 and does not publish PostgreSQL", { skip: !dockerAvailable }, () => {
   const tmpRoot = createRepoTmpDir(repoRoot, "preview-compose-config-");
   const previewEnvFilePath = path.join(tmpRoot, PREVIEW_ENV_FILE_NAME);
@@ -193,7 +283,11 @@ test("preview compose config keeps the app on port 3001 and does not publish Pos
       ],
       {
         cwd: repoRoot,
-        encoding: "utf8"
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          CRM_BUILD_CONTEXT: repoRoot
+        }
       }
     );
 

@@ -15,6 +15,7 @@ export const PREVIEW_NETWORK_NAME = "clariobase-crm-preview-network";
 export const PROTECTED_ENV_FILE_NAME = ".env.compose.local";
 export const PREVIEW_ENV_FILE_NAME = ".env.compose.preview.local";
 export const PREVIEW_ENV_EXAMPLE_FILE = ".env.compose.preview.example";
+export const PREVIEW_STOP_ENV_EXAMPLE_FILE = ".env.compose.preview.stop.example";
 export const PROTECTED_AI_EXCHANGE_PATH = "./data/ai-exchange";
 export const PREVIEW_AI_EXCHANGE_PATH = "./data/ai-exchange-preview";
 export const PREVIEW_DATABASE_URL = "postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public";
