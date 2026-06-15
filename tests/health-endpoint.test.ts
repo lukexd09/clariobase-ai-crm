@@ -79,7 +79,11 @@ function buildProductionApp() {
 
   const result = spawnSync(process.execPath, [nextCli, "build"], {
     cwd: repoRoot,
-    encoding: "utf8"
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"
+    }
   });
 
   assert.equal(result.status, 0, `next build should pass: ${result.stderr ?? result.stdout}`);
