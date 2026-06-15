@@ -191,7 +191,7 @@ async function main() {
     await waitForHttpStatus(`${baseUrl}/imports`, 200);
 
     result = runComposeNodeScript("export-ai-leads.ts");
-    assert.equal(result.status, 0, "compose AI export command should pass");
+    assert.equal(result.status, 0, `compose AI export command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
     assert.match(result.stdout, /row count: 0/);
     assert.ok(
       fs.readdirSync(outboxDir).some((fileName) => /^clariobase_leads_export_.*\.json$/.test(fileName)),
@@ -199,17 +199,17 @@ async function main() {
     );
 
     result = runComposeNodeScript("validate-ai-import-file.ts", "./data/ai-exchange/inbox/prepared-leads.json");
-    assert.equal(result.status, 0, "compose AI validation command should pass");
+    assert.equal(result.status, 0, `compose AI validation command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 
     result = runComposeNodeScript("import-leads.ts", "./data/ai-exchange/inbox/prepared-leads.json");
-    assert.equal(result.status, 0, "compose lead import command should pass");
+    assert.equal(result.status, 0, `compose lead import command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
     assert.match(result.stdout, /created: 2/);
 
     result = runComposeNodeScript("detect-duplicates.ts");
-    assert.equal(result.status, 0, "compose duplicate detection command should pass");
+    assert.equal(result.status, 0, `compose duplicate detection command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 
     result = runComposeNodeScript("export-ai-leads.ts");
-    assert.equal(result.status, 0, "compose post-import export command should pass");
+    assert.equal(result.status, 0, `compose post-import export command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
     assert.match(result.stdout, /row count: 2/);
     assert.ok(
       fs.readdirSync(outboxDir).some((fileName) => /^clariobase_leads_export_.*\.json$/.test(fileName)),

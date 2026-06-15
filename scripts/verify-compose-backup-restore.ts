@@ -153,7 +153,7 @@ async function main() {
     assertDockerSuccess(result, "compose migration command");
 
     result = runComposeNodeScript("import-leads.ts", "./data/ai-exchange/inbox/prepared-leads.json");
-    assert.equal(result.status, 0, "compose lead import command should pass");
+    assert.equal(result.status, 0, `compose lead import command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
     assert.match(result.stdout, /created: 2/);
 
     const initialSnapshot = queryLeadSnapshot();
@@ -191,7 +191,7 @@ async function main() {
     assert.deepEqual(queryLeadSnapshot(), initialSnapshot);
 
     result = runComposeNodeScript("export-ai-leads.ts");
-    assert.equal(result.status, 0, "compose export after restore should pass");
+    assert.equal(result.status, 0, `compose export after restore should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
     assert.match(result.stdout, /row count: 2/);
   } catch (error) {
     mainError = error;
