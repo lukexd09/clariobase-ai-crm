@@ -11,6 +11,8 @@ param(
   [switch]$DryRun
 )
 
+$MinimumRunnerVersion = [version]"2.327.1"
+
 function Resolve-NormalizedPath {
   param([string]$PathValue)
 
@@ -47,6 +49,26 @@ if (-not $DryRun) {
   docker info | Out-Null
 }
 
+$runnerListener = Join-Path $RunnerRoot "bin\Runner.Listener.exe"
+$runnerVersion = [version]"0.0.0"
+
+if (Test-Path $runnerListener) {
+  $runnerVersionInfo = (Get-Item $runnerListener).VersionInfo
+  $runnerVersionText = $runnerVersionInfo.FileVersion
+
+  if (-not $runnerVersionText) {
+    $runnerVersionText = $runnerVersionInfo.ProductVersion
+  }
+
+  if ($runnerVersionText) {
+    $runnerVersion = [version]($runnerVersionText.Split('+')[0])
+  }
+}
+
+if ($runnerVersion -lt $MinimumRunnerVersion) {
+  throw "GitHub Actions runner version $runnerVersion is too old. Minimum supported version for Node.js 24-compatible actions is $MinimumRunnerVersion."
+}
+
 $result = [ordered]@{
   status = "PASS"
   runnerRoot = (Resolve-NormalizedPath $RunnerRoot)
@@ -55,6 +77,8 @@ $result = [ordered]@{
   dockerVersion = $dockerVersion
   gitVersion = $gitVersion
   nodeVersion = $nodeVersion
+  runnerVersion = $runnerVersion.ToString()
+  minimumRunnerVersion = $MinimumRunnerVersion.ToString()
   dryRun = [bool]$DryRun
 }
 

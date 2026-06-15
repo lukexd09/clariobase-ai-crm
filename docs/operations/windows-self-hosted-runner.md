@@ -58,6 +58,8 @@ The runner root and work directories must stay outside the protected production 
 
 ## Preflight
 
+Minimum supported version for the Node.js 24-compatible `actions/checkout@v5` and `actions/setup-node@v5` releases is `v2.327.1` or newer, per the official release notes.
+
 Before registration, run:
 
 ```powershell
@@ -72,7 +74,10 @@ Preflight checks:
 - runner root and work directories are distinct from production;
 - `docker`, `git`, and `node` are callable;
 - Docker engine responds locally;
+- the runner version is at least `v2.327.1`;
 - the proposed workspace separation is explicit and reviewable.
+
+To inspect the installed runner version on Windows, read the `FileVersion` or `ProductVersion` metadata from `C:\actions-runners\clariobase-preview\bin\Runner.Listener.exe`, or rerun the preflight script and inspect the emitted `runnerVersion` field.
 
 ## Registration
 
@@ -110,6 +115,7 @@ Expected behavior:
 
 - the Windows service should start automatically after host restart;
 - the runner should reconnect with the same labels and work path;
+- if the runner self-updated, rerun the preflight script to confirm the minimum supported version still holds;
 - if that startup behavior is not yet verified before merge, it remains an explicit post-merge manual gate instead of an automated `PASS`.
 
 ## Daily operator checklist

@@ -27,6 +27,9 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
 
   assert.match(ciWorkflow, /pull_request:/);
   assert.match(ciWorkflow, /contents: read/);
+  assert.match(ciWorkflow, /actions\/checkout@v5/);
+  assert.match(ciWorkflow, /actions\/setup-node@v5/);
+  assert.match(ciWorkflow, /node-version: 22/);
   assert.match(ciWorkflow, /corepack pnpm install --frozen-lockfile/);
   assert.match(ciWorkflow, /corepack pnpm prisma:validate/);
   assert.match(ciWorkflow, /corepack pnpm prisma:generate/);
@@ -38,6 +41,9 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /workflow_dispatch:/);
   assert.match(deployWorkflow, /requested_ref:/);
   assert.match(deployWorkflow, /contents: read/);
+  assert.match(deployWorkflow, /actions\/checkout@v5/);
+  assert.match(deployWorkflow, /actions\/setup-node@v5/);
+  assert.match(deployWorkflow, /node-version: 22/);
   assert.match(deployWorkflow, /group: clariobase-manual-preview-slot/);
   assert.match(deployWorkflow, /ref: main/);
   assert.match(deployWorkflow, /path: control/);
@@ -53,6 +59,9 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
 
   assert.match(stopWorkflow, /workflow_dispatch:/);
   assert.match(stopWorkflow, /group: clariobase-manual-preview-slot/);
+  assert.match(stopWorkflow, /actions\/checkout@v5/);
+  assert.match(stopWorkflow, /actions\/setup-node@v5/);
+  assert.match(stopWorkflow, /node-version: 22/);
   assert.match(stopWorkflow, /ref: main/);
   assert.match(stopWorkflow, /path: control/);
   assert.match(stopWorkflow, /persist-credentials: false/);
@@ -60,16 +69,22 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
   assert.match(stopWorkflow, /if: always\(\)/);
   assert.doesNotMatch(stopWorkflow, /pull_request_target/);
+  assert.doesNotMatch(`${ciWorkflow}\n${deployWorkflow}\n${stopWorkflow}`, /actions\/(checkout|setup-node)@v4/);
 
   assert.match(runnerDoc, /document_id: DOC-E016-WINDOWS-RUNNER/);
   assert.match(runnerDoc, /C:\\actions-runners\\clariobase-preview/);
   assert.match(runnerDoc, /C:\\actions-work\\clariobase-preview/);
   assert.match(runnerDoc, /clariobase-preview/);
   assert.match(runnerDoc, /short-lived repository-scoped registration token/i);
+  assert.match(runnerDoc, /minimum supported version/i);
+  assert.match(runnerDoc, /2\.327\.1/);
+  assert.match(runnerDoc, /VersionInfo|FileVersion|Runner\.Listener\.exe/i);
   assert.match(runnerDoc, /start automatically after host restart/i);
   assert.match(runnerDoc, /explicit post-merge manual gate/i);
   assert.match(preflightScript, /must stay outside the protected production checkout path/);
   assert.match(preflightScript, /docker version/);
+  assert.match(preflightScript, /MinimumRunnerVersion/);
+  assert.match(preflightScript, /runnerVersion/);
 });
 
 test("trusted preview ref validation rejects fork-style and pull-request refs", () => {

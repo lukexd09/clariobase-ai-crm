@@ -24,14 +24,14 @@ jobs:
 
     steps:
       - name: Check out trusted workflow revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: main
           fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Check out trusted control checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: main
           path: control
@@ -68,7 +68,7 @@ jobs:
           persist-credentials: false
 
       - name: Check out requested source SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.resolve-preview-ref.outputs.resolved_sha }}
           path: source
@@ -76,7 +76,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
