@@ -2,13 +2,42 @@ root_work_item: E016
 profile: STRICT
 budget_mode: PROXY
 base_sha: c230d3800114c57afc9a5911a334b7a2f19f3172
-verified_implementation_sha: ba6156a9c62433cc46b95e9fd0933e729d891536
+verified_implementation_sha: 1a358e0877afc91aff7dc7bc5657b74b521db69b
 aggregate:
   agents_started: 0
   review_gates: 4
-  correction_cycles: 3
+  correction_cycles: 4
   full_suite_runs: 1
 main_cost_driver: final integrated verification on Docker-backed runtime checks
+final_pr_head_sha: 1a358e0877afc91aff7dc7bc5657b74b521db69b
+final_ci_run_id: 27563872215
+final_ci_conclusion: success
+model_usage:
+  - phase: implementation
+    tier: routine
+    model: unknown
+    reasoning: unknown
+    delegated: unknown
+    duration_seconds: unknown
+    rework_trigger: compose build context and secret-free stop contract drift
+    result: fixed source-aware preview compose and stop contracts
+  - phase: review
+    tier: strong
+    model: unknown
+    reasoning: unknown
+    delegated: unknown
+    duration_seconds: unknown
+    rework_trigger: final delta review of build context, stop cleanup, and SHA alignment
+    result: exact-head CI passed on the final PR head
+cost_telemetry:
+  launch_prompt_mode: STRICT
+  launch_prompt_lines: unknown
+  premium_model_phases: unknown
+  routine_model_phases: unknown
+  ci_runs: 1
+  correction_cycles: 4
+  duplicated_work_detected: false
+  main_cost_driver: final integrated verification on Docker-backed runtime checks
 completed_slices:
   - E016.T001
   - E016.T002
