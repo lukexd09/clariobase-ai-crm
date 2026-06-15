@@ -314,6 +314,20 @@ export function getCurrentHeadSha() {
   return result.stdout.trim();
 }
 
+export function getHeadSha(checkoutPath: string) {
+  const result = spawnSync("git", ["rev-parse", "HEAD"], {
+    cwd: path.resolve(checkoutPath),
+    encoding: "utf8",
+    stdio: "pipe"
+  });
+
+  if (result.status !== 0) {
+    throw new Error(`Could not resolve HEAD SHA for ${checkoutPath}: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+  }
+
+  return result.stdout.trim();
+}
+
 export function assertSuccessfulCommand(
   result: SpawnSyncReturns<string>,
   description: string

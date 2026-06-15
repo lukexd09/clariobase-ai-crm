@@ -8,7 +8,8 @@ import {
   PREVIEW_VOLUME_NAME,
   assertRequestedRef,
   assertSuccessfulCommand,
-  getCurrentHeadSha,
+  getHeadSha,
+  getRepoRoot,
   runCommand,
   validateResolvedSha
 } from "./preview-runtime-support";
@@ -71,9 +72,10 @@ async function main() {
 
   assertRequestedRef(options.requestedRef);
 
-  const currentHeadSha = getCurrentHeadSha();
-  const resolvedSha = validateResolvedSha(currentHeadSha, options.resolvedSha);
-  const stopPlan = buildStopPlan(options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : ".");
+  const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : ".";
+  const resolvedSha = validateResolvedSha(getHeadSha(controlCheckoutPath), options.resolvedSha);
+  const repoRoot = getRepoRoot();
+  const stopPlan = buildStopPlan(path.join(repoRoot, ".env.compose.preview.example"));
   const summary = createPreviewSummary(options.requestedRef, resolvedSha);
 
   if (options.dryRun) {
@@ -82,6 +84,7 @@ async function main() {
         {
           mode: "dry-run",
           summary,
+          controlCheckoutPath,
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
           stopPlan

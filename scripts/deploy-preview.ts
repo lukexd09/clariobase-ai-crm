@@ -8,7 +8,7 @@ import {
   assertSuccessfulCommand,
   buildDeployPlan,
   createPreviewSummary,
-  getCurrentHeadSha,
+  getHeadSha,
   loadPreviewEnv,
   PREVIEW_NETWORK_NAME,
   PREVIEW_VOLUME_NAME,
@@ -128,12 +128,13 @@ async function main() {
   assertRequestedRef(options.requestedRef);
 
   const runtimeConfig = loadPreviewEnv(options.previewEnvFile);
-  const currentHeadSha = getCurrentHeadSha();
-  const resolvedSha = validateResolvedSha(currentHeadSha, options.resolvedSha);
-  const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath);
-  const summary = createPreviewSummary(options.requestedRef, resolvedSha);
   const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : path.dirname(runtimeConfig.previewEnvFilePath);
   const sourceCheckoutPath = options.sourceCheckoutPath ? path.resolve(options.sourceCheckoutPath) : controlCheckoutPath;
+  const controlHeadSha = getHeadSha(controlCheckoutPath);
+  const sourceHeadSha = getHeadSha(sourceCheckoutPath);
+  const resolvedSha = validateResolvedSha(sourceHeadSha, options.resolvedSha);
+  const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath);
+  const summary = createPreviewSummary(options.requestedRef, resolvedSha);
 
   fs.mkdirSync(runtimeConfig.previewAiExchangeAbsolutePath, { recursive: true });
 
@@ -149,6 +150,8 @@ async function main() {
           sourceCheckoutPath,
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
+          controlHeadSha,
+          sourceHeadSha,
           deployPlan
         },
         null,

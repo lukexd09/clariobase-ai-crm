@@ -4,6 +4,10 @@ param(
 
   [string]$ResolvedSha,
 
+  [string]$ControlCheckoutPath = ".",
+
+  [string]$SourceCheckoutPath,
+
   [string]$PreviewEnvFile = ".env.compose.preview.local",
 
   [int]$TimeoutSeconds = 180,
@@ -16,11 +20,17 @@ $args = @(
   "scripts/deploy-preview.ts",
   "--requested-ref",
   $RequestedRef,
+  "--control-checkout-path",
+  $ControlCheckoutPath,
   "--preview-env-file",
   $PreviewEnvFile,
   "--timeout-seconds",
   $TimeoutSeconds
 )
+
+if ($SourceCheckoutPath) {
+  $args += @("--source-checkout-path", $SourceCheckoutPath)
+}
 
 if ($ResolvedSha) {
   $args += @("--resolved-sha", $ResolvedSha)

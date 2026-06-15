@@ -3,7 +3,7 @@ param(
 
   [string]$ResolvedSha,
 
-  [string]$PreviewEnvFile = ".env.compose.preview.local",
+  [string]$ControlCheckoutPath = ".",
 
   [switch]$DryRun
 )
@@ -13,8 +13,8 @@ $args = @(
   "scripts/stop-preview.ts",
   "--requested-ref",
   $RequestedRef,
-  "--preview-env-file",
-  $PreviewEnvFile
+  "--control-checkout-path",
+  $ControlCheckoutPath
 )
 
 if ($ResolvedSha) {
