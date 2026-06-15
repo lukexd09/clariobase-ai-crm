@@ -19,17 +19,21 @@ function hasDocker() {
   return result.status === 0;
 }
 
+const dockerAvailable = hasDocker();
+
 test("Docker image assets enforce the E014 image contract", () => {
   const dockerfile = read("Dockerfile");
   const dockerignore = read(".dockerignore");
   const imageDoc = read("docs/runtime/container-image.md");
   const readme = read("README.md");
+  const verifierScript = read("scripts/verify-docker-image.ts");
   const packageJson = JSON.parse(read("package.json")) as {
     scripts: Record<string, string>;
   };
 
   assert.match(readme, /docs\/runtime\/container-image\.md/);
   assert.equal(packageJson.scripts["docker:test-image"], "tsx scripts/verify-docker-image.ts");
+  assert.equal(packageJson.scripts["docker:test-backup-restore"], "tsx scripts/verify-compose-backup-restore.ts");
   assert.match(packageJson.scripts["prisma:migrate"], /--env-file=\.env\.local/);
   assert.match(packageJson.scripts["prisma:seed"], /--env-file=\.env\.local/);
   assert.match(packageJson.scripts["leads:import"], /--env-file=\.env\.local/);
@@ -40,6 +44,9 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(imageDoc, /document_id: DOC-E014-CONTAINER-IMAGE/);
   assert.match(imageDoc, /docker build -t clariobase-ai-crm:local \./);
   assert.match(imageDoc, /corepack pnpm docker:test-image/);
+  assert.match(imageDoc, /free localhost port dynamically/i);
+  assert.match(imageDoc, /unique image tag/i);
+  assert.match(imageDoc, /reports `SKIPPED` explicitly/i);
   assert.match(imageDoc, /node \.\/node_modules\/next\/dist\/bin\/next start/);
   assert.match(imageDoc, /Prisma CLI available/i);
   assert.match(imageDoc, /node \.\/node_modules\/tsx\/dist\/cli\.mjs/);
@@ -62,6 +69,12 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(dockerfile, /COPY --chown=node:node --from=builder \/app\/src \.\/src/);
   assert.match(dockerfile, /EXPOSE 3000/);
   assert.match(dockerfile, /CMD \["node", "\.\/node_modules\/next\/dist\/bin\/next", "start"\]/);
+  assert.match(verifierScript, /ensureDockerOrReportSkip\("docker:test-image"\)/);
+  assert.match(verifierScript, /const imageTag = `clariobase-ai-crm:test-verify-\$\{runId\}`/);
+  assert.match(verifierScript, /hostPort = await reserveFreePort\(\)/);
+  assert.match(verifierScript, /reportVerificationStatus\("PASS", `docker:test-image completed/);
+  assert.doesNotMatch(verifierScript, /const hostPort = "3015"/);
+  assert.doesNotMatch(verifierScript, /clariobase-ai-crm:test-verify";/);
 
   assert.match(dockerignore, /^\.env$/m);
   assert.match(dockerignore, /^!\.env\.example$/m);
@@ -73,11 +86,7 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(dockerignore, /^tests$/m);
 });
 
-test("Docker image verification script builds and smoke-tests the image when Docker is available", () => {
-  if (!hasDocker()) {
-    return;
-  }
-
+test("Docker image verification script builds and smoke-tests the image when Docker is available", { skip: !dockerAvailable }, () => {
   const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
   const result = spawnSync(process.execPath, [tsxCli, "scripts/verify-docker-image.ts"], {
     cwd: repoRoot,

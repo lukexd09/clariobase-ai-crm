@@ -219,6 +219,12 @@ The canonical repository-level runtime verification command is:
 corepack pnpm docker:test-runtime
 ```
 
+The canonical repository-level logical backup and restore rehearsal command is:
+
+```bash
+corepack pnpm docker:test-backup-restore
+```
+
 The verification command must cover:
 
 - the approved first-run migration sequence;
@@ -226,6 +232,14 @@ The verification command must cover:
 - `/api/ready` failure behavior when the CRM database becomes unavailable;
 - restart recovery and persistence on isolated disposable test resources;
 - the containerized AI exchange workflow against a bind-mounted host path.
+
+The backup and restore rehearsal command must cover:
+
+- creating disposable CRM test data;
+- taking a logical PostgreSQL backup from `crm-postgres`;
+- mutating or deleting the disposable CRM data;
+- restoring the logical backup into a reset disposable CRM database;
+- confirming the original CRM data is recovered correctly.
 
 ## Build and image contract
 

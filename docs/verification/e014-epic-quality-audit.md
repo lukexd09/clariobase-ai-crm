@@ -5,7 +5,7 @@ document_type: verification-report
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-14
+last_updated: 2026-06-15
 related_epic: E014
 related_tasks:
   - E014.T001
@@ -39,14 +39,13 @@ tags:
 
 Result: `PASS`
 
-This result applies to the `E014.T006` Epic Quality Audit gate.
-It does not claim that every later epic-closing step is already complete.
+This document reflects the final verified E014 state after the Epic Quality Audit, the final whole-epic review, and Draft PR creation.
 
 Audit target:
 
 - epic branch baseline integrated through `epic/e014-containerized-runtime`
 - audit corrections branch: `fix/e014-epic-quality-gaps`
-- audit date: `2026-06-14`
+- audit date: `2026-06-15`
 
 Independent correction loop:
 
@@ -69,7 +68,7 @@ This audit covers the integrated E014 deliverable after T001 through T005:
 
 ## Integrated verification evidence
 
-Fresh verification executed on `2026-06-14`:
+Fresh verification executed on `2026-06-15`:
 
 | Command | Result | Evidence summary |
 | --- | --- | --- |
@@ -78,17 +77,23 @@ Fresh verification executed on `2026-06-14`:
 | `corepack pnpm exec next dev --hostname 127.0.0.1 --port 3011` | PASS | Development server started locally and `http://127.0.0.1:3011/health` returned HTTP `200`. |
 | `corepack pnpm lint` | PASS | ESLint completed with no reported violations. |
 | `corepack pnpm build` | PASS | Next.js production build completed successfully, including `/api/ready`. |
-| `corepack pnpm test` | PASS | `51` tests passed, `0` failed. |
+| `corepack pnpm docker:test-image` | PASS | Disposable image verification completed with a unique image tag and dynamically reserved localhost port. |
+| `corepack pnpm docker:test-runtime` | PASS | Disposable Compose runtime verification completed for readiness, failure path, restart, persistence, and AI exchange workflow. |
+| `corepack pnpm docker:test-backup-restore` | PASS | Disposable logical backup, mutation, restore, and data-recovery rehearsal completed successfully. |
+| `corepack pnpm test` | PASS | `53` tests passed, `0` failed, `0` skipped. |
 
 Integrated test evidence from `corepack pnpm test` included:
 
 - `tests/docker-image.test.ts`
   - verifies Dockerfile/image contract
+  - verifies isolated dynamic port and unique image-tag behavior in the image verifier
   - builds and smoke-tests the production image from a clean context
 - `tests/compose-runtime.test.ts`
   - verifies Compose topology and config contract
   - verifies explicit `CRM_DATABASE_URL` override support
   - executes the isolated runtime verifier
+- `tests/compose-backup-restore.test.ts`
+  - verifies the isolated logical backup and restore rehearsal
 - `tests/runtime-readiness.test.ts`
   - verifies `200` readiness on successful CRM database probe
   - verifies `503` readiness without leaking sensitive details on failure
@@ -104,6 +109,7 @@ Coverage assessment:
 - positive paths are covered for image build, Compose config, startup, migrations, readiness success, AI exchange CLI flow, restart, and persistence;
 - negative paths are covered for pre-migration readiness failure and database-unavailable readiness failure;
 - regression checks are meaningful because they assert exact topology, health endpoint semantics, runtime variable names, and documentation references;
+- Docker-dependent automated tests are explicitly marked `SKIPPED` when Docker is unavailable instead of silently reporting success;
 - isolated runtime verification uses disposable Docker resources and a temporary AI exchange path instead of operator runtime data;
 - no real lead data, harvester database access, or live AI API access is required by the E014 verification suite.
 
@@ -111,6 +117,8 @@ Why the suite would catch likely regressions:
 
 - removing Prisma generation from the image build would fail `tests/docker-image.test.ts`;
 - changing service count, variable names, or `CRM_DATABASE_URL` override behavior would fail `tests/compose-runtime.test.ts`;
+- reverting the isolated image verifier to a shared port or shared image tag would fail `tests/docker-image.test.ts`;
+- breaking the documented logical backup and restore flow would fail `tests/compose-backup-restore.test.ts`;
 - weakening readiness semantics to raw process liveness would fail `tests/runtime-readiness.test.ts` and the isolated runtime verifier;
 - drifting README or canonical E014 docs would fail `tests/docs-sanity.test.ts`.
 
@@ -193,8 +201,8 @@ This evidence comes from the repository-level commands already wired into the te
 | Future server-level orchestration is documented without premature coupling | PASS | `docs/architecture/container-orchestration.md` |
 | Canonical documentation is accurate, self-contained and RAG-ready | PASS | docs audit above plus `tests/docs-sanity.test.ts` |
 | Independent task reviews are complete and this Epic Quality Audit passes | PASS | task reviews for T001-T005 passed; this audit records final `PASS` after a correction loop |
-| Final whole-epic review passes | PENDING | the final whole-epic review remains the next required gate after this audit and before draft PR creation |
-| One final Draft PR exists from `epic/e014-containerized-runtime` to `main` | PENDING | draft PR creation is a later epic step and is not created by this audit report itself |
+| Final whole-epic review passes | PASS | independent whole-epic review against `main` passed on `2026-06-15` and confirmed architecture, Docker/Compose safety, database separation, readiness semantics, test coverage, documentation accuracy, and PR readiness |
+| One final Draft PR exists from `epic/e014-containerized-runtime` to `main` | PASS | Draft PR [#67](https://github.com/lukexd09/clariobase-ai-crm/pull/67) exists and remains in Draft state |
 | Codex does not merge the final PR or close issues | IN FORCE | no final PR has been merged by Codex during E014 work, and the epic plus child issues remain open by contract |
 
 ## Residual risk assessment
@@ -214,7 +222,7 @@ Residual-risk conclusion:
 
 ## Audit conclusion
 
-E014 passes the epic quality audit.
+E014 passes the epic quality audit and the post-audit final verification state remains consistent.
 
 The integrated branch contains:
 
@@ -224,4 +232,4 @@ The integrated branch contains:
 - isolated runtime verification with failure-path and restart coverage;
 - canonical runtime, operations, orchestration, ADR, and audit documentation that is discoverable and RAG-ready.
 
-The next required gate is the separate final whole-epic review before creating the draft PR from `epic/e014-containerized-runtime` to `main`.
+The current next step is human review of Draft PR [#67](https://github.com/lukexd09/clariobase-ai-crm/pull/67) while the PR remains in Draft state.

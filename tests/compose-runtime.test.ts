@@ -19,6 +19,8 @@ function hasDocker() {
   return result.status === 0;
 }
 
+const dockerAvailable = hasDocker();
+
 test("Compose runtime assets enforce the E014 local topology contract", () => {
   const composeFile = read("compose.yaml");
   const composeEnvExample = read(".env.compose.example");
@@ -62,11 +64,7 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
   assert.match(runtimeContract, /returns HTTP `503` when the configured CRM database is unavailable/i);
 });
 
-test("Compose config resolves the documented first-run env-file contract", () => {
-  if (!hasDocker()) {
-    return;
-  }
-
+test("Compose config resolves the documented first-run env-file contract", { skip: !dockerAvailable }, () => {
   const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-defaults-${process.pid}`);
   const envPath = path.join(tmpRoot, "compose.env");
 
@@ -103,11 +101,7 @@ test("Compose config resolves the documented first-run env-file contract", () =>
   }
 });
 
-test("Compose config accepts an explicit CRM_DATABASE_URL override for URI-encoded credentials", () => {
-  if (!hasDocker()) {
-    return;
-  }
-
+test("Compose config accepts an explicit CRM_DATABASE_URL override for URI-encoded credentials", { skip: !dockerAvailable }, () => {
   const tmpRoot = path.join(repoRoot, ".codex-tmp", `compose-runtime-config-${process.pid}`);
   const envPath = path.join(tmpRoot, "compose.env");
 
@@ -142,11 +136,7 @@ test("Compose config accepts an explicit CRM_DATABASE_URL override for URI-encod
   }
 });
 
-test("Compose runtime verification covers readiness, failure path and restart behavior", () => {
-  if (!hasDocker()) {
-    return;
-  }
-
+test("Compose runtime verification covers readiness, failure path and restart behavior", { skip: !dockerAvailable }, () => {
   const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
   const result = spawnSync(process.execPath, [tsxCli, "scripts/verify-compose-runtime.ts"], {
     cwd: repoRoot,

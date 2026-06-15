@@ -28,6 +28,9 @@ test("README documents the current post-UI CRM state and scripts", () => {
     "start",
     "lint",
     "test",
+    "docker:test-image",
+    "docker:test-runtime",
+    "docker:test-backup-restore",
     "prisma:generate",
     "prisma:validate",
     "prisma:migrate",
@@ -103,6 +106,7 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(runtimeContract, /\/api\/ready/);
   assert.match(runtimeContract, /returns HTTP `200` only when the CRM application can execute a lightweight query/i);
   assert.match(runtimeContract, /returns HTTP `503` when the configured CRM database is unavailable/i);
+  assert.match(runtimeContract, /corepack pnpm docker:test-backup-restore/);
   assert.match(runtimeContract, /Current repository baseline before E014 implementation/);
   assert.match(runtimeContract, /Approved first-run migration sequence/);
   assert.match(runtimeContract, /one-off operator-invoked `prisma migrate deploy` step/i);
@@ -120,6 +124,7 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(operationsRunbook, /docker compose --env-file \.env\.compose\.local up -d crm-postgres/);
   assert.match(operationsRunbook, /node \.\/node_modules\/prisma\/build\/index\.js migrate deploy/);
   assert.match(operationsRunbook, /corepack pnpm docker:test-runtime/);
+  assert.match(operationsRunbook, /corepack pnpm docker:test-backup-restore/);
   assert.match(operationsRunbook, /CRM_DATABASE_URL/);
   assert.match(operationsRunbook, /crm-postgres-data/);
   assert.match(operationsRunbook, /backup/i);
@@ -141,9 +146,14 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(auditReport, /RAG readiness audit/i);
   assert.match(auditReport, /Acceptance-criteria coverage matrix/i);
   assert.match(auditReport, /Residual risk assessment/i);
-  assert.match(auditReport, /final whole-epic review remains the next required gate/i);
-  assert.match(auditReport, /One final Draft PR exists from `epic\/e014-containerized-runtime` to `main`/i);
-  assert.match(auditReport, /draft PR creation is a later epic step/i);
+  assert.match(auditReport, /corepack pnpm docker:test-image/);
+  assert.match(auditReport, /corepack pnpm docker:test-runtime/);
+  assert.match(auditReport, /corepack pnpm docker:test-backup-restore/);
+  assert.match(auditReport, /\| Final whole-epic review passes \| PASS \|/);
+  assert.match(auditReport, /\| One final Draft PR exists from `epic\/e014-containerized-runtime` to `main` \| PASS \|/);
+  assert.match(auditReport, /Draft PR \[#67\]/);
   assert.match(auditReport, /Codex does not merge the final PR or close issues/i);
   assert.match(auditReport, /epic plus child issues remain open by contract/i);
+  assert.doesNotMatch(auditReport, /final whole-epic review remains the next required gate/i);
+  assert.doesNotMatch(auditReport, /draft PR creation is a later epic step/i);
 });
