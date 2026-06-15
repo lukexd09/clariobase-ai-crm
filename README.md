@@ -100,6 +100,7 @@ For the E014 containerized runtime foundation, also read:
 - `docs/operations/container-operations.md`
 - `docs/architecture/container-orchestration.md`
 - `docs/decisions/adr-e014-container-runtime.md`
+- `docs/verification/e014-epic-quality-audit.md`
 - `.env.compose.example` for the safe Compose variable contract template
 
 For a fresh repository-local Compose startup, use this sequence:
