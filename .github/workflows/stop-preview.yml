@@ -1,0 +1,68 @@
+name: Stop Preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clariobase-manual-preview-slot
+  cancel-in-progress: false
+
+jobs:
+  stop-preview:
+    runs-on:
+      - self-hosted
+      - windows
+      - x64
+      - clariobase-preview
+
+    steps:
+      - name: Check out trusted workflow revision
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        shell: pwsh
+        run: corepack enable
+
+      - name: Install dependencies
+        shell: pwsh
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Materialize preview env file
+        shell: pwsh
+        env:
+          CRM_PREVIEW_POSTGRES_PASSWORD: ${{ secrets.CRM_PREVIEW_POSTGRES_PASSWORD }}
+        run: |
+          if (-not $env:CRM_PREVIEW_POSTGRES_PASSWORD) {
+            throw "Missing required secret CRM_PREVIEW_POSTGRES_PASSWORD."
+          }
+
+          Copy-Item .env.compose.preview.example .env.compose.preview.local -Force
+          $content = Get-Content .env.compose.preview.local
+          $updated = $content -replace '^CRM_POSTGRES_PASSWORD=$', "CRM_POSTGRES_PASSWORD=$env:CRM_PREVIEW_POSTGRES_PASSWORD"
+          Set-Content .env.compose.preview.local $updated
+
+      - name: Stop preview
+        shell: pwsh
+        run: |
+          $resultPath = Join-Path $PWD "stop-preview-result.json"
+          powershell -ExecutionPolicy Bypass -File .\scripts\stop-preview.ps1 `
+            -RequestedRef stop-preview `
+            -PreviewEnvFile .\.env.compose.preview.local | Tee-Object -FilePath $resultPath
+
+      - name: Write job summary
+        shell: pwsh
+        run: |
+          @"
+          Result: PASS
+
+          Requested ref: `stop-preview`
+          Preview URL: `http://Serwer:3001`
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append

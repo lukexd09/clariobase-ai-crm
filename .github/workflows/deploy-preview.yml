@@ -1,0 +1,115 @@
+name: Deploy Preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      requested_ref:
+        description: Trusted repository branch, tag, or exact commit SHA to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clariobase-manual-preview-slot
+  cancel-in-progress: false
+
+jobs:
+  resolve-preview-ref:
+    runs-on: ubuntu-latest
+    outputs:
+      requested_ref: ${{ steps.resolve.outputs.requested_ref }}
+      resolved_sha: ${{ steps.resolve.outputs.resolved_sha }}
+
+    steps:
+      - name: Check out trusted workflow revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Resolve trusted preview ref
+        id: resolve
+        run: >
+          node ./node_modules/tsx/dist/cli.mjs scripts/resolve-preview-ref.ts
+          --requested-ref "${{ inputs.requested_ref }}"
+          --repository "${{ github.repository }}"
+
+  deploy-preview:
+    needs: resolve-preview-ref
+    runs-on:
+      - self-hosted
+      - windows
+      - x64
+      - clariobase-preview
+
+    steps:
+      - name: Check out resolved trusted SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-preview-ref.outputs.resolved_sha }}
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        shell: pwsh
+        run: corepack enable
+
+      - name: Install dependencies
+        shell: pwsh
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Materialize preview env file
+        shell: pwsh
+        env:
+          CRM_PREVIEW_POSTGRES_PASSWORD: ${{ secrets.CRM_PREVIEW_POSTGRES_PASSWORD }}
+        run: |
+          if (-not $env:CRM_PREVIEW_POSTGRES_PASSWORD) {
+            throw "Missing required secret CRM_PREVIEW_POSTGRES_PASSWORD."
+          }
+
+          Copy-Item .env.compose.preview.example .env.compose.preview.local -Force
+          $content = Get-Content .env.compose.preview.local
+          $updated = $content -replace '^CRM_POSTGRES_PASSWORD=$', "CRM_POSTGRES_PASSWORD=$env:CRM_PREVIEW_POSTGRES_PASSWORD"
+          Set-Content .env.compose.preview.local $updated
+
+      - name: Deploy preview
+        id: deploy
+        shell: pwsh
+        run: |
+          $resultPath = Join-Path $PWD "deploy-preview-result.json"
+          powershell -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
+            -RequestedRef "${{ needs.resolve-preview-ref.outputs.requested_ref }}" `
+            -ResolvedSha "${{ needs.resolve-preview-ref.outputs.resolved_sha }}" `
+            -PreviewEnvFile .\.env.compose.preview.local | Tee-Object -FilePath $resultPath
+
+          $result = Get-Content $resultPath -Raw | ConvertFrom-Json
+          "preview_url=$($result.previewUrl)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "resolved_sha=$($result.resolvedSha)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Write job summary
+        shell: pwsh
+        run: |
+          @"
+          Result: PASS
+
+          Requested ref: `${{ needs.resolve-preview-ref.outputs.requested_ref }}`
+          Resolved SHA: `${{ needs.resolve-preview-ref.outputs.resolved_sha }}`
+          Approved preview URL: `http://Serwer:3001`
+          Preview URL: `${{ steps.deploy.outputs.preview_url }}`
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
