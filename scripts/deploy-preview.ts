@@ -1,5 +1,6 @@
 import process from "node:process";
 import fs from "node:fs";
+import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import {
@@ -12,11 +13,14 @@ import {
   PREVIEW_NETWORK_NAME,
   PREVIEW_VOLUME_NAME,
   runCommand,
+  runCommandWithEnv,
   validateResolvedSha
 } from "./preview-runtime-support";
 
 type Options = {
   dryRun: boolean;
+  controlCheckoutPath: string | undefined;
+  sourceCheckoutPath: string | undefined;
   previewEnvFile: string | undefined;
   requestedRef: string;
   resolvedSha: string | undefined;
@@ -26,6 +30,8 @@ type Options = {
 function parseArgs(argv: string[]): Options {
   const parsed: Options = {
     dryRun: false,
+    controlCheckoutPath: undefined,
+    sourceCheckoutPath: undefined,
     previewEnvFile: undefined,
     requestedRef: "",
     resolvedSha: undefined,
@@ -42,6 +48,18 @@ function parseArgs(argv: string[]): Options {
 
     if (token === "--preview-env-file") {
       parsed.previewEnvFile = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (token === "--control-checkout-path") {
+      parsed.controlCheckoutPath = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (token === "--source-checkout-path") {
+      parsed.sourceCheckoutPath = argv[index + 1];
       index += 1;
       continue;
     }
@@ -114,6 +132,8 @@ async function main() {
   const resolvedSha = validateResolvedSha(currentHeadSha, options.resolvedSha);
   const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath);
   const summary = createPreviewSummary(options.requestedRef, resolvedSha);
+  const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : path.dirname(runtimeConfig.previewEnvFilePath);
+  const sourceCheckoutPath = options.sourceCheckoutPath ? path.resolve(options.sourceCheckoutPath) : controlCheckoutPath;
 
   fs.mkdirSync(runtimeConfig.previewAiExchangeAbsolutePath, { recursive: true });
 
@@ -125,6 +145,8 @@ async function main() {
           summary,
           previewEnvFilePath: runtimeConfig.previewEnvFilePath,
           previewAiExchangePath: runtimeConfig.previewAiExchangeAbsolutePath,
+          controlCheckoutPath,
+          sourceCheckoutPath,
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
           deployPlan
@@ -136,7 +158,9 @@ async function main() {
     return;
   }
 
-  let result = runCommand("docker", deployPlan.buildApp);
+  let result = runCommandWithEnv("docker", deployPlan.buildApp, {
+    CRM_BUILD_CONTEXT: sourceCheckoutPath
+  });
   assertSuccessfulCommand(result, "docker compose build crm-app");
 
   result = runCommand("docker", deployPlan.startDatabase);

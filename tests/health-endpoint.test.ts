@@ -7,6 +7,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { createCleanupController, reserveFreePort, terminateProcessTree } from "../scripts/docker-test-support";
+import { createRepoTmpDir } from "./test-helpers";
 
 const repoRoot = path.resolve(__dirname, "..");
 const nextCli = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
@@ -144,7 +145,7 @@ test("health endpoint is non-cacheable and returns a fresh timestamp on every re
 test("health endpoint cleanup controller reaps next start on SIGTERM interruption", { timeout: 180000 }, async () => {
   buildProductionApp();
 
-  const readinessFile = path.join(repoRoot, ".codex-tmp", `health-next-start-${Date.now()}.json`);
+  const readinessFile = path.join(createRepoTmpDir(repoRoot, "health-next-start-"), `health-next-start-${Date.now()}.json`);
   const fixture = path.join(repoRoot, "tests", "fixtures", "health-next-start-smoke.ts");
   const child = spawn(process.execPath, [path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), fixture, readinessFile], {
     cwd: repoRoot,

@@ -24,6 +24,8 @@ const backupDir = path.join(tmpRoot, "backups");
 const backupFilePath = path.join(backupDir, "clariobase_crm.sql");
 const cleanup = createCleanupController("docker:test-backup-restore");
 
+fs.mkdirSync(path.dirname(tmpRoot), { recursive: true });
+
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }

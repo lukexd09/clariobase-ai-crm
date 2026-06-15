@@ -24,6 +24,8 @@ const cleanup = createCleanupController("docker:test-runtime");
 let hostPort = "";
 let baseUrl = "";
 
+fs.mkdirSync(path.dirname(tmpRoot), { recursive: true });
+
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }

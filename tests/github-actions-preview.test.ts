@@ -36,17 +36,26 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /requested_ref:/);
   assert.match(deployWorkflow, /contents: read/);
   assert.match(deployWorkflow, /group: clariobase-manual-preview-slot/);
+  assert.match(deployWorkflow, /ref: main/);
+  assert.match(deployWorkflow, /path: control/);
+  assert.match(deployWorkflow, /path: source/);
+  assert.match(deployWorkflow, /persist-credentials: false/);
   assert.match(deployWorkflow, /scripts\/resolve-preview-ref\.ts/);
   assert.match(deployWorkflow, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
   assert.match(deployWorkflow, /clariobase-preview/);
   assert.match(deployWorkflow, /http:\/\/Serwer:3001/);
   assert.match(deployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
+  assert.match(deployWorkflow, /if: always\(\)/);
   assert.doesNotMatch(deployWorkflow, /pull_request_target/);
 
   assert.match(stopWorkflow, /workflow_dispatch:/);
   assert.match(stopWorkflow, /group: clariobase-manual-preview-slot/);
+  assert.match(stopWorkflow, /ref: main/);
+  assert.match(stopWorkflow, /path: control/);
+  assert.match(stopWorkflow, /persist-credentials: false/);
   assert.match(stopWorkflow, /scripts\\stop-preview\.ps1|scripts\/stop-preview\.ps1/);
-  assert.match(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
+  assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
+  assert.match(stopWorkflow, /if: always\(\)/);
   assert.doesNotMatch(stopWorkflow, /pull_request_target/);
 
   assert.match(runnerDoc, /document_id: DOC-E016-WINDOWS-RUNNER/);
@@ -68,4 +77,18 @@ test("trusted preview ref validation rejects fork-style and pull-request refs", 
   assert.throws(() => normalizeRequestedRef("refs/pull/1/head"), /not trusted preview deployment targets/i);
   assert.throws(() => normalizeRequestedRef("owner:branch"), /disallowed characters/i);
   assert.throws(() => assertTrustedRequestedRef("main", "someone-else/repo"), /may only run inside/i);
+});
+
+test("preview workflows keep the requested SHA as source input while control scripts come from the trusted checkout", () => {
+  const deployWorkflow = read(".github/workflows/deploy-preview.yml");
+  const stopWorkflow = read(".github/workflows/stop-preview.yml");
+
+  assert.match(deployWorkflow, /Check out trusted workflow revision/);
+  assert.match(deployWorkflow, /Check out requested source SHA/);
+  assert.match(deployWorkflow, /-ControlCheckoutPath \$PWD/);
+  assert.match(deployWorkflow, /-SourceCheckoutPath \(Join-Path \$PWD "\.\.\\source"\)/);
+  assert.match(deployWorkflow, /Requested ref:/);
+  assert.match(deployWorkflow, /Resolved SHA:/);
+  assert.match(stopWorkflow, /Stop preview/);
+  assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
 });

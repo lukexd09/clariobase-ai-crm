@@ -22,6 +22,7 @@ import {
   loadPreviewEnv,
   parseEnvFileContent
 } from "../scripts/preview-runtime-support";
+import { createRepoTmpDir } from "./test-helpers";
 
 const repoRoot = getRepoRoot();
 
@@ -71,7 +72,7 @@ test("preview runtime assets pin the approved preview identity", () => {
 });
 
 test("preview runtime support validates a safe preview env file", () => {
-  const tmpRoot = fs.mkdtempSync(path.join(repoRoot, ".codex-tmp", "preview-runtime-"));
+  const tmpRoot = createRepoTmpDir(repoRoot, "preview-runtime-");
   const previewEnvFilePath = path.join(tmpRoot, PREVIEW_ENV_FILE_NAME);
 
   fs.writeFileSync(
@@ -94,8 +95,10 @@ test("preview runtime support validates a safe preview env file", () => {
     assert.equal(config.env.CRM_BIND_ADDRESS, "0.0.0.0");
     assert.equal(config.env.CRM_HOST_PORT, PREVIEW_HOST_PORT);
     assert.equal(config.previewUrl, PREVIEW_URL);
+    assert.equal(config.env.AI_EXCHANGE_HOST_PATH, PREVIEW_AI_EXCHANGE_PATH);
+    assert.equal(config.env.CRM_DATABASE_URL, `postgresql://${PREVIEW_DB_USER}:preview-password@crm-postgres:5432/${PREVIEW_DB_NAME}?schema=public`);
+    assert.equal(config.previewAiExchangeAbsolutePath.replace(/\\/g, "/").endsWith("/data/ai-exchange-preview"), true);
     assert.match(config.previewLocalReadyUrl, /127\.0\.0\.1:3001\/api\/ready/);
-    assert.ok(config.previewAiExchangeAbsolutePath.endsWith("data\\ai-exchange-preview") || config.previewAiExchangeAbsolutePath.endsWith("data/ai-exchange-preview"));
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
@@ -115,7 +118,7 @@ test("preview runtime support rejects production collisions", () => {
 
   assert.equal(previewEnv.get("CRM_HOST_PORT"), "3000");
 
-  const tmpRoot = fs.mkdtempSync(path.join(repoRoot, ".codex-tmp", "preview-runtime-unsafe-"));
+  const tmpRoot = createRepoTmpDir(repoRoot, "preview-runtime-unsafe-");
   const previewEnvFilePath = path.join(tmpRoot, PREVIEW_ENV_FILE_NAME);
 
   fs.writeFileSync(
@@ -164,7 +167,7 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
 });
 
 test("preview compose config keeps the app on port 3001 and does not publish PostgreSQL", { skip: !dockerAvailable }, () => {
-  const tmpRoot = fs.mkdtempSync(path.join(repoRoot, ".codex-tmp", "preview-compose-config-"));
+  const tmpRoot = createRepoTmpDir(repoRoot, "preview-compose-config-");
   const previewEnvFilePath = path.join(tmpRoot, PREVIEW_ENV_FILE_NAME);
 
   fs.writeFileSync(

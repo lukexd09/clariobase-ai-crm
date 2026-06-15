@@ -26,7 +26,9 @@ jobs:
       - name: Check out trusted workflow revision
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -53,13 +55,25 @@ jobs:
       - windows
       - x64
       - clariobase-preview
+    environment: e016-preview-operator
+    if: github.actor == github.repository_owner
 
     steps:
-      - name: Check out resolved trusted SHA
+      - name: Check out trusted control checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out requested source SHA
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.resolve-preview-ref.outputs.resolved_sha }}
+          path: source
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -68,14 +82,17 @@ jobs:
 
       - name: Enable Corepack
         shell: pwsh
+        working-directory: control
         run: corepack enable
 
       - name: Install dependencies
         shell: pwsh
+        working-directory: control
         run: corepack pnpm install --frozen-lockfile
 
       - name: Materialize preview env file
         shell: pwsh
+        working-directory: control
         env:
           CRM_PREVIEW_POSTGRES_PASSWORD: ${{ secrets.CRM_PREVIEW_POSTGRES_PASSWORD }}
         run: |
@@ -91,11 +108,14 @@ jobs:
       - name: Deploy preview
         id: deploy
         shell: pwsh
+        working-directory: control
         run: |
           $resultPath = Join-Path $PWD "deploy-preview-result.json"
           powershell -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
             -RequestedRef "${{ needs.resolve-preview-ref.outputs.requested_ref }}" `
             -ResolvedSha "${{ needs.resolve-preview-ref.outputs.resolved_sha }}" `
+            -ControlCheckoutPath $PWD `
+            -SourceCheckoutPath (Join-Path $PWD "..\source") `
             -PreviewEnvFile .\.env.compose.preview.local | Tee-Object -FilePath $resultPath
 
           $result = Get-Content $resultPath -Raw | ConvertFrom-Json
@@ -104,6 +124,7 @@ jobs:
 
       - name: Write job summary
         shell: pwsh
+        working-directory: control
         run: |
           @"
           Result: PASS
@@ -113,3 +134,10 @@ jobs:
           Approved preview URL: `http://Serwer:3001`
           Preview URL: `${{ steps.deploy.outputs.preview_url }}`
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Cleanup secrets and job artifacts
+        if: always()
+        shell: pwsh
+        working-directory: control
+        run: |
+          Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue

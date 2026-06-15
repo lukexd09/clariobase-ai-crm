@@ -17,6 +17,7 @@ export const PREVIEW_ENV_FILE_NAME = ".env.compose.preview.local";
 export const PREVIEW_ENV_EXAMPLE_FILE = ".env.compose.preview.example";
 export const PROTECTED_AI_EXCHANGE_PATH = "./data/ai-exchange";
 export const PREVIEW_AI_EXCHANGE_PATH = "./data/ai-exchange-preview";
+export const PREVIEW_DATABASE_URL = "postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public";
 
 const repoRoot = path.resolve(__dirname, "..");
 const defaultPreviewEnvFilePath = path.join(repoRoot, PREVIEW_ENV_FILE_NAME);
@@ -38,6 +39,7 @@ export type PreviewRuntimeConfig = {
   previewAiExchangeAbsolutePath: string;
   previewLocalReadyUrl: string;
   previewUrl: string;
+  buildContextPath: string;
   env: PreviewEnv;
 };
 
@@ -107,12 +109,38 @@ function assertPreviewDatabaseUrl(databaseUrl: string) {
     return;
   }
 
-  if (/clariobase_crm(?!_preview)/i.test(databaseUrl)) {
-    throw new Error("CRM_DATABASE_URL must not reference the protected production database clariobase_crm.");
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(databaseUrl);
+  } catch {
+    throw new Error("CRM_DATABASE_URL must be a valid postgresql URL.");
   }
 
-  if (!/clariobase_crm_preview/i.test(databaseUrl)) {
-    throw new Error("CRM_DATABASE_URL must resolve to the preview database clariobase_crm_preview.");
+  if (parsedUrl.protocol !== "postgresql:") {
+    throw new Error("CRM_DATABASE_URL must use the postgresql protocol.");
+  }
+
+  if (parsedUrl.hostname !== "crm-postgres") {
+    throw new Error("CRM_DATABASE_URL must target the preview host crm-postgres.");
+  }
+
+  if (parsedUrl.port !== "5432") {
+    throw new Error("CRM_DATABASE_URL must target port 5432.");
+  }
+
+  if (parsedUrl.username !== PREVIEW_DB_USER) {
+    throw new Error(`CRM_DATABASE_URL must use the preview user ${PREVIEW_DB_USER}.`);
+  }
+
+  if (!parsedUrl.password) {
+    throw new Error("CRM_DATABASE_URL must include an encoded preview password.");
+  }
+
+  const databaseName = parsedUrl.pathname.replace(/^\//, "");
+
+  if (databaseName !== PREVIEW_DB_NAME) {
+    throw new Error(`CRM_DATABASE_URL must target the preview database ${PREVIEW_DB_NAME}.`);
   }
 }
 
@@ -153,6 +181,10 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
     throw new Error("Preview bind address must stay pinned to 0.0.0.0 for the approved LAN preview contract.");
   }
 
+  if (env.AI_EXCHANGE_HOST_PATH !== PREVIEW_AI_EXCHANGE_PATH) {
+    throw new Error(`Preview AI exchange path must stay pinned to ${PREVIEW_AI_EXCHANGE_PATH}.`);
+  }
+
   const previewAiExchangeAbsolutePath = path.resolve(repoRoot, env.AI_EXCHANGE_HOST_PATH);
 
   assertDistinctComparablePath(
@@ -167,6 +199,7 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
     previewAiExchangeAbsolutePath,
     previewLocalReadyUrl: `http://127.0.0.1:${PREVIEW_HOST_PORT}/api/ready`,
     previewUrl: PREVIEW_URL,
+    buildContextPath: path.resolve(process.env.CRM_BUILD_CONTEXT ?? repoRoot),
     env
   };
 }
@@ -256,6 +289,18 @@ export function runCommand(command: string, args: string[]) {
     cwd: repoRoot,
     encoding: "utf8",
     stdio: "pipe"
+  });
+}
+
+export function runCommandWithEnv(command: string, args: string[], extraEnv: Record<string, string>) {
+  return spawnSync(command, args, {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      ...extraEnv
+    }
   });
 }
 

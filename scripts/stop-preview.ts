@@ -1,4 +1,5 @@
 import process from "node:process";
+import path from "node:path";
 
 import {
   buildStopPlan,
@@ -8,14 +9,13 @@ import {
   assertRequestedRef,
   assertSuccessfulCommand,
   getCurrentHeadSha,
-  loadPreviewEnv,
   runCommand,
   validateResolvedSha
 } from "./preview-runtime-support";
 
 type Options = {
   dryRun: boolean;
-  previewEnvFile: string | undefined;
+  controlCheckoutPath: string | undefined;
   requestedRef: string;
   resolvedSha: string | undefined;
 };
@@ -23,7 +23,7 @@ type Options = {
 function parseArgs(argv: string[]): Options {
   const parsed: Options = {
     dryRun: false,
-    previewEnvFile: undefined,
+    controlCheckoutPath: undefined,
     requestedRef: "stop-preview",
     resolvedSha: undefined
   };
@@ -37,7 +37,13 @@ function parseArgs(argv: string[]): Options {
     }
 
     if (token === "--preview-env-file") {
-      parsed.previewEnvFile = argv[index + 1];
+      // Backward-compatible no-op: stop no longer needs a secret-bearing env file.
+      index += 1;
+      continue;
+    }
+
+    if (token === "--control-checkout-path") {
+      parsed.controlCheckoutPath = argv[index + 1];
       index += 1;
       continue;
     }
@@ -65,10 +71,9 @@ async function main() {
 
   assertRequestedRef(options.requestedRef);
 
-  const runtimeConfig = loadPreviewEnv(options.previewEnvFile);
   const currentHeadSha = getCurrentHeadSha();
   const resolvedSha = validateResolvedSha(currentHeadSha, options.resolvedSha);
-  const stopPlan = buildStopPlan(runtimeConfig.previewEnvFilePath);
+  const stopPlan = buildStopPlan(options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : ".");
   const summary = createPreviewSummary(options.requestedRef, resolvedSha);
 
   if (options.dryRun) {
@@ -77,7 +82,6 @@ async function main() {
         {
           mode: "dry-run",
           summary,
-          previewEnvFilePath: runtimeConfig.previewEnvFilePath,
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
           stopPlan

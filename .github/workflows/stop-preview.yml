@@ -17,10 +17,17 @@ jobs:
       - windows
       - x64
       - clariobase-preview
+    environment: e016-preview-operator
+    if: github.actor == github.repository_owner
 
     steps:
-      - name: Check out trusted workflow revision
+      - name: Check out trusted control checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -29,36 +36,26 @@ jobs:
 
       - name: Enable Corepack
         shell: pwsh
+        working-directory: control
         run: corepack enable
 
       - name: Install dependencies
         shell: pwsh
+        working-directory: control
         run: corepack pnpm install --frozen-lockfile
-
-      - name: Materialize preview env file
-        shell: pwsh
-        env:
-          CRM_PREVIEW_POSTGRES_PASSWORD: ${{ secrets.CRM_PREVIEW_POSTGRES_PASSWORD }}
-        run: |
-          if (-not $env:CRM_PREVIEW_POSTGRES_PASSWORD) {
-            throw "Missing required secret CRM_PREVIEW_POSTGRES_PASSWORD."
-          }
-
-          Copy-Item .env.compose.preview.example .env.compose.preview.local -Force
-          $content = Get-Content .env.compose.preview.local
-          $updated = $content -replace '^CRM_POSTGRES_PASSWORD=$', "CRM_POSTGRES_PASSWORD=$env:CRM_PREVIEW_POSTGRES_PASSWORD"
-          Set-Content .env.compose.preview.local $updated
 
       - name: Stop preview
         shell: pwsh
+        working-directory: control
         run: |
           $resultPath = Join-Path $PWD "stop-preview-result.json"
           powershell -ExecutionPolicy Bypass -File .\scripts\stop-preview.ps1 `
             -RequestedRef stop-preview `
-            -PreviewEnvFile .\.env.compose.preview.local | Tee-Object -FilePath $resultPath
+            -ControlCheckoutPath $PWD | Tee-Object -FilePath $resultPath
 
       - name: Write job summary
         shell: pwsh
+        working-directory: control
         run: |
           @"
           Result: PASS
@@ -66,3 +63,10 @@ jobs:
           Requested ref: `stop-preview`
           Preview URL: `http://Serwer:3001`
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Cleanup secrets and job artifacts
+        if: always()
+        shell: pwsh
+        working-directory: control
+        run: |
+          Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue
