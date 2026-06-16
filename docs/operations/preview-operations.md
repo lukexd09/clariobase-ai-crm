@@ -5,7 +5,7 @@ document_type: operations-runbook
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-15
+last_updated: 2026-06-16
 related_epic: E016
 related_tasks:
   - E016.T002
@@ -87,11 +87,14 @@ Deployment behavior:
 1. validate the preview env file and protected identifiers;
 2. resolve the current checkout SHA and compare it to the optional expected SHA;
 3. build the preview app image through `compose.yaml` plus `compose.preview.yaml`;
-4. start only the preview PostgreSQL service first;
-5. run `prisma migrate deploy` only against the preview database;
-6. start the preview app service;
-7. wait for `http://127.0.0.1:3001/api/ready`;
-8. report requested ref, resolved SHA, preview URL, project name, volume, and network.
+4. remove any existing `clariobase-crm-preview` stack and its preview database volume;
+5. start a fresh preview PostgreSQL service;
+6. run `prisma migrate deploy` only against the fresh preview database;
+7. start the preview app service from the requested ref;
+8. wait for `http://127.0.0.1:3001/api/ready`;
+9. report requested ref, resolved SHA, preview URL, project name, volume, and network.
+
+Each deployment replaces the single preview slot. Preview database contents are intentionally reset so that migrations and test data from a previously deployed branch cannot contaminate the next branch.
 
 ## Stop preview
 

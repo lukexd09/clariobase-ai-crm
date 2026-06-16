@@ -255,6 +255,10 @@ export function buildComposeArgs(previewEnvFilePath: string, composeArgs: string
 export function buildDeployPlan(previewEnvFilePath: string) {
   return {
     buildApp: buildComposeArgs(previewEnvFilePath, ["build", "crm-app"]),
+    replaceExistingPreview: buildComposeArgs(
+      previewEnvFilePath,
+      ["down", "-v", "--remove-orphans"]
+    ),
     startDatabase: buildComposeArgs(previewEnvFilePath, ["up", "-d", "crm-postgres"]),
     migrate: buildComposeArgs(previewEnvFilePath, [
       "run",
@@ -364,6 +368,7 @@ export function executeDeployPlanWithEnv(
 ) {
   const steps = [
     ["docker compose build crm-app", deployPlan.buildApp],
+    ["replace existing preview stack", deployPlan.replaceExistingPreview],
     ["docker compose up -d crm-postgres", deployPlan.startDatabase],
     ["preview prisma migrate deploy", deployPlan.migrate],
     ["docker compose up -d crm-app", deployPlan.startApplication]
