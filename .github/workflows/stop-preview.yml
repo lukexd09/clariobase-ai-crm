@@ -49,10 +49,15 @@ jobs:
         shell: pwsh
         working-directory: control
         run: |
-          $resultPath = Join-Path $PWD "stop-preview-result.json"
-          powershell -ExecutionPolicy Bypass -File .\scripts\stop-preview.ps1 `
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-preview.ps1 `
             -RequestedRef stop-preview `
-            -ControlCheckoutPath $PWD | Tee-Object -FilePath $resultPath
+            -ControlCheckoutPath $PWD
+
+          $stopExitCode = $LASTEXITCODE
+
+          if ($stopExitCode -ne 0) {
+            throw "Stop preview script failed with exit code $stopExitCode."
+          }
 
       - name: Write job summary
         shell: pwsh
