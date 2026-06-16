@@ -53,10 +53,14 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /persist-credentials: false/);
   assert.match(deployWorkflow, /scripts\/resolve-preview-ref\.ts/);
   assert.match(deployWorkflow, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
-  assert.match(deployWorkflow, /\$LASTEXITCODE -ne 0/);
-  assert.ok(
-    deployWorkflow.indexOf("$LASTEXITCODE -ne 0") < deployWorkflow.indexOf("ConvertFrom-Json"),
-    "deploy workflow should gate JSON parsing behind the exit-code check"
+  assert.match(deployWorkflow, /\$deployExitCode = \$LASTEXITCODE/);
+  assert.match(deployWorkflow, /if \(\$deployExitCode -ne 0\)/);
+  assert.doesNotMatch(deployWorkflow, /\$deployOutput\s*=/);
+  assert.doesNotMatch(deployWorkflow, /ConvertFrom-Json/);
+  assert.match(deployWorkflow, /preview_url=http:\/\/Serwer:3001/);
+  assert.match(
+    deployWorkflow,
+    /resolved_sha=\$\{\{ needs\.resolve-preview-ref\.outputs\.resolved_sha \}\}/
   );
   assert.match(deployWorkflow, /clariobase-preview/);
   assert.match(deployWorkflow, /http:\/\/Serwer:3001/);
@@ -74,6 +78,8 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(stopWorkflow, /path: control/);
   assert.match(stopWorkflow, /persist-credentials: false/);
   assert.match(stopWorkflow, /scripts\\stop-preview\.ps1|scripts\/stop-preview\.ps1/);
+  assert.match(stopWorkflow, /\$stopExitCode = \$LASTEXITCODE/);
+  assert.match(stopWorkflow, /if \(\$stopExitCode -ne 0\)/);
   assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
   assert.match(stopWorkflow, /if: always\(\)/);
   assert.doesNotMatch(stopWorkflow, /pull_request_target/);
