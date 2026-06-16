@@ -112,5 +112,5 @@ export function formatLeadResultSummary(
   const formatter = new Intl.NumberFormat("en-US");
   const noun = totalCount === 1 ? "lead" : "leads";
 
-  return `${formatter.format(rangeStart)}–${formatter.format(rangeEnd)} of ${formatter.format(totalCount)} ${noun}`;
+  return `${formatter.format(rangeStart)}-${formatter.format(rangeEnd)} of ${formatter.format(totalCount)} ${noun}`;
 }

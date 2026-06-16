@@ -1,5 +1,11 @@
 # E009.T006 light-screen proof
 
+Historical note:
+
+- This document is the task-level proof record for `E009.T006` only.
+- Final whole-epic closure evidence must live in `docs/verification/e009-epic-quality-audit.md`.
+- The route IDs and seeded QA examples below are historical execution evidence, not canonical rerun instructions for future heads.
+
 ## Scope
 
 This note records the exact base SHA, baseline state, and the required early proof for the

@@ -22,6 +22,8 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Accent: a single restrained blue or sky tone.
 - Typography: calm, readable, and slightly larger than dense admin UIs.
 - Radius: rounded cards and controls, not sharp dashboard blocks.
+- Primary CTA buttons should keep accessible white-on-blue contrast on every active state.
+- Current primary CTA contract: `bg-sky-700 text-white` with `hover:bg-sky-800`.
 
 ## Avoid
 
@@ -57,6 +59,7 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Secondary text must keep readable contrast against the background.
 - System and admin areas should remain visually secondary to business work.
 - Future UI PRs should include manual keyboard and contrast checks.
+- Do not use lighter primary CTA blues that weaken text contrast below the operational baseline.
 
 ## Future UI checklist
 

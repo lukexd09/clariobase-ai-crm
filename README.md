@@ -89,7 +89,7 @@ For the E007 lead detail operator workspace redesign, also read the binding Stit
 
 - `docs/design/stitch/operator-workspace/`
 
-For the E009 light CRM homepage and future screen-by-screen visual work, also read:
+For the E009 light CRM visual direction and closeout work, also read:
 
 - `docs/design/light-crm-visual-direction.md`
 
@@ -171,7 +171,7 @@ Open `/reports/sales` for a text-based operational summary of lead status usage,
 
 Each lead detail page includes a lightweight activity timeline and a manual activity form for logging notes, calls, messages, and other interaction types. Seed data includes fake demo activities for local development.
 
-## Local setup for the Next.js skeleton
+## Local app setup
 
 1. Install dependencies with `pnpm install`.
 2. Create a local `.env.local` file.
@@ -205,7 +205,7 @@ Each lead detail page includes a lightweight activity timeline and a manual acti
 
 ## Health check
 
-Open `/health` after starting the app to verify the skeleton is running.
+Open `/health` after starting the app to verify the CRM app is running.
 `/health` is the HTTP liveness check for the Next.js process, returns a fresh timestamp on every request, and is intentionally non-cacheable.
 `/api/ready` is the database-aware readiness check and returns HTTP `503` when the configured CRM PostgreSQL database is unavailable.
 Run `corepack pnpm docker:test-runtime` to verify the documented Compose startup, readiness, failure-path, and restart behavior against isolated test resources.

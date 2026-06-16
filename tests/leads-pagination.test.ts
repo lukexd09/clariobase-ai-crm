@@ -98,9 +98,9 @@ test("lead query helpers preserve filters and reset page only when filters chang
 
 test("lead query helpers format the result counter text", () => {
   assert.equal(formatLeadResultSummary(0, 0, 0), "0 leads");
-  assert.equal(formatLeadResultSummary(1, 50, 2000), "1–50 of 2,000 leads");
-  assert.equal(formatLeadResultSummary(51, 100, 2000), "51–100 of 2,000 leads");
-  assert.equal(formatLeadResultSummary(1, 17, 17), "1–17 of 17 leads");
+  assert.equal(formatLeadResultSummary(1, 50, 2000), "1-50 of 2,000 leads");
+  assert.equal(formatLeadResultSummary(51, 100, 2000), "51-100 of 2,000 leads");
+  assert.equal(formatLeadResultSummary(1, 17, 17), "1-17 of 17 leads");
 });
 
 test("lead filter normalizer keeps only active filter values", () => {

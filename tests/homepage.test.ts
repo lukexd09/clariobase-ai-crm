@@ -19,6 +19,7 @@ test("homepage no longer uses the technical skeleton message", () => {
   assert.doesNotMatch(pageSource, /Route/);
   assert.match(pageSource, /Open leads/);
   assert.match(pageSource, /prefetch=\{false\}/);
+  assert.match(pageSource, /bg-sky-700 px-4 py-2\.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800/);
 });
 
 test("homepage exposes the core CRM navigation actions", () => {
