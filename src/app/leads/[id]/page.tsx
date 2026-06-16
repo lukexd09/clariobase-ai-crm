@@ -72,41 +72,41 @@ export default async function LeadDetailPage({
   });
 
   return (
-    <main className="min-h-screen bg-[#0A0C10] text-[#F0F4F9]">
-      <div className="mx-auto max-w-7xl px-6 py-8">
+    <main className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
         <LeadDetailSidebar />
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/leads"
-            className="text-sm font-medium text-[#94A3B8] transition hover:text-[#22D3EE]"
+            className="text-sm font-medium text-slate-600 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
           >
             &larr; Back to leads
           </Link>
           <Link
             href="/work"
-            className="rounded-full border border-[#1E293B] bg-[#11141D] px-4 py-2 text-sm font-medium text-[#F0F4F9] transition hover:border-[#22D3EE] hover:text-[#22D3EE]"
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
           >
             Open workbench
           </Link>
         </div>
 
-        <header className="rounded-3xl border border-[#1E293B] bg-[#11141D] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+        <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#22D3EE]">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
                   Lead workspace
                 </p>
-                <StatusPill value={lead.leadStatus} />
-                <StatusPill value={lead.priority} />
-                <StatusPill value={lead.packageFit} />
+                <StatusPill value={lead.leadStatus} appearance="light" />
+                <StatusPill value={lead.priority} appearance="light" />
+                <StatusPill value={lead.packageFit} appearance="light" />
               </div>
 
-              <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-[#F0F4F9] sm:text-5xl">
+              <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
                 {lead.businessName}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#94A3B8]">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
                 <span>{lead.city ?? "-"}</span>
                 <span>|</span>
                 <span>{lead.region ?? "-"}</span>
@@ -125,16 +125,20 @@ export default async function LeadDetailPage({
             </div>
 
             <div className="grid gap-3 sm:min-w-[300px]">
-              <div className="rounded-2xl border border-[#1E293B] bg-[#0A0C10] p-4">
-                <p className="text-xs uppercase tracking-[0.3em] text-[#94A3B8]">Lead score</p>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">
+                  Lead score
+                </p>
                 <div className="mt-3 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-4xl font-semibold text-[#F0F4F9]">{lead.scoreTotal}</p>
-                    <p className="mt-1 text-sm text-[#94A3B8]">{lead.scoreLabel ?? "No score label"}</p>
+                    <p className="text-4xl font-semibold text-slate-950">{lead.scoreTotal}</p>
+                    <p className="mt-1 text-sm text-slate-600">{lead.scoreLabel ?? "No score label"}</p>
                   </div>
-                  <div className="rounded-2xl border border-[#1E293B] bg-[#11141D] px-3 py-2 text-right">
-                    <p className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">Customer</p>
-                    <p className="mt-1 text-sm font-medium text-[#F0F4F9]">{lead.customerId}</p>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-right shadow-sm">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                      Customer
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-slate-950">{lead.customerId}</p>
                   </div>
                 </div>
               </div>
@@ -142,13 +146,13 @@ export default async function LeadDetailPage({
               <div className="flex flex-wrap gap-2">
                 <Link
                   href="#lead-controls"
-                  className="rounded-full bg-[#22D3EE] px-4 py-2 text-sm font-semibold text-[#00363e] transition hover:brightness-110"
+                  className="rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   Lead controls
                 </Link>
                 <Link
                   href="#activity"
-                  className="rounded-full border border-[#1E293B] bg-[#11141D] px-4 py-2 text-sm font-medium text-[#F0F4F9] transition hover:border-[#22D3EE] hover:text-[#22D3EE]"
+                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   Activity log
                 </Link>
@@ -159,16 +163,16 @@ export default async function LeadDetailPage({
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_420px]">
           <div className="space-y-6">
-            <section className="rounded-3xl border border-[#1E293B] bg-[#11141D] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#22D3EE]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
                     Next recommended action
                   </p>
-                  <h2 className="text-2xl font-semibold tracking-tight text-[#F0F4F9]">
+                  <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
                     {recommendation.title}
                   </h2>
-                  <p className="max-w-3xl text-sm leading-6 text-[#94A3B8]">
+                  <p className="max-w-3xl text-sm leading-6 text-slate-600">
                     {recommendation.description}
                   </p>
                 </div>
@@ -176,13 +180,13 @@ export default async function LeadDetailPage({
                 <div className="flex flex-wrap gap-3">
                   <Link
                     href={recommendation.primaryHref}
-                    className="rounded-full bg-[#22D3EE] px-4 py-2 text-sm font-semibold text-[#00363e] transition hover:brightness-110"
+                    className="rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                   >
                     {recommendation.primaryLabel}
                   </Link>
                   <Link
                     href={recommendation.secondaryHref}
-                    className="rounded-full border border-[#1E293B] bg-[#0A0C10] px-4 py-2 text-sm font-medium text-[#F0F4F9] transition hover:border-[#22D3EE] hover:text-[#22D3EE]"
+                    className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                   >
                     {recommendation.secondaryLabel}
                   </Link>
@@ -190,11 +194,11 @@ export default async function LeadDetailPage({
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[#1E293B] bg-[#11141D] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-              <div className="flex items-center justify-between gap-3 border-b border-[#1E293B] pb-4">
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-[#F0F4F9]">Business context</h2>
-                  <p className="mt-1 text-sm text-[#94A3B8]">
+                  <h2 className="text-xl font-semibold text-slate-950">Business context</h2>
+                  <p className="mt-1 text-sm text-slate-600">
                     A compact overview of the lead, source, and qualification context.
                   </p>
                 </div>
@@ -220,10 +224,10 @@ export default async function LeadDetailPage({
                 />
               </div>
 
-              <div className="mt-6 grid gap-4 border-t border-[#1E293B] pt-5 md:grid-cols-2">
-                <CompactStat label="Lead status" value={<StatusPill value={lead.leadStatus} />} />
-                <CompactStat label="Priority" value={<StatusPill value={lead.priority} />} />
-                <CompactStat label="Package fit" value={<StatusPill value={lead.packageFit} />} />
+              <div className="mt-6 grid gap-4 border-t border-slate-200 pt-5 md:grid-cols-2">
+                <CompactStat label="Lead status" value={<StatusPill value={lead.leadStatus} appearance="light" />} />
+                <CompactStat label="Priority" value={<StatusPill value={lead.priority} appearance="light" />} />
+                <CompactStat label="Package fit" value={<StatusPill value={lead.packageFit} appearance="light" />} />
                 <CompactStat
                   label="Next action"
                   value={lead.nextActionAt ? formatDate(lead.nextActionAt) : "No next action set"}
@@ -237,8 +241,10 @@ export default async function LeadDetailPage({
                   label="Mini-audit"
                   title={getArtifactPanelTitle("Mini-audit", miniAuditDrafts.length)}
                   description={getMiniAuditPanelDescription(miniAuditDrafts)}
-                  statusBadge={<StatusPill value={getMiniAuditPanelStatus(miniAuditDrafts)} />}
-                  packageBadge={miniAuditPanelPackage ? <StatusPill value={miniAuditPanelPackage} /> : null}
+                  statusBadge={<StatusPill value={getMiniAuditPanelStatus(miniAuditDrafts)} appearance="light" />}
+                  packageBadge={
+                    miniAuditPanelPackage ? <StatusPill value={miniAuditPanelPackage} appearance="light" /> : null
+                  }
                   updatedAt={getMiniAuditPanelUpdatedAt(miniAuditDrafts)}
                   actionLabel={getMiniAuditPanelAction(miniAuditDrafts)}
                 >
@@ -250,7 +256,7 @@ export default async function LeadDetailPage({
                 label="Outreach sequence"
                 title={getArtifactPanelTitle("Outreach sequence", outreachDrafts.length)}
                 description={getOutreachPanelDescription(outreachDrafts)}
-                statusBadge={<StatusPill value={getOutreachPanelStatus(outreachDrafts)} />}
+                statusBadge={<StatusPill value={getOutreachPanelStatus(outreachDrafts)} appearance="light" />}
                 packageBadge={null}
                 updatedAt={getOutreachPanelUpdatedAt(outreachDrafts)}
                 actionLabel={getOutreachPanelAction(outreachDrafts)}
@@ -267,8 +273,10 @@ export default async function LeadDetailPage({
                   label="Offer generation"
                   title={getOfferPanelTitle(clientOfferDrafts)}
                   description={getOfferPanelDescription(clientOfferDrafts)}
-                  statusBadge={<StatusPill value={getOfferPanelStatus(clientOfferDrafts)} />}
-                  packageBadge={offerPanelPackage ? <StatusPill value={offerPanelPackage} /> : null}
+                  statusBadge={<StatusPill value={getOfferPanelStatus(clientOfferDrafts)} appearance="light" />}
+                  packageBadge={
+                    offerPanelPackage ? <StatusPill value={offerPanelPackage} appearance="light" /> : null
+                  }
                   updatedAt={getOfferPanelUpdatedAt(clientOfferDrafts)}
                   actionLabel={getOfferPanelAction(clientOfferDrafts)}
                 >
@@ -276,23 +284,23 @@ export default async function LeadDetailPage({
               </ArtifactPanel>
             </section>
 
-            <details className="rounded-3xl border border-[#1E293B] bg-[#11141D] p-0 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-              <summary className="cursor-pointer list-none rounded-3xl px-6 py-5 text-left">
+            <details className="rounded-3xl border border-slate-200 bg-white p-0 shadow-sm">
+              <summary className="cursor-pointer list-none rounded-3xl px-6 py-5 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#94A3B8]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
                       Technical details
                     </p>
-                    <h2 className="mt-2 text-xl font-semibold text-[#F0F4F9]">
+                    <h2 className="mt-2 text-xl font-semibold text-slate-950">
                       Protected metadata
                     </h2>
                   </div>
-                  <span className="rounded-full border border-[#1E293B] bg-[#0A0C10] px-3 py-1 text-xs font-medium uppercase tracking-[0.3em] text-[#94A3B8]">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-slate-500">
                     Expand
                   </span>
                 </div>
               </summary>
-              <div className="border-t border-[#1E293B] px-6 py-5">
+              <div className="border-t border-slate-200 px-6 py-5">
                 <div className="grid gap-4 md:grid-cols-2">
                   <ContextField label="Customer ID" value={lead.customerId} />
                   <ContextField label="Created at" value={formatDate(lead.createdAt)} />
@@ -308,14 +316,14 @@ export default async function LeadDetailPage({
           <aside className="space-y-6">
             <section
               id="lead-controls"
-              className="rounded-3xl border border-[#1E293B] bg-[#11141D] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+              className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
             >
-              <div className="border-b border-[#1E293B] pb-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#22D3EE]">
+              <div className="border-b border-slate-200 pb-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
                   Lead controls
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-[#F0F4F9]">Operational update</h2>
-                <p className="mt-1 text-sm text-[#94A3B8]">
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">Operational update</h2>
+                <p className="mt-1 text-sm text-slate-600">
                   Keep the current lead state, next action, and package fit aligned with the latest
                   work.
                 </p>
@@ -334,16 +342,16 @@ export default async function LeadDetailPage({
 
             <section
               id="activity"
-              className="space-y-6 rounded-3xl border border-[#1E293B] bg-[#11141D] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+              className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
             >
-              <div className="border-b border-[#1E293B] pb-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#22D3EE]">
+              <div className="border-b border-slate-200 pb-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
                   Activity log
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-[#F0F4F9]">
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">
                   Notes, calls, messages, and updates
                 </h2>
-                <p className="mt-1 text-sm text-[#94A3B8]">
+                <p className="mt-1 text-sm text-slate-600">
                   Activity stays visible but secondary to the operator workspace cards.
                 </p>
               </div>
@@ -532,9 +540,9 @@ function ContextField({
   value: React.ReactNode;
 }) {
   return (
-    <div className="space-y-2 rounded-2xl border border-[#1E293B] bg-[#0A0C10] p-4">
-      <p className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">{label}</p>
-      <div className="break-words text-sm leading-6 text-[#F0F4F9]">{value}</div>
+    <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</p>
+      <div className="break-words text-sm leading-6 text-slate-900">{value}</div>
     </div>
   );
 }
@@ -547,8 +555,8 @@ function CompactStat({
   value: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#1E293B] bg-[#0A0C10] p-4">
-      <p className="text-[11px] uppercase tracking-[0.35em] text-[#94A3B8]">{label}</p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</p>
       <div className="mt-3">{value}</div>
     </div>
   );
@@ -578,37 +586,37 @@ function ArtifactPanel({
   return (
     <details
       id={id}
-      className="group rounded-3xl border border-[#1E293B] bg-[#11141D] shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+      className="group rounded-3xl border border-slate-200 bg-white shadow-sm"
     >
-      <summary className="list-none cursor-pointer px-6 py-5">
+      <summary className="list-none cursor-pointer rounded-3xl px-6 py-5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#22D3EE]">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
                 {label}
               </p>
               {statusBadge}
               {packageBadge}
             </div>
-            <h3 className="text-2xl font-semibold tracking-tight text-[#F0F4F9]">{title}</h3>
-            <p className="max-w-3xl text-sm leading-6 text-[#94A3B8]">{description}</p>
-            <p className="text-xs uppercase tracking-[0.35em] text-[#94A3B8]">
+            <h3 className="text-2xl font-semibold tracking-tight text-slate-950">{title}</h3>
+            <p className="max-w-3xl text-sm leading-6 text-slate-600">{description}</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
               {updatedAt ? `Updated ${formatShortDate(updatedAt)}` : "No updates yet"}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="rounded-full border border-[#1E293B] bg-[#0A0C10] px-4 py-2 text-sm font-medium text-[#F0F4F9] transition group-open:border-[#22D3EE] group-open:text-[#22D3EE]">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 transition group-open:border-sky-300 group-open:text-sky-700">
               {actionLabel}
             </span>
-            <span className="rounded-full border border-[#1E293B] bg-[#0A0C10] px-3 py-2 text-[#94A3B8] transition group-open:text-[#22D3EE]">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500 transition group-open:text-sky-700">
               <span className="text-lg leading-none transition-transform group-open:rotate-180">v</span>
             </span>
           </div>
         </div>
       </summary>
 
-      <div className="border-t border-[#1E293B] p-0">
+      <div className="border-t border-slate-200 p-0">
         <div className="p-5">{children}</div>
       </div>
     </details>
@@ -618,7 +626,7 @@ function ArtifactPanel({
 function ExternalLink({ href, label }: { href: string; label: string }) {
   return (
     <a
-      className="inline-flex items-center gap-2 rounded-full border border-[#1E293B] bg-[#0A0C10] px-3 py-2 text-sm font-medium text-[#F0F4F9] transition hover:border-[#22D3EE] hover:text-[#22D3EE]"
+      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
       href={href}
       target="_blank"
       rel="noreferrer"
@@ -631,9 +639,9 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
 
 function MetaChip({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[#1E293B] bg-[#0A0C10] px-3 py-2 text-sm text-[#94A3B8]">
-      <span className="uppercase tracking-[0.25em]">{label}</span>
-      <span className="text-[#F0F4F9]">{value}</span>
+    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+      <span className="font-semibold uppercase tracking-[0.24em] text-slate-500">{label}</span>
+      <span className="text-slate-900">{value}</span>
     </span>
   );
 }
@@ -648,26 +656,26 @@ function LeadDetailSidebar() {
 
   return (
     <aside className="mb-6 hidden lg:float-left lg:mr-6 lg:block lg:w-[240px]">
-      <div className="sticky top-8 space-y-4 rounded-3xl border border-[#1E293B] bg-[#11141D] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+      <div className="sticky top-8 space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#22D3EE]">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
             Operator sidebar
           </p>
-          <h2 className="mt-2 text-xl font-semibold text-[#F0F4F9]">Workspace routes</h2>
-          <p className="mt-1 text-sm text-[#94A3B8]">
+          <h2 className="mt-2 text-xl font-semibold text-slate-950">Workspace routes</h2>
+          <p className="mt-1 text-sm text-slate-600">
             Fast access to the core CRM routes used in the Stitch reference.
           </p>
         </div>
 
-        <nav className="space-y-2">
+        <nav aria-label="Lead workspace routes" className="space-y-2">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="flex items-center justify-between rounded-2xl border border-[#1E293B] bg-[#0A0C10] px-4 py-3 text-sm font-medium text-[#F0F4F9] transition hover:border-[#22D3EE] hover:text-[#22D3EE]"
+              className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-white hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               <span>{link.label}</span>
-              <span aria-hidden="true" className="text-[#94A3B8]">
+              <span aria-hidden="true" className="text-slate-400">
                 &rarr;
               </span>
             </Link>
