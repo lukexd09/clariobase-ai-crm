@@ -53,6 +53,11 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /persist-credentials: false/);
   assert.match(deployWorkflow, /scripts\/resolve-preview-ref\.ts/);
   assert.match(deployWorkflow, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
+  assert.match(deployWorkflow, /\$LASTEXITCODE -ne 0/);
+  assert.ok(
+    deployWorkflow.indexOf("$LASTEXITCODE -ne 0") < deployWorkflow.indexOf("ConvertFrom-Json"),
+    "deploy workflow should gate JSON parsing behind the exit-code check"
+  );
   assert.match(deployWorkflow, /clariobase-preview/);
   assert.match(deployWorkflow, /http:\/\/Serwer:3001/);
   assert.match(deployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);

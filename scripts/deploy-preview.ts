@@ -5,15 +5,13 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import {
   assertRequestedRef,
-  assertSuccessfulCommand,
   buildDeployPlan,
   createPreviewSummary,
+  executeDeployPlanWithEnv,
   getHeadSha,
   loadPreviewEnv,
   PREVIEW_NETWORK_NAME,
   PREVIEW_VOLUME_NAME,
-  runCommand,
-  runCommandWithEnv,
   validateResolvedSha
 } from "./preview-runtime-support";
 
@@ -161,19 +159,9 @@ async function main() {
     return;
   }
 
-  let result = runCommandWithEnv("docker", deployPlan.buildApp, {
+  executeDeployPlanWithEnv(deployPlan, {
     CRM_BUILD_CONTEXT: sourceCheckoutPath
   });
-  assertSuccessfulCommand(result, "docker compose build crm-app");
-
-  result = runCommand("docker", deployPlan.startDatabase);
-  assertSuccessfulCommand(result, "docker compose up -d crm-postgres");
-
-  result = runCommand("docker", deployPlan.migrate);
-  assertSuccessfulCommand(result, "preview prisma migrate deploy");
-
-  result = runCommand("docker", deployPlan.startApplication);
-  assertSuccessfulCommand(result, "docker compose up -d crm-app");
 
   await waitForHttpReady(runtimeConfig.previewLocalReadyUrl, options.timeoutSeconds);
 
