@@ -20,7 +20,7 @@ export function LeadPagination({
   return (
     <nav
       aria-label="Lead pagination"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
     >
       <p className="text-sm text-slate-600">
         Page <span className="tabular-nums font-medium text-slate-900">{page}</span> of{" "}

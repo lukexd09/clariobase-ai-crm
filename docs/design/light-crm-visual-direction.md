@@ -49,6 +49,8 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Active navigation state is visible without color alone.
 - Preserve visible focus-visible states on all navigation links and shell-level actions.
 - Keep the shell light, calm, and compact rather than admin-heavy.
+- Prefer one compact sidebar treatment without repeated instructional copy on every primary route.
+- When the active route needs extra emphasis, use a label or weight change in addition to color.
 
 ## UI foundation
 
@@ -60,6 +62,15 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - System and admin areas should remain visually secondary to business work.
 - Future UI PRs should include manual keyboard and contrast checks.
 - Do not use lighter primary CTA blues that weaken text contrast below the operational baseline.
+
+## Operational layout guidance
+
+- Use one shared full-width operational canvas across homepage, core business routes, data-quality lists, and `/health`.
+- Reduce oversized headers; page headers should usually fit within one title block plus one supporting block.
+- Prefer `rounded-2xl` route surfaces and `rounded-xl` inner controls before introducing larger card radii.
+- Use shadows sparingly; route grouping should come from layout and headings before decorative chrome.
+- Homepage should highlight the main daily entry points first and keep system routes secondary.
+- Data-intake and diagnostic routes should feel integrated with the CRM shell, not detached or marketing-like.
 
 ## Future UI checklist
 

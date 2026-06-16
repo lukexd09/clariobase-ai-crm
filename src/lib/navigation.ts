@@ -14,18 +14,18 @@ export type NavigationSection = {
 export const NAVIGATION_SECTIONS = [
   {
     key: "main-work",
-    title: "Main work",
+    title: "Daily work",
     items: [
       {
         href: "/",
-        label: "Dashboard",
-        description: "Start from the CRM overview.",
+        label: "Home",
+        description: "Open the CRM home workspace.",
         priority: "primary"
       },
       {
         href: "/work",
-        label: "Daily work",
-        description: "Open the workbench and clear the day.",
+        label: "Workbench",
+        description: "Focus on the current action queue.",
         priority: "primary"
       },
       {
@@ -37,19 +37,19 @@ export const NAVIGATION_SECTIONS = [
       {
         href: "/reports/sales",
         label: "Reports",
-        description: "Check the sales summary and pipeline health.",
+        description: "Check the operational pipeline summary.",
         priority: "primary"
       }
     ] as const
   },
   {
     key: "data",
-    title: "Data",
+    title: "Data quality",
     items: [
       {
         href: "/imports",
         label: "Imports",
-        description: "Review local import batches.",
+        description: "Review completed import batches.",
         priority: "primary"
       },
       {

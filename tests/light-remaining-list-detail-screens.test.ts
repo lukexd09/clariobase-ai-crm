@@ -21,6 +21,8 @@ test("remaining legacy list and detail screens use the light shell baseline", ()
     assert.doesNotMatch(source, /bg-slate-950/);
     assert.doesNotMatch(source, /border-slate-800/);
   }
+  assert.doesNotMatch(importsPage, /max-w-7xl/);
+  assert.doesNotMatch(duplicatesPage, /max-w-7xl/);
 
   assert.match(importsPage, /caption className="sr-only">Import batches and their processing results\./);
   assert.match(importsPage, /scope="col"/);
@@ -46,6 +48,7 @@ test("remaining legacy list and detail screens use the light shell baseline", ()
   assert.match(duplicateDetailPage, /ExternalLink/);
 
   assert.match(healthPage, /System status/);
-  assert.match(healthPage, /Minimal runtime probe for deployment and uptime checks\./);
-  assert.match(healthPage, /rounded-3xl border border-slate-200 bg-white/);
+  assert.doesNotMatch(healthPage, /Minimal runtime probe for deployment and uptime checks\./);
+  assert.match(healthPage, /Health check/);
+  assert.match(healthPage, /break-all/);
 });
