@@ -63,10 +63,10 @@ function WorkIndicatorCard({
   const styles = getWorkIndicatorStyles(bucketKey, count);
 
   return (
-    <div className={`flex min-h-16 items-center justify-between gap-4 rounded-2xl border px-4 py-3 ${styles.card}`}>
+    <div className={`flex min-h-14 items-center justify-between gap-4 rounded-xl border px-4 py-3 ${styles.card}`}>
       <div className="flex min-w-0 items-center gap-2">
         <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${styles.marker}`} />
-        <p className={`min-w-0 text-xs font-semibold uppercase tracking-[0.12em] ${styles.label}`}>
+        <p className={`min-w-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${styles.label}`}>
           {label}
         </p>
       </div>
@@ -94,12 +94,10 @@ export default async function WorkPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-6">
-        <header className="mb-5 grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(220px,0.75fr)_minmax(0,1.6fr)] lg:p-5">
+      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
+        <header className="mb-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(220px,0.75fr)_minmax(0,1.6fr)] lg:p-5">
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
-              Sales workbench
-            </p>
+            <p className="text-sm font-medium text-sky-700">Sales workbench</p>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
               Work queue
             </h1>
@@ -117,9 +115,9 @@ export default async function WorkPage() {
           </div>
         </header>
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           {buckets.map((bucket) => (
-            <section key={bucket.key} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+            <section key={bucket.key} className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold tracking-tight text-slate-950">{bucket.title}</h2>
@@ -133,7 +131,7 @@ export default async function WorkPage() {
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <caption className="sr-only">{bucket.title} work queue</caption>
                     <thead className="bg-slate-50">
-                      <tr className="text-left text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                      <tr className="text-left text-[11px] font-semibold text-slate-500">
                         <th scope="col" className="px-4 py-3">Business</th>
                         <th scope="col" className="px-4 py-3">City</th>
                         <th scope="col" className="px-4 py-3">Category</th>
@@ -171,7 +169,7 @@ export default async function WorkPage() {
                             <div className="space-y-1">
                               <p className="font-medium tabular-nums text-slate-900">{lead.scoreTotal}</p>
                               {lead.scoreLabel ? (
-                                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">
                                   {lead.scoreLabel}
                                 </p>
                               ) : null}

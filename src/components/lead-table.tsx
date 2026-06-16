@@ -27,15 +27,15 @@ export function LeadTable({
   filterControls: React.ReactNode;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {filterControls}
 
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <caption className="sr-only">Lead records matching the current filters</caption>
             <thead className="bg-slate-50">
-              <tr className="text-left text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              <tr className="text-left text-[11px] font-semibold text-slate-500">
                 <th scope="col" className="px-4 py-3">Business</th>
                 <th scope="col" className="px-4 py-3">City</th>
                 <th scope="col" className="px-4 py-3">Category</th>
