@@ -132,16 +132,6 @@ function main() {
   const options = parseArgs(process.argv.slice(2));
   const trustedRequestedRef = assertTrustedRequestedRef(options.requestedRef, options.repository);
 
-  const fetchResult = runGit([
-    "fetch",
-    "--force",
-    "--no-tags",
-    "origin",
-    "+refs/heads/*:refs/remotes/origin/*",
-    "+refs/tags/*:refs/tags/*"
-  ]);
-  assertGitSuccess(fetchResult, "git fetch trusted refs");
-
   const resolvedSha = resolveRefOrSha(trustedRequestedRef);
   writeGithubOutput(trustedRequestedRef, resolvedSha);
 

@@ -115,6 +115,214 @@ test("trusted preview ref validation rejects fork-style and pull-request refs", 
   assert.throws(() => assertTrustedRequestedRef("main", "someone-else/repo"), /may only run inside/i);
 });
 
+test("resolve-preview-ref works offline from local trusted refs without a second network fetch", () => {
+  const tmpRoot = createSystemTmpDir("clariobase-resolve-preview-ref-");
+  const originRepo = path.join(tmpRoot, "origin.git");
+  const workRepo = path.join(tmpRoot, "work");
+  const outputFile = path.join(tmpRoot, "github-output.txt");
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+  fs.rmSync(originRepo, { recursive: true, force: true });
+  fs.rmSync(workRepo, { recursive: true, force: true });
+  fs.mkdirSync(tmpRoot, { recursive: true });
+
+  try {
+    assert.equal(spawnSync("git", ["init", "--bare", originRepo], { encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["init", workRepo], { encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "codex@example.com"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "Codex"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["remote", "add", "origin", originRepo], { cwd: workRepo, encoding: "utf8" }).status, 0);
+
+    fs.writeFileSync(path.join(workRepo, "README.md"), "first\n", "utf8");
+    assert.equal(spawnSync("git", ["add", "README.md"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "-m", "first"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["branch", "-M", "main"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["push", "-u", "origin", "main"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+
+    fs.writeFileSync(path.join(workRepo, "README.md"), "second\n", "utf8");
+    assert.equal(spawnSync("git", ["add", "README.md"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "-m", "second"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["checkout", "-b", "feature/ref-resolution"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    fs.writeFileSync(path.join(workRepo, "feature.txt"), "feature\n", "utf8");
+    assert.equal(spawnSync("git", ["add", "feature.txt"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "-m", "feature"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["tag", "v1.2.3"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["push", "origin", "feature/ref-resolution", "v1.2.3"], { cwd: workRepo, encoding: "utf8" }).status, 0);
+
+    const mainSha = spawnSync("git", ["rev-parse", "main"], { cwd: workRepo, encoding: "utf8" });
+    const featureSha = spawnSync("git", ["rev-parse", "feature/ref-resolution"], { cwd: workRepo, encoding: "utf8" });
+    const tagSha = spawnSync("git", ["rev-parse", "v1.2.3"], { cwd: workRepo, encoding: "utf8" });
+
+    assert.equal(mainSha.status, 0, mainSha.stderr);
+    assert.equal(featureSha.status, 0, featureSha.stderr);
+    assert.equal(tagSha.status, 0, tagSha.stderr);
+
+    const checkoutRepo = path.join(tmpRoot, "checkout");
+    assert.equal(spawnSync("git", ["clone", originRepo, checkoutRepo], { encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["fetch", "--all", "--tags"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["remote", "set-url", "origin", "https://github.invalid/private/repository.git"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.email", "codex@example.com"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["config", "user.name", "Codex"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
+
+    const mainLocalRef = spawnSync("git", ["rev-parse", "refs/remotes/origin/main^{commit}"], { cwd: checkoutRepo, encoding: "utf8" });
+    const featureLocalRef = spawnSync("git", ["rev-parse", "refs/remotes/origin/feature/ref-resolution^{commit}"], { cwd: checkoutRepo, encoding: "utf8" });
+    const tagLocalRef = spawnSync("git", ["rev-parse", "refs/tags/v1.2.3^{commit}"], { cwd: checkoutRepo, encoding: "utf8" });
+
+    assert.equal(mainLocalRef.status, 0, mainLocalRef.stderr);
+    assert.equal(featureLocalRef.status, 0, featureLocalRef.stderr);
+    assert.equal(tagLocalRef.status, 0, tagLocalRef.stderr);
+
+    const branchOutput = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
+      "--repository",
+      EXPECTED_REPOSITORY,
+      "--requested-ref",
+      "refs/heads/main"
+    ], {
+      cwd: checkoutRepo,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0",
+        GITHUB_OUTPUT: outputFile
+      }
+    });
+
+    assert.equal(branchOutput.status, 0, branchOutput.stderr);
+    assert.match(branchOutput.stdout, new RegExp(`"requestedRef":\\s*"main"`));
+    assert.match(branchOutput.stdout, new RegExp(`"resolvedSha":\\s*"${mainLocalRef.stdout.trim()}"`));
+
+    const outputContent = fs.readFileSync(outputFile, "utf8");
+    assert.match(outputContent, /requested_ref=main/);
+    assert.match(outputContent, new RegExp(`resolved_sha=${mainLocalRef.stdout.trim()}`));
+
+    const featureOutput = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
+      "--repository",
+      EXPECTED_REPOSITORY,
+      "--requested-ref",
+      "feature/ref-resolution"
+    ], {
+      cwd: checkoutRepo,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0"
+      }
+    });
+
+    assert.equal(featureOutput.status, 0, featureOutput.stderr);
+    assert.match(featureOutput.stdout, new RegExp(`"resolvedSha":\\s*"${featureLocalRef.stdout.trim()}"`));
+
+    const tagOutput = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
+      "--repository",
+      EXPECTED_REPOSITORY,
+      "--requested-ref",
+      "v1.2.3"
+    ], {
+      cwd: checkoutRepo,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0"
+      }
+    });
+
+    assert.equal(tagOutput.status, 0, tagOutput.stderr);
+    assert.match(tagOutput.stdout, new RegExp(`"resolvedSha":\\s*"${tagLocalRef.stdout.trim()}"`));
+
+    const reachableShaOutput = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
+      "--repository",
+      EXPECTED_REPOSITORY,
+      "--requested-ref",
+      featureLocalRef.stdout.trim()
+    ], {
+      cwd: checkoutRepo,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0"
+      }
+    });
+
+    assert.equal(reachableShaOutput.status, 0, reachableShaOutput.stderr);
+    assert.match(reachableShaOutput.stdout, new RegExp(`"resolvedSha":\\s*"${featureLocalRef.stdout.trim()}"`));
+
+    const missingRef = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
+      "--repository",
+      EXPECTED_REPOSITORY,
+      "--requested-ref",
+      "missing/ref"
+    ], {
+      cwd: checkoutRepo,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0"
+      }
+    });
+
+    assert.notEqual(missingRef.status, 0);
+    assert.match(missingRef.stderr || missingRef.stdout, /Could not resolve trusted origin branch, tag, or commit/i);
+
+    const pullRef = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
+      "--repository",
+      EXPECTED_REPOSITORY,
+      "--requested-ref",
+      "refs/pull/1/head"
+    ], {
+      cwd: checkoutRepo,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0"
+      }
+    });
+
+    assert.notEqual(pullRef.status, 0);
+    assert.match(pullRef.stderr || pullRef.stdout, /Pull request refs are not trusted preview deployment targets/i);
+
+    assert.equal(spawnSync("git", ["checkout", "-b", "local-only"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
+    fs.writeFileSync(path.join(checkoutRepo, "local-only.txt"), "local only\n", "utf8");
+    assert.equal(spawnSync("git", ["add", "local-only.txt"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
+    assert.equal(spawnSync("git", ["commit", "-m", "local-only"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
+    const unreachableSha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: checkoutRepo, encoding: "utf8" });
+
+    assert.equal(unreachableSha.status, 0, unreachableSha.stderr);
+
+    const unreachableOutput = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
+      "--repository",
+      EXPECTED_REPOSITORY,
+      "--requested-ref",
+      unreachableSha.stdout.trim()
+    ], {
+      cwd: checkoutRepo,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0"
+      }
+    });
+
+    assert.notEqual(unreachableOutput.status, 0);
+    assert.match(unreachableOutput.stderr || unreachableOutput.stdout, /not reachable from a trusted origin ref/i);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
 test("preview workflows keep the requested SHA as source input while control scripts come from the trusted checkout", () => {
   const deployWorkflow = read(".github/workflows/deploy-preview.yml");
   const stopWorkflow = read(".github/workflows/stop-preview.yml");
