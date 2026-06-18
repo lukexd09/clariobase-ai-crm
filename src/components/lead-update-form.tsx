@@ -45,29 +45,33 @@ export function LeadUpdateForm({
   leadStatus,
   priority,
   packageFit,
-  nextActionAt
+  nextActionAt,
+  nextActionDisplay
 }: {
   leadId: string;
   leadStatus: LeadStatusValue;
   priority: LeadPriorityValue;
   packageFit: PackageFitValue;
   nextActionAt: string;
+  nextActionDisplay: string;
 }) {
   const [state, formAction] = useActionState<LeadUpdateState, FormData>(
     async (_prevState, formData) => updateLeadAction(leadId, formData),
     initialState
   );
+  const feedbackId = "lead-update-feedback";
 
   return (
     <form
       id="quick-update"
       action={formAction}
-      className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+      aria-describedby={state.message ? feedbackId : undefined}
+      className="space-y-4"
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Field
           label="Lead status"
-          value={<StatusPill value={leadStatus} appearance="light" />}
+          hint="Choose the current working status for this lead."
           control={
             <select name="leadStatus" defaultValue={leadStatus} className={fieldInputClassName}>
               {LEAD_STATUS_VALUES.map((value) => (
@@ -80,7 +84,7 @@ export function LeadUpdateForm({
         />
         <Field
           label="Priority"
-          value={<StatusPill value={priority} appearance="light" />}
+          hint="Use the priority that best reflects follow-up urgency."
           control={
             <select name="priority" defaultValue={priority} className={fieldInputClassName}>
               {LEAD_PRIORITY_VALUES.map((value) => (
@@ -93,7 +97,7 @@ export function LeadUpdateForm({
         />
         <Field
           label="Package fit"
-          value={<StatusPill value={packageFit} appearance="light" />}
+          hint="Keep the current package assessment aligned with the lead."
           control={
             <select name="packageFit" defaultValue={packageFit} className={fieldInputClassName}>
               {PACKAGE_FIT_VALUES.map((value) => (
@@ -105,8 +109,12 @@ export function LeadUpdateForm({
           }
         />
         <Field
-          label="Next action date"
-          value={nextActionAt || "-"}
+          label="Next action"
+          hint={
+            nextActionDisplay === "No next action set"
+              ? "No next action is scheduled yet."
+              : `Current schedule: ${nextActionDisplay}`
+          }
           control={
             <input
               name="nextActionAt"
@@ -121,7 +129,14 @@ export function LeadUpdateForm({
       <div className="flex items-center gap-4">
         <SubmitButton />
         {state.message ? (
-          <p className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}>{state.message}</p>
+          <p
+            id={feedbackId}
+            role={state.ok ? "status" : "alert"}
+            aria-live={state.ok ? "polite" : "assertive"}
+            className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}
+          >
+            {state.message}
+          </p>
         ) : null}
       </div>
     </form>
@@ -131,11 +146,11 @@ export function LeadUpdateForm({
 function Field({
   label,
   control,
-  value
+  hint
 }: {
   label: string;
   control: React.ReactNode;
-  value: React.ReactNode;
+  hint: React.ReactNode;
 }) {
   return (
     <label className="space-y-2">
@@ -143,7 +158,7 @@ function Field({
         {label}
       </span>
       {control}
-      <span className="block text-xs text-slate-500">{value}</span>
+      <span className="block text-xs leading-5 text-slate-500">{hint}</span>
     </label>
   );
 }

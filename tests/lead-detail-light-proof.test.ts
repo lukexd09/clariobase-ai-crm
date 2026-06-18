@@ -13,16 +13,20 @@ test("lead detail light proof preserves dense operator workflow structure", () =
   const page = read("src/app/leads/[id]/page.tsx");
 
   assert.match(page, /min-h-screen bg-slate-50 text-slate-900/);
-  assert.match(page, /lg:grid-cols-\[minmax\(0,1\.35fr\)_420px\]/);
-  assert.match(page, /href="#lead-controls"/);
-  assert.match(page, /href="#activity"/);
+  assert.match(page, /xl:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,400px\)\]/);
+  assert.match(page, /"#lead-controls"/);
+  assert.match(page, /"#activity"/);
   assert.match(page, /id="lead-controls"/);
   assert.match(page, /id="activity"/);
   assert.match(page, /Lead controls/);
   assert.match(page, /Activity log/);
   assert.match(page, /Lead workspace/);
-  assert.match(page, /LeadDetailSidebar/);
-  assert.match(page, /aria-label="Lead workspace routes"/);
+  assert.match(page, /aria-label="Lead workspace sections"/);
+  assert.match(page, /Show technical details/);
+  assert.doesNotMatch(page, /LeadDetailSidebar/);
+  assert.doesNotMatch(page, /aria-label="Lead workspace routes"/);
+  assert.doesNotMatch(page, /Operator sidebar|Workspace routes/);
+  assert.doesNotMatch(page, /No updates yet/);
   assert.match(page, /focus-visible:ring-2/);
   assert.match(page, /StatusPill value=\{lead\.leadStatus\} appearance="light"/);
   assert.match(page, /StatusPill value=\{lead\.priority\} appearance="light"/);
@@ -44,9 +48,11 @@ test("lead detail proof preserves actions, forms, and status affordances", () =>
   assert.match(leadUpdateForm, /Lead status/);
   assert.match(leadUpdateForm, /Priority/);
   assert.match(leadUpdateForm, /Package fit/);
-  assert.match(leadUpdateForm, /Next action date/);
+  assert.match(leadUpdateForm, /Next action/);
   assert.match(leadUpdateForm, /grid gap-4 md:grid-cols-2/);
-  assert.match(leadUpdateForm, /StatusPill value=\{leadStatus\} appearance="light"/);
+  assert.match(leadUpdateForm, /Current schedule:/);
+  assert.match(leadUpdateForm, /role=\{state\.ok \? "status" : "alert"\}/);
+  assert.doesNotMatch(leadUpdateForm, /StatusPill value=\{leadStatus\} appearance="light"/);
   assert.match(leadUpdateForm, /bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800/);
   assert.match(leadUpdateForm, /focus-visible:ring-2/);
 
@@ -58,6 +64,7 @@ test("lead detail proof preserves actions, forms, and status affordances", () =>
   assert.match(activityForm, /Occurred at/);
   assert.match(activityForm, /Body/);
   assert.match(activityForm, /grid gap-4 md:grid-cols-2/);
+  assert.match(activityForm, /className="md:col-span-2"/);
   assert.match(activityForm, /StatusPill value=\{activity\.type\} appearance="light"/);
   assert.match(activityForm, /bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800/);
   assert.match(activityForm, /focus-visible:ring-2/);
@@ -65,24 +72,27 @@ test("lead detail proof preserves actions, forms, and status affordances", () =>
   assert.match(miniAuditForm, /saveMiniAuditDraftAction/);
   assert.match(miniAuditForm, /Create mini-audit draft/);
   assert.match(miniAuditForm, /Save mini-audit draft/);
-  assert.match(miniAuditForm, /StatusPill value=\{\(draft\?\.status \?\? "DRAFT"\) as MiniAuditStatusValue\} appearance="light"/);
+  assert.match(miniAuditForm, /New draft/);
+  assert.doesNotMatch(miniAuditForm, /StatusPill value=\{\(draft\?\.status \?\? "DRAFT"\) as MiniAuditStatusValue\} appearance="light"/);
   assert.match(miniAuditForm, /bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800/);
   assert.match(miniAuditForm, /focus-visible:ring-2/);
 
   assert.match(outreachForm, /saveOutreachDraftAction/);
   assert.match(outreachForm, /Create outreach draft/);
   assert.match(outreachForm, /Save outreach draft/);
+  assert.match(outreachForm, /New draft/);
   assert.match(outreachForm, /Linked mini-audit/);
-  assert.match(outreachForm, /StatusPill value=\{\(draft\?\.channel \?\? "EMAIL"\) as OutreachChannelValue\} appearance="light"/);
+  assert.doesNotMatch(outreachForm, /StatusPill value=\{\(draft\?\.status \?\? "DRAFT"\) as OutreachDraftStatusValue\} appearance="light"/);
   assert.match(outreachForm, /bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800/);
   assert.match(outreachForm, /focus-visible:ring-2/);
 
   assert.match(offerForm, /saveOfferDraftAction/);
   assert.match(offerForm, /Create offer draft/);
   assert.match(offerForm, /Save offer draft/);
+  assert.match(offerForm, /New draft/);
   assert.match(offerForm, /Price net/);
   assert.match(offerForm, /Valid until/);
-  assert.match(offerForm, /StatusPill value=\{\(draft\?\.packageFit \?\? "UNKNOWN"\) as PackageFitValue\} appearance="light"/);
+  assert.doesNotMatch(offerForm, /StatusPill value=\{\(draft\?\.status \?\? "DRAFT"\) as OfferDraftStatusValue\} appearance="light"/);
   assert.match(offerForm, /bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800/);
   assert.match(offerForm, /focus-visible:ring-2/);
 });

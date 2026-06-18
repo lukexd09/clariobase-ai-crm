@@ -50,17 +50,10 @@ export function OutreachDraftSection({
   miniAuditDrafts: MiniAuditDraftRecord[];
 }) {
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-950">Outreach drafts</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Prepare the first outreach message, channel, and follow-up metadata locally.
-        </p>
-      </div>
-
+    <section className="space-y-3">
       <OutreachDraftEditor leadId={leadId} miniAuditDrafts={miniAuditDrafts} />
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {drafts.map((draft) => (
           <OutreachDraftEditor
             key={draft.id}
@@ -87,22 +80,33 @@ function OutreachDraftEditor({
     async (_previous, formData) => saveOutreachDraftAction(leadId, formData),
     initialState
   );
+  const feedbackId = draft ? `outreach-feedback-${draft.id}` : "outreach-feedback-new";
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <form
+      action={formAction}
+      aria-describedby={state.message ? feedbackId : undefined}
+      className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-slate-950">
             {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create outreach draft"}
           </h3>
           <p className="mt-1 text-xs text-slate-500">
-            {draft ? "Update the existing outreach draft below." : "Start a new outreach draft for this lead."}
+            {draft ? "Update the existing outreach draft below." : "Create the first outreach draft for this lead."}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <StatusPill value={(draft?.status ?? "DRAFT") as OutreachDraftStatusValue} appearance="light" />
-          <StatusPill value={(draft?.channel ?? "EMAIL") as OutreachChannelValue} appearance="light" />
-        </div>
+        {draft ? (
+          <div className="flex flex-wrap gap-2">
+            <StatusPill value={draft.status as OutreachDraftStatusValue} appearance="light" />
+            <StatusPill value={draft.channel as OutreachChannelValue} appearance="light" />
+          </div>
+        ) : (
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700">
+            New draft
+          </span>
+        )}
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
@@ -119,7 +123,7 @@ function OutreachDraftEditor({
               ))}
             </select>
           }
-          value={<StatusPill value={(draft?.status ?? "DRAFT") as OutreachDraftStatusValue} appearance="light" />}
+          hint="Set the current stage for this outreach draft."
         />
         <DraftField
           label="Channel"
@@ -132,7 +136,7 @@ function OutreachDraftEditor({
               ))}
             </select>
           }
-          value={<StatusPill value={(draft?.channel ?? "EMAIL") as OutreachChannelValue} appearance="light" />}
+          hint="Choose the channel this draft is prepared for."
         />
         <DraftField
           label="Linked mini-audit"
@@ -151,12 +155,12 @@ function OutreachDraftEditor({
               ))}
             </select>
           }
-          value="Optional downstream mini-audit link"
+          hint="Optional link to the supporting mini-audit draft."
         />
         <DraftField
           label="Subject"
           control={<input name="subject" defaultValue={draft?.subject ?? ""} className={fieldInputClassName} />}
-          value="Optional email subject"
+          hint="Optional email subject."
         />
         <DraftField
           label="Sent at"
@@ -168,7 +172,7 @@ function OutreachDraftEditor({
               className={fieldInputClassName}
             />
           }
-          value="Optional manual sent timestamp"
+          hint="Optional manual send timestamp in local operator time."
         />
         <DraftField
           label="Opening hook"
@@ -180,7 +184,7 @@ function OutreachDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          value="Lead-specific opening line"
+          hint="Lead-specific opening line."
         />
         <DraftField
           label="Message"
@@ -192,7 +196,7 @@ function OutreachDraftEditor({
               className={`${fieldInputClassName} min-h-32 resize-y md:col-span-2`}
             />
           }
-          value="Prepared outreach text"
+          hint="Prepared outreach text."
         />
         <DraftField
           label="Call to action"
@@ -204,7 +208,7 @@ function OutreachDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          value="What should the lead do next"
+          hint="What should the lead do next."
         />
         <DraftField
           label="Notes"
@@ -216,14 +220,21 @@ function OutreachDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          value="Internal context or reminders"
+          hint="Internal context or reminders."
         />
       </div>
 
       <div className="flex items-center gap-4">
         <SubmitButton>{draft ? "Save outreach draft" : "Create outreach draft"}</SubmitButton>
         {state.message ? (
-          <p className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}>{state.message}</p>
+          <p
+            id={feedbackId}
+            role={state.ok ? "status" : "alert"}
+            aria-live={state.ok ? "polite" : "assertive"}
+            className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}
+          >
+            {state.message}
+          </p>
         ) : null}
       </div>
     </form>
@@ -233,11 +244,11 @@ function OutreachDraftEditor({
 function DraftField({
   label,
   control,
-  value
+  hint
 }: {
   label: string;
   control: React.ReactNode;
-  value: React.ReactNode;
+  hint: React.ReactNode;
 }) {
   return (
     <label className="space-y-2 md:col-span-1">
@@ -245,7 +256,7 @@ function DraftField({
         {label}
       </span>
       {control}
-      <span className="block text-xs text-slate-500">{value}</span>
+      <span className="block text-xs leading-5 text-slate-500">{hint}</span>
     </label>
   );
 }

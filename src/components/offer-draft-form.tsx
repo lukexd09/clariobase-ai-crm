@@ -47,18 +47,10 @@ export function OfferDraftSection({
   drafts: OfferDraftClientRecord[];
 }) {
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-950">Offer drafts</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Prepare commercial offer drafts locally. No PDF export or sending workflow is included
-          here.
-        </p>
-      </div>
-
+    <section className="space-y-3">
       <OfferDraftEditor leadId={leadId} />
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {drafts.map((draft) => (
           <OfferDraftEditor key={draft.id} leadId={leadId} draft={draft} />
         ))}
@@ -78,22 +70,33 @@ function OfferDraftEditor({
     async (_previous, formData) => saveOfferDraftAction(leadId, formData),
     initialState
   );
+  const feedbackId = draft ? `offer-feedback-${draft.id}` : "offer-feedback-new";
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <form
+      action={formAction}
+      aria-describedby={state.message ? feedbackId : undefined}
+      className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-slate-950">
             {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create offer draft"}
           </h3>
           <p className="mt-1 text-xs text-slate-500">
-            {draft ? "Update the existing offer draft below." : "Start a new commercial offer draft for this lead."}
+            {draft ? "Update the existing offer draft below." : "Create the first commercial offer draft for this lead."}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <StatusPill value={(draft?.status ?? "DRAFT") as OfferDraftStatusValue} appearance="light" />
-          <StatusPill value={(draft?.packageFit ?? "UNKNOWN") as PackageFitValue} appearance="light" />
-        </div>
+        {draft ? (
+          <div className="flex flex-wrap gap-2">
+            <StatusPill value={draft.status as OfferDraftStatusValue} appearance="light" />
+            <StatusPill value={draft.packageFit as PackageFitValue} appearance="light" />
+          </div>
+        ) : (
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700">
+            New draft
+          </span>
+        )}
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
@@ -110,7 +113,7 @@ function OfferDraftEditor({
               ))}
             </select>
           }
-          value={<StatusPill value={(draft?.status ?? "DRAFT") as OfferDraftStatusValue} appearance="light" />}
+          hint="Set the current stage for this offer draft."
         />
         <DraftField
           label="Package fit"
@@ -127,12 +130,12 @@ function OfferDraftEditor({
               ))}
             </select>
           }
-          value={<StatusPill value={(draft?.packageFit ?? "UNKNOWN") as PackageFitValue} appearance="light" />}
+          hint="Record the package this offer currently targets."
         />
         <DraftField
           label="Title"
           control={<input name="title" defaultValue={draft?.title ?? ""} className={fieldInputClassName} />}
-          value="Required offer title"
+          hint="Required offer title."
         />
         <DraftField
           label="Price net"
@@ -146,12 +149,12 @@ function OfferDraftEditor({
               className={fieldInputClassName}
             />
           }
-          value="Optional numeric price"
+          hint="Optional numeric price."
         />
         <DraftField
           label="Currency"
           control={<input name="currency" defaultValue={draft?.currency ?? "PLN"} className={fieldInputClassName} />}
-          value="Defaults to PLN"
+          hint="Defaults to PLN."
         />
         <DraftField
           label="Valid until"
@@ -163,7 +166,7 @@ function OfferDraftEditor({
               className={fieldInputClassName}
             />
           }
-          value="Optional expiry timestamp"
+          hint="Optional expiry timestamp in local operator time."
         />
         <DraftField
           label="Sent at"
@@ -175,7 +178,7 @@ function OfferDraftEditor({
               className={fieldInputClassName}
             />
           }
-          value="Manual send timestamp"
+          hint="Manual send timestamp in local operator time."
         />
         <DraftField
           label="Accepted at"
@@ -187,7 +190,7 @@ function OfferDraftEditor({
               className={fieldInputClassName}
             />
           }
-          value="Optional acceptance timestamp"
+          hint="Optional acceptance timestamp in local operator time."
         />
         <DraftField
           label="Rejected at"
@@ -199,7 +202,7 @@ function OfferDraftEditor({
               className={fieldInputClassName}
             />
           }
-          value="Optional rejection timestamp"
+          hint="Optional rejection timestamp in local operator time."
         />
         <DraftField
           label="Scope summary"
@@ -211,7 +214,7 @@ function OfferDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          value="What is included in the offer"
+          hint="What is included in the offer."
         />
         <DraftField
           label="Assumptions"
@@ -223,7 +226,7 @@ function OfferDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          value="What the price assumes"
+          hint="What the price assumes."
         />
         <DraftField
           label="Next step"
@@ -235,7 +238,7 @@ function OfferDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          value="What should happen after this draft"
+          hint="What should happen after this draft."
         />
         <DraftField
           label="Rejection reason"
@@ -247,14 +250,21 @@ function OfferDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          value="Optional rejection note"
+          hint="Optional rejection note."
         />
       </div>
 
       <div className="flex items-center gap-4">
         <SubmitButton>{draft ? "Save offer draft" : "Create offer draft"}</SubmitButton>
         {state.message ? (
-          <p className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}>{state.message}</p>
+          <p
+            id={feedbackId}
+            role={state.ok ? "status" : "alert"}
+            aria-live={state.ok ? "polite" : "assertive"}
+            className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}
+          >
+            {state.message}
+          </p>
         ) : null}
       </div>
     </form>
@@ -264,11 +274,11 @@ function OfferDraftEditor({
 function DraftField({
   label,
   control,
-  value
+  hint
 }: {
   label: string;
   control: React.ReactNode;
-  value: React.ReactNode;
+  hint: React.ReactNode;
 }) {
   return (
     <label className="space-y-2 md:col-span-1">
@@ -276,7 +286,7 @@ function DraftField({
         {label}
       </span>
       {control}
-      <span className="block text-xs text-slate-500">{value}</span>
+      <span className="block text-xs leading-5 text-slate-500">{hint}</span>
     </label>
   );
 }

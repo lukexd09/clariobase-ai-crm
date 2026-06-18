@@ -73,6 +73,8 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Data-intake and diagnostic routes should feel integrated with the CRM shell, not detached or marketing-like.
 - Import and duplicate-review screens should lead with operator-facing status or confidence language; raw enum or validator wording belongs in secondary detail.
 - When technical IDs or validation output are still useful, keep them readable but visually secondary through subdued metadata or clear disclosures.
+- Dense lead-workspace routes should not duplicate the global app navigation inside the page body; use compact breadcrumbs or in-page section links instead.
+- Before the first draft record exists, draft-creation UI may explain the upcoming workflow but must not present persisted `DRAFT` status as if a saved record already exists.
 
 ## Future UI checklist
 
