@@ -18,6 +18,7 @@ import {
   buildDeployPlan,
   buildStopPlan,
   createPreviewSummary,
+  executeDeployPlanWithEnv,
   getRepoRoot,
   loadPreviewEnv,
   parseEnvFileContent
@@ -156,6 +157,7 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
     "compose.yaml",
     "-f"
   ]);
+  assert.match(deployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
   assert.match(deployPlan.startDatabase.join(" "), /up -d crm-postgres/);
   assert.match(deployPlan.migrate.join(" "), /migrate deploy/);
   assert.match(deployPlan.startApplication.join(" "), /up -d crm-app/);
@@ -164,6 +166,46 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   assert.equal(summary.projectName, PREVIEW_PROJECT_NAME);
   assert.equal(summary.volumeName, PREVIEW_VOLUME_NAME);
   assert.equal(summary.networkName, PREVIEW_NETWORK_NAME);
+});
+
+test("deploy preview propagates the same source build context to all five compose commands", () => {
+  const deployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
+  const observed = [] as Array<{ description: string; buildContext?: string }>;
+
+  executeDeployPlanWithEnv(
+    deployPlan,
+    { CRM_BUILD_CONTEXT: "/tmp/source-checkout" },
+    (command, args, env) => {
+      assert.equal(command, "docker");
+      observed.push({
+        description: args.join(" "),
+        buildContext: env.CRM_BUILD_CONTEXT
+      });
+
+      return {
+        pid: 1,
+        output: ["", ""],
+        stdout: "",
+        stderr: "",
+        status: 0,
+        signal: null
+      };
+    }
+  );
+
+  assert.equal(observed.length, 5);
+  assert.deepEqual(observed.map((entry) => entry.buildContext), [
+    "/tmp/source-checkout",
+    "/tmp/source-checkout",
+    "/tmp/source-checkout",
+    "/tmp/source-checkout",
+    "/tmp/source-checkout"
+  ]);
+  assert.match(observed[0].description, /build crm-app/);
+  assert.match(observed[1].description, /down -v --remove-orphans/);
+  assert.match(observed[2].description, /up -d crm-postgres/);
+  assert.match(observed[3].description, /migrate deploy/);
+  assert.match(observed[4].description, /up -d crm-app/);
 });
 
 test("preview compose config uses the requested source checkout as the build context", { skip: !dockerAvailable }, () => {

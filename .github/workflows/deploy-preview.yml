@@ -112,17 +112,22 @@ jobs:
         shell: pwsh
         working-directory: control
         run: |
-          $resultPath = Join-Path $PWD "deploy-preview-result.json"
-          powershell -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
             -RequestedRef "${{ needs.resolve-preview-ref.outputs.requested_ref }}" `
             -ResolvedSha "${{ needs.resolve-preview-ref.outputs.resolved_sha }}" `
             -ControlCheckoutPath $PWD `
             -SourceCheckoutPath (Join-Path $PWD "..\source") `
-            -PreviewEnvFile .\.env.compose.preview.local | Tee-Object -FilePath $resultPath
+            -PreviewEnvFile .\.env.compose.preview.local
 
-          $result = Get-Content $resultPath -Raw | ConvertFrom-Json
-          "preview_url=$($result.previewUrl)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          "resolved_sha=$($result.resolvedSha)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          $deployExitCode = $LASTEXITCODE
+
+          if ($deployExitCode -ne 0) {
+            throw "Deploy preview script failed with exit code $deployExitCode."
+          }
+
+          "preview_url=http://Serwer:3001" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "resolved_sha=${{ needs.resolve-preview-ref.outputs.resolved_sha }}" |
+            Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Write job summary
         shell: pwsh

@@ -255,6 +255,10 @@ export function buildComposeArgs(previewEnvFilePath: string, composeArgs: string
 export function buildDeployPlan(previewEnvFilePath: string) {
   return {
     buildApp: buildComposeArgs(previewEnvFilePath, ["build", "crm-app"]),
+    replaceExistingPreview: buildComposeArgs(
+      previewEnvFilePath,
+      ["down", "-v", "--remove-orphans"]
+    ),
     startDatabase: buildComposeArgs(previewEnvFilePath, ["up", "-d", "crm-postgres"]),
     migrate: buildComposeArgs(previewEnvFilePath, [
       "run",
@@ -305,6 +309,23 @@ export function runCommandWithEnv(command: string, args: string[], extraEnv: Rec
   });
 }
 
+export function runCommandWithMergedEnv(
+  command: string,
+  args: string[],
+  extraEnv: Record<string, string>,
+  cwd = repoRoot
+) {
+  return spawnSync(command, args, {
+    cwd,
+    encoding: "utf8",
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      ...extraEnv
+    }
+  });
+}
+
 export function getCurrentHeadSha() {
   const result = runCommand("git", ["rev-parse", "HEAD"]);
 
@@ -334,4 +355,27 @@ export function assertSuccessfulCommand(
   description: string
 ) {
   assert.equal(result.status, 0, `${description} should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
+}
+
+export function executeDeployPlanWithEnv(
+  deployPlan: ReturnType<typeof buildDeployPlan>,
+  extraEnv: Record<string, string>,
+  runner: (command: string, args: string[], env: Record<string, string>) => SpawnSyncReturns<string> = (
+    command,
+    args,
+    env
+  ) => runCommandWithMergedEnv(command, args, env)
+) {
+  const steps = [
+    ["docker compose build crm-app", deployPlan.buildApp],
+    ["replace existing preview stack", deployPlan.replaceExistingPreview],
+    ["docker compose up -d crm-postgres", deployPlan.startDatabase],
+    ["preview prisma migrate deploy", deployPlan.migrate],
+    ["docker compose up -d crm-app", deployPlan.startApplication]
+  ] as const;
+
+  for (const [description, args] of steps) {
+    const result = runner("docker", args, extraEnv);
+    assertSuccessfulCommand(result, description);
+  }
 }
