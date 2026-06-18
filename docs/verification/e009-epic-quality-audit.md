@@ -5,7 +5,7 @@ document_type: verification-report
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-16
+last_updated: 2026-06-18
 related_epic: E009
 related_tasks:
   - E009.T001
@@ -15,6 +15,10 @@ related_tasks:
   - E009.T005
   - E009.T006
   - E009.T007
+  - E009.T008
+  - E009.T009
+  - E009.T010
+  - E009.T011
 related_components:
   - COMP-CRM-APP
 related_documents:
@@ -34,350 +38,323 @@ tags:
 
 ## Audit result
 
-Result: `PASS`
+Result: `CHANGES REQUIRED`
 
-This document records the final integrated E009 audit state after the T007 closeout corrections, the historical package audit, route-by-route QA, and repository verification on `feature/e009-t007-ui-closeout-audit`.
+This report restores the deleted whole-epic audit file and updates it for the current integrated candidate after T008, T009, and T010. It is the T011 follow-up state after independent assurance returned `CHANGES REQUIRED`.
 
-Audit boundary:
+Current candidate identity:
 
 - exact E009 base SHA: `ee9dd92387a303171529eb6a1c4c0710431b889e`
-- integrated pre-T007 epic SHA: `9dc5f06d1db05c70d4bd943a6deac3770bba4137`
-- audit correction branch: `feature/e009-t007-ui-closeout-audit`
-- final exact branch-head SHA for the draft PR is recorded in the draft PR body and CI evidence for the pushed head
-- audit date: `2026-06-16`
+- remote / PR `#95` old head: `765f1feb9d1e7160c795a2f50864d9a336f68652`
+- T008 integration merge: `3362308c25a0fecc8df0d3afcc34e2f6f7ee9f66`
+- T009 integration merge: `e315a5d140ceda2f3154fff781fb56218ed179b3`
+- current integrated local candidate and T010 merge head: `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`
+- T011 correction scope: restore this document only on `feature/e009-t011-final-ui-reassurance`
+- audit date: `2026-06-18`
 
-Independent review note:
+Current assurance posture:
 
-- routine-tier delegation and an independent whole-epic review were attempted through subagents
-- both subagent runs were blocked by session usage limits before producing usable output
-- the final audit therefore includes a direct primary-agent review plus explicit route, test, and documentation evidence instead of fabricated delegated results
+- The critical deleted-file finding is corrected by restoring this report at `docs/verification/e009-epic-quality-audit.md`.
+- Historical package evidence for T001 through T010 is recorded below against the integrated local candidate at `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`.
+- Final whole-epic `PASS` cannot be claimed yet because exact-head CI has not been rerun for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`.
+- PR `#95` still points at the older T007 head `765f1feb9d1e7160c795a2f50864d9a336f68652`, so remote PR evidence is stale relative to the local candidate.
+- Browser-only keyboard, zoom, and screen-reader proof was not executed in this T011 slice and is recorded as explicit human follow-up, not fabricated evidence.
 
-Validation note:
+Issues and history reviewed for this report:
 
-- one non-binding failed run occurred when `corepack pnpm test` and `corepack pnpm build` were started in parallel and collided in `.next`
-- the binding verification evidence below comes from the clean sequential rerun after removing `.next`
+- epic and current correction context: `#41`, `#79`, `#80`, `#97`, `#98`, `#99`, `#100`
+- historical task / PR context: `#42/#43`, `#44/#48`, `#47/#49`, `#50/#51`, `#52/#55`, `#79/#90`, `#80/#95`
 
-## 1. Historical E009 Package Audit — T001 through T006
+## 1. Historical package audit
 
-### E009.T001 — `#42` / merged PR `#43`
+### E009.T001 - `#42` / PR `#43`
 
-- Original goal:
-  establish the light CRM visual foundation and replace the technical skeleton homepage with a business-facing dashboard entry screen.
-- Historical decisions:
-  PR `#43` introduced the light visual-direction document, compact homepage cards, and secondary placement for `/health`.
-- Current implementation:
-  `src/app/page.tsx`, `src/lib/homepage.ts`, `src/components/app-shell.tsx`, `docs/design/light-crm-visual-direction.md`.
-- Current automated protection:
-  `tests/homepage.test.ts`, `tests/docs-sanity.test.ts`, `tests/navigation.test.ts`.
-- Current canonical documentation:
-  `docs/design/light-crm-visual-direction.md`, `README.md`.
-- Required manual verification:
-  homepage still feels like a calm CRM dashboard, not a technical skeleton; route actions remain present and readable at desktop and tablet widths.
+- Goal:
+  replace the technical skeleton homepage with a business-facing light CRM entry screen.
+- Current integrated evidence:
+  homepage content is still business-oriented in `src/app/page.tsx`; `tests/homepage.test.ts` still protects primary route cards, `/health` as a secondary system link, and the accessible primary CTA contract.
 - Current verdict:
   `PASS`
-- T007 correction applied:
-  homepage primary CTA contrast was tightened from `bg-sky-600` to `bg-sky-700` with `hover:bg-sky-800`, and the design doc now codifies that CTA contrast contract.
 
-### E009.T002 — `#44` / merged PR `#48`
+### E009.T002 - `#44` / PR `#48`
 
-- Original goal:
-  add a shared light CRM app shell with workflow-first left navigation and a visible active state.
-- Historical decisions:
-  PR `#48` introduced `AppShell`, route grouping, semantic navigation, and `prefetch={false}` on DB-backed shell links.
-- Current implementation:
-  `src/app/layout.tsx`, `src/components/app-shell.tsx`, `src/lib/navigation.ts`, all active business routes rendered inside the shell.
-- Current automated protection:
-  `tests/navigation.test.ts`, `tests/homepage.test.ts`, `tests/docs-sanity.test.ts`.
-- Current canonical documentation:
-  `docs/design/light-crm-visual-direction.md`, `README.md`.
-- Required manual verification:
-  navigation stays coherent across business and system routes, and active-route affordance remains visible without color alone.
+- Goal:
+  introduce a shared light CRM shell with grouped left navigation and visible active-state affordance.
+- Current integrated evidence:
+  `src/components/app-shell.tsx` and `src/lib/navigation.ts` remain the shared route frame; `tests/navigation.test.ts` and `tests/light-core-work-screens.test.ts` still require semantic navigation and `aria-current`.
 - Current verdict:
   `PASS`
-- Notes:
-  the shell is now consistent across `/`, `/work`, `/leads`, `/reports/sales`, `/imports`, `/duplicates`, and the user-facing `/health` screen.
 
-### E009.T003 — `#47` / merged PR `#49`
+### E009.T003 - `#47` / PR `#49`
 
-- Original goal:
-  define the light-first accessibility and UI-foundation baseline for future redesign work.
-- Historical decisions:
-  PR `#49` moved global defaults away from dark baseline and introduced reusable focus and text-size guidance.
-- Current implementation:
-  `src/app/globals.css`, `docs/design/light-crm-visual-direction.md`.
-- Current automated protection:
-  `tests/ui-foundation.test.ts`, `tests/docs-sanity.test.ts`.
-- Current canonical documentation:
-  `docs/design/light-crm-visual-direction.md`.
-- Required manual verification:
-  touched screens still present visible focus affordances, readable secondary text, and non-dark foundations after later tasks.
+- Goal:
+  define the light-first visual and accessibility baseline for the CRM UI.
+- Current integrated evidence:
+  `src/app/globals.css` and `docs/design/light-crm-visual-direction.md` remain the visual baseline; `tests/docs-sanity.test.ts` and `tests/ui-foundation.test.ts` still protect the light-first direction and CTA contrast guidance.
 - Current verdict:
   `PASS`
-- T007 correction applied:
-  the design doc now explicitly preserves the accessible primary CTA contrast contract, closing a real post-T001 regression gap.
 
-### E009.T004 — `#50` / merged PR `#51`
+### E009.T004 - `#50` / PR `#51`
 
-- Original goal:
-  migrate `/work`, `/leads`, and `/reports/sales` to the light CRM shell without changing business behavior.
-- Historical decisions:
-  PR `#51` kept the operational headers compact, preserved chips/tables, and emphasized readable light status styling.
-- Current implementation:
-  `src/app/work/page.tsx`, `src/app/leads/page.tsx`, `src/app/reports/sales/page.tsx`, `src/components/lead-filters.tsx`, `src/components/lead-table.tsx`, `src/components/lead-status-pill.tsx`.
-- Current automated protection:
-  `tests/light-core-work-screens.test.ts`, `tests/work-view.test.ts`, `tests/sales-report.test.ts`.
-- Current canonical documentation:
-  `docs/design/light-crm-visual-direction.md`, `README.md`.
-- Required manual verification:
-  the three operational screens remain scan-friendly, light, and coherent with the shell at desktop and tablet widths.
+- Goal:
+  migrate `/work`, `/leads`, and `/reports/sales` into the light CRM system without changing business behavior.
+- Current integrated evidence:
+  current route sources remain in the shell and light palette; `tests/light-core-work-screens.test.ts`, `tests/work-view.test.ts`, and `tests/sales-report.test.ts` still protect table semantics, density, and behavior.
 - Current verdict:
   `PASS`
-- Notes:
-  route QA on the current head confirmed no legacy dark page baseline on `/work`, `/leads`, or `/reports/sales`.
 
-### E009.T005 — `#52` / merged PR `#55`
+### E009.T005 - `#52` / PR `#55`
 
-- Original goal:
-  add automatic filtering, URL-driven server-side pagination, filtered result counters, and accessible pagination semantics for `/leads` without breaking `/work`.
-- Historical decisions:
-  PR `#55` kept `/work` on the unpaginated `getLeads()` path, moved filtering to automatic URL state, and introduced the dedicated paginated query path.
-- Current implementation:
-  `src/app/leads/page.tsx`, `src/components/lead-filters.tsx`, `src/components/lead-pagination.tsx`, `src/lib/leads.ts`, `src/lib/lead-pagination.ts`, `src/lib/lead-query.ts`.
-- Current automated protection:
-  `tests/leads-pagination.test.ts`, `tests/light-core-work-screens.test.ts`, `tests/work-view.test.ts`.
-- Current canonical documentation:
-  `README.md` and the route implementation itself; historical product intent still lives mainly in issue `#52` and PR `#55`.
-- Required manual verification:
-  changing filters resets pagination to page `1`, URL state stays canonical, filtered result counts stay correct, pagination remains semantic, and `/work` behavior is unchanged.
+- Goal:
+  add automatic filtering, URL-driven pagination, and accessible list semantics for `/leads` without regressing `/work`.
+- Current integrated evidence:
+  pagination and filtering logic remains in `src/app/leads/page.tsx`, `src/components/lead-filters.tsx`, `src/components/lead-pagination.tsx`, and `src/lib/lead-query.ts`; `tests/leads-pagination.test.ts` continues to protect page math, summaries, reset behavior, and semantic pagination output.
 - Current verdict:
   `PASS`
-- T007 correction applied:
-  `formatLeadResultSummary()` now returns ASCII-safe `1-50 of 2,000 leads` style counters instead of mojibake output such as `1â€“50...`.
-- Current evidence:
-  live QA confirmed `1-50 of 66 leads` on `/leads`, `51-66 of 66 leads` on `/leads?page=2`, and page-reset behavior to `http://localhost:3000/leads?status=CONTACTED` with `1-21 of 21 leads`.
 
-### E009.T006 — `#79` / merged PR `#90`
+### E009.T006 - `#79` / PR `#90`
 
-- Original goal:
-  migrate every remaining active light-UI holdout, especially `/leads/[id]`, imports, duplicates, and `/health`, without changing business behavior.
-- Historical decisions:
-  PR `#90` performed the risk-first proof on `src/app/leads/[id]/page.tsx`, moved the remaining routes to the shared light system, and recorded the task-level proof note.
-- Current implementation:
-  `src/app/leads/[id]/page.tsx`, `src/components/lead-update-form.tsx`, `src/components/activity-form.tsx`, `src/components/mini-audit-draft-form.tsx`, `src/components/outreach-draft-form.tsx`, `src/components/offer-draft-form.tsx`, `src/app/imports/page.tsx`, `src/app/imports/[id]/page.tsx`, `src/app/duplicates/page.tsx`, `src/app/duplicates/[id]/page.tsx`, `src/app/health/page.tsx`.
-- Current automated protection:
-  `tests/lead-detail-light-proof.test.ts`, `tests/light-remaining-list-detail-screens.test.ts`, `tests/activity.test.ts`, `tests/lead-drafts.test.ts`, `tests/offer-drafts.test.ts`.
-- Current canonical documentation:
-  `docs/verification/e009-t006-light-screen-proof.md` as historical task-level proof, plus this whole-epic audit.
-- Required manual verification:
-  dense lead-detail action hierarchy and scanability remain intact, remaining list/detail routes are coherent with the shell, and keyboard/focus affordances remain visible.
+- Goal:
+  migrate the remaining active light-UI holdouts, especially `/leads/[id]`, imports, duplicates, and `/health`.
+- Current integrated evidence:
+  T006 route ownership remains visible in `src/app/leads/[id]/page.tsx`, `src/app/imports/**`, `src/app/duplicates/**`, and `src/app/health/page.tsx`; `tests/lead-detail-light-proof.test.ts` and `tests/light-remaining-list-detail-screens.test.ts` still protect those surfaces; `docs/verification/e009-t006-light-screen-proof.md` remains the historical task-level proof note only.
 - Current verdict:
   `PASS`
-- T007 correction applied:
-  the T006 proof note now explicitly states that it is historical task-level evidence only and points whole-epic closure evidence here.
 
-## 2. Route-by-Route Visual and Accessibility Audit
+### E009.T007 - `#80` / PR `#95`
 
-Route checklist audited on the current T007 head:
+- Goal:
+  close the first whole-epic audit gaps, including CTA contrast, result-summary encoding, and stale documentation.
+- Current integrated evidence:
+  the corrected homepage and duplicate-detail CTA classes remain protected in `tests/homepage.test.ts` and `tests/light-remaining-list-detail-screens.test.ts`; the T006 proof note and `README.md` still reflect post-skeleton CRM wording; the prior whole-epic audit was created at `765f1feb9d1e7160c795a2f50864d9a336f68652` but was deleted in the current worktree before this T011 restoration.
+- Current verdict:
+  `PASS` as historical package work, but its old whole-epic closure claim is superseded by the current T011 follow-up state for the newer candidate.
 
-- `/`
-  - light CRM dashboard heading remains `Manage leads, follow-ups, and sales work in one calm workspace.`
-  - business actions for leads, workbench, reports, imports, duplicates, and `/health` are present
-  - no horizontal overflow at `1280x720` or `768x1024`
-  - primary CTA `Open leads` now renders `bg-sky-700` with measured contrast ratio `5.93:1`
-- `/work`
-  - light operational summary, bucket captions, and semantic tables remain intact
-  - `33` current table rows rendered in QA data state
-  - no horizontal overflow at desktop or tablet widths
-- `/leads`
-  - current result summary renders `1-50 of 66 leads`
-  - table caption and `scope="col"` headers remain present
-  - page `2` renders `51-66 of 66 leads`
-  - no horizontal overflow at desktop or tablet widths
-- `/leads/[id]`
-  - lead-detail workspace still exposes the dense action set:
-    `Create mini-audit draft`, `Save mini-audit draft`, `Create outreach draft`, `Create offer draft`, `Save offer draft`, `Save updates`, `Add activity`
-  - operator sidebar remains present and route hierarchy is intact
-  - no horizontal overflow at desktop or tablet widths
-- `/reports/sales`
-  - operational pipeline heading and KPI blocks remain intact
-  - summary tables and captions remain present
-  - no horizontal overflow at desktop or tablet widths
-- `/imports`
-  - light table styling, caption, status pills, and review action remain intact
-  - QA route rendered `1` import row in the current local fixture state
-- `/imports/[id]`
-  - light detail card, import summary, row-level results, semantic caption, and `Open lead` actions remain intact
-  - QA route rendered `2` row results
-- `/duplicates`
-  - light table styling, caption, status pills, and review action remain intact
-  - QA route rendered `1` duplicate candidate row
-- `/duplicates/[id]`
-  - lead comparison detail remains readable with explicit review actions
-  - primary review action `Mark resolved` uses the corrected `bg-sky-700` CTA contract with measured contrast ratio `5.93:1`
-- `/health`
-  - the route now renders as a light system status card coherent with the app shell instead of a dark diagnostic page
+### E009.T008 - `#97`
 
-Accessibility findings:
+- Goal:
+  normalize shared light CRM density and compact route framing across the shell, homepage, health, and core list/report routes.
+- Integrated change set:
+  merged at `3362308c25a0fecc8df0d3afcc34e2f6f7ee9f66` from feature head `6aeaff0`; touched the shell, homepage, `/health`, `/work`, `/leads`, `/reports/sales`, imports and duplicates list surfaces, and updated the visual-direction document.
+- Current integrated evidence:
+  `tests/light-density-route-contracts.test.ts` asserts the rendered compact shell contract for `/` and `/health`; `tests/light-core-work-screens.test.ts` protects compact headers, active filter chips, tabular semantics, and light density conventions.
+- Current verdict:
+  `PASS`
 
-- semantic landmarks are present on all active user-facing routes through the shell, route headers, and `<main>` usage
-- active business/system navigation remains grouped and visible without color alone
-- list and detail tables use captions and column scopes where applicable
-- interactive controls touched by E009 continue to use visible focus-ring classes such as `focus-visible:ring-2`
-- no material contrast failure was found in the manually sampled primary CTAs after the T007 correction
+### E009.T009 - `#98`
 
-Keyboard evidence:
+- Goal:
+  improve imports and duplicate-review usability without regressing the light CRM system.
+- Integrated change set:
+  merged at `e315a5d140ceda2f3154fff781fb56218ed179b3` from feature head `cf79cff`; expanded list/detail ergonomics for `/imports`, `/imports/[id]`, `/duplicates`, and `/duplicates/[id]`.
+- Current integrated evidence:
+  `tests/light-remaining-list-detail-screens.test.ts` protects import captions, row-result semantics, technical validation detail text, duplicate confidence language, review actions, external lead links, and the corrected blue CTA contract.
+- Current verdict:
+  `PASS`
 
-- semantic focusable order on the homepage and shell was confirmed from the visible DOM snapshot:
-  shell logo link, grouped navigation links, primary CTA links, then dashboard cards
-- the browser runtime in this session exposed the current active element reliably but did not advance focus reliably under scripted `Tab` dispatch, so a full synthetic Tab-walk could not be treated as authoritative evidence
-- because of that runtime limit, the final keyboard conclusion relies on the combination of:
-  - semantic link/button/select markup on active routes
-  - visible focus-ring classes in the current source
-  - preserved route order in the visible DOM snapshot
-  - focused manual checks on the lead filters, pagination source, lead detail actions, and shell navigation semantics
-- no E009-owned keyboard regression was detected, but this remains an explicit post-merge human smoke gate for the draft PR
+### E009.T010 - `#99`
 
-## 3. Automated Test Relevance and Coverage Audit
+- Goal:
+  simplify lead-workspace usability while preserving the dense operator workflow.
+- Integrated change set:
+  merged at `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66` from feature head `ea3aa78`; reworked `src/app/leads/[id]/page.tsx` and the lead, activity, mini-audit, outreach, and offer forms.
+- Current integrated evidence:
+  `tests/lead-detail-light-proof.test.ts` now requires in-page section links, `Lead controls`, `Activity log`, `Lead workspace`, `Show technical details`, preserved dense forms, visible focus rings, and the absence of the duplicated `LeadDetailSidebar` route-navigation pattern.
+- Current verdict:
+  `PASS`
 
-Audit result: `PASS`
+### E009.T011 - `#100`
 
-Relevant current-state protection:
+- Goal:
+  restore the deleted whole-epic audit and make the assurance state truthful for the current integrated candidate.
+- Current integrated evidence:
+  this document is restored for the current candidate and now records the stale PR head, pending exact-head CI, and explicit human gates instead of the outdated T007 whole-epic `PASS`.
+- Current verdict:
+  `PASS` for the narrow document-restoration slice.
+
+## 2. Route-by-route visual and accessibility audit
+
+This section is intentionally limited to knowable current evidence from branch source, diffs, and test coverage. It does not claim fresh interactive browser proof that was not executed in T011.
+
+### `/`
+
+- Source and test evidence:
+  homepage remains in the shared light shell with business-primary route cards; `tests/homepage.test.ts` and `tests/light-density-route-contracts.test.ts` require `Open leads`, `Open workbench`, `Health check`, `bg-sky-700`, `hover:bg-sky-800`, and visible focus rings.
+- Human gates still required:
+  keyboard-only tab order, 200 percent zoom, and screen-reader announcement pass in a real browser session.
+
+### `/work`
+
+- Source and test evidence:
+  `tests/light-core-work-screens.test.ts` still protects light cards, semantic tables, tabular numerals, bucket emphasis, and the compact workbench framing.
+- Human gates still required:
+  verify scanability and no horizontal overflow in a real desktop and tablet render.
+
+### `/leads`
+
+- Source and test evidence:
+  automatic filters, active-filter chips, semantic table output, and accessible pagination remain protected by `tests/light-core-work-screens.test.ts` and `tests/leads-pagination.test.ts`.
+- Human gates still required:
+  keyboard traversal through filters and pagination, zoom behavior, and live visual confirmation of result summaries on current fixture data.
+
+### `/leads/[id]`
+
+- Source and test evidence:
+  `tests/lead-detail-light-proof.test.ts` protects the dense operator layout, in-page section links, `Lead controls`, `Activity log`, `Show technical details`, light pills, and accessible CTA classes across all lead-detail forms.
+- Human gates still required:
+  real-browser workflow smoke for creating or updating each form area, keyboard traversal across the dense page, and screen-reader usefulness for the in-page section navigation.
+
+### `/reports/sales`
+
+- Source and test evidence:
+  `tests/light-core-work-screens.test.ts` still requires the compact report header, conditional KPI emphasis, semantic tables, and tabular metrics.
+- Human gates still required:
+  visual confirmation that KPI emphasis remains legible without over-dominating the page.
+
+### `/imports`
+
+- Source and test evidence:
+  `tests/light-remaining-list-detail-screens.test.ts` protects light-shell baseline, semantic captions, status pills, focus rings, and operator wording such as `Completed with issues` and `Open batch results`.
+- Human gates still required:
+  browser check for row density, overflow handling, and pointer/keyboard usability.
+
+### `/imports/[id]`
+
+- Source and test evidence:
+  the same route test protects row-result captions, `Technical validation details`, focus rings, overflow handling, and row-level lead links.
+- Human gates still required:
+  real-browser validation that long validation payloads remain readable at common widths and zoom levels.
+
+### `/duplicates`
+
+- Source and test evidence:
+  route tests require light styling, confidence wording, focus rings, and `Open review` actions.
+- Human gates still required:
+  visual scan of confidence labels and row readability in a real browser.
+
+### `/duplicates/[id]`
+
+- Source and test evidence:
+  route tests require side-by-side comparison, external lead links, review actions, focus rings, and the corrected `bg-sky-700` / `hover:bg-sky-800` primary action contract.
+- Human gates still required:
+  keyboard traversal through the comparison actions and visual review at desktop and tablet widths.
+
+### `/health`
+
+- Source and test evidence:
+  `tests/light-density-route-contracts.test.ts` and `tests/light-remaining-list-detail-screens.test.ts` require the shell-wrapped `Health check` surface, `System status`, and the absence of the old minimal dark probe framing.
+- Human gates still required:
+  browser render check for readability of long values and narrow-width wrapping.
+
+### Accessibility conclusion
+
+- Current known state:
+  no current source or test evidence points to a reintroduced dark baseline, removed focus-ring class, or reverted CTA contrast regression on E009-owned routes.
+- Explicit limits:
+  no fresh T011 browser keyboard walkthrough, no fresh T011 zoom audit, and no fresh T011 screen-reader pass were executed.
+- Therefore:
+  accessibility is `PROMISING BUT NOT FULLY CLOSED`; the remaining items are human assurance gates, not automated claims.
+
+## 3. Automated test relevance and current assurance state
+
+Current automated evidence on the branch remains relevant to E009:
 
 - `tests/homepage.test.ts`
-  - proves the homepage no longer exposes the technical skeleton messaging
-  - now also protects the corrected accessible homepage CTA contract
+  protects the business-facing homepage contract and CTA contrast.
 - `tests/navigation.test.ts`
-  - protects route grouping, active-route logic, semantic navigation, and shell affordances
+  protects shell navigation grouping and active-route semantics.
 - `tests/ui-foundation.test.ts`
-  - protects the light-first global baseline from drifting back to dark defaults
+  protects the light-first foundation.
 - `tests/light-core-work-screens.test.ts`
-  - protects the light styling and semantic tables on `/work`, `/leads`, and `/reports/sales`
+  protects compact light CRM structure on `/work`, `/leads`, and `/reports/sales`.
+- `tests/light-density-route-contracts.test.ts`
+  protects rendered compact shell behavior introduced in T008.
 - `tests/leads-pagination.test.ts`
-  - protects T005 pagination math, result summaries, shared filters, URL helpers, and accessible pagination markup
+  protects T005 filter and pagination behavior.
 - `tests/lead-detail-light-proof.test.ts`
-  - protects dense lead-detail action density, forms, and CTA/focus affordances
+  protects the T010 lead-workspace simplification and dense operator workflow.
 - `tests/light-remaining-list-detail-screens.test.ts`
-  - protects the light migration of imports, duplicates, duplicate detail, and `/health`
+  protects T006 and T009 route behavior for imports, duplicates, and `/health`.
 - business-behavior tests such as `tests/work-view.test.ts`, `tests/activity.test.ts`, `tests/lead-drafts.test.ts`, `tests/offer-drafts.test.ts`, and `tests/sales-report.test.ts`
-  - reduce the risk that E009 styling work accidentally changes CRM behavior
+  reduce the risk that E009 presentation changes alter CRM behavior.
 
-Staleness and relevance findings:
+Important honesty note:
 
-- source-shape tests remain supporting evidence only; the audit therefore supplements them with live route QA and contrast checks
-- some tests still assert source tokens rather than rendered DOM, but each critical E009 area now also has route-level manual evidence
-- no current test was found to be preserving a removed dark/admin contract
+- This T011 slice did not rerun the broader E009 test suite and does not claim fresh exact-head verification for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`.
+- The above tests are current branch protections and reviewed evidence, not newly executed proof in this correction slice.
+- Exact-head CI remains `PENDING` for the corrected candidate.
 
-Integrated verification executed during this audit:
+## 4. Documentation accuracy audit
 
-| Command | Result | Evidence summary |
-| --- | --- | --- |
-| `corepack pnpm prisma:validate` | PASS | Prisma schema valid. |
-| `corepack pnpm prisma:generate` | PASS | Prisma Client generated successfully. |
-| `corepack pnpm lint` | PASS | ESLint completed with no violations. |
-| `corepack pnpm test` | PASS | `91` tests passed, `0` failed after sequential rerun. |
-| `corepack pnpm build` | PASS | Next.js production build completed successfully after clean `.next` removal. |
-
-## 4. Documentation Accuracy and Staleness Audit
-
-Audit result: `PASS`
-
-Corrections applied during T007:
+Current document state relevant to E009:
 
 - `README.md`
-  - removed stale `Next.js skeleton` wording from local setup and `/health` guidance
-  - reframed E009 references around the light CRM closeout instead of the early homepage-only phase
+  still describes the CRM as post-skeleton and points E009 readers to `docs/design/light-crm-visual-direction.md`.
 - `docs/design/light-crm-visual-direction.md`
-  - now codifies the durable primary CTA contrast contract
-  - explicitly warns against lighter blue CTA variants that weaken contrast
+  remains the canonical visual-direction document and includes the accessible CTA guidance that T007/T008/T010 depend on.
 - `docs/verification/e009-t006-light-screen-proof.md`
-  - now clearly marks itself as historical task-level evidence only
-
-Current canonical documentation set for E009:
-
-- `docs/design/light-crm-visual-direction.md`
-  - implementation guidance for the approved light visual language
-- `README.md`
-  - current route map, runtime commands, and local app framing
-- `docs/verification/e009-t006-light-screen-proof.md`
-  - historical T006 proof note only
+  still correctly presents itself as historical task-level proof only.
 - `docs/verification/e009-epic-quality-audit.md`
-  - final whole-epic closure evidence
+  is now restored and updated for the integrated candidate through T010/T011.
 
-No unresolved stale E009 guidance remains in the audited document set.
+Open documentation truth:
 
-## 5. RAG Readiness Audit
+- The prior whole-epic audit content at the old PR head incorrectly represented a final `PASS` for a candidate that no longer matches the integrated local head.
+- This restored report replaces that stale conclusion with the current `CHANGES REQUIRED` follow-up state.
+- PR body staleness remains a known external documentation gap, but it is outside T011 write scope and was not edited here.
 
-Audit result: `PASS`
+## 5. RAG readiness audit
 
-RAG-readiness findings:
+RAG-readiness status: `USABLE WITH PENDING REMOTE ALIGNMENT`
 
-- the E009 canonical document set now has a clear separation between:
-  - reusable design guidance
-  - historical task-level proof
-  - final whole-epic audit evidence
-- machine-stable identifiers are present and consistent:
-  `E009`, `E009.T001` through `E009.T007`, `DOC-E009-EPIC-QUALITY-AUDIT`
-- the design doc, README, and verification notes are chunkable because they name exact routes, files, commands, and UI contracts
-- the T006 proof note no longer competes with the whole-epic audit as a canonical final source
-- no stale screenshot dependency or dead route reference was found in the E009 canonical documents
+Positive state:
 
-Residual RAG caution:
+- the canonical E009 document set is restored instead of broken by a deleted whole-epic audit path
+- stable identifiers are present for `E009`, `E009.T001` through `E009.T011`, and `DOC-E009-EPIC-QUALITY-AUDIT`
+- the report records exact SHAs for the base, old remote PR head, intermediate integration merges, and current integrated local candidate
+- route names, test files, and document paths are explicit enough for deterministic retrieval
 
-- T005 still relies more heavily on issue/PR history plus code/tests than on a standalone product-facing document
-- that gap does not block E009 closure because the current implementation, tests, and whole-epic audit together provide the operative canonical picture
+Remaining caution:
 
-## 6. Epic Acceptance-Criteria Evidence Matrix
+- until PR `#95` and exact-head CI are refreshed for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`, remote retrieval may still surface stale T007-era metadata
 
-| Epic acceptance criterion | Status at this audit gate | Coverage evidence |
+## 6. Acceptance-criteria evidence matrix
+
+| Epic acceptance criterion | Current state | Evidence |
 | --- | --- | --- |
-| Every active route uses the approved light design language | PASS | Live QA on `/`, `/work`, `/leads`, `/leads/[id]`, `/reports/sales`, `/imports`, `/imports/[id]`, `/duplicates`, `/duplicates/[id]`, `/health`; source checks in `tests/light-core-work-screens.test.ts` and `tests/light-remaining-list-detail-screens.test.ts` |
-| No unintended dark legacy screen remains | PASS | route QA plus source checks for removed dark baselines |
-| App shell and navigation are coherent across business and system areas | PASS | `src/components/app-shell.tsx`, `tests/navigation.test.ts`, route QA |
-| Every E009.T001–T006 package has a current evidence-backed verdict | PASS | historical package audit above |
-| Every E009-owned historical acceptance criterion is proven on the final head or corrected | PASS | T001 CTA contrast correction, T005 result-summary correction, T006 proof-note correction, docs cleanup |
-| Accessibility checks have no unresolved material finding | PASS | semantic tables/captions, focus-ring classes, active-route affordance, contrast sampling, route QA; keyboard runtime limitation recorded as post-merge human gate, not a detected regression |
-| Existing business behavior, including T005 filtering/pagination behavior, is not regressed | PASS | live `/leads` filter/page reset QA, current page summaries, `tests/leads-pagination.test.ts`, `/work` behavior tests |
-| Automated tests are relevant and do not preserve obsolete dark assumptions | PASS | automated test audit above |
-| Documentation matches current implementation and contains no unresolved stale E009 guidance | PASS | README/design/T006 proof corrections plus docs-sanity coverage |
-| Full clean-checkout verification and exact-head CI are green | PENDING UNTIL PUSH | local clean verification commands are green in this worktree; exact-head remote CI must be checked on the pushed draft-PR head |
-| Independent whole-epic review returns PASS | PASS WITH TOOL LIMIT NOTE | whole-epic direct review completed; delegated independent review attempt was blocked by subagent usage limits and is recorded as a tooling constraint |
-| Final Draft PR exists from `epic/e009-light-crm-closeout` to `main` | PENDING UNTIL PR CREATE | to be completed after push |
-| Codex does not merge the final PR or close issues | IN FORCE | no merge, ready-state change, or issue closure performed by Codex |
+| Every active E009 route uses the approved light CRM direction | PASS on reviewed source/test evidence | current route sources plus `tests/homepage.test.ts`, `tests/light-core-work-screens.test.ts`, `tests/light-density-route-contracts.test.ts`, `tests/lead-detail-light-proof.test.ts`, `tests/light-remaining-list-detail-screens.test.ts` |
+| No intentional dark legacy holdout remains on active user-facing routes | PASS on reviewed source/test evidence | current route sources and route-contract tests reject old dark classes and old `/health` framing |
+| Shell and navigation stay coherent across business and system areas | PASS on reviewed source/test evidence | `src/components/app-shell.tsx`, `src/lib/navigation.ts`, `tests/navigation.test.ts`, `tests/light-density-route-contracts.test.ts` |
+| T001 through T010 each have current candidate evidence | PASS | historical package audit above |
+| Current whole-epic audit artifact exists at the canonical path | PASS | this restored file at `docs/verification/e009-epic-quality-audit.md` |
+| Accessibility has no unresolved material automated or source-visible regression | PASS with human gates pending | no current source/test regression found; keyboard, zoom, and screen-reader proof remain human follow-up |
+| T005 lead filtering and pagination behavior remains intact after later UI work | PASS on existing protection | `tests/leads-pagination.test.ts` plus current `/leads` source structure |
+| T009 imports and duplicates UX refinements remain integrated | PASS | `tests/light-remaining-list-detail-screens.test.ts` and current route sources |
+| T010 lead workspace usability refinements remain integrated | PASS | `tests/lead-detail-light-proof.test.ts` and current route sources |
+| Documentation accurately reflects the current integrated candidate | PARTIAL | repo docs are corrected locally by T011, but PR body remains stale and out of scope |
+| Exact-head CI is green for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66` | PENDING | not rerun in this slice |
+| PR/remote candidate identity matches the current integrated local candidate | FAILING EXTERNAL ALIGNMENT | PR `#95` still points to `765f1feb9d1e7160c795a2f50864d9a336f68652` |
+| Whole-epic final assurance may return `PASS` now | NOT YET | a fresh assurance pass must evaluate the restored report plus exact-head CI and refreshed remote metadata |
 
-## 7. Residual Risks and Post-Merge Manual Gates
+## 7. Residual risks and required next steps
 
-Residual risks accepted within E009 scope:
+Residual risks still open after this T011 correction:
 
-- browser-runtime scripted `Tab` traversal was not reliable enough in this session to count as authoritative keyboard-only replay evidence
-- T005 product behavior remains primarily protected by code/tests plus this audit rather than by a dedicated standalone UX spec document
+- remote PR `#95` evidence is stale because its head remains `765f1feb9d1e7160c795a2f50864d9a336f68652`
+- exact-head CI has not been rerun for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`
+- keyboard-only, zoom, and screen-reader checks were not freshly executed in this slice
 
-Post-merge human gates required before promoting the draft PR:
+Required next steps for the next assurance round:
 
-- perform one human keyboard-only Tab smoke on:
-  `/`, `/leads`, `/leads/[id]`, `/duplicates/[id]`
-- confirm visible focus rings on the homepage CTA, lead filters, lead-detail save actions, and duplicate-detail review actions in a normal interactive browser session
-- confirm exact-head GitHub Actions CI is green for the pushed final branch head
-- confirm the final Draft PR remains `epic/e009-light-crm-closeout -> main`
-
-Residual-risk conclusion:
-
-- no E009-owned visual, accessibility, documentation, or behavior regression remains unresolved in the audited repository state
-- the remaining items are human-gate and remote-CI completion steps, not open product defects in the branch content
+1. Evaluate exact-head CI for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66` after the branch head is updated outside this slice.
+2. Refresh PR `#95` metadata outside this slice so the remote candidate identity and body match the integrated local candidate.
+3. Run a focused human browser smoke on `/`, `/leads`, `/leads/[id]`, `/imports/[id]`, and `/duplicates/[id]` covering keyboard order, visible focus, zoom, and general scanability.
+4. Re-run independent assurance against the restored report and the refreshed exact-head evidence.
 
 ## Audit conclusion
 
-E009 passes the whole-epic quality audit for the integrated repository state audited in T007.
+T011 restores the missing whole-epic audit artifact and makes the E009 assurance state truthful again.
 
-The audit confirms that:
+The integrated local candidate at `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66` carries forward passing package evidence for T001 through T010, including the T008 density normalization, T009 imports/duplicate review UX refinements, and T010 lead-workspace usability simplification.
 
-- the CRM no longer contains an intentional legacy dark holdout among active user-facing routes
-- the shell, homepage, workbench, leads, lead detail, reporting, imports, duplicates, and health surfaces are coherent within one light CRM language
-- T005 filtering and pagination behavior remains intact after the later UI migrations
-- E009-owned documentation and tests were refreshed to match the current implementation
-- local Prisma validation, lint, full tests, and build are green on the audit branch after sequential clean verification
-
-The remaining next steps are operational, not implementation-expanding:
-
-- push the final audit head
-- confirm exact-head GitHub Actions CI
-- open the final Draft PR from `epic/e009-light-crm-closeout` to `main`
+The whole epic is not ready for a final `PASS` claim yet because the current local candidate is ahead of the remote PR head, exact-head CI has not been rerun for that candidate, and browser-only accessibility gates were not freshly executed in this slice. This document is therefore the truthful handoff point for the next fresh assurance pass, not a false closure claim.
