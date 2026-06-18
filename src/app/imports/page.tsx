@@ -1,22 +1,7 @@
 import Link from "next/link";
-import { StatusPill } from "@/components/lead-status-pill";
 import { getImportBatches } from "@/lib/imports";
-import { type ImportBatchStatusValue, type ImportSourceTypeValue } from "@/lib/lead-values";
 
 export const dynamic = "force-dynamic";
-
-const IMPORT_SOURCE_LABELS: Record<ImportSourceTypeValue, string> = {
-  LOCAL_JSON: "Local file",
-  HARVESTER_EXPORT: "Harvester export",
-  MANUAL_AI_PREPARED_FILE: "Prepared AI file"
-};
-
-const IMPORT_BATCH_STATUS_LABELS: Record<ImportBatchStatusValue, string> = {
-  RUNNING: "In progress",
-  COMPLETED: "Completed successfully",
-  COMPLETED_WITH_ERRORS: "Completed with issues",
-  FAILED: "Failed"
-};
 
 function formatDate(value: Date | null) {
   return value
@@ -27,37 +12,46 @@ function formatDate(value: Date | null) {
     : "-";
 }
 
-function getBatchLabel(batch: {
-  sourceName: string | null;
-  fileName: string | null;
-}) {
-  return batch.sourceName ?? batch.fileName ?? "Import batch";
+function titleCase(value: string) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
-function CountChip({
-  label,
-  value,
-  tone
-}: {
-  label: string;
-  value: number;
-  tone: "slate" | "emerald" | "cyan" | "rose" | "amber";
-}) {
-  const toneClassName = {
-    slate: "border-slate-200 bg-slate-50 text-slate-700",
-    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    cyan: "border-cyan-200 bg-cyan-50 text-cyan-700",
-    rose: "border-rose-200 bg-rose-50 text-rose-700",
-    amber: "border-amber-200 bg-amber-50 text-amber-700"
-  }[tone];
+function describeImportSourceType(sourceType: string) {
+  switch (sourceType) {
+    case "LOCAL_JSON":
+      return "Local file";
+    case "HARVESTER_EXPORT":
+      return "Harvester export file";
+    case "MANUAL_AI_PREPARED_FILE":
+      return "AI-prepared file";
+    default:
+      return titleCase(sourceType);
+  }
+}
 
-  return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${toneClassName}`}
-    >
-      {label}: {value}
-    </span>
-  );
+function describeImportStatus(status: string) {
+  switch (status) {
+    case "COMPLETED":
+      return "Finished cleanly";
+    case "COMPLETED_WITH_ERRORS":
+      return "Finished with row issues";
+    case "FAILED":
+      return "Stopped";
+    case "RUNNING":
+      return "Processing";
+    case "UNKNOWN":
+      return "Status not known";
+    default:
+      return titleCase(status);
+  }
+}
+
+function getImportStatusSummary(status: string) {
+  return describeImportStatus(status);
 }
 
 export default async function ImportsPage() {
@@ -65,70 +59,75 @@ export default async function ImportsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
-          <p className="text-sm font-medium text-sky-700">Data intake</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+      <div className="mx-auto w-full max-w-none px-4 py-6 sm:px-6 lg:px-8">
+        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Import audit</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
             Import batches
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Review each file import, confirm row outcomes, and open the affected leads without leaving
-            the CRM workflow.
+            Review each import source, its processing outcome, and the row-level results without losing the raw
+            operational detail.
           </p>
         </header>
 
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <table className="min-w-[980px] divide-y divide-slate-200 text-sm">
               <caption className="sr-only">Import batches and their processing results.</caption>
-              <thead className="bg-slate-50">
-                <tr className="text-left text-[11px] font-semibold text-slate-500">
-                  <th scope="col" className="px-4 py-3">Batch</th>
-                  <th scope="col" className="px-4 py-3">Rows</th>
-                  <th scope="col" className="px-4 py-3">Status</th>
-                  <th scope="col" className="px-4 py-3">Started</th>
-                  <th scope="col" className="px-4 py-3">Finished</th>
-                  <th scope="col" className="px-4 py-3">Review</th>
+              <thead className="sticky top-0 bg-slate-50">
+                <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <th scope="col" className="px-4 py-2.5">Source</th>
+                  <th scope="col" className="px-4 py-2.5">Outcome</th>
+                  <th scope="col" className="px-4 py-2.5">Rows</th>
+                  <th scope="col" className="px-4 py-2.5">Started</th>
+                  <th scope="col" className="px-4 py-2.5">Finished</th>
+                  <th scope="col" className="px-4 py-2.5">Batch</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
                 {batches.map((batch) => (
-                  <tr key={batch.id} className="align-top transition hover:bg-slate-50">
-                    <td className="px-4 py-4">
-                      <div className="font-medium text-slate-950">{getBatchLabel(batch)}</div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium text-slate-700">
-                          {IMPORT_SOURCE_LABELS[batch.sourceType]}
+                  <tr key={batch.id} className="transition hover:bg-slate-50">
+                    <td className="px-4 py-3 align-top">
+                      <div className="font-medium text-slate-950">{batch.sourceName ?? batch.fileName ?? "Import batch"}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        From {describeImportSourceType(batch.sourceType)}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="space-y-1">
+                        <div className="font-medium text-slate-950">{getImportStatusSummary(batch.status)}</div>
+                        <div className="text-xs text-slate-500">Technical enum: {batch.status}</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 align-top text-slate-700">
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">
+                          {batch.totalRows} total
                         </span>
-                        {batch.fileName && batch.fileName !== batch.sourceName ? (
-                          <span className="break-all">File: {batch.fileName}</span>
-                        ) : null}
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">
+                          {batch.createdRows} created
+                        </span>
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">
+                          {batch.updatedRows} updated
+                        </span>
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">
+                          {batch.rejectedRows} rejected
+                        </span>
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700">
+                          {batch.skippedRows} skipped
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex max-w-xl flex-wrap gap-2">
-                        <CountChip label="Total" value={batch.totalRows} tone="slate" />
-                        <CountChip label="Created" value={batch.createdRows} tone="emerald" />
-                        <CountChip label="Updated" value={batch.updatedRows} tone="cyan" />
-                        <CountChip label="Rejected" value={batch.rejectedRows} tone="rose" />
-                        <CountChip label="Skipped" value={batch.skippedRows} tone="amber" />
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="font-medium text-slate-900">
-                        {IMPORT_BATCH_STATUS_LABELS[batch.status]}
-                      </div>
-                      <StatusPill value={batch.status} appearance="light" className="mt-2" />
-                    </td>
-                    <td className="px-4 py-4 text-slate-700">{formatDate(batch.startedAt)}</td>
-                    <td className="px-4 py-4 text-slate-700">{formatDate(batch.finishedAt)}</td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3 align-top text-slate-700">{formatDate(batch.startedAt)}</td>
+                    <td className="px-4 py-3 align-top text-slate-700">{formatDate(batch.finishedAt)}</td>
+                    <td className="px-4 py-3 align-top">
                       <Link
                         href={`/imports/${batch.id}`}
-                        aria-label={`Open results for ${getBatchLabel(batch)}`}
-                        className="inline-flex whitespace-nowrap rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                        aria-label={`Open import batch details for ${batch.sourceName ?? batch.fileName ?? "this batch"}`}
+                        className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                       >
-                        Open batch results
+                        Open batch
                       </Link>
                     </td>
                   </tr>

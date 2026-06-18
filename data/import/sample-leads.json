@@ -17,8 +17,7 @@
     "priority": "MEDIUM",
     "packageFit": "BASE",
     "scoreTotal": 42,
-    "scoreLabel": "Warm",
-    "nextActionAt": "2026-06-15T09:00:00.000Z"
+    "scoreLabel": "Warm"
   },
   {
     "customerId": "imp-velvet-chorzow",
@@ -38,8 +37,7 @@
     "priority": "HIGH",
     "packageFit": "CLARITY",
     "scoreTotal": 63,
-    "scoreLabel": "Strong",
-    "nextActionAt": "2026-06-12T10:00:00.000Z"
+    "scoreLabel": "Strong"
   },
   {
     "businessName": "Lumina PMU Studio",
@@ -58,8 +56,7 @@
     "priority": "HIGH",
     "packageFit": "MOMENTUM",
     "scoreTotal": 76,
-    "scoreLabel": "Hot",
-    "nextActionAt": "2026-06-11T14:00:00.000Z"
+    "scoreLabel": "Hot"
   },
   {
     "customerId": "imp-sento-tychy",
@@ -78,8 +75,7 @@
     "priority": "MEDIUM",
     "packageFit": "CLARITY",
     "scoreTotal": 58,
-    "scoreLabel": "Solid",
-    "nextActionAt": "2026-06-14T12:00:00.000Z"
+    "scoreLabel": "Solid"
   },
   {
     "businessName": "Nova Skin Beauty",

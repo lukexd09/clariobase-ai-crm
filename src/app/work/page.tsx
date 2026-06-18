@@ -63,10 +63,10 @@ function WorkIndicatorCard({
   const styles = getWorkIndicatorStyles(bucketKey, count);
 
   return (
-    <div className={`flex min-h-14 items-center justify-between gap-4 rounded-xl border px-4 py-3 ${styles.card}`}>
+    <div className={`flex min-h-16 items-center justify-between gap-4 rounded-2xl border px-4 py-3 ${styles.card}`}>
       <div className="flex min-w-0 items-center gap-2">
         <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${styles.marker}`} />
-        <p className={`min-w-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${styles.label}`}>
+        <p className={`min-w-0 text-xs font-semibold uppercase tracking-[0.12em] ${styles.label}`}>
           {label}
         </p>
       </div>
@@ -94,16 +94,18 @@ export default async function WorkPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <header className="mb-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(220px,0.75fr)_minmax(0,1.6fr)] lg:p-5">
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-sky-700">Sales workbench</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
+        <header className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(220px,0.75fr)_minmax(0,1.6fr)]">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+              Sales workbench
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
               Work queue
             </h1>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {bucketCounts.map((bucket) => (
               <WorkIndicatorCard
                 key={bucket.key}
@@ -115,10 +117,10 @@ export default async function WorkPage() {
           </div>
         </header>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           {buckets.map((bucket) => (
-            <section key={bucket.key} className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+            <section key={bucket.key} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                 <div>
                   <h2 className="text-lg font-semibold tracking-tight text-slate-950">{bucket.title}</h2>
                   <p className="mt-1 text-sm leading-6 text-slate-600">{bucket.description}</p>
@@ -126,62 +128,64 @@ export default async function WorkPage() {
                 <p className="text-sm font-medium tabular-nums text-slate-500">{bucket.leads.length} leads</p>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-slate-200">
+              <div className="overflow-hidden rounded-xl border border-slate-200">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <caption className="sr-only">{bucket.title} work queue</caption>
                     <thead className="bg-slate-50">
-                      <tr className="text-left text-[11px] font-semibold text-slate-500">
-                        <th scope="col" className="px-4 py-3">Business</th>
-                        <th scope="col" className="px-4 py-3">City</th>
-                        <th scope="col" className="px-4 py-3">Category</th>
-                        <th scope="col" className="px-4 py-3">Status</th>
-                        <th scope="col" className="px-4 py-3">Priority</th>
-                        <th scope="col" className="px-4 py-3">Package</th>
-                        <th scope="col" className="px-4 py-3">Score</th>
-                        <th scope="col" className="px-4 py-3">Next action</th>
-                        <th scope="col" className="px-4 py-3">Action</th>
+                      <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <th scope="col" className="px-4 py-2.5">Business</th>
+                        <th scope="col" className="px-4 py-2.5">City</th>
+                        <th scope="col" className="px-4 py-2.5">Category</th>
+                        <th scope="col" className="px-4 py-2.5">Status</th>
+                        <th scope="col" className="px-4 py-2.5">Priority</th>
+                        <th scope="col" className="px-4 py-2.5">Package</th>
+                        <th scope="col" className="px-4 py-2.5">Score</th>
+                        <th scope="col" className="px-4 py-2.5">Next action</th>
+                        <th scope="col" className="px-4 py-2.5">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {bucket.leads.map((lead) => (
                         <tr key={lead.id} className="transition hover:bg-slate-50">
-                          <td className="px-4 py-3 align-top">
+                          <td className="px-4 py-2.5 align-top">
                             <Link
                               href={`/leads/${lead.id}#quick-update`}
                               className="font-semibold text-slate-900 transition hover:text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                             >
                               {lead.businessName}
                             </Link>
+                            <div className="text-xs text-slate-500">{lead.lastImportedAt ? `Imported ${formatDate(lead.lastImportedAt)}` : "Manual or unknown source"}</div>
                           </td>
-                          <td className="px-4 py-3 align-top text-slate-600">{lead.city ?? "-"}</td>
-                          <td className="px-4 py-3 align-top text-slate-600">{lead.category ?? "-"}</td>
-                          <td className="px-4 py-3 align-top">
+                          <td className="px-4 py-2.5 align-top text-slate-600">{lead.city ?? "-"}</td>
+                          <td className="px-4 py-2.5 align-top text-slate-600">{lead.category ?? "-"}</td>
+                          <td className="px-4 py-2.5 align-top">
                             <StatusPill value={lead.leadStatus} appearance="light" />
                           </td>
-                          <td className="px-4 py-3 align-top">
+                          <td className="px-4 py-2.5 align-top">
                             <StatusPill value={lead.priority} appearance="light" />
                           </td>
-                          <td className="px-4 py-3 align-top">
+                          <td className="px-4 py-2.5 align-top">
                             <StatusPill value={lead.packageFit} appearance="light" />
                           </td>
-                          <td className="px-4 py-3 align-top tabular-nums text-slate-700">
+                          <td className="px-4 py-2.5 align-top tabular-nums text-slate-700">
                             <div className="space-y-1">
                               <p className="font-medium tabular-nums text-slate-900">{lead.scoreTotal}</p>
                               {lead.scoreLabel ? (
-                                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                                   {lead.scoreLabel}
                                 </p>
                               ) : null}
                             </div>
                           </td>
-                          <td className="px-4 py-3 align-top tabular-nums text-slate-600">{formatDate(lead.nextActionAt)}</td>
-                          <td className="px-4 py-3 align-top">
+                          <td className="px-4 py-2.5 align-top tabular-nums text-slate-600">{formatDate(lead.nextActionAt)}</td>
+                          <td className="px-4 py-2.5 align-top">
                             <Link
                               href={`/leads/${lead.id}#quick-update`}
-                              className="inline-flex min-h-9 whitespace-nowrap items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                              aria-label={`Quick update for ${lead.businessName}`}
+                              className="inline-flex min-h-9 whitespace-nowrap items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                             >
-                              Quick update
+                              Quick update for {lead.businessName}
                             </Link>
                           </td>
                         </tr>
@@ -189,7 +193,7 @@ export default async function WorkPage() {
                       {bucket.leads.length === 0 ? (
                         <tr>
                           <td className="px-4 py-8 text-center text-slate-500" colSpan={9}>
-                            No leads in this bucket.
+                            {bucket.key === "noAction" ? "No leads need a next action yet." : "No leads in this bucket."}
                           </td>
                         </tr>
                       ) : null}

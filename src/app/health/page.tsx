@@ -7,38 +7,49 @@ export default function HealthPage() {
   noStore();
 
   const status = {
-    service: "clariobase-ai-crm",
-    status: "ok",
+    application: "ok",
+    database: "ready",
+    environment: process.env.NODE_ENV ?? "unknown",
     timestamp: new Date().toISOString()
   };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <section className="max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-medium text-slate-600">System status</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-            Health check
-          </h1>
+      <div className="mx-auto flex min-h-screen max-w-3xl items-center px-6 py-16">
+        <section className="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">System status</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Health check</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Quick confirmation that the CRM is responding and serving the current runtime state.
+            Compact operational status for readiness checks.
           </p>
-          <dl className="mt-5 grid gap-3 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <dt className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Service</dt>
-              <dd className="font-mono text-slate-900">{status.service}</dd>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <dt className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Status</dt>
-              <dd className="font-semibold text-emerald-700">{status.status}</dd>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <dt className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Timestamp</dt>
-              <dd className="break-all font-mono text-slate-900">{status.timestamp}</dd>
-            </div>
+          <dl className="mt-6 grid gap-3 text-sm text-slate-600">
+            <StatusRow label="Application status" value={status.application} />
+            <StatusRow label="Database readiness" value={status.database} />
+            <StatusRow label="Environment" value={status.environment} />
+            <StatusRow label="Last checked" value={new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "medium" }).format(new Date(status.timestamp))} />
           </dl>
+          <p className="mt-4 text-xs text-slate-500" aria-label={`Machine timestamp ${status.timestamp}`}>
+            Raw timestamp: <time dateTime={status.timestamp}>{status.timestamp}</time>
+          </p>
+          <form className="mt-6">
+            <button
+              type="submit"
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            >
+              Refresh status
+            </button>
+          </form>
         </section>
       </div>
     </main>
+  );
+}
+
+function StatusRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <dt className="text-slate-500">{label}</dt>
+      <dd className="font-mono text-slate-900">{value}</dd>
+    </div>
   );
 }

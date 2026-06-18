@@ -18,11 +18,13 @@ export default async function SalesReportPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <header className="mb-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)] lg:p-5">
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-sky-700">Sales reporting</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
+        <header className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)]">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+              Sales reporting
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
               Operational pipeline report
             </h1>
           </div>
@@ -40,34 +42,34 @@ export default async function SalesReportPage() {
           <Metric label="Activities in last 7 days" value={report.activityLast7DaysCount} />
         </section>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <ReportSection
             title="Lead status summary"
             description="Archived leads are excluded from active totals, while WON, LOST and DO_NOT_CONTACT remain visible as separate operational states."
           >
-            <div className="overflow-hidden rounded-2xl border border-slate-200">
-              <div className="overflow-x-auto">
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="max-h-[34rem] overflow-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <caption className="sr-only">Lead status summary table</caption>
-                  <thead className="bg-slate-50">
-                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      <th scope="col" className="px-4 py-3">Status</th>
-                      <th scope="col" className="px-4 py-3">Group</th>
-                      <th scope="col" className="px-4 py-3">Meaning</th>
-                      <th scope="col" className="px-4 py-3">Next action</th>
-                      <th scope="col" className="px-4 py-3">Count</th>
+                  <thead className="sticky top-0 z-10 bg-slate-50">
+                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      <th scope="col" className="px-4 py-2.5">Status</th>
+                      <th scope="col" className="px-4 py-2.5">Group</th>
+                      <th scope="col" className="px-4 py-2.5">Meaning</th>
+                      <th scope="col" className="px-4 py-2.5">Next action</th>
+                      <th scope="col" className="px-4 py-2.5">Count</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {statusEntries.map((entry) => (
                       <tr key={entry.status} className="transition hover:bg-slate-50">
-                        <td className="px-4 py-4 align-top">
+                        <td className="px-4 py-3 align-top">
                           <StatusPill value={entry.status} appearance="light" />
                         </td>
-                        <td className="px-4 py-4 align-top text-slate-600">{entry.group}</td>
-                        <td className="px-4 py-4 align-top text-slate-600">{entry.description}</td>
-                        <td className="px-4 py-4 align-top text-slate-600">{entry.nextAction}</td>
-                        <td className="px-4 py-4 align-top font-medium tabular-nums text-slate-900">
+                        <td className="px-4 py-3 align-top text-slate-600">{entry.group}</td>
+                        <td className="px-4 py-3 align-top text-slate-600">{entry.description}</td>
+                        <td className="px-4 py-3 align-top text-slate-600">{entry.nextAction}</td>
+                        <td className="px-4 py-3 align-top font-medium tabular-nums text-slate-900">
                           {report.leadStatusCounts[entry.status]}
                         </td>
                       </tr>
@@ -181,9 +183,9 @@ function Metric({
       : "border-slate-200 bg-white";
 
   return (
-    <div className={`rounded-xl border p-4 shadow-sm ${classes}`}>
+    <div className={`rounded-2xl border p-4 shadow-sm ${classes}`}>
       <p
-        className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${
+        className={`text-xs font-semibold uppercase tracking-[0.18em] ${
           tone && value > 0
             ? tone === "overdue"
               ? "text-rose-700"
@@ -193,7 +195,7 @@ function Metric({
       >
         {label}
       </p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{value}</p>
+      <p className="mt-2 text-2xl font-semibold tabular-nums text-slate-950">{value}</p>
     </div>
   );
 }
@@ -209,7 +211,7 @@ function ReportSection({
 }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
-      <div className="mb-4">
+      <div className="mb-3">
         <h2 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
         <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
       </div>
@@ -227,12 +229,8 @@ function SimpleCountTable({
 }) {
   return (
     <div className="space-y-3">
-      {heading ? (
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-          {heading}
-        </h3>
-      ) : null}
-      <div className="overflow-hidden rounded-2xl border border-slate-200">
+      {heading ? <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{heading}</h3> : null}
+      <div className="overflow-hidden rounded-xl border border-slate-200">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <caption className="sr-only">{heading ?? "Sales summary table"}</caption>
           <tbody className="divide-y divide-slate-200">

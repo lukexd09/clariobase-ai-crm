@@ -27,16 +27,13 @@ export default async function LeadsPage({
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
+      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
+        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-sky-700">Lead CRM</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Lead CRM</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
               Leads
             </h1>
-            <p className="text-sm leading-6 text-slate-600">
-              Filter the queue, confirm the current result window, and open any lead for deeper operator work.
-            </p>
           </div>
         </header>
 
@@ -56,7 +53,7 @@ export default async function LeadsPage({
           }
         />
 
-        <div className="mt-4">
+        <div className="mt-5">
           <LeadPagination
             pathname="/leads"
             searchParams={params}

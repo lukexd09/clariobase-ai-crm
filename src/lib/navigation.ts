@@ -14,48 +14,48 @@ export type NavigationSection = {
 export const NAVIGATION_SECTIONS = [
   {
     key: "main-work",
-    title: "Daily work",
+    title: "Work",
     items: [
       {
         href: "/",
-        label: "Home",
-        description: "Open the CRM home workspace.",
+        label: "Dashboard",
+        description: "Workspace overview.",
         priority: "primary"
       },
       {
         href: "/work",
-        label: "Workbench",
-        description: "Focus on the current action queue.",
+        label: "Daily work",
+        description: "Queue and follow-ups.",
         priority: "primary"
       },
       {
         href: "/leads",
         label: "Leads",
-        description: "Review and update lead records.",
+        description: "Lead records.",
         priority: "primary"
       },
       {
         href: "/reports/sales",
         label: "Reports",
-        description: "Check the operational pipeline summary.",
+        description: "Sales summary.",
         priority: "primary"
       }
     ] as const
   },
   {
     key: "data",
-    title: "Data quality",
+    title: "Data",
     items: [
       {
         href: "/imports",
         label: "Imports",
-        description: "Review completed import batches.",
+        description: "Import batches.",
         priority: "primary"
       },
       {
         href: "/duplicates",
         label: "Duplicates",
-        description: "Review likely duplicate candidates.",
+        description: "Duplicate review.",
         priority: "primary"
       }
     ] as const
@@ -66,8 +66,8 @@ export const NAVIGATION_SECTIONS = [
     items: [
       {
         href: "/health",
-        label: "Health check",
-        description: "Confirm the app is responding locally.",
+        label: "Health",
+        description: "Status probe.",
         priority: "secondary"
       }
     ] as const

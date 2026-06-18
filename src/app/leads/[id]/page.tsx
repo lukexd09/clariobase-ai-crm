@@ -1,23 +1,23 @@
 import Link from "next/link";
-import { type ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { ActivityForm, ActivityTimeline } from "@/components/activity-form";
 import { LeadUpdateForm } from "@/components/lead-update-form";
-import { StatusPill } from "@/components/lead-status-pill";
-import { MiniAuditDraftSection } from "@/components/mini-audit-draft-form";
 import { OfferDraftSection } from "@/components/offer-draft-form";
+import { MiniAuditDraftSection } from "@/components/mini-audit-draft-form";
 import { OutreachDraftSection } from "@/components/outreach-draft-form";
+import { StatusPill } from "@/components/lead-status-pill";
 import { getLeadActivities } from "@/lib/activities";
 import { getLeadById } from "@/lib/leads";
+import { getLeadOfferDrafts, toOfferDraftClientRecord } from "@/lib/offer-drafts";
+import { getLeadMiniAuditDrafts, type MiniAuditDraftRecord } from "@/lib/mini-audits";
+import { getLeadOutreachDrafts, type OutreachDraftRecord } from "@/lib/outreach-drafts";
+import { type OfferDraftClientRecord } from "@/lib/offer-drafts";
 import {
   type MiniAuditStatusValue,
   type OfferDraftStatusValue,
-  type OutreachDraftStatusValue
+  type OutreachDraftStatusValue,
+  type PackageFitValue
 } from "@/lib/lead-values";
-import { getLeadMiniAuditDrafts, type MiniAuditDraftRecord } from "@/lib/mini-audits";
-import { getLeadOfferDrafts, toOfferDraftClientRecord } from "@/lib/offer-drafts";
-import { getLeadOutreachDrafts, type OutreachDraftRecord } from "@/lib/outreach-drafts";
-import { type OfferDraftClientRecord } from "@/lib/offer-drafts";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +26,6 @@ function formatDate(value: Date | null | undefined) {
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short"
-  }).format(value);
-}
-
-function formatShortDate(value: Date | null | undefined) {
-  if (!value) return "Not updated yet";
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium"
   }).format(value);
 }
 
@@ -46,11 +39,7 @@ function asLocalDateTimeValue(value: Date | null | undefined) {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-export default async function LeadDetailPage({
-  params
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [lead, activities, miniAuditDrafts, outreachDrafts, offerDrafts] = await Promise.all([
     getLeadById(id),
@@ -70,328 +59,178 @@ export default async function LeadDetailPage({
     outreachDrafts,
     offerDrafts: clientOfferDrafts
   });
-  const nextActionDisplay = lead.nextActionAt ? formatDate(lead.nextActionAt) : "No next action set";
-  const primaryMetadata = [
-    lead.city ?? "No city",
-    lead.category ?? "No category",
-    [lead.region, lead.country].filter(Boolean).join(", ") || "No region or country"
-  ];
-  const sectionLinks = [
-    { href: "#lead-controls", label: "Lead controls" },
-    { href: "#activity", label: "Activity log" },
-    { href: "#mini-audit", label: "Mini-audit" },
-    { href: "#outreach", label: "Outreach" },
-    { href: "#offer", label: "Offer" },
-    { href: "#technical-details", label: "Technical details" }
-  ];
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="Lead breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-            <Link
-              href="/leads"
-              className="font-medium text-slate-700 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
-            >
-              Leads
-            </Link>
-            <span aria-hidden="true" className="text-slate-300">
-              /
-            </span>
-            <span className="font-medium text-slate-900">{lead.businessName}</span>
-          </nav>
-
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/work"
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              Open workbench
-            </Link>
-          </div>
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href="/leads"
+            className="text-sm font-medium text-slate-600 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+          >
+            &larr; Back to leads
+          </Link>
+          <Link
+            href="#technical-details"
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+          >
+            Jump to technical details
+          </Link>
         </div>
 
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0 space-y-4">
-              <p className="text-sm font-medium text-sky-700">Lead workspace</p>
+        <LeadAnchorNav />
 
-              <div className="space-y-3">
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">
+                  Lead workspace
+                </p>
+                <h1 className="max-w-4xl text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
                   {lead.businessName}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600">
-                  {primaryMetadata.map((item, index) => (
-                    <span key={`${item}-${index}`} className="flex items-center gap-3">
-                      {index > 0 ? (
-                        <span aria-hidden="true" className="text-slate-300">
-                          |
-                        </span>
-                      ) : null}
-                      <span>{item}</span>
-                    </span>
-                  ))}
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusPill value={lead.leadStatus} appearance="light" />
+                  <StatusPill value={lead.priority} appearance="light" />
+                  <StatusPill value={lead.packageFit} appearance="light" />
+                </div>
+                <div className="flex flex-wrap gap-2 text-sm text-slate-600">
+                  <MetaChip label="City" value={lead.city ?? "-"} />
+                  <MetaChip label="Region" value={lead.region ?? "-"} />
+                  <MetaChip label="Country" value={lead.country ?? "-"} />
                 </div>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                <StatusPill value={lead.leadStatus} appearance="light" />
-                <StatusPill value={lead.priority} appearance="light" />
-                <StatusPill value={lead.packageFit} appearance="light" />
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <HeaderMetric
-                  label="Lead score"
-                  value={String(lead.scoreTotal)}
-                  detail={lead.scoreLabel ?? "No score label"}
-                />
-                <HeaderMetric
-                  label="Next action"
-                  value={nextActionDisplay}
-                  detail="Shown in local operator time."
-                />
-                <HeaderMetric
-                  label="Customer"
-                  value={lead.customerId}
-                  detail={lead.phone ?? lead.email ?? "No direct contact saved"}
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {lead.websiteUrl ? <ExternalLink href={lead.websiteUrl} label="Website" /> : null}
-                {lead.phone ? <InlineMeta label="Phone" value={lead.phone} /> : null}
-                {lead.email ? <InlineMeta label="Email" value={lead.email} /> : null}
+              <div className="grid gap-3 sm:min-w-[280px]">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                    Recommended action
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-950">{recommendation.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{recommendation.description}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={recommendation.primaryHref}
+                    className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  >
+                    {recommendation.primaryLabel}
+                  </Link>
+                  <Link
+                    href={recommendation.secondaryHref}
+                    className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  >
+                    {recommendation.secondaryLabel}
+                  </Link>
+                </div>
               </div>
             </div>
+          </section>
 
-            <section className="xl:max-w-sm rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-medium text-sky-700">Next recommended action</p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
-                {recommendation.title}
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{recommendation.description}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link
-                  href={recommendation.primaryHref}
-                  className="rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                >
-                  {recommendation.primaryLabel}
-                </Link>
-                <Link
-                  href={recommendation.secondaryHref}
-                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                >
-                  {recommendation.secondaryLabel}
-                </Link>
-              </div>
-            </section>
-          </div>
-        </header>
+          <section id="lead-controls" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 border-b border-slate-200 pb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Operational controls</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">Lead controls</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Keep status, priority, package fit, and next action aligned with the latest work.
+              </p>
+            </div>
+            <LeadUpdateForm
+              leadId={lead.id}
+              leadStatus={lead.leadStatus}
+              priority={lead.priority}
+              packageFit={lead.packageFit}
+              nextActionAt={asLocalDateTimeValue(lead.nextActionAt)}
+            />
+          </section>
 
-        <nav aria-label="Lead workspace sections" className="mb-4 flex flex-wrap gap-2">
-          {sectionLinks.map((section) => (
-            <Link
-              key={section.href}
-              href={section.href}
-              className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              {section.label}
-            </Link>
-          ))}
-        </nav>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 border-b border-slate-200 pb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Business context</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">Business context</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <ContextField label="Website" value={lead.websiteUrl ? <ExternalLink href={lead.websiteUrl} label={lead.websiteUrl} /> : "-"} />
+              <ContextField label="Category" value={lead.category ?? "-"} />
+              <ContextField label="Phone" value={lead.phone ?? "-"} />
+              <ContextField label="Email" value={lead.email ?? "-"} />
+              <ContextField label="Address" value={lead.address ?? "-"} />
+              <ContextField label="Source" value={lead.source ?? "-"} />
+            </div>
+          </section>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,400px)]">
-          <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-2 border-b border-slate-200 pb-4">
-                <h2 className="text-xl font-semibold text-slate-950">Business context</h2>
-                <p className="text-sm text-slate-600">
-                  A compact view of the operator-facing context without repeating status or package data.
-                </p>
-              </div>
-
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <DefinitionItem
-                  label="Website"
-                  value={
-                    lead.websiteUrl ? (
-                      <ExternalLink href={lead.websiteUrl} label={lead.websiteUrl} />
-                    ) : (
-                      "Not provided"
-                    )
-                  }
-                />
-                <DefinitionItem label="Category" value={lead.category ?? "Not provided"} />
-                <DefinitionItem label="City" value={lead.city ?? "Not provided"} />
-                <DefinitionItem
-                  label="Region and country"
-                  value={[lead.region, lead.country].filter(Boolean).join(", ") || "Not provided"}
-                />
-                <DefinitionItem label="Phone" value={lead.phone ?? "Not provided"} />
-                <DefinitionItem label="Email" value={lead.email ?? "Not provided"} />
-                <DefinitionItem label="Address" value={lead.address ?? "Not provided"} />
-                <DefinitionItem
-                  label="Source"
-                  value={
-                    lead.source
-                      ? lead.sourceRecordId
-                        ? `${lead.source} (${lead.sourceRecordId})`
-                        : lead.source
-                      : "Not provided"
-                  }
-                />
-                <DefinitionItem label="Last reviewed" value={formatDate(lead.lastReviewedAt)} />
-              </dl>
-            </section>
-
-            <section id="lead-artifacts" className="space-y-4">
-              <ArtifactPanel
-                id="mini-audit"
-                label="Mini-audit"
-                title={getArtifactPanelTitle("Mini-audit", miniAuditDrafts.length)}
-                description={getMiniAuditPanelDescription(miniAuditDrafts)}
-                statusBadge={
-                  miniAuditDrafts.length > 0 ? (
-                    <StatusPill value={getMiniAuditPanelStatus(miniAuditDrafts)} appearance="light" />
-                  ) : (
-                    <SecondaryBadge>Not started</SecondaryBadge>
-                  )
-                }
-                packageBadge={
-                  miniAuditPanelPackage ? <StatusPill value={miniAuditPanelPackage} appearance="light" /> : null
-                }
-                updatedAt={getMiniAuditPanelUpdatedAt(miniAuditDrafts)}
-                emptyMessage="Create the first draft when this lead is ready."
-                actionLabel={getMiniAuditPanelAction(miniAuditDrafts)}
-              >
-                <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
-              </ArtifactPanel>
-
-              <ArtifactPanel
-                id="outreach"
-                label="Outreach sequence"
-                title={getArtifactPanelTitle("Outreach sequence", outreachDrafts.length)}
-                description={getOutreachPanelDescription(outreachDrafts)}
-                statusBadge={
-                  outreachDrafts.length > 0 ? (
-                    <StatusPill value={getOutreachPanelStatus(outreachDrafts)} appearance="light" />
-                  ) : (
-                    <SecondaryBadge>Not started</SecondaryBadge>
-                  )
-                }
-                packageBadge={null}
-                updatedAt={getOutreachPanelUpdatedAt(outreachDrafts)}
-                emptyMessage="Create the first draft when outreach is ready."
-                actionLabel={getOutreachPanelAction(outreachDrafts)}
-              >
-                <OutreachDraftSection
-                  leadId={lead.id}
-                  drafts={outreachDrafts}
-                  miniAuditDrafts={miniAuditDrafts}
-                />
-              </ArtifactPanel>
-
-              <ArtifactPanel
-                id="offer"
-                label="Offer generation"
-                title={getOfferPanelTitle(clientOfferDrafts)}
-                description={getOfferPanelDescription(clientOfferDrafts)}
-                statusBadge={
-                  clientOfferDrafts.length > 0 ? (
-                    <StatusPill value={getOfferPanelStatus(clientOfferDrafts)} appearance="light" />
-                  ) : (
-                    <SecondaryBadge>Not started</SecondaryBadge>
-                  )
-                }
-                packageBadge={
-                  offerPanelPackage ? <StatusPill value={offerPanelPackage} appearance="light" /> : null
-                }
-                updatedAt={getOfferPanelUpdatedAt(clientOfferDrafts)}
-                emptyMessage="Create the first commercial draft when the lead is ready."
-                actionLabel={getOfferPanelAction(clientOfferDrafts)}
-              >
-                <OfferDraftSection leadId={lead.id} drafts={clientOfferDrafts} />
-              </ArtifactPanel>
-            </section>
-
-            <details
-              id="technical-details"
-              className="rounded-2xl border border-slate-200 bg-white shadow-sm"
-            >
-              <summary className="cursor-pointer list-none rounded-2xl px-5 py-4 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">Show technical details</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Source identifiers and audit timestamps stay available here when needed.
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
-                    Technical metadata
-                  </span>
-                </div>
-              </summary>
-
-              <div className="border-t border-slate-200 px-5 py-4">
-                <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <DefinitionItem label="Customer ID" value={lead.customerId} subtle />
-                  <DefinitionItem label="Source" value={lead.source ?? "Not provided"} subtle />
-                  <DefinitionItem label="Source record ID" value={lead.sourceRecordId ?? "Not provided"} subtle />
-                  <DefinitionItem label="Google Place ID" value={lead.googlePlaceId ?? "Not provided"} subtle />
-                  <DefinitionItem label="Created at" value={formatDate(lead.createdAt)} subtle />
-                  <DefinitionItem label="Updated at" value={formatDate(lead.updatedAt)} subtle />
-                  <DefinitionItem label="Last imported at" value={formatDate(lead.lastImportedAt)} subtle />
-                  <DefinitionItem label="Archived at" value={formatDate(lead.archivedAt)} subtle />
-                </dl>
-              </div>
-            </details>
-          </div>
-
-          <aside className="space-y-4">
-            <section
-              id="lead-controls"
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="border-b border-slate-200 pb-4">
-                <p className="text-sm font-medium text-sky-700">Lead controls</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">Operational update</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Keep the lead state, priority, package fit, and next action aligned with the latest work.
-                </p>
-              </div>
-
-              <div className="mt-4">
-                <LeadUpdateForm
-                  leadId={lead.id}
-                  leadStatus={lead.leadStatus}
-                  priority={lead.priority}
-                  packageFit={lead.packageFit}
-                  nextActionAt={asLocalDateTimeValue(lead.nextActionAt)}
-                  nextActionDisplay={nextActionDisplay}
-                />
-              </div>
-            </section>
-
-            <section
-              id="activity"
-              className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="border-b border-slate-200 pb-4">
-                <p className="text-sm font-medium text-sky-700">Activity log</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                  Notes, calls, messages, and updates
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  Activity stays easy to log without narrowing the fields or clipping the date input.
-                </p>
-              </div>
-
+          <section id="activity" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 border-b border-slate-200 pb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Activity</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">Activity log and activity form</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Log new work here while keeping the timeline visible below the form.
+              </p>
+            </div>
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
               <ActivityForm leadId={lead.id} />
               <ActivityTimeline activities={activities} />
-            </section>
-          </aside>
+            </div>
+          </section>
+
+          <section id="mini-audit" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <ArtifactPanel
+              label="Mini-audit"
+              title={getArtifactPanelTitle("Mini-audit", miniAuditDrafts.length)}
+              description={getMiniAuditPanelDescription(miniAuditDrafts)}
+              statusBadge={<StatusPill value={getMiniAuditPanelStatus(miniAuditDrafts)} />}
+              packageBadge={miniAuditPanelPackage ? <StatusPill value={miniAuditPanelPackage} /> : null}
+              updatedAt={getMiniAuditPanelUpdatedAt(miniAuditDrafts)}
+              actionLabel={getMiniAuditPanelAction(miniAuditDrafts)}
+            >
+              <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
+            </ArtifactPanel>
+          </section>
+
+          <section id="outreach" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <ArtifactPanel
+              label="Outreach"
+              title={getArtifactPanelTitle("Outreach", outreachDrafts.length)}
+              description={getOutreachPanelDescription(outreachDrafts)}
+              statusBadge={<StatusPill value={getOutreachPanelStatus(outreachDrafts)} />}
+              packageBadge={null}
+              updatedAt={getOutreachPanelUpdatedAt(outreachDrafts)}
+              actionLabel={getOutreachPanelAction(outreachDrafts)}
+            >
+              <OutreachDraftSection leadId={lead.id} drafts={outreachDrafts} miniAuditDrafts={miniAuditDrafts} />
+            </ArtifactPanel>
+          </section>
+
+          <section id="offer" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <ArtifactPanel
+              label="Offer"
+              title={getOfferPanelTitle(clientOfferDrafts)}
+              description={getOfferPanelDescription(clientOfferDrafts)}
+              statusBadge={<StatusPill value={getOfferPanelStatus(clientOfferDrafts)} />}
+              packageBadge={offerPanelPackage ? <StatusPill value={offerPanelPackage} /> : null}
+              updatedAt={getOfferPanelUpdatedAt(clientOfferDrafts)}
+              actionLabel={getOfferPanelAction(clientOfferDrafts)}
+            >
+              <OfferDraftSection leadId={lead.id} drafts={clientOfferDrafts} />
+            </ArtifactPanel>
+          </section>
+
+          <section id="technical-details" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 border-b border-slate-200 pb-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Technical details</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">Technical metadata</h2>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <ContextField label="Customer ID" value={lead.customerId} />
+              <ContextField label="Source record ID" value={lead.sourceRecordId ?? "-"} />
+              <ContextField label="Google Place ID" value={lead.googlePlaceId ?? "-"} />
+              <ContextField label="Created at" value={formatDate(lead.createdAt)} />
+              <ContextField label="Updated at" value={formatDate(lead.updatedAt)} />
+              <ContextField label="Last imported at" value={formatDate(lead.lastImportedAt)} />
+              <ContextField label="Last reviewed at" value={formatDate(lead.lastReviewedAt)} />
+              <ContextField label="Archived at" value={formatDate(lead.archivedAt)} />
+            </div>
+          </section>
         </div>
       </div>
     </main>
@@ -408,15 +247,12 @@ function getNextRecommendedAction({
   offerDrafts: OfferDraftClientRecord[];
 }) {
   const latestOfferDraft = offerDrafts[0];
-  const hasActiveOffer = offerDrafts.some(
-    (draft) => !["ACCEPTED", "REJECTED", "ARCHIVED"].includes(draft.status)
-  );
+  const hasActiveOffer = offerDrafts.some((draft) => !["ACCEPTED", "REJECTED", "ARCHIVED"].includes(draft.status));
 
   if (miniAuditDrafts.length === 0) {
     return {
       title: "Prepare mini-audit",
-      description:
-        "No mini-audit draft exists yet, so start with diagnosis, package fit, and the first message angle.",
+      description: "No mini-audit draft exists yet, so start with diagnosis, package fit, and the first message angle.",
       primaryLabel: "Prepare mini-audit",
       primaryHref: "#mini-audit",
       secondaryLabel: "Open activity log",
@@ -427,8 +263,7 @@ function getNextRecommendedAction({
   if (outreachDrafts.length === 0) {
     return {
       title: "Prepare outreach",
-      description:
-        "The lead already has a mini-audit foundation, so the next practical step is an outreach draft.",
+      description: "The lead already has a mini-audit foundation, so the next practical step is an outreach draft.",
       primaryLabel: "Prepare outreach",
       primaryHref: "#outreach",
       secondaryLabel: "Review lead controls",
@@ -439,8 +274,7 @@ function getNextRecommendedAction({
   if (offerDrafts.length === 0) {
     return {
       title: "Prepare offer",
-      description:
-        "The lead has enough earlier-workflow context, so create the first commercial offer draft next.",
+      description: "The lead has enough earlier-workflow context, so create the first commercial offer draft next.",
       primaryLabel: "Prepare offer",
       primaryHref: "#offer",
       secondaryLabel: "Open activity log",
@@ -451,8 +285,7 @@ function getNextRecommendedAction({
   if (hasActiveOffer && latestOfferDraft) {
     return {
       title: "Review offer",
-      description:
-        `The latest offer draft is still active (${latestOfferDraft.status.replaceAll("_", " ").toLowerCase()}). Review the current version before moving on.`,
+      description: `The latest offer draft is still active (${latestOfferDraft.status.replaceAll("_", " ").toLowerCase()}). Review the current version before moving on.`,
       primaryLabel: "Review offer",
       primaryHref: "#offer",
       secondaryLabel: "Jump to activity",
@@ -462,8 +295,7 @@ function getNextRecommendedAction({
 
   return {
     title: "Log activity or update lead status",
-    description:
-      "The core workflow artifacts already exist, so use the workspace to log a fresh activity or tighten the operational state.",
+    description: "The core workflow artifacts already exist, so use the workspace to log a fresh activity or tighten the operational state.",
     primaryLabel: "Log activity",
     primaryHref: "#activity",
     secondaryLabel: "Update lead",
@@ -476,7 +308,7 @@ function getArtifactPanelTitle(name: string, count: number) {
 }
 
 function getMiniAuditPanelStatus(drafts: Array<{ status: string }>) {
-  return drafts[0].status as MiniAuditStatusValue;
+  return (drafts[0]?.status ?? "DRAFT") as MiniAuditStatusValue;
 }
 
 function getMiniAuditPanelPackage(drafts: MiniAuditDraftRecord[]) {
@@ -485,10 +317,7 @@ function getMiniAuditPanelPackage(drafts: MiniAuditDraftRecord[]) {
 
 function getMiniAuditPanelDescription(drafts: MiniAuditDraftRecord[]) {
   const latest = drafts[0];
-  if (!latest) {
-    return "Capture the first diagnosis, suggested package fit, and a draft message angle.";
-  }
-
+  if (!latest) return "Capture the first diagnosis, package fit, and a compact draft angle.";
   return latest.recommendation ?? latest.problem1 ?? "Compact diagnosis ready for review.";
 }
 
@@ -497,19 +326,18 @@ function getMiniAuditPanelUpdatedAt(drafts: MiniAuditDraftRecord[]) {
 }
 
 function getMiniAuditPanelAction(drafts: MiniAuditDraftRecord[]) {
-  return drafts.length === 0 ? "Create first draft" : "Open editor";
+  const latest = drafts[0];
+  if (!latest) return "Create";
+  return latest.status === "APPROVED" || latest.status === "ARCHIVED" ? "View" : "Edit";
 }
 
 function getOutreachPanelStatus(drafts: OutreachDraftRecord[]) {
-  return drafts[0].status as OutreachDraftStatusValue;
+  return (drafts[0]?.status ?? "DRAFT") as OutreachDraftStatusValue;
 }
 
 function getOutreachPanelDescription(drafts: OutreachDraftRecord[]) {
   const latest = drafts[0];
-  if (!latest) {
-    return "Prepare the first message sequence, channel, and follow-up metadata.";
-  }
-
+  if (!latest) return "Prepare the first message sequence, channel, and follow-up metadata.";
   return latest.subject ?? latest.openingHook ?? latest.message ?? "Latest outreach draft is ready.";
 }
 
@@ -518,7 +346,9 @@ function getOutreachPanelUpdatedAt(drafts: OutreachDraftRecord[]) {
 }
 
 function getOutreachPanelAction(drafts: OutreachDraftRecord[]) {
-  return drafts.length === 0 ? "Create first draft" : "Open editor";
+  const latest = drafts[0];
+  if (!latest) return "Create";
+  return latest.status === "SENT_MANUALLY" || latest.status === "ARCHIVED" ? "View" : "Edit";
 }
 
 function getOfferPanelTitle(drafts: OfferDraftClientRecord[]) {
@@ -528,16 +358,13 @@ function getOfferPanelTitle(drafts: OfferDraftClientRecord[]) {
 
 function getOfferPanelDescription(drafts: OfferDraftClientRecord[]) {
   const latest = drafts[0];
-  if (!latest) {
-    return "Prepare the first commercial offer draft when the lead is ready.";
-  }
-
+  if (!latest) return "Prepare the first commercial offer draft when the lead is ready.";
   const price = latest.priceNet ? `${latest.currency} ${latest.priceNet}` : "No price set yet";
   return [latest.packageFit.replaceAll("_", " "), price].join(" | ");
 }
 
 function getOfferPanelStatus(drafts: OfferDraftClientRecord[]) {
-  return drafts[0].status as OfferDraftStatusValue;
+  return (drafts[0]?.status ?? "DRAFT") as OfferDraftStatusValue;
 }
 
 function getOfferPanelPackage(drafts: OfferDraftClientRecord[]) {
@@ -549,94 +376,79 @@ function getOfferPanelUpdatedAt(drafts: OfferDraftClientRecord[]) {
 }
 
 function getOfferPanelAction(drafts: OfferDraftClientRecord[]) {
-  return drafts.length === 0 ? "Create first draft" : "Open editor";
+  const latest = drafts[0];
+  if (!latest) return "Create";
+  return latest.status === "ACCEPTED" || latest.status === "REJECTED" || latest.status === "ARCHIVED"
+    ? "View"
+    : "Edit";
 }
 
-function HeaderMetric({
-  label,
-  value,
-  detail
-}: {
-  label: string;
-  value: string;
-  detail: string;
-}) {
+function ContextField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className="mt-3 text-lg font-semibold text-slate-950">{value}</p>
-      <p className="mt-1 text-sm text-slate-600">{detail}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500">{label}</p>
+      <div className="mt-2 break-words text-sm leading-6 text-slate-900">{value}</div>
     </div>
   );
 }
 
-function DefinitionItem({
-  label,
-  value,
-  subtle = false
-}: {
-  label: string;
-  value: ReactNode;
-  subtle?: boolean;
-}) {
+function MetaChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className={`rounded-2xl border p-4 ${subtle ? "border-slate-200 bg-slate-50" : "border-slate-200 bg-white"}`}>
-      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</dt>
-      <dd className="mt-2 break-words text-sm leading-6 text-slate-900">{value}</dd>
-    </div>
+    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2">
+      <span className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{label}</span>
+      <span className="text-sm text-slate-900">{value}</span>
+    </span>
   );
 }
 
 function ArtifactPanel({
-  id,
   label,
   title,
   description,
   statusBadge,
   packageBadge,
   updatedAt,
-  emptyMessage,
   actionLabel,
   children
 }: {
-  id: string;
   label: string;
   title: string;
   description: string;
-  statusBadge: ReactNode;
-  packageBadge: ReactNode | null;
+  statusBadge: React.ReactNode;
+  packageBadge: React.ReactNode | null;
   updatedAt: Date | null;
-  emptyMessage: string;
   actionLabel: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
-    <details id={id} className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <summary className="list-none cursor-pointer rounded-2xl px-5 py-4 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+    <details className="group">
+      <summary className="list-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-sky-700">{label}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">{label}</p>
               {statusBadge}
               {packageBadge}
             </div>
-            <h3 className="text-xl font-semibold tracking-tight text-slate-950">{title}</h3>
+            <h3 className="text-2xl font-semibold tracking-tight text-slate-950">{title}</h3>
             <p className="max-w-3xl text-sm leading-6 text-slate-600">{description}</p>
-            <p className="text-xs text-slate-500">
-              {updatedAt ? `Updated ${formatShortDate(updatedAt)}` : emptyMessage}
+            <p className="text-xs uppercase tracking-[0.28em] text-slate-500">
+              {updatedAt ? `Updated ${formatDate(updatedAt)}` : "No updates yet"}
             </p>
           </div>
-
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
-            {actionLabel}
-            <span aria-hidden="true" className="text-base transition-transform group-open:rotate-180">
-              v
+          <div className="flex items-center gap-3">
+            <span className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">
+              {actionLabel}
             </span>
-          </span>
+            <span aria-hidden="true" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">
+              <svg viewBox="0 0 20 20" className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" aria-hidden="true">
+                <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </div>
         </div>
       </summary>
-
-      <div className="border-t border-slate-200 p-5">{children}</div>
+      <div className="mt-5 border-t border-slate-200 pt-5">{children}</div>
     </details>
   );
 }
@@ -644,7 +456,7 @@ function ArtifactPanel({
 function ExternalLink({ href, label }: { href: string; label: string }) {
   return (
     <a
-      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
       href={href}
       target="_blank"
       rel="noreferrer"
@@ -655,19 +467,27 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function InlineMeta({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-      <span className="font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</span>
-      <span className="text-slate-900">{value}</span>
-    </span>
-  );
-}
+function LeadAnchorNav() {
+  const links = [
+    { href: "#lead-controls", label: "Controls" },
+    { href: "#activity", label: "Activity" },
+    { href: "#mini-audit", label: "Mini-audit" },
+    { href: "#outreach", label: "Outreach" },
+    { href: "#offer", label: "Offer" },
+    { href: "#technical-details", label: "Technical details" }
+  ];
 
-function SecondaryBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
-      {children}
-    </span>
+    <nav aria-label="Lead sections" className="mb-6 flex flex-wrap gap-2">
+      {links.map((link) => (
+        <a
+          key={link.href}
+          href={link.href}
+          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
   );
 }

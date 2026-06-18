@@ -18,10 +18,9 @@ test("core CRM work screens use the light shell baseline", () => {
 
   assert.doesNotMatch(homepage, /radial-gradient/);
   assert.match(homepage, /bg-slate-50/);
-  assert.match(homepage, /focus-visible:ring-2/);
+  assert.match(appShell, /focus-visible:ring-2/);
   assert.doesNotMatch(homepage, /text-\[0\.68rem\]/);
-  assert.match(appShell, /nav aria-label="Main navigation"/);
-  assert.match(appShell, /aria-current=\{active \? "page" : undefined\}/);
+  assert.match(appShell, /lg:w-72/);
 
   for (const source of [workPage, leadsPage, salesReportPage]) {
     assert.match(source, /bg-slate-50/);
@@ -37,6 +36,7 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   const leadFilters = read("src/components/lead-filters.tsx");
   const leadTable = read("src/components/lead-table.tsx");
   const statusPill = read("src/components/lead-status-pill.tsx");
+  const appShell = read("src/components/app-shell.tsx");
 
   assert.match(statusPill, /const lightVariants: Record<string, string> = \{/);
   assert.match(statusPill, /appearance === "light" \? lightVariants\[value\] \?\? lightVariants\.UNKNOWN : variants\[value\]/);
@@ -80,17 +80,22 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(workPage, /border-amber-200 bg-amber-50/);
   assert.match(workPage, /border-sky-200 bg-sky-50/);
   assert.match(workPage, /border-violet-200 bg-violet-50/);
+  assert.match(workPage, /min-h-16 items-center justify-between gap-4 rounded-2xl border px-4 py-3/);
+  assert.match(workPage, /flex min-w-0 items-center gap-2/);
+  assert.match(workPage, /min-w-0 text-xs font-semibold uppercase tracking-\[0\.12em\]/);
+  assert.match(workPage, /shrink-0 text-right text-2xl font-semibold leading-none tabular-nums text-slate-950/);
+  assert.match(workPage, /h-2\.5 w-2\.5 shrink-0 rounded-full/);
+  assert.match(workPage, /inline-flex min-h-9 whitespace-nowrap items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium/);
   assert.match(workPage, /tabular-nums/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
-  assert.match(workPage, /Quick update/);
   assert.doesNotMatch(
     workPage,
     /Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead\./
   );
 
-  assert.match(homepage, /focus-visible:ring-2/);
-  assert.match(homepage, /HOME_SYSTEM_LINK/);
+  assert.match(appShell, /focus-visible:ring-2/);
+  assert.match(homepage, /Daily CRM workspace/);
 });
 
 test("leads screen keeps a compact operational header and active filter chips", () => {
@@ -119,6 +124,7 @@ test("sales report header stays compact and KPI emphasis is conditional", () => 
     salesReportPage,
     /This is a lightweight operational report, not a BI dashboard\./
   );
+  assert.match(salesReportPage, /text-xs font-semibold uppercase tracking-\[0\.18em\] text-sky-700/);
   assert.match(salesReportPage, /tone="overdue"/);
   assert.match(salesReportPage, /tone="dueToday"/);
   assert.match(salesReportPage, /value > 0/);

@@ -33,6 +33,7 @@ test("app shell source uses semantic navigation and focus-visible styles", () =>
   const shellSource = fs.readFileSync(path.join(repoRoot, "src", "components", "app-shell.tsx"), "utf8");
 
   assert.match(shellSource, /nav aria-label="Main navigation"/);
+  assert.match(shellSource, /details className="group mt-4 rounded-2xl/);
   assert.match(shellSource, /focus-visible:outline-none/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
   assert.doesNotMatch(shellSource, /pathname === "\/"\)\s*\{\s*return <>\{children\}<\/>;/s);

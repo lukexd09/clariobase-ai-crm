@@ -11,6 +11,13 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString })
 });
 
+function daysFromNow(days: number, hours = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(hours, 0, 0, 0);
+  return date;
+}
+
 const leads = [
   {
     customerId: "clb-seed-001",
@@ -33,9 +40,9 @@ const leads = [
     packageFit: "BASE",
     scoreTotal: 46,
     scoreLabel: "Warm",
-    nextActionAt: new Date("2026-06-15T09:00:00.000Z"),
+    nextActionAt: daysFromNow(2, 9),
     lastReviewedAt: null,
-    lastImportedAt: new Date("2026-06-09T08:00:00.000Z"),
+    lastImportedAt: daysFromNow(-1, 8),
     archivedAt: null
   },
   {
@@ -59,9 +66,9 @@ const leads = [
     packageFit: "CLARITY",
     scoreTotal: 63,
     scoreLabel: "Strong",
-    nextActionAt: new Date("2026-06-12T10:00:00.000Z"),
-    lastReviewedAt: new Date("2026-06-10T10:00:00.000Z"),
-    lastImportedAt: new Date("2026-06-09T08:00:00.000Z"),
+    nextActionAt: daysFromNow(-1, 10),
+    lastReviewedAt: daysFromNow(0, 10),
+    lastImportedAt: daysFromNow(-1, 8),
     archivedAt: null
   },
   {
@@ -85,9 +92,9 @@ const leads = [
     packageFit: "MOMENTUM",
     scoreTotal: 76,
     scoreLabel: "Hot",
-    nextActionAt: new Date("2026-06-11T14:00:00.000Z"),
-    lastReviewedAt: new Date("2026-06-10T10:30:00.000Z"),
-    lastImportedAt: new Date("2026-06-09T08:00:00.000Z"),
+    nextActionAt: daysFromNow(-2, 14),
+    lastReviewedAt: daysFromNow(0, 10),
+    lastImportedAt: daysFromNow(-1, 8),
     archivedAt: null
   },
   {
@@ -111,9 +118,9 @@ const leads = [
     packageFit: "CLARITY",
     scoreTotal: 58,
     scoreLabel: "Solid",
-    nextActionAt: new Date("2026-06-14T12:00:00.000Z"),
-    lastReviewedAt: new Date("2026-06-10T11:00:00.000Z"),
-    lastImportedAt: new Date("2026-06-09T08:00:00.000Z"),
+    nextActionAt: daysFromNow(0, 12),
+    lastReviewedAt: daysFromNow(0, 11),
+    lastImportedAt: daysFromNow(-1, 8),
     archivedAt: null
   },
   {
@@ -138,8 +145,8 @@ const leads = [
     scoreTotal: 29,
     scoreLabel: "Low",
     nextActionAt: null,
-    lastReviewedAt: new Date("2026-06-08T10:30:00.000Z"),
-    lastImportedAt: new Date("2026-06-09T08:00:00.000Z"),
+    lastReviewedAt: daysFromNow(-3, 10),
+    lastImportedAt: daysFromNow(-1, 8),
     archivedAt: null
   },
   {
@@ -164,8 +171,8 @@ const leads = [
     scoreTotal: 7,
     scoreLabel: "Do not contact",
     nextActionAt: null,
-    lastReviewedAt: new Date("2026-06-09T09:00:00.000Z"),
-    lastImportedAt: new Date("2026-06-09T08:00:00.000Z"),
+    lastReviewedAt: daysFromNow(-2, 9),
+    lastImportedAt: daysFromNow(-1, 8),
     archivedAt: null
   }
 ] satisfies Prisma.LeadUncheckedCreateInput[];
@@ -214,7 +221,7 @@ async function main() {
       outreachAngle: "Lean into lead handling speed and conversion.",
       draftMessage: "Hello Lumina, I noticed your profile could convert more of the interest you already have...",
       riskNotes: "Potentially more premium tone required.",
-      approvedAt: new Date("2026-06-10T12:00:00.000Z")
+      approvedAt: daysFromNow(0, 12)
     }
   ];
 
@@ -256,7 +263,7 @@ async function main() {
       scopeSummary: "Homepage polish, booking path cleanup and clearer offer framing.",
       assumptions: "Content changes stay within the existing brand direction.",
       nextStep: "Review the draft and align on the final wording.",
-      validUntil: new Date("2026-06-20T12:00:00.000Z"),
+      validUntil: daysFromNow(3, 12),
       sentAt: null,
       acceptedAt: null,
       rejectedAt: null,
@@ -272,7 +279,7 @@ async function main() {
       scopeSummary: "Landing page clarity, review placement and stronger booking cues.",
       assumptions: "A fast implementation window is available.",
       nextStep: "Send after a short final review.",
-      validUntil: new Date("2026-06-22T12:00:00.000Z"),
+      validUntil: daysFromNow(5, 12),
       sentAt: null,
       acceptedAt: null,
       rejectedAt: null,
@@ -288,8 +295,8 @@ async function main() {
       scopeSummary: "Conversion-focused refresh with stronger lead handling and follow-up flow.",
       assumptions: "The lead wants a more ambitious package.",
       nextStep: "Wait for reply and track objections.",
-      validUntil: new Date("2026-06-24T12:00:00.000Z"),
-      sentAt: new Date("2026-06-10T13:00:00.000Z"),
+      validUntil: daysFromNow(6, 12),
+      sentAt: daysFromNow(0, 13),
       acceptedAt: null,
       rejectedAt: null,
       rejectionReason: null
@@ -304,9 +311,9 @@ async function main() {
       scopeSummary: "A smaller foundation package with clearer booking emphasis.",
       assumptions: "The lead prefers a light-touch implementation.",
       nextStep: "Kick off delivery and confirm timing.",
-      validUntil: new Date("2026-06-18T12:00:00.000Z"),
-      sentAt: new Date("2026-06-10T09:45:00.000Z"),
-      acceptedAt: new Date("2026-06-10T10:15:00.000Z"),
+      validUntil: daysFromNow(1, 12),
+      sentAt: daysFromNow(0, 9),
+      acceptedAt: daysFromNow(0, 10),
       rejectedAt: null,
       rejectionReason: null
     },
@@ -320,10 +327,10 @@ async function main() {
       scopeSummary: "A light package focused on the most visible homepage improvements.",
       assumptions: "The lead wants to postpone the project.",
       nextStep: "Keep for reference or archive later.",
-      validUntil: new Date("2026-06-16T12:00:00.000Z"),
-      sentAt: new Date("2026-06-10T08:30:00.000Z"),
+      validUntil: daysFromNow(-1, 12),
+      sentAt: daysFromNow(0, 8),
       acceptedAt: null,
-      rejectedAt: new Date("2026-06-10T15:00:00.000Z"),
+      rejectedAt: daysFromNow(0, 15),
       rejectionReason: "Timing is not right now."
     }
   ];
@@ -372,14 +379,14 @@ function demoActivitiesForLead(leadId: string, businessName: string) {
       type: "NOTE" as ActivityType,
       title: `${businessName} reviewed`,
       body: "Seed note for local development.",
-      occurredAt: new Date("2026-06-09T08:30:00.000Z")
+      occurredAt: daysFromNow(-1, 8)
     },
     {
       leadId,
       type: "CALL" as ActivityType,
       title: `${businessName} quick call`,
       body: "Seed call activity for timeline testing.",
-      occurredAt: new Date("2026-06-10T09:30:00.000Z")
+      occurredAt: daysFromNow(0, 9)
     }
   ] satisfies Prisma.ActivityCreateManyInput[];
 }
