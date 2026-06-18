@@ -38,9 +38,14 @@ export function ActivityForm({ leadId }: { leadId: string }) {
     async (_prevState, formData) => createLeadActivityAction(leadId, formData),
     initialState
   );
+  const feedbackId = "activity-form-feedback";
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <form
+      action={formAction}
+      aria-describedby={state.message ? feedbackId : undefined}
+      className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+    >
       <h3 className="text-lg font-semibold text-slate-950">Add manual activity</h3>
       <div className="grid gap-4 md:grid-cols-2">
         <Field
@@ -54,20 +59,22 @@ export function ActivityForm({ leadId }: { leadId: string }) {
               ))}
             </select>
           }
-          value={<StatusPill value={"NOTE" as ActivityTypeValue} appearance="light" />}
+          hint={<StatusPill value={"NOTE" as ActivityTypeValue} appearance="light" />}
         />
         <Field
           label="Title"
+          className="md:col-span-2"
           control={<input name="title" defaultValue="" className={fieldInputClassName} placeholder="Quick call summary" />}
-          value="Short summary of what happened"
+          hint="Use a short summary that is still easy to scan later."
         />
         <Field
           label="Occurred at"
           control={<input name="occurredAt" type="datetime-local" className={fieldInputClassName} />}
-          value="Defaults to now if empty"
+          hint="If left empty, the activity uses the current local time."
         />
         <Field
           label="Body"
+          className="md:col-span-2"
           control={
             <textarea
               name="body"
@@ -76,14 +83,21 @@ export function ActivityForm({ leadId }: { leadId: string }) {
               placeholder="Notes, context, or next step..."
             />
           }
-          value="Optional notes and context"
+          hint="Capture the key outcome, context, or next step."
         />
       </div>
 
       <div className="flex items-center gap-4">
         <SubmitButton />
         {state.message ? (
-          <p className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}>{state.message}</p>
+          <p
+            id={feedbackId}
+            role={state.ok ? "status" : "alert"}
+            aria-live={state.ok ? "polite" : "assertive"}
+            className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}
+          >
+            {state.message}
+          </p>
         ) : null}
       </div>
     </form>
@@ -103,7 +117,7 @@ export function ActivityTimeline({
   }[];
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+    <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <h2 className="text-lg font-semibold text-slate-950">Activity timeline</h2>
       <div className="mt-4 space-y-4">
         {activities.length === 0 ? (
@@ -141,19 +155,21 @@ export function ActivityTimeline({
 function Field({
   label,
   control,
-  value
+  hint,
+  className
 }: {
   label: string;
   control: React.ReactNode;
-  value: React.ReactNode;
+  hint: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <label className="space-y-2">
+    <label className={`space-y-2 ${className ?? ""}`}>
       <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">
         {label}
       </span>
       {control}
-      <span className="block text-xs text-slate-500">{value}</span>
+      <span className="block text-xs leading-5 text-slate-500">{hint}</span>
     </label>
   );
 }
