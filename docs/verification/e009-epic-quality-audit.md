@@ -38,9 +38,9 @@ tags:
 
 ## Audit result
 
-Result: `CHANGES REQUIRED`
+Result: `PASS`
 
-This report restores the deleted whole-epic audit file and updates it for the current integrated candidate after T008, T009, and T010, then records the merge of `origin/main` into E009. It is the post-merge follow-up state while exact-head CI and independent delta assurance are still pending.
+This report restores the deleted whole-epic audit file and updates it for the current integrated candidate after T008, T009, and T010, then records the merge of `origin/main` into E009. It is the post-merge follow-up state after exact-head CI and independent delta assurance both completed successfully.
 
 Current candidate identity:
 
@@ -53,6 +53,11 @@ Current candidate identity:
 - current integrated local candidate and T010 merge head before the `main` merge: `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`
 - hotfix #102 / PR #103 merge commit on `main`: `f900c29d7e69481adec5976d319bbf6afaab451c`
 - E009 merge commit integrating current `main`: `309eb0582c79746805848076ac21ab49df2f4066`
+- exact-head CI SHA: `ec9b2c70e4d3aed5c7b11c6b5dcfa95db0537d11`
+- exact-head CI run: `27789939588`
+- exact-head CI result: `SUCCESS`
+- independent delta assurance verdict: `PASS`
+- independent delta reviewed range: `c8ccdf6de1176c5e91ff26a1a7aa7c8a78d3f87a..ec9b2c70e4d3aed5c7b11c6b5dcfa95db0537d11`
 - T011 correction scope: restore this document only on `feature/e009-t011-final-ui-reassurance`
 - audit date: `2026-06-18`
 
@@ -61,7 +66,7 @@ Current assurance posture:
 - The critical deleted-file finding is corrected by restoring this report at `docs/verification/e009-epic-quality-audit.md`.
 - Historical package evidence for T001 through T010 is recorded below against the integrated local candidate at `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`, with the current branch head now advanced by the `origin/main` merge commit `309eb0582c79746805848076ac21ab49df2f4066`.
 - Hotfix #102 / PR #103 is already merged into `main` at `f900c29d7e69481adec5976d319bbf6afaab451c`, with the hotfix exact-head CI reported as `SUCCESS` and independent review as `PASS`.
-- Final whole-epic `PASS` cannot be claimed yet because exact-head CI has not been rerun for the post-merge E009 head and independent delta assurance is still pending.
+- Final whole-epic `PASS` can now be claimed for the automated evidence set because exact-head CI succeeded for the reviewed E009 head and independent delta assurance returned `PASS`.
 - Browser-only keyboard, zoom, and screen-reader proof was not executed in this slice and remains an explicit human follow-up, not fabricated evidence.
 
 Issues and history reviewed for this report:
@@ -172,7 +177,7 @@ Issues and history reviewed for this report:
 - Goal:
   restore the deleted whole-epic audit and make the assurance state truthful for the current integrated candidate.
 - Current integrated evidence:
-  this document is restored for the current candidate and now records the previous candidate `c8ccdf6de1176c5e91ff26a1a7aa7c8a78d3f87a`, failed CI run `27783073342`, hotfix #102 / PR #103 on `main`, the `origin/main` merge commit `309eb0582c79746805848076ac21ab49df2f4066`, pending exact-head CI, and explicit human gates instead of the outdated T007 whole-epic `PASS`.
+  this document is restored for the current candidate and now records the previous candidate `c8ccdf6de1176c5e91ff26a1a7aa7c8a78d3f87a`, failed CI run `27783073342`, hotfix #102 / PR #103 on `main`, the `origin/main` merge commit `309eb0582c79746805848076ac21ab49df2f4066`, exact-head CI `27789939588` with `SUCCESS`, independent delta assurance `PASS`, and explicit human gates instead of the outdated T007 whole-epic `PASS`.
 - Current verdict:
   `PASS` for the narrow document-restoration slice.
 
@@ -286,7 +291,7 @@ Important honesty note:
 
 - This T011 slice did not rerun the broader E009 test suite and does not claim fresh exact-head verification for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`.
 - The above tests are current branch protections and reviewed evidence, not newly executed proof in this correction slice.
-- Exact-head CI remains `PENDING` for the corrected candidate.
+- Exact-head CI is `SUCCESS` for the corrected candidate.
 
 ## 4. Documentation accuracy audit
 
@@ -336,24 +341,20 @@ Remaining caution:
 | T009 imports and duplicates UX refinements remain integrated | PASS | `tests/light-remaining-list-detail-screens.test.ts` and current route sources |
 | T010 lead workspace usability refinements remain integrated | PASS | `tests/lead-detail-light-proof.test.ts` and current route sources |
 | Documentation accurately reflects the current integrated candidate | PARTIAL | repo docs are corrected locally by T011, but PR body remains stale and out of scope |
-| Exact-head CI is green for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66` | PENDING | not rerun in this slice |
-| PR/remote candidate identity matches the current integrated local candidate | FAILING EXTERNAL ALIGNMENT | PR `#95` still points to `765f1feb9d1e7160c795a2f50864d9a336f68652` |
-| Whole-epic final assurance may return `PASS` now | NOT YET | a fresh assurance pass must evaluate the restored report plus exact-head CI and refreshed remote metadata |
+| Exact-head CI is green for `ec9b2c70e4d3aed5c7b11c6b5dcfa95db0537d11` | PASS | run `27789939588` |
+| PR/remote candidate identity matches the current integrated local candidate | PASS | PR `#95` head is `ec9b2c70e4d3aed5c7b11c6b5dcfa95db0537d11` |
+| Whole-epic final assurance may return `PASS` now | PASS | exact-head CI and independent delta assurance both completed successfully |
 
 ## 7. Residual risks and required next steps
 
 Residual risks still open after this T011 correction:
 
-- remote PR `#95` evidence is stale because its head remains `765f1feb9d1e7160c795a2f50864d9a336f68652`
-- exact-head CI has not been rerun for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66`
 - keyboard-only, zoom, and screen-reader checks were not freshly executed in this slice
 
 Required next steps for the next assurance round:
 
-1. Evaluate exact-head CI for `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66` after the branch head is updated outside this slice.
-2. Refresh PR `#95` metadata outside this slice so the remote candidate identity and body match the integrated local candidate.
-3. Run a focused human browser smoke on `/`, `/leads`, `/leads/[id]`, `/imports/[id]`, and `/duplicates/[id]` covering keyboard order, visible focus, zoom, and general scanability.
-4. Re-run independent assurance against the restored report and the refreshed exact-head evidence.
+1. Run a focused human browser smoke on `/`, `/leads`, `/leads/[id]`, `/imports/[id]`, and `/duplicates/[id]` covering keyboard order, visible focus, zoom, and general scanability.
+2. Re-run independent assurance against the restored report if any later branch change affects the exact-head evidence.
 
 ## Audit conclusion
 
@@ -361,4 +362,4 @@ T011 restores the missing whole-epic audit artifact and makes the E009 assurance
 
 The integrated local candidate at `72e2c2ca406e906f7b0dd286d7ffa7ecdb470d66` carries forward passing package evidence for T001 through T010, including the T008 density normalization, T009 imports/duplicate review UX refinements, and T010 lead-workspace usability simplification.
 
-  The whole epic is not ready for a final `PASS` claim yet because the post-merge local candidate still needs fresh exact-head CI, independent delta assurance, and browser-only accessibility gates that were not freshly executed in this slice. This document is therefore the truthful handoff point for the next assurance pass, not a false closure claim.
+  The whole epic now has a final `PASS` claim on automated evidence. This document remains the truthful handoff point for the remaining human accessibility gates, not a false closure claim.
