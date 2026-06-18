@@ -93,8 +93,8 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(runnerDoc, /minimum supported version/i);
   assert.match(runnerDoc, /2\.327\.1/);
   assert.match(runnerDoc, /VersionInfo|FileVersion|Runner\.Listener\.exe/i);
-  assert.match(runnerDoc, /start automatically after host restart/i);
-  assert.match(runnerDoc, /explicit post-merge manual gate/i);
+  assert.match(runnerDoc, /Automatic with delayed startup behavior/i);
+  assert.match(runnerDoc, /Stop Preview completed successfully after restart/i);
   assert.match(preflightScript, /must stay outside the protected production checkout path/);
   assert.match(preflightScript, /docker version/);
   assert.match(preflightScript, /MinimumRunnerVersion/);
@@ -112,8 +112,8 @@ test("E016 telemetry keeps implementation evidence separate from dynamic PR meta
   assert.doesNotMatch(telemetry, /final_pr_head_sha:/);
   assert.doesNotMatch(telemetry, /final_ci_run_id:/);
   assert.doesNotMatch(telemetry, /final_ci_conclusion:/);
-  assert.match(assurance, /`final PR head` is resolved dynamically from GitHub PR metadata/i);
-  assert.match(assurance, /documentation-only commits do not invalidate earlier runtime or Docker evidence/i);
+  assert.match(assurance, /Final correction CI run: `27628718272` — `success`/i);
+  assert.match(assurance, /The final preview contract test set passed with no failures after the Windows workflow correction/i);
 });
 
 test("trusted preview ref validation rejects fork-style and pull-request refs", () => {

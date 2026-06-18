@@ -163,14 +163,18 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.match(runnerRunbook, /clariobase-preview/);
   assert.match(runnerRunbook, /scripts\/runner-preflight\.ps1/);
   assert.match(runnerRunbook, /short-lived repository-scoped registration token/i);
-  assert.match(runnerRunbook, /start automatically after host restart/i);
+  assert.match(runnerRunbook, /Automatic with delayed startup behavior/i);
 
   assert.match(assuranceReport, /document_id: DOC-E016-INTEGRATED-ASSURANCE/);
   assert.match(assuranceReport, /Result: `PASS`/);
-  assert.match(assuranceReport, /Automated test audit/i);
-  assert.match(assuranceReport, /Workflow definition audit/i);
+  assert.match(assuranceReport, /The final preview contract test set passed with no failures after the Windows workflow correction/i);
+  assert.match(assuranceReport, /Automated verification summary/i);
+  assert.match(assuranceReport, /Workflow and trust-boundary audit/i);
+  assert.match(assuranceReport, /Preview isolation and replacement audit/i);
+  assert.match(assuranceReport, /Windows self-hosted runner audit/i);
+  assert.match(assuranceReport, /Cleanup and production protection audit/i);
   assert.match(assuranceReport, /Acceptance-criteria evidence matrix/i);
-  assert.match(assuranceReport, /Manual post-merge smoke-test checklist/i);
+  assert.match(assuranceReport, /Residual risks/i);
 
   assert.match(operationsRunbook, /document_id: DOC-E014-CONTAINER-OPERATIONS/);
   assert.match(operationsRunbook, /canonical operator runbook/i);
