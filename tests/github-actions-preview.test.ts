@@ -107,12 +107,18 @@ test("E016 telemetry keeps implementation evidence separate from dynamic PR meta
 
   assert.match(telemetry, /implementation_evidence:/);
   assert.match(telemetry, /final_pr_evidence:/);
+  assert.match(telemetry, /source: github_pr_metadata/);
   assert.match(telemetry, /head_sha: dynamic/);
+  assert.match(telemetry, /ci_run_id: dynamic/);
+  assert.match(telemetry, /ci_conclusion: dynamic/);
   assert.match(telemetry, /verification_rule: resolve from GitHub after the final documentation commit/);
   assert.doesNotMatch(telemetry, /final_pr_head_sha:/);
   assert.doesNotMatch(telemetry, /final_ci_run_id:/);
   assert.doesNotMatch(telemetry, /final_ci_conclusion:/);
-  assert.match(assurance, /Final correction CI run: `27628718272` — `success`/i);
+  assert.match(assurance, /Final Stop Preview workflow run:/);
+  assert.match(assurance, /Result: `PASS`/);
+  assert.match(assurance, /Conclusion:\s+success/i);
+  assert.match(assurance, /Post-stop evidence:/);
   assert.match(assurance, /The final preview contract test set passed with no failures after the Windows workflow correction/i);
 });
 
