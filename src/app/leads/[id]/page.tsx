@@ -141,6 +141,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               priority={lead.priority}
               packageFit={lead.packageFit}
               nextActionAt={asLocalDateTimeValue(lead.nextActionAt)}
+              nextActionDisplay={lead.nextActionAt ? formatDate(lead.nextActionAt) : "No next action set"}
             />
           </section>
 

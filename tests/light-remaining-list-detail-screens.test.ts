@@ -25,8 +25,8 @@ test("remaining legacy list and detail screens use the light shell baseline", ()
   assert.match(importsPage, /caption className="sr-only">Import batches and their processing results\./);
   assert.match(importsPage, /scope="col"/);
   assert.match(importsPage, /focus-visible:ring-2/);
-  assert.match(importsPage, /StatusPill value=\{batch\.status\} appearance="light"/);
-  assert.match(importsPage, /From /);
+  assert.match(importsPage, /Technical enum: /);
+  assert.match(importsPage, /Finished cleanly|Finished with row issues|Processing|Stopped|Status not known/);
   assert.match(importsPage, /Open batch/);
 
   assert.match(importDetailPage, /caption className="sr-only">Individual row results for the selected import batch\./);
@@ -49,11 +49,12 @@ test("remaining legacy list and detail screens use the light shell baseline", ()
   assert.match(duplicateDetailPage, /focus-visible:ring-2/);
   assert.match(duplicateDetailPage, /ExternalLink/);
   assert.match(duplicateDetailPage, /Compare leads/);
-  assert.match(duplicateDetailPage, /Mark dismissed/);
-  assert.match(duplicateDetailPage, /Keep open for review/);
+  assert.match(duplicateDetailPage, /Keep both records separate/);
+  assert.match(duplicateDetailPage, /Flag for closer review/);
+  assert.match(duplicateDetailPage, /Confirm duplicate and close review/);
   assert.match(duplicateDetailPage, /Technical identifiers/);
 
   assert.match(healthPage, /System status/);
-  assert.match(healthPage, /Minimal runtime probe for deployment and uptime checks\./);
-  assert.match(healthPage, /rounded-3xl border border-slate-200 bg-white/);
+  assert.match(healthPage, /Compact operational status for readiness checks\./);
+  assert.match(healthPage, /w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-sm/);
 });

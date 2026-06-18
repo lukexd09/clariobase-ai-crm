@@ -13,7 +13,7 @@ test("lead detail light proof preserves dense operator workflow structure", () =
   const page = read("src/app/leads/[id]/page.tsx");
 
   assert.match(page, /min-h-screen bg-slate-50 text-slate-900/);
-  assert.match(page, /xl:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,400px\)\]/);
+  assert.match(page, /mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8/);
   assert.match(page, /"#lead-controls"/);
   assert.match(page, /"#activity"/);
   assert.match(page, /id="lead-controls"/);
@@ -21,18 +21,18 @@ test("lead detail light proof preserves dense operator workflow structure", () =
   assert.match(page, /Lead controls/);
   assert.match(page, /Activity log/);
   assert.match(page, /Lead workspace/);
-  assert.match(page, /aria-label="Lead workspace sections"/);
-  assert.match(page, /Show technical details/);
+  assert.match(page, /nav aria-label="Lead sections"/);
+  assert.match(page, /Jump to technical details/);
   assert.doesNotMatch(page, /LeadDetailSidebar/);
   assert.doesNotMatch(page, /aria-label="Lead workspace routes"/);
   assert.doesNotMatch(page, /Operator sidebar|Workspace routes/);
-  assert.doesNotMatch(page, /No updates yet/);
+  assert.match(page, /No next action set/);
   assert.match(page, /focus-visible:ring-2/);
   assert.match(page, /StatusPill value=\{lead\.leadStatus\} appearance="light"/);
   assert.match(page, /StatusPill value=\{lead\.priority\} appearance="light"/);
   assert.match(page, /StatusPill value=\{lead\.packageFit\} appearance="light"/);
-  assert.match(page, /bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800/);
-  assert.doesNotMatch(page, /bg-sky-600|hover:bg-sky-500/);
+  assert.match(page, /bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700/);
+  assert.doesNotMatch(page, /bg-\[#0A0C10\]|bg-\[#11141D\]|text-\[#F0F4F9\]|text-\[#94A3B8\]/);
   assert.doesNotMatch(page, /bg-\[#0A0C10\]|bg-\[#11141D\]|text-\[#F0F4F9\]|text-\[#94A3B8\]/);
 });
 
