@@ -71,6 +71,8 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Use shadows sparingly; route grouping should come from layout and headings before decorative chrome.
 - Homepage should highlight the main daily entry points first and keep system routes secondary.
 - Data-intake and diagnostic routes should feel integrated with the CRM shell, not detached or marketing-like.
+- Import and duplicate-review screens should lead with operator-facing status or confidence language; raw enum or validator wording belongs in secondary detail.
+- When technical IDs or validation output are still useful, keep them readable but visually secondary through subdued metadata or clear disclosures.
 
 ## Future UI checklist
 
