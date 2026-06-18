@@ -23,20 +23,27 @@ test("remaining legacy list and detail screens use the light shell baseline", ()
   }
   assert.doesNotMatch(importsPage, /max-w-7xl/);
   assert.doesNotMatch(duplicatesPage, /max-w-7xl/);
+  assert.doesNotMatch(importDetailPage, /max-w-7xl/);
+  assert.doesNotMatch(duplicateDetailPage, /max-w-7xl/);
 
   assert.match(importsPage, /caption className="sr-only">Import batches and their processing results\./);
   assert.match(importsPage, /scope="col"/);
   assert.match(importsPage, /focus-visible:ring-2/);
   assert.match(importsPage, /StatusPill value=\{batch\.status\} appearance="light"/);
+  assert.match(importsPage, /Completed with issues/);
+  assert.match(importsPage, /Open batch results/);
 
   assert.match(importDetailPage, /caption className="sr-only">Individual row results for the selected import batch\./);
   assert.match(importDetailPage, /StatusPill value=\{row\.status\} appearance="light"/);
   assert.match(importDetailPage, /focus-visible:ring-2/);
-  assert.match(importDetailPage, /Open lead/);
+  assert.match(importDetailPage, /overflow-x-auto/);
+  assert.match(importDetailPage, /Technical validation details/);
+  assert.match(importDetailPage, /aria-label={`Open lead for row/);
 
   assert.match(duplicatesPage, /caption className="sr-only">Duplicate candidates awaiting review\./);
   assert.match(duplicatesPage, /StatusPill value=\{candidate\.status\} appearance="light"/);
   assert.match(duplicatesPage, /focus-visible:ring-2/);
+  assert.match(duplicatesPage, /Very high confidence|High confidence|Needs closer review/);
   assert.match(duplicatesPage, /Open review/);
 
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.DISMISSED\)/);
@@ -46,6 +53,10 @@ test("remaining legacy list and detail screens use the light shell baseline", ()
   assert.doesNotMatch(duplicateDetailPage, /bg-sky-600|hover:bg-sky-500/);
   assert.match(duplicateDetailPage, /focus-visible:ring-2/);
   assert.match(duplicateDetailPage, /ExternalLink/);
+  assert.match(duplicateDetailPage, /Side-by-side comparison for the selected duplicate candidate\./);
+  assert.match(duplicateDetailPage, /Keep both records separate/);
+  assert.match(duplicateDetailPage, /Flag for closer review/);
+  assert.match(duplicateDetailPage, /Mark review complete/);
 
   assert.match(healthPage, /System status/);
   assert.doesNotMatch(healthPage, /Minimal runtime probe for deployment and uptime checks\./);
