@@ -24,9 +24,7 @@ export default async function SalesReportPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
               Sales reporting
             </p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
-              Operational pipeline report
-            </h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">Sales overview</h1>
           </div>
         </header>
 
@@ -48,7 +46,7 @@ export default async function SalesReportPage() {
             description="Archived leads are excluded from active totals, while WON, LOST and DO_NOT_CONTACT remain visible as separate operational states."
           >
             <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="max-h-[34rem] overflow-auto">
+              <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <caption className="sr-only">Lead status summary table</caption>
                   <thead className="sticky top-0 z-10 bg-slate-50">

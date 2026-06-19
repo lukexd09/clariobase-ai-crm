@@ -19,9 +19,10 @@ test("homepage exposes a compact operational snapshot", () => {
 
   assert.match(homepageSource, /Overdue work/);
   assert.match(homepageSource, /Due today/);
-  assert.match(homepageSource, /Waiting for audit/);
+  assert.match(homepageSource, /Today's priorities/);
+  assert.match(homepageSource, /Pipeline snapshot/);
   assert.match(homepageSource, /Open duplicate reviews/);
-  assert.match(homepageSource, /Latest import/);
+  assert.doesNotMatch(homepageSource, /Latest import/);
 });
 
 test("homepage snapshot falls back cleanly when data sources are unavailable", async () => {
@@ -51,7 +52,7 @@ test("homepage snapshot falls back cleanly when data sources are unavailable", a
           businessName: "Lead B",
           city: null,
           category: null,
-          leadStatus: "ACTIVE",
+          leadStatus: "CONTACTED",
           priority: "MEDIUM",
           packageFit: "FIT",
           scoreTotal: 0,
@@ -65,7 +66,7 @@ test("homepage snapshot falls back cleanly when data sources are unavailable", a
           businessName: "Lead C",
           city: null,
           category: null,
-          leadStatus: "ACTIVE",
+          leadStatus: "REPLIED",
           priority: "LOW",
           packageFit: "FIT",
           scoreTotal: 0,
@@ -90,10 +91,20 @@ test("homepage snapshot falls back cleanly when data sources are unavailable", a
     value: "0",
     description: "Leads needing attention now."
   });
+  assert.deepEqual(normal[2], {
+    label: "Today's priorities",
+    value: "2 leads",
+    description: "Leads needing a decision or next step today."
+  });
+  assert.deepEqual(normal[3], {
+    label: "Pipeline snapshot",
+    value: "2 active leads",
+    description: "Active pipeline stages across contacted, replied, offer sent, and won."
+  });
   assert.deepEqual(normal[4], {
-    label: "Latest import",
-    value: "RUNNING",
-    description: "Import batch"
+    label: "Open duplicate reviews",
+    value: "1",
+    description: "Candidate pairs still open."
   });
 
   const fallback = await getHomepageSnapshotWithSources({

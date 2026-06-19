@@ -16,6 +16,13 @@ function formatDate(value: Date | null | undefined) {
     : "-";
 }
 
+function describeConfidence(score: number) {
+  if (score >= 90) return "Very strong match";
+  if (score >= 80) return "Strong match";
+  if (score >= 70) return "Review closely";
+  return "Low confidence";
+}
+
 function renderReasons(reasons: unknown) {
   if (!Array.isArray(reasons) || reasons.length === 0) return "-";
 
@@ -31,13 +38,10 @@ function renderReasons(reasons: unknown) {
           >
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-slate-950">{entry.label ?? "Duplicate signal"}</div>
+                <div className="text-sm font-semibold text-slate-950">{entry.label ?? "Match detail"}</div>
                 <div className="mt-1 break-words text-xs leading-5 text-slate-600">
-                  {entry.value ?? "No technical value recorded"}
+                  {entry.value ?? "No business detail recorded"}
                 </div>
-              </div>
-              <div className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-600">
-                {entry.score ?? "-"}
               </div>
             </div>
           </li>
@@ -89,11 +93,11 @@ function ComparisonField({
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <div className={`rounded-xl border p-3 ${same ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">Lead A</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">Existing record</p>
           <p className="mt-1 break-words text-sm text-slate-900">{left ?? "-"}</p>
         </div>
         <div className={`rounded-xl border p-3 ${same ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
-          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">Lead B</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">Imported record</p>
           <p className="mt-1 break-words text-sm text-slate-900">{right ?? "-"}</p>
         </div>
       </div>
@@ -145,41 +149,40 @@ export default async function DuplicateCandidateDetailPage({
         <header className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Duplicate candidate</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-            {candidate.leadA.businessName} ({candidate.leadA.customerId ?? candidate.leadA.source ?? "Lead A"}) vs{" "}
-            {candidate.leadB.businessName} ({candidate.leadB.customerId ?? candidate.leadB.source ?? "Lead B"})
+            {candidate.leadA.businessName} compared with {candidate.leadB.businessName}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <StatusPill value={candidate.status} appearance="light" />
             <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-slate-700">
-              {candidate.score}/100 confidence
+              {describeConfidence(candidate.score)}
             </span>
-            <span className="text-sm text-slate-500">Review the strongest matches first, then confirm the differing fields below.</span>
+            <span className="text-sm text-slate-500">Review the strongest similarities first, then the differences that still need human judgment.</span>
           </div>
         </header>
 
         <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-950">Match signals</h2>
-            <p className="text-sm text-slate-500">Existing scoring signals only; no merge action is triggered here.</p>
+            <h2 className="text-lg font-semibold text-slate-950">Similarities and differences</h2>
+            <p className="text-sm text-slate-500">Plain-language match evidence only; no merge action is triggered here.</p>
           </div>
           <div className="mt-4">{renderReasons(candidate.reasons)}</div>
         </section>
 
         <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-950">Compare leads</h2>
-            <p className="text-sm text-slate-500">Match states are highlighted in green; differences stay neutral and easy to scan.</p>
+            <h2 className="text-lg font-semibold text-slate-950">Compare records</h2>
+            <p className="text-sm text-slate-500">Matches are highlighted gently; differences stay neutral and easy to scan.</p>
           </div>
           <div className="mt-4 overflow-x-auto">
             <div className="min-w-[900px] grid gap-3">
-            <ComparisonField label="Business name" left={candidate.leadA.businessName} right={candidate.leadB.businessName} />
-            <ComparisonField label="City" left={candidate.leadA.city} right={candidate.leadB.city} />
-            <ComparisonField label="Category" left={candidate.leadA.category} right={candidate.leadB.category} />
-            <ComparisonField label="Phone" left={candidate.leadA.phone} right={candidate.leadB.phone} />
-            <ComparisonField label="Email" left={candidate.leadA.email} right={candidate.leadB.email} />
-            <ComparisonField label="Website" left={candidate.leadA.websiteUrl} right={candidate.leadB.websiteUrl} />
-            <ComparisonField label="Instagram" left={candidate.leadA.instagramUrl} right={candidate.leadB.instagramUrl} />
-            <ComparisonField label="Facebook" left={candidate.leadA.facebookUrl} right={candidate.leadB.facebookUrl} />
+              <ComparisonField label="Business name" left={candidate.leadA.businessName} right={candidate.leadB.businessName} />
+              <ComparisonField label="City" left={candidate.leadA.city} right={candidate.leadB.city} />
+              <ComparisonField label="Category" left={candidate.leadA.category} right={candidate.leadB.category} />
+              <ComparisonField label="Phone" left={candidate.leadA.phone} right={candidate.leadB.phone} />
+              <ComparisonField label="Email" left={candidate.leadA.email} right={candidate.leadB.email} />
+              <ComparisonField label="Website" left={candidate.leadA.websiteUrl} right={candidate.leadB.websiteUrl} />
+              <ComparisonField label="Instagram" left={candidate.leadA.instagramUrl} right={candidate.leadB.instagramUrl} />
+              <ComparisonField label="Facebook" left={candidate.leadA.facebookUrl} right={candidate.leadB.facebookUrl} />
             </div>
           </div>
         </section>
@@ -196,7 +199,7 @@ export default async function DuplicateCandidateDetailPage({
           </dl>
           {candidate.decisionNote ? (
             <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <summary className="cursor-pointer list-none text-sm font-medium text-slate-700 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+              <summary className="cursor-pointer list-none text-sm font-medium text-slate-700 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
                 Show operator note
               </summary>
               <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-600">
@@ -235,39 +238,44 @@ export default async function DuplicateCandidateDetailPage({
 
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-950">Technical identifiers</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Technical matching details</h2>
             <p className="text-sm text-slate-500">Kept secondary so the comparison surface stays operator-friendly.</p>
           </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <p className="mb-2 text-sm font-semibold text-slate-900">Lead A</p>
-              <dl className="grid gap-3">
-                <TechnicalField label="Google Place ID" value={candidate.leadA.googlePlaceId} />
-                <TechnicalField label="Customer ID" value={candidate.leadA.customerId} />
-                <TechnicalField label="Source" value={candidate.leadA.source} />
-                <TechnicalField label="Source record ID" value={candidate.leadA.sourceRecordId} />
-              </dl>
+          <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer list-none text-sm font-medium text-slate-700 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+              Show technical matching details
+            </summary>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-slate-900">Existing record</p>
+                <dl className="grid gap-3">
+                  <TechnicalField label="Google Place ID" value={candidate.leadA.googlePlaceId} />
+                  <TechnicalField label="Customer ID" value={candidate.leadA.customerId} />
+                  <TechnicalField label="Source" value={candidate.leadA.source} />
+                  <TechnicalField label="Source record ID" value={candidate.leadA.sourceRecordId} />
+                </dl>
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-semibold text-slate-900">Imported record</p>
+                <dl className="grid gap-3">
+                  <TechnicalField label="Google Place ID" value={candidate.leadB.googlePlaceId} />
+                  <TechnicalField label="Customer ID" value={candidate.leadB.customerId} />
+                  <TechnicalField label="Source" value={candidate.leadB.source} />
+                  <TechnicalField label="Source record ID" value={candidate.leadB.sourceRecordId} />
+                </dl>
+              </div>
             </div>
-            <div>
-              <p className="mb-2 text-sm font-semibold text-slate-900">Lead B</p>
-              <dl className="grid gap-3">
-                <TechnicalField label="Google Place ID" value={candidate.leadB.googlePlaceId} />
-                <TechnicalField label="Customer ID" value={candidate.leadB.customerId} />
-                <TechnicalField label="Source" value={candidate.leadB.source} />
-                <TechnicalField label="Source record ID" value={candidate.leadB.sourceRecordId} />
-              </dl>
-            </div>
-          </div>
+          </details>
         </section>
 
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <details className="group">
-            <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+            <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
               Supporting lead records
             </summary>
             <div className="mt-4 grid gap-6 lg:grid-cols-2">
-              <LeadPanel title="Lead A" lead={candidate.leadA} />
-              <LeadPanel title="Lead B" lead={candidate.leadB} />
+              <LeadPanel title="Existing record" lead={candidate.leadA} />
+              <LeadPanel title="Imported record" lead={candidate.leadB} />
             </div>
           </details>
         </section>
@@ -306,7 +314,7 @@ function LeadPanel({
         <Link
           href={`/leads/${lead.id}`}
           aria-label={`Open lead detail for ${lead.businessName}`}
-          className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         >
           Open lead detail
         </Link>

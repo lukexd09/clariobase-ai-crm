@@ -46,11 +46,9 @@ export default async function DuplicatesPage() {
       <div className="mx-auto w-full max-w-none px-4 py-6 sm:px-6 lg:px-8">
         <header className="mb-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Duplicate review</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-            Duplicate candidates
-          </h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Possible duplicates</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Review scored duplicate matches before any human decision. No automatic merge is performed.
+            Compare likely matches in plain language before any human decision. No automatic merge is performed.
           </p>
         </header>
 
@@ -60,10 +58,10 @@ export default async function DuplicatesPage() {
             <thead className="bg-slate-50">
               <tr className="text-left text-slate-500">
                 <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3">Lead A</th>
-                <th scope="col" className="px-4 py-3">Lead B</th>
-                <th scope="col" className="px-4 py-3">Confidence</th>
-                <th scope="col" className="px-4 py-3">Signals</th>
+                <th scope="col" className="px-4 py-3">Existing record</th>
+                <th scope="col" className="px-4 py-3">Imported record</th>
+                <th scope="col" className="px-4 py-3">Match strength</th>
+                <th scope="col" className="px-4 py-3">What matches</th>
                 <th scope="col" className="px-4 py-3">Updated</th>
                 <th scope="col" className="px-4 py-3">Review</th>
               </tr>
@@ -77,22 +75,20 @@ export default async function DuplicatesPage() {
                   </td>
                     <td className="px-4 py-4 align-top">
                     <div className="font-medium text-slate-950">{candidate.leadA.businessName}</div>
-                    <div className="text-xs text-slate-500">
-                      {candidate.leadA.source ?? "-"} | {candidate.leadA.customerId ?? "-"} | {candidate.leadA.city ?? "-"}
-                    </div>
+                    <div className="text-xs text-slate-500">{candidate.leadA.city ?? "Not set"}</div>
                   </td>
                   <td className="px-4 py-4 align-top">
                     <div className="font-medium text-slate-950">{candidate.leadB.businessName}</div>
-                    <div className="text-xs text-slate-500">
-                      {candidate.leadB.source ?? "-"} | {candidate.leadB.customerId ?? "-"} | {candidate.leadB.city ?? "-"}
-                    </div>
+                    <div className="text-xs text-slate-500">{candidate.leadB.city ?? "Not set"}</div>
                   </td>
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-1">
                       <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-700">
-                        {candidate.score}/100
+                        {describeConfidence(candidate.score)}
                       </div>
-                      <div className="text-xs text-slate-500">{describeConfidence(candidate.score)}</div>
+                      <div className="text-xs text-slate-500">
+                        {Array.isArray(candidate.reasons) ? candidate.reasons.length : 0} signals reviewed
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-4 align-top">
@@ -109,14 +105,11 @@ export default async function DuplicatesPage() {
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="font-medium text-slate-950">{entry.label ?? "Duplicate signal"}</p>
+                                  <p className="font-medium text-slate-950">{entry.label ?? "Match detail"}</p>
                                   <p className="mt-1 break-words text-xs leading-5 text-slate-600">
-                                    {entry.value ?? "No technical value recorded"}
+                                    {entry.value ?? "No business detail recorded"}
                                   </p>
                                 </div>
-                                <span className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-600">
-                                  {entry.score ?? "-"}
-                                </span>
                               </div>
                             </li>
                           );
@@ -133,10 +126,10 @@ export default async function DuplicatesPage() {
                   <td className="px-4 py-4 align-top">
                     <Link
                       href={`/duplicates/${candidate.id}`}
-                      aria-label={`Open review for ${candidate.leadA.businessName} (${candidate.leadA.customerId ?? candidate.leadA.source ?? "record A"}) and ${candidate.leadB.businessName} (${candidate.leadB.customerId ?? candidate.leadB.source ?? "record B"})`}
-                      className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                      aria-label={`Compare ${candidate.leadA.businessName} and ${candidate.leadB.businessName}`}
+                      className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                     >
-                      Open review
+                      Compare
                     </Link>
                   </td>
                 </tr>

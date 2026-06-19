@@ -85,7 +85,7 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(workPage, /min-w-0 text-xs font-semibold uppercase tracking-\[0\.12em\]/);
   assert.match(workPage, /shrink-0 text-right text-2xl font-semibold leading-none tabular-nums text-slate-950/);
   assert.match(workPage, /h-2\.5 w-2\.5 shrink-0 rounded-full/);
-  assert.match(workPage, /inline-flex min-h-9 whitespace-nowrap items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium/);
+  assert.match(workPage, /inline-flex min-h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium/);
   assert.match(workPage, /tabular-nums/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);

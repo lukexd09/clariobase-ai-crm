@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { getWorkBuckets, isActionableLead, type WorkLead } from "../src/lib/work-view";
 
 function lead(overrides: Partial<WorkLead>): WorkLead {
@@ -63,4 +65,15 @@ test("excluded statuses are not actionable", () => {
   assert.equal(isActionableLead({ leadStatus: "LOST" }), false);
   assert.equal(isActionableLead({ leadStatus: "ARCHIVED" }), false);
   assert.equal(isActionableLead({ leadStatus: "DO_NOT_CONTACT" }), false);
+});
+
+test("work screen copy stays business-first", () => {
+  const workPage = fs.readFileSync(path.join(__dirname, "..", "src", "app", "work", "page.tsx"), "utf8");
+
+  assert.match(workPage, /aria-label=\{`Update \$\{lead\.businessName\}`\}/);
+  assert.match(workPage, /className="block min-w-0 truncate font-semibold/);
+  assert.match(workPage, /No activity yet/);
+  assert.match(workPage, /Not set/);
+  assert.doesNotMatch(workPage, /Quick update for/);
+  assert.doesNotMatch(workPage, /Imported \$\{formatDate\(lead\.lastImportedAt\)\}/);
 });

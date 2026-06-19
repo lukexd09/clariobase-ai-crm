@@ -35,31 +35,38 @@ export async function getHomepageSnapshotWithSources({
   getDuplicateCandidates: typeof getDuplicateCandidates;
 }) {
   try {
-    const [leads, imports, duplicates] = await Promise.all([
+    const [leads, , duplicates] = await Promise.all([
       readLeads(),
       readImportBatches(),
       readDuplicateCandidates()
     ]);
     const buckets = getWorkbenchBucketCounts(leads);
-    const latestImport = imports[0];
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const todaysPriorities = leads.filter(
+      (lead) => lead.leadStatus === "TO_AUDIT" || lead.nextActionAt?.toISOString().slice(0, 10) === todayKey
+    );
+    const pipelineActive = leads.filter((lead) =>
+      ["CONTACTED", "REPLIED", "OFFER_SENT", "WON"].includes(lead.leadStatus)
+    );
 
     return [
       { label: "Overdue work", value: String(buckets.overdue), description: "Leads needing attention now." },
       { label: "Due today", value: String(buckets.dueToday), description: "Leads due for follow-up today." },
       {
-        label: "Waiting for audit",
-        value: String(leads.filter((lead) => lead.leadStatus === "TO_AUDIT").length),
-        description: "Leads awaiting review."
+        label: "Today's priorities",
+        value: `${todaysPriorities.length} leads`,
+        description:
+          todaysPriorities.length > 0 ? "Leads needing a decision or next step today." : "No urgent decisions queued today."
+      },
+      {
+        label: "Pipeline snapshot",
+        value: `${pipelineActive.length} active leads`,
+        description: "Active pipeline stages across contacted, replied, offer sent, and won."
       },
       {
         label: "Open duplicate reviews",
         value: String(duplicates.filter((candidate) => candidate.status === "OPEN").length),
         description: "Candidate pairs still open."
-      },
-      {
-        label: "Latest import",
-        value: latestImport ? latestImport.status : "None",
-        description: latestImport ? latestImport.sourceName ?? latestImport.fileName ?? "Batch available" : "No imports yet."
       }
     ] as const;
   } catch (error) {

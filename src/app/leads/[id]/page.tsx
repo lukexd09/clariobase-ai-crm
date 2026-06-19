@@ -66,13 +66,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/leads"
-            className="text-sm font-medium text-slate-600 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+            className="text-sm font-medium text-slate-600 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
           >
             &larr; Back to leads
           </Link>
           <Link
             href="#technical-details"
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
           >
             Jump to technical details
           </Link>
@@ -147,16 +147,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4 border-b border-slate-200 pb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Business context</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Business context</h2>
-            </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Business context</p>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-950">Business context</h2>
+                </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <ContextField label="Website" value={lead.websiteUrl ? <ExternalLink href={lead.websiteUrl} label={lead.websiteUrl} /> : "-"} />
-              <ContextField label="Category" value={lead.category ?? "-"} />
-              <ContextField label="Phone" value={lead.phone ?? "-"} />
-              <ContextField label="Email" value={lead.email ?? "-"} />
-              <ContextField label="Address" value={lead.address ?? "-"} />
-              <ContextField label="Source" value={lead.source ?? "-"} />
+              <ContextField label="Website" value={lead.websiteUrl ? <ExternalLink href={lead.websiteUrl} label={lead.websiteUrl} /> : "Not set"} />
+              <ContextField label="Category" value={lead.category ?? "Not set"} />
+              <ContextField label="Phone" value={lead.phone ?? "Not set"} />
+              <ContextField label="Email" value={lead.email ?? "Not set"} />
+              <ContextField label="Address" value={lead.address ?? "Not set"} />
+              <ContextField label="Source" value={lead.source ?? "Not set"} />
             </div>
           </section>
 
@@ -217,20 +217,23 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </section>
 
           <section id="technical-details" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 border-b border-slate-200 pb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Technical details</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Technical metadata</h2>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <ContextField label="Customer ID" value={lead.customerId} />
-              <ContextField label="Source record ID" value={lead.sourceRecordId ?? "-"} />
-              <ContextField label="Google Place ID" value={lead.googlePlaceId ?? "-"} />
-              <ContextField label="Created at" value={formatDate(lead.createdAt)} />
-              <ContextField label="Updated at" value={formatDate(lead.updatedAt)} />
-              <ContextField label="Last imported at" value={formatDate(lead.lastImportedAt)} />
-              <ContextField label="Last reviewed at" value={formatDate(lead.lastReviewedAt)} />
-              <ContextField label="Archived at" value={formatDate(lead.archivedAt)} />
-            </div>
+            <details>
+              <summary className="cursor-pointer list-none rounded-md text-sm font-medium text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                Technical details
+              </summary>
+              <div className="mt-4 border-t border-slate-200 pt-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <ContextField label="Customer ID" value={lead.customerId} />
+                  <ContextField label="Source record ID" value={lead.sourceRecordId ?? "Not set"} />
+                  <ContextField label="Google Place ID" value={lead.googlePlaceId ?? "Not set"} />
+                  <ContextField label="Created at" value={formatDate(lead.createdAt)} />
+                  <ContextField label="Updated at" value={formatDate(lead.updatedAt)} />
+                  <ContextField label="Last imported at" value={formatDate(lead.lastImportedAt)} />
+                  <ContextField label="Last reviewed at" value={formatDate(lead.lastReviewedAt)} />
+                  <ContextField label="Archived at" value={formatDate(lead.archivedAt)} />
+                </div>
+              </div>
+            </details>
           </section>
         </div>
       </div>
@@ -267,7 +270,7 @@ function getNextRecommendedAction({
       description: "The lead already has a mini-audit foundation, so the next practical step is an outreach draft.",
       primaryLabel: "Prepare outreach",
       primaryHref: "#outreach",
-      secondaryLabel: "Review lead controls",
+      secondaryLabel: "Review next step",
       secondaryHref: "#lead-controls"
     };
   }

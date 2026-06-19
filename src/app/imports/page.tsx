@@ -23,13 +23,13 @@ function titleCase(value: string) {
 function describeImportSourceType(sourceType: string) {
   switch (sourceType) {
     case "LOCAL_JSON":
-      return "Local file";
+      return "Imported from file";
     case "HARVESTER_EXPORT":
-      return "Harvester export file";
+      return "Imported from file";
     case "MANUAL_AI_PREPARED_FILE":
-      return "AI-prepared file";
+      return "Imported from file";
     default:
-      return titleCase(sourceType);
+      return "Imported from file";
   }
 }
 
@@ -61,13 +61,12 @@ export default async function ImportsPage() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto w-full max-w-none px-4 py-6 sm:px-6 lg:px-8">
         <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Import audit</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Data imports</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
-            Import batches
+            Data import results
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Review each import source, its processing outcome, and the row-level results without losing the raw
-            operational detail.
+            Review each import result first, then expand technical details only when needed.
           </p>
         </header>
 
@@ -90,14 +89,17 @@ export default async function ImportsPage() {
                   <tr key={batch.id} className="transition hover:bg-slate-50">
                     <td className="px-4 py-3 align-top">
                       <div className="font-medium text-slate-950">{batch.sourceName ?? batch.fileName ?? "Import batch"}</div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        From {describeImportSourceType(batch.sourceType)}
-                      </div>
+                      <div className="mt-1 text-xs text-slate-500">{describeImportSourceType(batch.sourceType)}</div>
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="space-y-1">
                         <div className="font-medium text-slate-950">{getImportStatusSummary(batch.status)}</div>
-                        <div className="text-xs text-slate-500">Technical enum: {batch.status}</div>
+                        <details className="group text-xs text-slate-500">
+                          <summary className="cursor-pointer list-none font-medium text-slate-500 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                            Technical details
+                          </summary>
+                          <p className="mt-2 break-words text-slate-500">Technical enum: {batch.status}</p>
+                        </details>
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top text-slate-700">
@@ -124,10 +126,10 @@ export default async function ImportsPage() {
                     <td className="px-4 py-3 align-top">
                       <Link
                         href={`/imports/${batch.id}`}
-                        aria-label={`Open import batch details for ${batch.sourceName ?? batch.fileName ?? "this batch"}`}
-                        className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                        aria-label={`Open import results for ${batch.sourceName ?? batch.fileName ?? "this batch"}`}
+                        className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                       >
-                        Open batch
+                        Open results
                       </Link>
                     </td>
                   </tr>

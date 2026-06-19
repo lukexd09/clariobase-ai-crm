@@ -6,10 +6,16 @@ export const revalidate = 0;
 export default function HealthPage() {
   noStore();
 
+  const deploymentEnvironment = process.env.APP_ENV ?? process.env.DEPLOYMENT_ENV ?? "local-development";
   const status = {
     application: "ok",
     database: "ready",
-    environment: process.env.NODE_ENV ?? "unknown",
+    environment:
+      deploymentEnvironment === "preview"
+        ? "Preview"
+        : deploymentEnvironment === "production"
+          ? "Production"
+          : "Local development",
     timestamp: new Date().toISOString()
   };
 
@@ -20,7 +26,7 @@ export default function HealthPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">System status</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Health check</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Compact operational status for readiness checks.
+            Administrative readiness check for the deployed environment and database.
           </p>
           <dl className="mt-6 grid gap-3 text-sm text-slate-600">
             <StatusRow label="Application status" value={status.application} />
@@ -34,7 +40,7 @@ export default function HealthPage() {
           <form className="mt-6">
             <button
               type="submit"
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               Refresh status
             </button>
@@ -48,7 +54,7 @@ export default function HealthPage() {
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <dt className="text-slate-500">{label}</dt>
+      <dt className="text-slate-600">{label}</dt>
       <dd className="font-mono text-slate-900">{value}</dd>
     </div>
   );

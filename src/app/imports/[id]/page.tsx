@@ -75,7 +75,7 @@ export default async function ImportBatchDetailPage({
         </div>
 
         <header className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Import batch</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">Import results</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
             {batch.sourceName ?? batch.fileName ?? "Import batch"}
           </h1>
@@ -88,8 +88,6 @@ export default async function ImportBatchDetailPage({
             <span aria-hidden="true">|</span>
             <StatusPill value={batch.status} appearance="light" />
             <span aria-hidden="true">|</span>
-            <span>{batch.sourceName ?? batch.fileName ?? "Unnamed source"}</span>
-            <span aria-hidden="true">-&gt;</span>
             <span>{formatDate(batch.finishedAt)}</span>
           </p>
         </header>
@@ -145,8 +143,8 @@ export default async function ImportBatchDetailPage({
                         </div>
                         {row.rejectionReason ? (
                           <details className="group">
-                            <summary className="cursor-pointer list-none text-xs font-medium text-sky-700 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-                              Show raw validation note
+                            <summary className="cursor-pointer list-none text-xs font-medium text-sky-700 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                              Show technical validation note
                             </summary>
                             <p className="mt-2 max-w-2xl whitespace-pre-wrap break-words text-xs leading-5 text-slate-500">
                               {row.rejectionReason}

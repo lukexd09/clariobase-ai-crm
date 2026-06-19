@@ -55,7 +55,7 @@ export function AppShell({ children }: AppShellProps) {
                           prefetch={false}
                           aria-current={active ? "page" : undefined}
                           className={[
-                            "group flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                            "group flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                             active
                               ? "border-sky-200 bg-sky-50/80 text-slate-950 shadow-sm ring-1 ring-sky-200"
                               : "border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
@@ -64,14 +64,10 @@ export function AppShell({ children }: AppShellProps) {
                           <span
                             aria-hidden="true"
                             className={[
-                              "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[0.65rem] font-semibold leading-none transition",
-                              active
-                                ? "border-sky-500 bg-white text-sky-700 shadow-sm"
-                                : "border-slate-300 bg-slate-50 text-slate-400 group-hover:border-slate-400 group-hover:text-slate-600"
+                              "mt-0.5 h-5 w-1.5 shrink-0 rounded-full transition",
+                              active ? "bg-sky-600" : "bg-transparent group-hover:bg-slate-300"
                             ].join(" ")}
-                          >
-                            {active ? "✓" : ""}
-                          </span>
+                          />
                           <span className="min-w-0 flex-1">
                             <span className={["block leading-5", active ? "font-semibold text-slate-950" : "font-medium"].join(" ")}>
                               {item.label}
@@ -109,7 +105,7 @@ export function AppShell({ children }: AppShellProps) {
                       prefetch={false}
                       aria-current={active ? "page" : undefined}
                       className={[
-                        "group flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                        "group flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                         active
                           ? "border-sky-200 bg-sky-50/80 text-slate-950 shadow-sm ring-1 ring-sky-200"
                           : "border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
@@ -118,14 +114,10 @@ export function AppShell({ children }: AppShellProps) {
                       <span
                         aria-hidden="true"
                         className={[
-                          "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[0.65rem] font-semibold leading-none transition",
-                          active
-                            ? "border-sky-500 bg-white text-sky-700 shadow-sm"
-                            : "border-slate-300 bg-slate-50 text-slate-400 group-hover:border-slate-400 group-hover:text-slate-600"
+                          "mt-0.5 h-5 w-1.5 shrink-0 rounded-full transition",
+                          active ? "bg-sky-600" : "bg-transparent group-hover:bg-slate-300"
                         ].join(" ")}
-                      >
-                        {active ? "✓" : ""}
-                      </span>
+                      />
                       <span className="min-w-0 flex-1">
                         <span className={["block leading-5", active ? "font-semibold text-slate-950" : "font-medium"].join(" ")}>
                           {item.label}

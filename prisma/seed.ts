@@ -378,14 +378,14 @@ function demoActivitiesForLead(leadId: string, businessName: string) {
       leadId,
       type: "NOTE" as ActivityType,
       title: `${businessName} reviewed`,
-      body: "Seed note for local development.",
+      body: "Called to confirm service details and next availability window.",
       occurredAt: daysFromNow(-1, 8)
     },
     {
       leadId,
       type: "CALL" as ActivityType,
       title: `${businessName} quick call`,
-      body: "Seed call activity for timeline testing.",
+      body: "Followed up after the first quote with a request for timing and package preferences.",
       occurredAt: daysFromNow(0, 9)
     }
   ] satisfies Prisma.ActivityCreateManyInput[];

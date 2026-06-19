@@ -151,14 +151,16 @@ export default async function WorkPage() {
                           <td className="px-4 py-2.5 align-top">
                             <Link
                               href={`/leads/${lead.id}#quick-update`}
-                              className="font-semibold text-slate-900 transition hover:text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                              className="block min-w-0 truncate font-semibold text-slate-900 transition hover:text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                             >
                               {lead.businessName}
                             </Link>
-                            <div className="text-xs text-slate-500">{lead.lastImportedAt ? `Imported ${formatDate(lead.lastImportedAt)}` : "Manual or unknown source"}</div>
+                            <div className="text-xs text-slate-500">
+                              {lead.lastImportedAt ? `Last activity ${formatDate(lead.lastImportedAt)}` : "No activity yet"}
+                            </div>
                           </td>
-                          <td className="px-4 py-2.5 align-top text-slate-600">{lead.city ?? "-"}</td>
-                          <td className="px-4 py-2.5 align-top text-slate-600">{lead.category ?? "-"}</td>
+                          <td className="px-4 py-2.5 align-top text-slate-600">{lead.city ?? "Not set"}</td>
+                          <td className="px-4 py-2.5 align-top text-slate-600">{lead.category ?? "Not set"}</td>
                           <td className="px-4 py-2.5 align-top">
                             <StatusPill value={lead.leadStatus} appearance="light" />
                           </td>
@@ -182,10 +184,10 @@ export default async function WorkPage() {
                           <td className="px-4 py-2.5 align-top">
                             <Link
                               href={`/leads/${lead.id}#quick-update`}
-                              aria-label={`Quick update for ${lead.businessName}`}
-                              className="inline-flex min-h-9 whitespace-nowrap items-center justify-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                              aria-label={`Update ${lead.businessName}`}
+                              className="inline-flex min-h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                             >
-                              Quick update for {lead.businessName}
+                              Update
                             </Link>
                           </td>
                         </tr>

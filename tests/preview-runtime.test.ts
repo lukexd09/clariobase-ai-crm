@@ -45,6 +45,7 @@ const dockerAvailable = hasDocker();
 test("preview runtime assets pin the approved preview identity", () => {
   const composePreviewFile = read("compose.preview.yaml");
   const composePreviewEnvExample = read(PREVIEW_ENV_EXAMPLE_FILE);
+  const healthPage = read("src/app/health/page.tsx");
   const previewRunbook = read("docs/operations/preview-operations.md");
   const packageJson = JSON.parse(read("package.json")) as {
     scripts: Record<string, string>;
@@ -68,6 +69,8 @@ test("preview runtime assets pin the approved preview identity", () => {
   assert.match(previewRunbook, /clariobase-crm-preview/);
   assert.match(previewRunbook, /do not reuse production `.env\.compose\.local`/i);
   assert.match(previewRunbook, /docker system prune/);
+  assert.match(healthPage, /APP_ENV|DEPLOYMENT_ENV/);
+  assert.doesNotMatch(healthPage, /process\.env\.NODE_ENV/);
   assert.match(deployWrapper, /scripts\/deploy-preview\.ts/);
   assert.match(stopWrapper, /scripts\/stop-preview\.ts/);
 });
