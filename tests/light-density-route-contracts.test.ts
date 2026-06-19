@@ -81,15 +81,15 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
   const routes = [
     {
       path: "/",
-      heading: "Lead operations in one focused workspace.",
-      activeNav: "Home",
-      includes: ["Open leads", "Open workbench", "Health check"]
+      heading: "Daily CRM workspace",
+      activeNav: "Dashboard",
+      includes: ["Open leads", "Open workbench", "Health"]
     },
     {
       path: "/health",
       heading: "Health check",
       activeNav: "Health check",
-      includes: ["System status", "Timestamp"]
+      includes: ["System status", "Last checked"]
     }
   ] as const;
 

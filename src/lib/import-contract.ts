@@ -1,4 +1,4 @@
-import { LeadPriority, LeadStatus, PackageFit } from "@/generated/prisma/client";
+import { LeadPriority, LeadStatus, PackageFit } from "@/generated/prisma/enums";
 import { z } from "zod";
 
 export const importRowSchema = z.object({

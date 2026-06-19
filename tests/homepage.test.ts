@@ -24,6 +24,98 @@ test("homepage exposes a compact operational snapshot", () => {
   assert.match(homepageSource, /Latest import/);
 });
 
+test("homepage snapshot falls back cleanly when data sources are unavailable", async () => {
+  process.env.DATABASE_URL ??=
+    "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public";
+  const { getHomepageSnapshotWithSources } = await import("../src/lib/homepage");
+
+  const normal = await getHomepageSnapshotWithSources({
+    async getLeads() {
+      return [
+        {
+          id: "1",
+          businessName: "Lead A",
+          city: null,
+          category: null,
+          leadStatus: "TO_AUDIT",
+          priority: "HIGH",
+          packageFit: "FIT",
+          scoreTotal: 0,
+          scoreLabel: null,
+          nextActionAt: null,
+          updatedAt: new Date("2026-06-18T10:00:00.000Z"),
+          lastImportedAt: null
+        },
+        {
+          id: "2",
+          businessName: "Lead B",
+          city: null,
+          category: null,
+          leadStatus: "ACTIVE",
+          priority: "MEDIUM",
+          packageFit: "FIT",
+          scoreTotal: 0,
+          scoreLabel: null,
+          nextActionAt: new Date("2026-06-19T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-18T11:00:00.000Z"),
+          lastImportedAt: null
+        },
+        {
+          id: "3",
+          businessName: "Lead C",
+          city: null,
+          category: null,
+          leadStatus: "ACTIVE",
+          priority: "LOW",
+          packageFit: "FIT",
+          scoreTotal: 0,
+          scoreLabel: null,
+          nextActionAt: new Date("2026-06-20T10:00:00.000Z"),
+          updatedAt: new Date("2026-06-18T12:00:00.000Z"),
+          lastImportedAt: null
+        }
+      ] as never;
+    },
+    async getImportBatches() {
+      return [{ status: "RUNNING", sourceName: "Import batch" }] as never;
+    },
+    async getDuplicateCandidates() {
+      return [{ status: "OPEN" }, { status: "RESOLVED" }] as never;
+    }
+  });
+
+  assert.equal(normal.length, 5);
+  assert.deepEqual(normal[0], {
+    label: "Overdue work",
+    value: "0",
+    description: "Leads needing attention now."
+  });
+  assert.deepEqual(normal[4], {
+    label: "Latest import",
+    value: "RUNNING",
+    description: "Import batch"
+  });
+
+  const fallback = await getHomepageSnapshotWithSources({
+    async getLeads() {
+      throw new Error("database unavailable");
+    },
+    async getImportBatches() {
+      throw new Error("database unavailable");
+    },
+    async getDuplicateCandidates() {
+      throw new Error("database unavailable");
+    }
+  });
+
+  assert.equal(fallback.length, 1);
+  assert.deepEqual(fallback[0], {
+    label: "Operational snapshot unavailable",
+    value: "CRM data temporarily unavailable",
+    description: "CRM data is temporarily unavailable. Open leads, workbench, or health for the live workspace."
+  });
+});
+
 test("visual direction doc exists and forbids cyber/admin styling", () => {
   const doc = fs.readFileSync(
     path.join(repoRoot, "docs", "design", "light-crm-visual-direction.md"),

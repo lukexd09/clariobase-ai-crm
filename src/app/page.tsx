@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const snapshot = await getHomepageSnapshot();
+  const snapshotUnavailable = snapshot.length === 1 && snapshot[0].label === "Operational snapshot unavailable";
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -32,7 +33,9 @@ export default async function HomePage() {
               {snapshot.map((item) => (
                 <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-950">{item.value}</p>
+                  <p className={snapshotUnavailable ? "mt-1 text-sm font-medium text-slate-700" : "mt-1 text-lg font-semibold text-slate-950"}>
+                    {item.value}
+                  </p>
                   <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
                 </div>
               ))}
@@ -56,6 +59,11 @@ export default async function HomePage() {
             </Link>
           ))}
         </section>
+        {snapshotUnavailable ? (
+          <p className="mt-4 max-w-3xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+            CRM data is temporarily unavailable. Open leads, workbench, or Health to keep working while the snapshot refreshes.
+          </p>
+        ) : null}
       </div>
     </main>
   );
