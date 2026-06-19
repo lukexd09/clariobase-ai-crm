@@ -13,6 +13,24 @@ function formatDate(value: Date | null) {
     : "-";
 }
 
+function formatActivityContext(lead: { leadStatus: string; nextActionAt: Date | null; lastImportedAt: Date | null }) {
+  if (lead.nextActionAt) {
+    const now = new Date();
+    const diffDays = Math.ceil((lead.nextActionAt.getTime() - now.getTime()) / 86400000);
+    if (diffDays < 0) return `Follow-up overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? "" : "s"}`;
+    if (diffDays === 0) return "Follow-up due today";
+    return `Follow-up due in ${diffDays} day${diffDays === 1 ? "" : "s"}`;
+  }
+
+  if (lead.lastImportedAt) {
+    const daysAgo = Math.max(1, Math.round((Date.now() - lead.lastImportedAt.getTime()) / 86400000));
+    return `Last activity ${daysAgo === 1 ? "yesterday" : `${daysAgo} days ago`}`;
+  }
+
+  if (lead.leadStatus === "CONTACTED" || lead.leadStatus === "REPLIED") return "Waiting for reply";
+  return "No activity yet";
+}
+
 const workIndicatorToneMap = {
   overdue: {
     card: "border-rose-200 bg-rose-50",
@@ -156,7 +174,7 @@ export default async function WorkPage() {
                               {lead.businessName}
                             </Link>
                             <div className="text-xs text-slate-500">
-                              {lead.lastImportedAt ? `Last activity ${formatDate(lead.lastImportedAt)}` : "No activity yet"}
+                              {formatActivityContext(lead)}
                             </div>
                           </td>
                           <td className="px-4 py-2.5 align-top text-slate-600">{lead.city ?? "Not set"}</td>
@@ -172,12 +190,10 @@ export default async function WorkPage() {
                           </td>
                           <td className="px-4 py-2.5 align-top tabular-nums text-slate-700">
                             <div className="space-y-1">
-                              <p className="font-medium tabular-nums text-slate-900">{lead.scoreTotal}</p>
-                              {lead.scoreLabel ? (
-                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                  {lead.scoreLabel}
-                                </p>
-                              ) : null}
+                              <p className="text-sm font-medium text-slate-900">Lead potential</p>
+                              <p className="text-xs leading-5 text-slate-600">
+                                {lead.scoreLabel ?? "Needs review"} based on current business fit.
+                              </p>
                             </div>
                           </td>
                           <td className="px-4 py-2.5 align-top tabular-nums text-slate-600">{formatDate(lead.nextActionAt)}</td>

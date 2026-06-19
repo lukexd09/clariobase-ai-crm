@@ -109,9 +109,8 @@ export default async function ImportBatchDetailPage({
                 <th scope="col" className="px-4 py-3">Row</th>
                 <th scope="col" className="px-4 py-3">Status</th>
                 <th scope="col" className="px-4 py-3">Business</th>
-                <th scope="col" className="px-4 py-3">Customer</th>
-                <th scope="col" className="px-4 py-3">Source</th>
-                <th scope="col" className="px-4 py-3">Result</th>
+                <th scope="col" className="px-4 py-3">What happened</th>
+                <th scope="col" className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
@@ -122,10 +121,23 @@ export default async function ImportBatchDetailPage({
                     <StatusPill value={row.status} appearance="light" />
                   </td>
                   <td className="px-4 py-4 text-slate-950">{row.businessName ?? "-"}</td>
-                  <td className="px-4 py-4 text-slate-700">{row.customerId ?? "-"}</td>
                   <td className="px-4 py-4 text-slate-700">
-                    <div>{row.source ?? "-"}</div>
-                    <div className="text-xs text-slate-500">{row.sourceRecordId ?? "-"}</div>
+                    <div className="max-w-2xl whitespace-pre-wrap break-words leading-6 text-slate-800">
+                      {describeRowOutcome(row)}
+                    </div>
+                    {row.rejectionReason ? (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer list-none text-xs font-medium text-slate-500 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                          Technical validation details
+                        </summary>
+                        <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-500">
+                          <p className="break-words">Customer ID: {row.customerId ?? "-"}</p>
+                          <p className="break-words">Source: {row.source ?? "-"}</p>
+                          <p className="break-words">Source record ID: {row.sourceRecordId ?? "-"}</p>
+                          <p className="mt-2 whitespace-pre-wrap break-words">{row.rejectionReason}</p>
+                        </div>
+                      </details>
+                    ) : null}
                   </td>
                   <td className="px-4 py-4">
                     {row.leadId ? (
@@ -137,21 +149,7 @@ export default async function ImportBatchDetailPage({
                         Open lead
                       </Link>
                     ) : (
-                      <div className="space-y-2 text-slate-700">
-                        <div className="max-w-2xl whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">
-                          {row.rejectionReason ?? "No lead link"}
-                        </div>
-                        {row.rejectionReason ? (
-                          <details className="group">
-                            <summary className="cursor-pointer list-none text-xs font-medium text-sky-700 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-                              Show technical validation note
-                            </summary>
-                            <p className="mt-2 max-w-2xl whitespace-pre-wrap break-words text-xs leading-5 text-slate-500">
-                              {row.rejectionReason}
-                            </p>
-                          </details>
-                        ) : null}
-                      </div>
+                      <span className="text-slate-500">No lead link</span>
                     )}
                   </td>
                 </tr>
@@ -179,4 +177,18 @@ function Metric({ label, value }: { label: string; value: number }) {
       <p className="mt-3 text-2xl font-semibold text-slate-950">{value}</p>
     </div>
   );
+}
+
+function describeRowOutcome(row: {
+  leadId: string | null;
+  rejectionReason: string | null;
+  businessName: string | null;
+}) {
+  if (row.leadId) return "Imported successfully and linked to a lead.";
+  if (row.rejectionReason) {
+    if (/too small/i.test(row.rejectionReason)) return "Business name is missing.";
+    if (/invalid/i.test(row.rejectionReason)) return "Import row needs review before it can be used.";
+    return "Import row could not be used and needs review.";
+  }
+  return row.businessName ? "Row imported without a linked lead." : "Row imported without business details.";
 }

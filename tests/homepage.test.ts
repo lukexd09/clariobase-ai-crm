@@ -93,18 +93,18 @@ test("homepage snapshot falls back cleanly when data sources are unavailable", a
   });
   assert.deepEqual(normal[2], {
     label: "Today's priorities",
-    value: "2 leads",
-    description: "Leads needing a decision or next step today."
+    value: "Lead A · Lead B",
+    description: "Focus on 2 leads needing a decision or next step today."
   });
   assert.deepEqual(normal[3], {
     label: "Pipeline snapshot",
-    value: "2 active leads",
-    description: "Active pipeline stages across contacted, replied, offer sent, and won."
+    value: "Intake 0 leads | Audit 1 lead | Outreach 1 lead | Conversation 1 lead | Offer 0 leads | Closed 0 leads",
+    description: "Stage breakdown across the active pipeline."
   });
   assert.deepEqual(normal[4], {
     label: "Open duplicate reviews",
     value: "1",
-    description: "Candidate pairs still open."
+    description: "Open candidate pairs remain secondary to sales work."
   });
 
   const fallback = await getHomepageSnapshotWithSources({

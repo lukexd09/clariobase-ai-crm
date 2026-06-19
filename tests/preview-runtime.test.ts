@@ -63,6 +63,7 @@ test("preview runtime assets pin the approved preview identity", () => {
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_DB=clariobase_crm_preview$/m);
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_USER=clariobase_crm_preview_user$/m);
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_PASSWORD=$/m);
+  assert.match(composePreviewFile, /APP_ENV: preview/);
   assert.match(previewRunbook, /document_id: DOC-E016-PREVIEW-OPERATIONS/);
   assert.match(previewRunbook, /scripts\/deploy-preview\.ps1/);
   assert.match(previewRunbook, /scripts\/stop-preview\.ps1/);
@@ -70,6 +71,7 @@ test("preview runtime assets pin the approved preview identity", () => {
   assert.match(previewRunbook, /do not reuse production `.env\.compose\.local`/i);
   assert.match(previewRunbook, /docker system prune/);
   assert.match(healthPage, /APP_ENV|DEPLOYMENT_ENV/);
+  assert.match(healthPage, /deploymentEnvironment === "preview"/);
   assert.doesNotMatch(healthPage, /process\.env\.NODE_ENV/);
   assert.match(deployWrapper, /scripts\/deploy-preview\.ts/);
   assert.match(stopWrapper, /scripts\/stop-preview\.ts/);

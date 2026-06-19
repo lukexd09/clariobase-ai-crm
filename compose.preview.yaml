@@ -10,6 +10,8 @@ services:
       io.clariobase.preview-slot: manual
     build:
       context: ${CRM_BUILD_CONTEXT:?Set_CRM_BUILD_CONTEXT}
+    environment:
+      APP_ENV: preview
 
 networks:
   default:

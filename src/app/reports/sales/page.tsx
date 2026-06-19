@@ -15,6 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function SalesReportPage() {
   const report = await getSalesReport();
   const statusEntries = getSalesStatusEntries();
+  const visibleStatusEntries = statusEntries.filter((entry) => report.leadStatusCounts[entry.status] > 0);
+  const hiddenStatusEntries = statusEntries.filter((entry) => report.leadStatusCounts[entry.status] === 0);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -59,7 +61,7 @@ export default async function SalesReportPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
-                    {statusEntries.map((entry) => (
+                    {visibleStatusEntries.map((entry) => (
                       <tr key={entry.status} className="transition hover:bg-slate-50">
                         <td className="px-4 py-3 align-top">
                           <StatusPill value={entry.status} appearance="light" />
@@ -76,6 +78,33 @@ export default async function SalesReportPage() {
                 </table>
               </div>
             </div>
+            {hiddenStatusEntries.length > 0 ? (
+              <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <summary className="cursor-pointer list-none text-sm font-medium text-slate-700 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+                  Show all statuses
+                </summary>
+                <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                      <caption className="sr-only">Hidden zero-count statuses</caption>
+                      <tbody className="divide-y divide-slate-200">
+                        {hiddenStatusEntries.map((entry) => (
+                          <tr key={entry.status}>
+                            <td className="px-4 py-3">
+                              <StatusPill value={entry.status} appearance="light" />
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">{entry.description}</td>
+                            <td className="px-4 py-3 font-medium tabular-nums text-slate-900">
+                              {report.leadStatusCounts[entry.status]}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </details>
+            ) : null}
           </ReportSection>
 
           <div className="grid gap-4 xl:grid-cols-2">

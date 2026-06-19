@@ -23,7 +23,7 @@ export default function HealthPage() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-3xl items-center px-6 py-16">
         <section className="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">System status</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-600">System status</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Health check</h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Administrative readiness check for the deployed environment and database.
@@ -53,7 +53,7 @@ export default function HealthPage() {
 
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+    <div className="flex items-center justify-between gap-6 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
       <dt className="text-slate-600">{label}</dt>
       <dd className="font-mono text-slate-900">{value}</dd>
     </div>

@@ -64,8 +64,8 @@ export function ActivityForm({ leadId }: { leadId: string }) {
         <Field
           label="Title"
           className="md:col-span-2"
-          control={<input name="title" defaultValue="" className={fieldInputClassName} placeholder="Quick call summary" />}
-          hint="Use a short summary that is still easy to scan later."
+          control={<input name="title" defaultValue="" className={fieldInputClassName} placeholder="Follow-up note" />}
+          hint="Use a short summary that fits the selected activity type."
         />
         <Field
           label="Occurred at"

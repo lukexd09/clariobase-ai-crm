@@ -36,7 +36,7 @@ export const NAVIGATION_SECTIONS = [
       },
       {
         href: "/reports/sales",
-        label: "Reports",
+        label: "Sales overview",
         description: "Sales summary.",
         priority: "primary"
       }
@@ -48,13 +48,13 @@ export const NAVIGATION_SECTIONS = [
     items: [
       {
         href: "/imports",
-        label: "Imports",
+        label: "Data imports",
         description: "Import batches.",
         priority: "primary"
       },
       {
         href: "/duplicates",
-        label: "Duplicates",
+        label: "Possible duplicates",
         description: "Duplicate review.",
         priority: "primary"
       }
@@ -66,8 +66,8 @@ export const NAVIGATION_SECTIONS = [
     items: [
       {
         href: "/health",
-        label: "Health",
-        description: "Status probe.",
+        label: "System status",
+        description: "Status check.",
         priority: "secondary"
       }
     ] as const

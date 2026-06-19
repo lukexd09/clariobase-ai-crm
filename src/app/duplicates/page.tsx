@@ -14,10 +14,10 @@ function formatDate(value: Date | null | undefined) {
 }
 
 function describeConfidence(score: number) {
-  if (score >= 90) return "Very strong match";
-  if (score >= 80) return "Strong match";
-  if (score >= 70) return "Review closely";
-  return "Low confidence";
+  if (score >= 90) return "Very likely duplicate";
+  if (score >= 80) return "Likely duplicate";
+  if (score >= 70) return "Review carefully";
+  return "Lower confidence";
 }
 
 function summarizeSignals(reasons: unknown) {
@@ -29,9 +29,9 @@ function summarizeSignals(reasons: unknown) {
     const entry = reason as { signal?: string; label?: string };
     if (entry.signal === "phone") labels.add("Phone differs");
     if (entry.signal === "websiteDomain") labels.add("Website matches");
-    if (entry.signal === "sourceRecord") labels.add("Customer ID differs");
-    if (entry.signal === "instagramHandle" || entry.signal === "facebookHandle") labels.add("Source differs");
-    if (entry.signal === "nameCity") labels.add("Email/website may match");
+    if (entry.signal === "sourceRecord") labels.add("Reference differs");
+    if (entry.signal === "instagramHandle" || entry.signal === "facebookHandle") labels.add("Social profile differs");
+    if (entry.signal === "nameCity") labels.add("Business name and city align");
     if (entry.label?.toLowerCase().includes("email")) labels.add("Email matches");
   }
 
@@ -83,11 +83,11 @@ export default async function DuplicatesPage() {
                   </td>
                   <td className="px-4 py-4 align-top">
                     <div className="space-y-1">
-                      <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-700">
+                      <div className="inline-flex rounded-full border border-slate-300 bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-700">
                         {describeConfidence(candidate.score)}
                       </div>
                       <div className="text-xs text-slate-500">
-                        {Array.isArray(candidate.reasons) ? candidate.reasons.length : 0} signals reviewed
+                        {Array.isArray(candidate.reasons) ? candidate.reasons.length : 0} matching details
                       </div>
                     </div>
                   </td>
@@ -105,7 +105,7 @@ export default async function DuplicatesPage() {
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="font-medium text-slate-950">{entry.label ?? "Match detail"}</p>
+                                  <p className="font-medium text-slate-950">{entry.label ?? "Matching detail"}</p>
                                   <p className="mt-1 break-words text-xs leading-5 text-slate-600">
                                     {entry.value ?? "No business detail recorded"}
                                   </p>

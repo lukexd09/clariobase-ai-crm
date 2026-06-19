@@ -17,7 +17,7 @@ export function AppShell({ children }: AppShellProps) {
         <Link
           href="/"
           prefetch={false}
-          className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-sky-200 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+          className="inline-flex items-center gap-3 rounded-2xl border border-slate-300 bg-slate-50 px-3 py-2.5 transition hover:border-sky-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sm font-semibold text-sky-700">
             CB
@@ -29,7 +29,7 @@ export function AppShell({ children }: AppShellProps) {
         </Link>
 
         <details className="group mt-4 rounded-2xl border border-slate-200 bg-slate-50 lg:hidden">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-inset">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-inset">
             <span>Navigation</span>
             <span aria-hidden="true" className="text-slate-400 transition group-open:rotate-180">
               <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
@@ -55,10 +55,10 @@ export function AppShell({ children }: AppShellProps) {
                           prefetch={false}
                           aria-current={active ? "page" : undefined}
                           className={[
-                            "group flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                            "group flex items-start gap-3 rounded-2xl border border-slate-200 px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                             active
                               ? "border-sky-200 bg-sky-50/80 text-slate-950 shadow-sm ring-1 ring-sky-200"
-                              : "border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+                              : "bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
                           ].join(" ")}
                         >
                           <span
@@ -104,12 +104,12 @@ export function AppShell({ children }: AppShellProps) {
                       href={item.href}
                       prefetch={false}
                       aria-current={active ? "page" : undefined}
-                      className={[
-                        "group flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                        active
-                          ? "border-sky-200 bg-sky-50/80 text-slate-950 shadow-sm ring-1 ring-sky-200"
-                          : "border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                      ].join(" ")}
+                        className={[
+                          "group flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                          active
+                              ? "border-sky-200 bg-sky-50/80 text-slate-950 shadow-sm ring-1 ring-sky-200"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+                        ].join(" ")}
                     >
                       <span
                         aria-hidden="true"

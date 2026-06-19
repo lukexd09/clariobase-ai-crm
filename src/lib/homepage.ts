@@ -17,6 +17,10 @@ const fallbackSnapshot = [
   }
 ] as const satisfies readonly HomepageSnapshotItem[];
 
+function formatLeadCount(count: number) {
+  return `${count} lead${count === 1 ? "" : "s"}`;
+}
+
 export async function getHomepageSnapshot() {
   return getHomepageSnapshotWithSources({
     getLeads,
@@ -48,25 +52,49 @@ export async function getHomepageSnapshotWithSources({
     const pipelineActive = leads.filter((lead) =>
       ["CONTACTED", "REPLIED", "OFFER_SENT", "WON"].includes(lead.leadStatus)
     );
+    const stageCounts = {
+      intake: leads.filter((lead) => ["NEW", "QUALIFIED"].includes(lead.leadStatus)).length,
+      audit: leads.filter((lead) => ["TO_AUDIT", "AUDITED"].includes(lead.leadStatus)).length,
+      outreach: leads.filter((lead) => lead.leadStatus === "CONTACTED").length,
+      conversation: leads.filter((lead) => ["REPLIED", "DISCOVERY_SCHEDULED"].includes(lead.leadStatus)).length,
+      offer: leads.filter((lead) => lead.leadStatus === "OFFER_SENT").length,
+      closed: leads.filter((lead) => ["WON", "LOST", "ARCHIVED"].includes(lead.leadStatus)).length
+    };
+    const pipelineStages = [
+      `Intake ${formatLeadCount(stageCounts.intake)}`,
+      `Audit ${formatLeadCount(stageCounts.audit)}`,
+      `Outreach ${formatLeadCount(stageCounts.outreach)}`,
+      `Conversation ${formatLeadCount(stageCounts.conversation)}`,
+      `Offer ${formatLeadCount(stageCounts.offer)}`,
+      `Closed ${formatLeadCount(stageCounts.closed)}`
+    ];
 
     return [
       { label: "Overdue work", value: String(buckets.overdue), description: "Leads needing attention now." },
       { label: "Due today", value: String(buckets.dueToday), description: "Leads due for follow-up today." },
       {
         label: "Today's priorities",
-        value: `${todaysPriorities.length} leads`,
+        value:
+          todaysPriorities.length > 0
+            ? todaysPriorities
+                .slice(0, 3)
+                .map((lead) => lead.businessName)
+                .join(" · ")
+            : "No urgent priorities",
         description:
-          todaysPriorities.length > 0 ? "Leads needing a decision or next step today." : "No urgent decisions queued today."
+          todaysPriorities.length > 0
+            ? `Focus on ${todaysPriorities.length} ${todaysPriorities.length === 1 ? "lead" : "leads"} needing a decision or next step today.`
+            : "No urgent decisions queued today."
       },
       {
         label: "Pipeline snapshot",
-        value: `${pipelineActive.length} active leads`,
-        description: "Active pipeline stages across contacted, replied, offer sent, and won."
+        value: pipelineStages.join(" | "),
+        description: pipelineActive.length > 0 ? "Stage breakdown across the active pipeline." : "No active pipeline work yet."
       },
       {
         label: "Open duplicate reviews",
         value: String(duplicates.filter((candidate) => candidate.status === "OPEN").length),
-        description: "Candidate pairs still open."
+        description: "Open candidate pairs remain secondary to sales work."
       }
     ] as const;
   } catch (error) {

@@ -17,10 +17,10 @@ function formatDate(value: Date | null | undefined) {
 }
 
 function describeConfidence(score: number) {
-  if (score >= 90) return "Very strong match";
-  if (score >= 80) return "Strong match";
-  if (score >= 70) return "Review closely";
-  return "Low confidence";
+  if (score >= 90) return "Very likely duplicate";
+  if (score >= 80) return "Likely duplicate";
+  if (score >= 70) return "Review carefully";
+  return "Lower confidence";
 }
 
 function renderReasons(reasons: unknown) {
@@ -162,16 +162,16 @@ export default async function DuplicateCandidateDetailPage({
 
         <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-950">Similarities and differences</h2>
-            <p className="text-sm text-slate-500">Plain-language match evidence only; no merge action is triggered here.</p>
+            <h2 className="text-lg font-semibold text-slate-950">Differences to review</h2>
+            <p className="text-sm text-slate-500">Review what differs first, then scan the matching details.</p>
           </div>
           <div className="mt-4">{renderReasons(candidate.reasons)}</div>
         </section>
 
         <section className="mb-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-950">Compare records</h2>
-            <p className="text-sm text-slate-500">Matches are highlighted gently; differences stay neutral and easy to scan.</p>
+            <h2 className="text-lg font-semibold text-slate-950">Matching details</h2>
+            <p className="text-sm text-slate-500">Matches are secondary to the differences that need judgment.</p>
           </div>
           <div className="mt-4 overflow-x-auto">
             <div className="min-w-[900px] grid gap-3">
@@ -243,7 +243,7 @@ export default async function DuplicateCandidateDetailPage({
           </div>
           <details className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <summary className="cursor-pointer list-none text-sm font-medium text-slate-700 outline-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-              Show technical matching details
+              Technical matching details
             </summary>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>

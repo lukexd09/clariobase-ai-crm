@@ -18,11 +18,11 @@ test("lead detail light proof preserves dense operator workflow structure", () =
   assert.match(page, /"#activity"/);
   assert.match(page, /id="lead-controls"/);
   assert.match(page, /id="activity"/);
-  assert.match(page, /Lead controls/);
-  assert.match(page, /Activity log/);
+  assert.match(page, /Update lead/);
+  assert.match(page, /Activity/);
   assert.match(page, /Lead workspace/);
   assert.match(page, /nav aria-label="Lead sections"/);
-  assert.match(page, /Jump to technical details/);
+  assert.match(page, /Technical details/);
   assert.doesNotMatch(page, /LeadDetailSidebar/);
   assert.doesNotMatch(page, /aria-label="Lead workspace routes"/);
   assert.doesNotMatch(page, /Operator sidebar|Workspace routes/);

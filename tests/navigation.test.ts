@@ -17,6 +17,11 @@ test("navigation config keeps business routes separate from system routes", () =
     ["/", "/work", "/leads", "/reports/sales", "/imports", "/duplicates"]
   );
   assert.deepEqual(systemRoutes.map((item) => item.href), ["/health"]);
+  assert.deepEqual(
+    mainRoutes.map((item) => item.label),
+    ["Dashboard", "Daily work", "Leads", "Sales overview", "Data imports", "Possible duplicates"]
+  );
+  assert.deepEqual(systemRoutes.map((item) => item.label), ["System status"]);
   assert.ok(mainRoutes.every((item) => item.priority === "primary"));
   assert.ok(systemRoutes.every((item) => item.priority === "secondary"));
 });

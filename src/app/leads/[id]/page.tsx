@@ -74,7 +74,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             href="#technical-details"
             className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
           >
-            Jump to technical details
+            Technical details
           </Link>
         </div>
 
@@ -129,8 +129,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
           <section id="lead-controls" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4 border-b border-slate-200 pb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Operational controls</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Lead controls</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Update lead</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">Update lead</h2>
               <p className="mt-1 text-sm leading-6 text-slate-600">
                 Keep status, priority, package fit, and next action aligned with the latest work.
               </p>
@@ -163,7 +163,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <section id="activity" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4 border-b border-slate-200 pb-4">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">Activity</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Activity log and activity form</h2>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">Activity</h2>
               <p className="mt-1 text-sm leading-6 text-slate-600">
                 Log new work here while keeping the timeline visible below the form.
               </p>
@@ -223,9 +223,6 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </summary>
               <div className="mt-4 border-t border-slate-200 pt-4">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <ContextField label="Customer ID" value={lead.customerId} />
-                  <ContextField label="Source record ID" value={lead.sourceRecordId ?? "Not set"} />
-                  <ContextField label="Google Place ID" value={lead.googlePlaceId ?? "Not set"} />
                   <ContextField label="Created at" value={formatDate(lead.createdAt)} />
                   <ContextField label="Updated at" value={formatDate(lead.updatedAt)} />
                   <ContextField label="Last imported at" value={formatDate(lead.lastImportedAt)} />

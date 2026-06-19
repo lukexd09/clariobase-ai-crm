@@ -29,7 +29,7 @@ export default async function HomePage() {
                 </Link>
               </div>
             </div>
-            <section className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2 xl:grid-cols-2 lg:w-[28rem]">
+            <section className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2 xl:grid-cols-2 lg:w-[34rem]">
               {snapshot.map((item) => (
                 <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
@@ -51,7 +51,7 @@ export default async function HomePage() {
             { href: "/health", title: "Health", label: "System", description: "Runtime and database readiness." }
           ].map((card) => (
             <Link key={card.href} href={card.href} prefetch={false} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-sky-300 hover:shadow-[0_12px_30px_rgba(14,165,233,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
-              <p className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+              <p className="inline-flex rounded-full border border-slate-300 bg-slate-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
                 {card.label}
               </p>
               <h2 className="mt-2 text-lg font-semibold text-slate-950">{card.title}</h2>

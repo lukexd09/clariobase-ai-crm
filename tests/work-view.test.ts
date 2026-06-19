@@ -72,7 +72,8 @@ test("work screen copy stays business-first", () => {
 
   assert.match(workPage, /aria-label=\{`Update \$\{lead\.businessName\}`\}/);
   assert.match(workPage, /className="block min-w-0 truncate font-semibold/);
-  assert.match(workPage, /No activity yet/);
+  assert.match(workPage, /Lead potential/);
+  assert.match(workPage, /No activity yet|Waiting for reply|Follow-up due/);
   assert.match(workPage, /Not set/);
   assert.doesNotMatch(workPage, /Quick update for/);
   assert.doesNotMatch(workPage, /Imported \$\{formatDate\(lead\.lastImportedAt\)\}/);

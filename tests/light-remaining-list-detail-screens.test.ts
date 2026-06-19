@@ -34,22 +34,22 @@ test("remaining legacy list and detail screens use the light shell baseline", ()
   assert.match(importDetailPage, /StatusPill value=\{row\.status\} appearance="light"/);
   assert.match(importDetailPage, /focus-visible:ring-2/);
   assert.match(importDetailPage, /Open lead/);
-  assert.match(importDetailPage, /Show technical validation note/);
+  assert.match(importDetailPage, /Technical validation details/);
   assert.match(importDetailPage, /aria-label=\{`Open lead detail for row/);
 
   assert.match(duplicatesPage, /caption className="sr-only">Duplicate candidates awaiting review\./);
   assert.match(duplicatesPage, /StatusPill value=\{candidate\.status\} appearance="light"/);
   assert.match(duplicatesPage, /focus-visible:ring-2/);
   assert.match(duplicatesPage, /Compare/);
-  assert.match(duplicatesPage, /Match strength/);
-  assert.match(duplicatesPage, /What matches/);
+  assert.match(duplicatesPage, /matching details/);
+  assert.match(duplicatesPage, /Compare/);
 
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.DISMISSED\)/);
   assert.match(duplicateDetailPage, /DuplicateCandidateStatus\.RESOLVED/);
   assert.match(duplicateDetailPage, /StatusPill value=\{candidate\.status\} appearance="light"/);
   assert.match(duplicateDetailPage, /focus-visible:ring-2/);
   assert.match(duplicateDetailPage, /ExternalLink/);
-  assert.match(duplicateDetailPage, /Compare records/);
+  assert.match(duplicateDetailPage, /Differences to review/);
   assert.match(duplicateDetailPage, /Keep both records separate/);
   assert.match(duplicateDetailPage, /Flag for closer review/);
   assert.match(duplicateDetailPage, /Confirm duplicate and close review/);
