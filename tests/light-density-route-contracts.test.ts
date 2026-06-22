@@ -164,8 +164,10 @@ test("ux prototype routes bypass the production app shell", { timeout: 180000 },
     assert.doesNotMatch(nestedPrototypeHtml, /Main navigation/);
     assert.match(prototypeRootHtml, /Review tools/);
     assert.match(nestedPrototypeHtml, /Review tools/);
-    assert.match(prototypeRootHtml, /UX prototype — no data is saved/);
-    assert.match(nestedPrototypeHtml, /UX prototype — no data is saved/);
+    assert.match(prototypeRootHtml, /UX prototype/);
+    assert.match(prototypeRootHtml, /No data is saved/);
+    assert.match(nestedPrototypeHtml, /UX prototype/);
+    assert.match(nestedPrototypeHtml, /No data is saved/);
     assert.match(productionHtml, /Main navigation/);
     assert.match(productionHtml, /Open leads/);
     assert.doesNotMatch(productionHtml, /UX prototype — no data is saved/);
