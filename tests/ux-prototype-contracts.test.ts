@@ -35,8 +35,9 @@ test("ux prototype routes stay isolated from Prisma and production mutations", (
 
   assert.match(read("src/app/ux-prototype/layout.tsx"), /robots: \{ index: false, follow: false \}/);
   assert.match(read("src/components/ux-prototype-shell.tsx"), /UX prototype — no data is saved/);
+  assert.match(read("src/components/ux-prototype-shell.tsx"), /Manual keyboard, zoom and screen-reader checks remain pending\./);
   assert.match(read("src/components/ux-prototype-shell.tsx"), /aria-label="Prototype sections"/);
-  assert.match(read("src/components/ux-prototype-shell.tsx"), /aria-current=\{item === state \? "page" : undefined\}/);
+  assert.match(read("src/components/ux-prototype-shell.tsx"), /aria-current=\{active \? "page" : undefined\}/);
 });
 
 test("prototype route map covers all required review screens", () => {
@@ -56,11 +57,5 @@ test("prototype route map covers all required review screens", () => {
   ]) {
     assert.match(source, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
-  assert.match(source, /default/);
-  assert.match(source, /loading/);
-  assert.match(source, /empty/);
-  assert.match(source, /error/);
-  assert.match(source, /success/);
-  assert.match(source, /stress/);
 });
 

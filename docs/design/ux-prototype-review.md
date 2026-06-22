@@ -14,6 +14,22 @@
 - `/ux-prototype/duplicate-candidates/[id]`
 - `/ux-prototype/system-status`
 
+## Route and state matrix
+
+| Route | Default | Loading | Empty | Error / unavailable | Success | Stress |
+| --- | --- | --- | --- | --- | --- | --- |
+| `/ux-prototype` | Hub links | - | - | - | - | - |
+| `/ux-prototype/dashboard` | KPI row, priorities, pipeline | Yes | Yes | Yes | Yes | - |
+| `/ux-prototype/daily-work` | Queue sections and actions | Yes | Yes | Yes | - | - |
+| `/ux-prototype/leads` | Search, filters, sort, pagination | Yes | Yes | Yes | Yes | Yes |
+| `/ux-prototype/leads/[id]` | Contact, recommended action, timeline | Yes | - | Yes | Yes | Yes |
+| `/ux-prototype/sales-overview` | Date range and funnel snapshot | Yes | Yes | Yes | - | Yes |
+| `/ux-prototype/import-batches` | Batch list and status examples | Yes | Yes | Yes | - | - |
+| `/ux-prototype/import-batches/[id]` | Row outcomes and validation | Yes | Yes | Yes | - | - |
+| `/ux-prototype/duplicate-candidates` | Confidence and compare actions | Yes | Yes | Yes | Yes | Yes |
+| `/ux-prototype/duplicate-candidates/[id]` | Compare detail and review controls | Yes | Yes | Yes | Yes | Yes |
+| `/ux-prototype/system-status` | Availability and technical details | Yes | Yes | Yes | - | - |
+
 ## State parameters
 
 - `state=default`
@@ -39,6 +55,7 @@
 - 320 CSS px layouts do not create page-level horizontal scrolling.
 - Tables scroll only when the content genuinely requires it.
 - No prototype screen depends on database access.
+- The state selector changes the visible copy on each route.
 
 ## Manual WCAG gates still pending
 
@@ -50,4 +67,3 @@
 ## Approval note
 
 Prototype approval is required before any production implementation resumes.
-

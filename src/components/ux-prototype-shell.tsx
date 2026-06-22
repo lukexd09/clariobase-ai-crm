@@ -32,24 +32,13 @@ export function UxPrototypeShell({ children }: { children: React.ReactNode }) {
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">UX approval prototype</p>
               <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">ClarioBase CRM review sandbox</h1>
-              <p className="max-w-3xl text-sm leading-6 text-slate-600">
-                Review information architecture, responsive behavior, states and wording in an isolated static prototype.
-              </p>
+              <p className="max-w-3xl text-sm leading-6 text-slate-600">Review information architecture, responsive behavior, states and wording in an isolated static prototype.</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Review state</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {PROTOTYPE_STATES.map((item) => (
-                  <Link
-                    key={item}
-                    href={`${pathname}?state=${item}`}
-                    prefetch={false}
-                    aria-current={item === state ? "page" : undefined}
-                    className={[
-                      "rounded-full border px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                      item === state ? "border-sky-200 bg-sky-50 text-sky-800" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                    ].join(" ")}
-                  >
+                  <Link key={item} href={`${pathname}?state=${item}`} prefetch={false} aria-current={item === state ? "page" : undefined} className={["rounded-full border px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white", item === state ? "border-sky-200 bg-sky-50 text-sky-800" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"].join(" ")}>
                     {stateLabels[item]}
                   </Link>
                 ))}
@@ -65,16 +54,7 @@ export function UxPrototypeShell({ children }: { children: React.ReactNode }) {
                 const active = pathname === route.href;
                 const description = "description" in route ? route.description : undefined;
                 return (
-                  <Link
-                    key={route.href}
-                    href={route.href}
-                    prefetch={false}
-                    aria-current={active ? "page" : undefined}
-                    className={[
-                      "flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                      active ? "border-sky-200 bg-sky-50 text-slate-950" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                    ].join(" ")}
-                  >
+                  <Link key={route.href} href={route.href} prefetch={false} aria-current={active ? "page" : undefined} className={["flex items-start gap-3 rounded-2xl border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white", active ? "border-sky-200 bg-sky-50 text-slate-950" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"].join(" ")}>
                     <span aria-hidden="true" className={["mt-0.5 h-2.5 w-2.5 rounded-full", active ? "bg-sky-600" : "bg-slate-300"].join(" ")} />
                     <span className="min-w-0">
                       <span className="block font-medium">{route.label}</span>
@@ -91,7 +71,7 @@ export function UxPrototypeShell({ children }: { children: React.ReactNode }) {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Route state</p>
                 <p className="text-sm font-medium text-slate-700">{stateLabels[state]}</p>
               </div>
-              <p className="text-xs text-slate-500">Keyboard, 320 px and 200% zoom ready</p>
+              <p className="text-xs text-slate-500">Manual keyboard, zoom and screen-reader checks remain pending.</p>
             </div>
             {children}
           </section>
