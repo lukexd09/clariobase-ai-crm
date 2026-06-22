@@ -113,6 +113,66 @@ export const prototypeLeads: readonly LeadRecord[] = [
   }
 ] as const;
 
+export const prototypeLeadStress = [
+  {
+    id: "lead-ultra-long-name",
+    company: "North Star Wellness and Recovery Center for Local Service Teams and Neighborhood Outreach",
+    city: "Tychy",
+    category: "Wellness",
+    owner: "Kasia",
+    priority: "Medium",
+    nextStep: "Review outreach with the owner and confirm form changes",
+    nextStepDue: "Fri, 10:00",
+    reason: "Long labels help verify the 320 px wrap and table scroll behavior.",
+    score: 70,
+    contact: "Ewa Zielińska",
+    phone: "+48 533 190 842",
+    email: "ewa@northstarwellness.pl",
+    website: "northstarwellness.pl",
+    instagram: "@northstarwellness",
+    lastContact: "Mon, 11:40",
+    possibleDuplicate: "North Star Wellness Center"
+  },
+  {
+    id: "lead-produce-market",
+    company: "Polaris Produce Market and Local Home Delivery Network",
+    city: "Rybnik",
+    category: "Retail",
+    owner: "Marta",
+    priority: "High",
+    nextStep: "Compare booking pages and update the CTA recommendation",
+    nextStepDue: "Today, 16:00",
+    reason: "Stress review for denser rows, longer evidence and contextual actions.",
+    score: 88,
+    contact: "Marta Jaworska",
+    phone: "+48 501 220 993",
+    email: "marta@polarismarket.pl",
+    website: "polarismarket.pl",
+    instagram: "@polaris.market",
+    lastContact: "Today, 09:40",
+    possibleDuplicate: "Polaris Market"
+  },
+  {
+    id: "lead-river-clinic",
+    company: "River Clinic Family Dental and Aesthetic Care Center",
+    city: "Gliwice",
+    category: "Health services",
+    owner: "Marta",
+    priority: "Medium",
+    nextStep: "Check the second booking funnel and message timing",
+    nextStepDue: "Tomorrow, 09:30",
+    reason: "A longer record set helps exercise search, sort and pagination presentation.",
+    score: 79,
+    contact: "Dr. Piotr Sowa",
+    phone: "+48 572 901 211",
+    email: "piotr@riverclinic.pl",
+    website: "riverclinic.pl",
+    instagram: "@rivercliniccare",
+    lastContact: "Yesterday, 17:15",
+    possibleDuplicate: "River Dental Care"
+  }
+] as const;
+
 export const prototypeImports = [
   {
     id: "batch-2026-06-21",
@@ -180,10 +240,10 @@ export const prototypeDuplicates = [
 ] as const;
 
 export const prototypeWorkQueue = [
-  { title: "Follow up on Aurora Bikes", bucket: "Overdue", why: "Proposal needs a cleaner rollout plan before 15:30.", due: "Today", owner: "Marta" },
-  { title: "Confirm Sienna Dental reception flow", bucket: "Today", why: "They asked for a quick review of the booking path.", due: "Today, 11:00", owner: "Marta" },
-  { title: "Reconnect with Amber Hair Lounge", bucket: "Upcoming", why: "They have room for better lead capture next week.", due: "Fri", owner: "Kasia" },
-  { title: "No next action set", bucket: "No next action", why: "Three leads need a decision before they re-enter the queue.", due: "Review required", owner: "Shared" }
+  { id: "lead-aurora-bikes", title: "Follow up on Aurora Bikes", bucket: "Overdue", why: "Proposal needs a cleaner rollout plan before 15:30.", due: "Today", owner: "Marta" },
+  { id: "lead-sienna-clinic", title: "Confirm Sienna Dental reception flow", bucket: "Today", why: "They asked for a quick review of the booking path.", due: "Today, 11:00", owner: "Marta" },
+  { id: "lead-amber-hair", title: "Reconnect with Amber Hair Lounge", bucket: "Upcoming", why: "They have room for better lead capture next week.", due: "Fri", owner: "Kasia" },
+  { id: "lead-long-name", title: "No next action set", bucket: "No next action", why: "Three leads need a decision before they re-enter the queue.", due: "Review required", owner: "Shared" }
 ] as const;
 
 export const prototypeDashboard = {
@@ -199,6 +259,13 @@ export const prototypeDashboard = {
     { stage: "Contacted", value: 5 },
     { stage: "Qualified", value: 3 },
     { stage: "Proposal sent", value: 2 }
+  ],
+  stressPipeline: [
+    { stage: "New / imported", value: 12 },
+    { stage: "Contacted / waiting", value: 9 },
+    { stage: "Qualified / booked", value: 7 },
+    { stage: "Proposal sent / needs review", value: 4 },
+    { stage: "Won / closed", value: 3 }
   ]
 } as const;
 
@@ -206,6 +273,35 @@ export const prototypeLeadTimeline = [
   { type: "Call", date: "Today, 08:50", author: "Marta", result: "Owner wants a simpler rollout", nextStep: "Send revised plan" },
   { type: "Message", date: "Yesterday, 13:10", author: "Marta", result: "Intro message opened", nextStep: "Follow up with CTA" },
   { type: "Site review", date: "Mon, 16:20", author: "Operator", result: "Landing page has a weak booking path", nextStep: "Share recommended action" }
+] as const;
+
+export const prototypeLeadTimelineStress = [
+  ...prototypeLeadTimeline,
+  { type: "Email", date: "Sun, 19:10", author: "Kasia", result: "Request for pricing details and timing", nextStep: "Check proposal draft" },
+  { type: "Note", date: "Sat, 08:05", author: "Marta", result: "Internal review captured the long-name edge case", nextStep: "Keep wording business-first" }
+] as const;
+
+export const prototypeDuplicateStress = [
+  {
+    id: "dup-stress-1",
+    left: "North Star Wellness and Recovery Center for Local Service Teams",
+    right: "North Star Wellness Center",
+    difference: "Street, contact and service category all line up, but the naming is inconsistent.",
+    decision: "Needs more review",
+    evidence: "Same owner surname, same street number, same reception phone and same booking path.",
+    confidence: "High",
+    auditTrail: "Imported from the June 21 review batch; this row is intentionally verbose for stress testing."
+  },
+  {
+    id: "dup-stress-2",
+    left: "Polaris Produce Market and Local Home Delivery Network",
+    right: "Polaris Market",
+    difference: "The longer record includes delivery language and a second contact line.",
+    decision: "Same business",
+    evidence: "Shared address, shared website root and the same delivery manager.",
+    confidence: "Medium",
+    auditTrail: "The comparison view should keep differences readable even when evidence gets longer."
+  }
 ] as const;
 
 export function getPrototypeState(searchParams?: Record<string, string | string[] | undefined>) {

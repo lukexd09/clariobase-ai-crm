@@ -7,6 +7,57 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   if (state === "empty") return <StateCard title="No priorities yet" body="The queue is clear and the pipeline is quiet." tone="empty" />;
   if (state === "error") return <StateCard title="Dashboard unavailable" body="The snapshot could not be refreshed right now." tone="error" />;
   if (state === "success") return <StateCard title="Review snapshot updated" body="Today’s priorities were refreshed after the latest review." tone="success" />;
+  if (state === "stress") {
+    return (
+      <div className="space-y-5">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            ["Overdue", "3"],
+            ["Due today", "5"],
+            ["Upcoming", "8"],
+            ["No next action", "6"]
+          ].map(([label, value]) => (
+            <Metric key={label} label={label} value={Number(value)} />
+          ))}
+        </section>
+        <section className="rounded-2xl border border-slate-200 p-4">
+          <h2 className="text-lg font-semibold text-slate-950">Today’s priorities</h2>
+          <div className="mt-3 space-y-3">
+            {prototypeDashboard.priorities.map((lead, index) => (
+              <article key={lead.id} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">{lead.priority} priority</p>
+                    <h3 className="mt-1 text-base font-semibold text-slate-950">{lead.company} and related stress-case outreach surface</h3>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {lead.reason} This entry is intentionally verbose to verify long copy wrapping, action labels and secondary evidence handling.
+                    </p>
+                  </div>
+                  <Link href={`/ux-prototype/leads/${lead.id}`} className="inline-flex min-h-10 items-center rounded-full border border-sky-200 bg-sky-50 px-3 text-sm font-semibold text-sky-800" aria-label={`Open ${lead.company} stress priority ${index + 1}`}>
+                    Open
+                  </Link>
+                </div>
+                <p className="mt-3 text-sm font-medium text-slate-700">Deadline: {lead.nextStepDue} · follow-up note is longer in stress state</p>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="rounded-2xl border border-slate-200 p-4">
+          <h2 className="text-lg font-semibold text-slate-950">Pipeline snapshot</h2>
+          <div className="mt-3 space-y-2">
+            {prototypeDashboard.stressPipeline.map((stage) => (
+              <div key={stage.stage} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-slate-700">{stage.stage}</span>
+                  <span className="text-sm font-semibold text-slate-950">{stage.value}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

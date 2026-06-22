@@ -38,6 +38,15 @@ test("ux prototype routes stay isolated from Prisma and production mutations", (
   assert.match(read("src/components/ux-prototype-shell.tsx"), /Manual keyboard, zoom and screen-reader checks remain pending\./);
   assert.match(read("src/components/ux-prototype-shell.tsx"), /aria-label="Prototype sections"/);
   assert.match(read("src/components/ux-prototype-shell.tsx"), /aria-current=\{active \? "page" : undefined\}/);
+  assert.doesNotMatch(fs.readFileSync(path.join(repoRoot, "src/app/ux-prototype/leads/[id]/page.tsx"), "utf8"), /href="#"|href="\#"/);
+  assert.match(read("src/app/ux-prototype/system-status/page.tsx"), /Refresh/);
+  assert.match(read("src/lib/ux-prototype.ts"), /lead-aurora-bikes/);
+  assert.match(read("src/lib/ux-prototype.ts"), /lead-sienna-clinic/);
+  assert.match(read("src/lib/ux-prototype.ts"), /lead-amber-hair/);
+  assert.match(read("src/lib/ux-prototype.ts"), /lead-long-name/);
+  assert.match(read("src/app/ux-prototype/leads/page.tsx"), /<input/);
+  assert.match(read("src/app/ux-prototype/leads/page.tsx"), /<select/);
+  assert.match(read("src/app/ux-prototype/leads/page.tsx"), /button type="button"/);
 });
 
 test("prototype route map covers all required review screens", () => {
@@ -58,4 +67,3 @@ test("prototype route map covers all required review screens", () => {
     assert.match(source, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
 });
-

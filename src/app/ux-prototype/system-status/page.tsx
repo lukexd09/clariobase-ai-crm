@@ -1,13 +1,19 @@
+import Link from "next/link";
 import { getReviewState } from "@/lib/ux-prototype";
 
 export default async function SystemStatusPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const state = getReviewState(await searchParams);
   if (state === "loading") return <Card title="Loading system status" body="Refreshing application, database and environment status." />;
   if (state === "empty") return <Card title="No status data" body="The prototype status panel is empty in this review slice." tone="empty" />;
-  if (state === "error") return <Card title="System status unavailable" body="The status probe could not return fresh data." tone="error" />;
+  if (state === "error") return <Card title="System status unavailable" body="The check could not return fresh data." tone="error" />;
 
   return (
     <div className="grid gap-3 md:grid-cols-2">
+      <div className="md:col-span-2 flex flex-wrap gap-2">
+        <Link href="/ux-prototype/system-status?state=success" className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600" aria-label="Refresh system status">
+          Refresh
+        </Link>
+      </div>
       <Metric label="Application" value="Available" />
       <Metric label="Database" value="Available" />
       <Metric label="Environment" value="Preview" />
@@ -15,7 +21,7 @@ export default async function SystemStatusPage({ searchParams }: { searchParams?
       <details className="md:col-span-2 rounded-2xl border border-slate-200 p-4">
         <summary className="cursor-pointer text-sm font-semibold text-slate-700">Technical details</summary>
         <div className="mt-3 text-sm text-slate-600">
-          Health probe: prototype-only.
+          Check result: prototype-only.
           <br />
           Persistence: none.
           <br />

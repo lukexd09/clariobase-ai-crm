@@ -1,13 +1,25 @@
-import { getReviewState, prototypeDuplicates } from "@/lib/ux-prototype";
+import Link from "next/link";
+import { getReviewState, prototypeDuplicateStress, prototypeDuplicates } from "@/lib/ux-prototype";
 
-export default async function DuplicateComparisonPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function DuplicateComparisonPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
   const state = getReviewState(await searchParams);
-  const item = prototypeDuplicates.find((entry) => entry.id === id) ?? prototypeDuplicates[0];
+  const resolvedParams = (await searchParams) ?? {};
+  const confirm = resolvedParams.confirm === "1";
+  const successRequested = resolvedParams.state === "success";
+  const itemList = state === "stress" ? prototypeDuplicateStress : prototypeDuplicates;
+  const item = itemList.find((entry) => entry.id === id) ?? itemList[0];
+
   if (state === "loading") return <Card title="Loading comparison" body="Preparing existing and imported records." />;
   if (state === "error") return <Card title="Comparison unavailable" body="The candidate could not be opened." tone="error" />;
   if (state === "empty") return <Card title="No comparison available" body="There are no rows to compare in this slice." tone="empty" />;
-  if (state === "success") return <Card title="Success feedback" body="A review action was acknowledged in the prototype copy." tone="success" />;
+  if (successRequested) return <Card title="Success feedback" body="A review action was acknowledged in the prototype copy." tone="success" />;
 
   return (
     <div className="space-y-4">
@@ -21,18 +33,30 @@ export default async function DuplicateComparisonPage({ params, searchParams }: 
         <p className="mt-2 text-sm text-slate-600">{item.evidence}</p>
       </section>
       <section className="flex flex-wrap gap-2">
-        <button className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">Keep separate</button>
-        <button className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-800">Mark as same business</button>
-        <button className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900">Needs more review</button>
+        <Link href={`/ux-prototype/duplicate-candidates/${item.id}`} className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">
+          Keep separate
+        </Link>
+        <Link href={`/ux-prototype/duplicate-candidates/${item.id}?confirm=1`} className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-800">
+          Mark as same business
+        </Link>
+        <Link href={`/ux-prototype/duplicate-candidates/${item.id}?state=empty`} className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900">
+          Needs more review
+        </Link>
       </section>
-      <section className="rounded-2xl border border-slate-200 p-4">
-        <h3 className="text-base font-semibold text-slate-950">Confirmation dialog presentation</h3>
-        <p className="mt-2 text-sm text-slate-600">Are you sure you want to mark these records as the same business? No data will be saved.</p>
-        <div className="mt-3 flex gap-2">
-          <button className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">Cancel</button>
-          <button className="rounded-full bg-sky-700 px-3 py-1.5 text-sm font-semibold text-white">Confirm</button>
-        </div>
-      </section>
+      {confirm ? (
+        <section className="rounded-2xl border border-slate-200 p-4">
+          <h3 className="text-base font-semibold text-slate-950">Confirmation dialog presentation</h3>
+          <p className="mt-2 text-sm text-slate-600">Are you sure you want to mark these records as the same business? No data will be saved.</p>
+          <div className="mt-3 flex gap-2">
+            <Link href={`/ux-prototype/duplicate-candidates/${item.id}`} className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">
+              Cancel
+            </Link>
+            <Link href={`/ux-prototype/duplicate-candidates/${item.id}?state=success`} className="rounded-full bg-sky-700 px-3 py-1.5 text-sm font-semibold text-white">
+              Confirm
+            </Link>
+          </div>
+        </section>
+      ) : null}
       <details className="rounded-2xl border border-slate-200 p-4">
         <summary className="cursor-pointer text-sm font-semibold text-slate-700">Technical matching details</summary>
         <div className="mt-3 text-sm text-slate-600">
@@ -41,9 +65,11 @@ export default async function DuplicateComparisonPage({ params, searchParams }: 
           Decision note: {item.decision}
         </div>
       </details>
-      <div role="status" aria-live="polite" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-        Success feedback example: selection recorded in the review session only.
-      </div>
+      {successRequested ? (
+        <div role="status" aria-live="polite" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          Success feedback example: selection recorded in the review session only.
+        </div>
+      ) : null}
     </div>
   );
 }

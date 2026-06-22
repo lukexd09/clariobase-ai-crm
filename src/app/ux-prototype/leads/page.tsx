@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getReviewState, prototypeLeads } from "@/lib/ux-prototype";
+import { getReviewState, prototypeLeadStress, prototypeLeads } from "@/lib/ux-prototype";
 
 export default async function LeadsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const state = getReviewState(await searchParams);
@@ -7,14 +7,40 @@ export default async function LeadsPage({ searchParams }: { searchParams?: Promi
   if (state === "empty") return <StateCard title="No leads yet" body="This view is empty because no records match the current slice." tone="empty" />;
   if (state === "error") return <StateCard title="Leads list unavailable" body="The list could not be loaded." tone="error" />;
   if (state === "success") return <StateCard title="Search matched 4 leads" body="Filters and pagination are ready for review." tone="success" />;
+  const rows = state === "stress" ? prototypeLeadStress : prototypeLeads;
 
   return (
     <div className="space-y-4">
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Control label="Search" value="Aurora" />
-        <Control label="City" value="Katowice" />
-        <Control label="Sort" value="Priority" />
-        <Control label="Page" value="1 of 3" />
+        <label className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Search</span>
+          <input className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-600" defaultValue={state === "stress" ? "North Star Wellness" : "Aurora"} />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">City</span>
+          <select className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-600" defaultValue="Katowice">
+            <option>Katowice</option>
+            <option>Gliwice</option>
+            <option>Rybnik</option>
+            <option>Tychy</option>
+          </select>
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Sort</span>
+          <select className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-600" defaultValue="Priority">
+            <option>Priority</option>
+            <option>Next step</option>
+            <option>City</option>
+          </select>
+        </label>
+        <div className="space-y-1">
+          <span className="block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Page</span>
+          <div className="flex gap-2">
+            <button type="button" className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">1</button>
+            <button type="button" className="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-800">2</button>
+            <button type="button" className="rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">3</button>
+          </div>
+        </div>
       </section>
       <div className="overflow-x-auto rounded-2xl border border-slate-200">
         <table className="min-w-[760px] w-full text-left text-sm">
@@ -28,7 +54,7 @@ export default async function LeadsPage({ searchParams }: { searchParams?: Promi
             </tr>
           </thead>
           <tbody>
-            {prototypeLeads.map((lead) => (
+            {rows.map((lead) => (
               <tr key={lead.id} className="border-t border-slate-200">
                 <Td>
                   <Link href={`/ux-prototype/leads/${lead.id}`} className="font-semibold text-slate-950 underline-offset-4 hover:underline">
@@ -51,14 +77,6 @@ export default async function LeadsPage({ searchParams }: { searchParams?: Promi
   );
 }
 
-function Control({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 p-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="mt-1 text-sm font-medium text-slate-700">{value}</p>
-    </div>
-  );
-}
 function Th({ children }: { children: React.ReactNode }) { return <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{children}</th>; }
 function Td({ children }: { children: React.ReactNode }) { return <td className="px-4 py-4 align-top text-slate-700">{children}</td>; }
 function StateCard({ title, body, tone = "neutral" }: { title: string; body: string; tone?: "neutral" | "error" | "empty" | "success" }) {

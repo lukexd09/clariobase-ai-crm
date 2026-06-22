@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getReviewState, prototypeLeadTimeline, prototypeLeads } from "@/lib/ux-prototype";
+import { getReviewState, prototypeLeadTimeline, prototypeLeadTimelineStress, prototypeLeads } from "@/lib/ux-prototype";
 
 export default async function LeadDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
   const { id } = await params;
@@ -8,6 +8,7 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
   if (state === "loading") return <StateCard title="Loading lead detail" body="Preparing contact details, activity history and draft workflows." />;
   if (state === "error") return <StateCard title="Lead detail unavailable" body="The record could not be loaded." tone="error" />;
   if (state === "success") return <StateCard title="Lead detail saved in review copy" body="No production persistence is involved in the prototype." tone="success" />;
+  const timeline = state === "stress" ? prototypeLeadTimelineStress : prototypeLeadTimeline;
 
   return (
     <div className="space-y-4">
@@ -25,7 +26,7 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Recommended action</p>
           <p className="mt-1 text-sm text-slate-700">{lead.reason}</p>
           <p className="mt-2 text-sm font-medium text-slate-700">Deadline: {lead.nextStepDue}</p>
-          <Link href="#" aria-label={`Open recommended action for ${lead.company}`} className="mt-3 inline-flex min-h-10 items-center rounded-full bg-sky-700 px-3 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600">
+          <Link href="#lead-controls" aria-label={`Open recommended action for ${lead.company}`} className="mt-3 inline-flex min-h-10 items-center rounded-full bg-sky-700 px-3 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600">
             Open action
           </Link>
         </div>
@@ -34,7 +35,7 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
         <div className="rounded-2xl border border-slate-200 p-4">
           <h3 className="text-lg font-semibold text-slate-950">Activity timeline</h3>
           <div className="mt-3 space-y-3">
-            {prototypeLeadTimeline.map((item) => (
+            {timeline.map((item) => (
               <article key={item.type + item.date} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-medium text-slate-900">{item.type}</p>
@@ -48,9 +49,9 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
           </div>
         </div>
         <div className="space-y-3">
-          <WorkflowBox title="Mini-audit" state="Ready" details="Needs business review before approval." />
-          <WorkflowBox title="Outreach" state="Draft ready" details="Short message with a clear operator next step." />
-          <WorkflowBox title="Offer" state="Saved copy" details="Price, scope and deadline are visible for review." />
+          <WorkflowBox title="Mini-audit" state={state === "stress" ? "Review copy with dense findings" : "Ready"} details={state === "stress" ? "Longer findings, denser wording and wider notes are visible for review." : "Needs business review before approval."} />
+          <WorkflowBox title="Outreach" state={state === "stress" ? "Draft ready with extended context" : "Draft ready"} details={state === "stress" ? "Message, timing and follow-up steps are intentionally denser." : "Short message with a clear operator next step."} />
+          <WorkflowBox title="Offer" state={state === "stress" ? "Saved copy with extra pricing context" : "Saved copy"} details={state === "stress" ? "Price, scope and deadline remain visible in a denser review copy." : "Price, scope and deadline are visible for review."} />
           <details className="rounded-2xl border border-slate-200 p-4">
             <summary className="cursor-pointer text-sm font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600">Technical metadata</summary>
             <div className="mt-3 text-sm text-slate-600">
@@ -77,7 +78,7 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 function WorkflowBox({ title, state, details }: { title: string; state: string; details: string }) {
   return (
-    <section className="rounded-2xl border border-slate-200 p-4">
+    <section id={title === "Mini-audit" ? "lead-controls" : undefined} className="rounded-2xl border border-slate-200 p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{title}</p>
       <p className="mt-1 text-sm font-medium text-slate-700">{state}</p>
       <p className="mt-1 text-sm text-slate-600">{details}</p>

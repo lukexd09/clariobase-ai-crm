@@ -79,7 +79,7 @@ test("ux prototype renders state-specific review copy without a database", { tim
     },
     {
       path: "/ux-prototype/leads?state=stress",
-      includes: ["North Star Wellness and Recovery Center for Local Service Teams", "table scrolling stays local"]
+      includes: ["North Star Wellness and Recovery Center for Local Service Teams and Neighborhood Outreach", "Polaris Produce Market and Local Home Delivery Network"]
     },
     {
       path: "/ux-prototype/leads/lead-aurora-bikes?state=default",
@@ -103,15 +103,23 @@ test("ux prototype renders state-specific review copy without a database", { tim
     },
     {
       path: "/ux-prototype/duplicate-candidates/dup-aurora-bikes?state=default",
-      includes: ["Existing record", "Imported record", "Differences to review", "Keep separate", "Success feedback example"]
+      includes: ["Existing record", "Imported record", "Differences to review", "Keep separate", "Mark as same business"]
+    },
+    {
+      path: "/ux-prototype/duplicate-candidates/dup-aurora-bikes?confirm=1",
+      includes: ["Confirmation dialog presentation", "Confirm", "Cancel"]
+    },
+    {
+      path: "/ux-prototype/duplicate-candidates/dup-aurora-bikes?state=success",
+      includes: ["Success feedback", "A review action was acknowledged in the prototype copy."]
     },
     {
       path: "/ux-prototype/system-status?state=error",
-      includes: ["System status unavailable", "The status probe could not return fresh data."]
+      includes: ["System status unavailable", "The check could not return fresh data."]
     },
     {
       path: "/ux-prototype/system-status?state=default",
-      includes: ["Application", "Available", "Environment", "Preview", "Technical details"]
+      includes: ["Application", "Available", "Environment", "Preview", "Technical details", "Refresh"]
     }
   ] as const;
 
@@ -126,6 +134,9 @@ test("ux prototype renders state-specific review copy without a database", { tim
         assert.match(html, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
       }
     }
+
+    const defaultDuplicate = await (await waitForPage(`http://127.0.0.1:${port}/ux-prototype/duplicate-candidates/dup-aurora-bikes`)).text();
+    assert.doesNotMatch(defaultDuplicate, /Success feedback/);
   } finally {
     terminateProcessTree(child.pid ?? 0);
   }
