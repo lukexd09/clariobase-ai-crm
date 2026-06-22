@@ -19,6 +19,7 @@ test("navigation config keeps business routes separate from system routes", () =
   assert.deepEqual(systemRoutes.map((item) => item.href), ["/health"]);
   assert.ok(mainRoutes.every((item) => item.priority === "primary"));
   assert.ok(systemRoutes.every((item) => item.priority === "secondary"));
+  assert.ok(!NAVIGATION_SECTIONS.flatMap((section) => section.items).some((item) => item.href.startsWith("/ux-prototype")));
 });
 
 test("navigation activity helper handles nested routes", () => {
