@@ -11,6 +11,10 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname() ?? "/";
 
+  if (pathname === "/ux-prototype" || pathname.startsWith("/ux-prototype/")) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 lg:flex">
       <aside className="border-b border-slate-200 bg-white/95 px-3 py-3 shadow-sm backdrop-blur lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-60 lg:flex-col lg:border-b-0 lg:border-r lg:px-3 lg:py-3">

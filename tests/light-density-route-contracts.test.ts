@@ -121,3 +121,56 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
 
   assert.doesNotMatch(output, /Failed to compile|Type error/i, output);
 });
+
+test("ux prototype routes bypass the production app shell", { timeout: 180000 }, async () => {
+  buildProductionApp();
+
+  const port = await reserveFreePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const child = spawn(process.execPath, [nextCli, "start", "--hostname", "127.0.0.1", "--port", String(port)], {
+    cwd: repoRoot,
+    stdio: ["ignore", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      DATABASE_URL:
+        process.env.DATABASE_URL ?? "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"
+    }
+  });
+  const childPid = child.pid ?? 0;
+  assert.ok(childPid > 0, "Next.js server PID should be available");
+
+  let output = "";
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => {
+    output += chunk;
+  });
+  child.stderr.on("data", (chunk) => {
+    output += chunk;
+  });
+
+  try {
+    const prototypeRoot = await waitForHttp(`${baseUrl}/ux-prototype`);
+    const nestedPrototype = await waitForHttp(`${baseUrl}/ux-prototype/leads?state=default`);
+    const productionRoute = await waitForHttp(`${baseUrl}/`);
+
+    const [prototypeRootHtml, nestedPrototypeHtml, productionHtml] = await Promise.all([
+      prototypeRoot.text(),
+      nestedPrototype.text(),
+      productionRoute.text()
+    ]);
+
+    assert.doesNotMatch(prototypeRootHtml, /Main navigation/);
+    assert.doesNotMatch(nestedPrototypeHtml, /Main navigation/);
+    assert.match(prototypeRootHtml, /UX prototype — no data is saved/);
+    assert.match(nestedPrototypeHtml, /UX prototype — no data is saved/);
+    assert.match(productionHtml, /Main navigation/);
+    assert.match(productionHtml, /Open leads/);
+    assert.doesNotMatch(productionHtml, /UX prototype — no data is saved/);
+  } finally {
+    terminateProcessTree(childPid);
+    child.removeAllListeners();
+  }
+
+  assert.doesNotMatch(output, /Failed to compile|Type error/i, output);
+});
