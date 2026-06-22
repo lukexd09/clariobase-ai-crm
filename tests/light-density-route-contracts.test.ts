@@ -152,6 +152,7 @@ test("ux prototype routes bypass the production app shell", { timeout: 180000 },
   try {
     const prototypeRoot = await waitForHttp(`${baseUrl}/ux-prototype`);
     const nestedPrototype = await waitForHttp(`${baseUrl}/ux-prototype/leads?state=default`);
+    const leadDetail = await waitForHttp(`${baseUrl}/ux-prototype/leads/lead-aurora-bikes`);
     const productionRoute = await waitForHttp(`${baseUrl}/`);
 
     const [prototypeRootHtml, nestedPrototypeHtml, productionHtml] = await Promise.all([
@@ -159,11 +160,14 @@ test("ux prototype routes bypass the production app shell", { timeout: 180000 },
       nestedPrototype.text(),
       productionRoute.text()
     ]);
+    const leadDetailHtml = await leadDetail.text();
 
     assert.doesNotMatch(prototypeRootHtml, /Main navigation/);
     assert.doesNotMatch(nestedPrototypeHtml, /Main navigation/);
     assert.match(prototypeRootHtml, /Review tools/);
     assert.match(nestedPrototypeHtml, /Review tools/);
+    assert.match(prototypeRootHtml, /Menu ·[\s\S]*Hub/);
+    assert.match(nestedPrototypeHtml, /Menu ·[\s\S]*Leads/);
     assert.match(prototypeRootHtml, /UX prototype/);
     assert.match(prototypeRootHtml, /No data is saved/);
     assert.match(nestedPrototypeHtml, /UX prototype/);
@@ -172,6 +176,9 @@ test("ux prototype routes bypass the production app shell", { timeout: 180000 },
     assert.match(productionHtml, /Open leads/);
     assert.doesNotMatch(productionHtml, /UX prototype — no data is saved/);
     assert.match(nestedPrototypeHtml, /Leads/);
+    assert.match(leadDetailHtml, /Lead detail breadcrumb/);
+    assert.match(leadDetailHtml, /Leads/);
+    assert.match(leadDetailHtml, /Aurora Bikes Studio/);
   } finally {
     terminateProcessTree(childPid);
     child.removeAllListeners();

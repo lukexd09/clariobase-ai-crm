@@ -12,6 +12,13 @@ export default async function LeadDetailPage({ params, searchParams }: { params:
 
   return (
     <div className="space-y-4">
+      <nav aria-label="Lead detail breadcrumb" className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+        <Link href="/ux-prototype/leads" prefetch={false} className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+          Leads
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span>Aurora Bikes Studio</span>
+      </nav>
       <section className="rounded-2xl border border-slate-200 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Lead detail</p>
         <h2 className="mt-1 text-2xl font-semibold text-slate-950">{lead.company}</h2>

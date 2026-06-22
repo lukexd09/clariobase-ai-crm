@@ -10,12 +10,14 @@ test("navigation config keeps business routes separate from system routes", () =
   const mainRoutes = NAVIGATION_SECTIONS.filter((section) => section.key !== "system").flatMap(
     (section) => section.items
   );
+  const dataRoutes = NAVIGATION_SECTIONS.find((section) => section.key === "data")?.items ?? [];
   const systemRoutes = NAVIGATION_SECTIONS.find((section) => section.key === "system")?.items ?? [];
 
   assert.deepEqual(
     mainRoutes.map((item) => item.href),
     ["/", "/work", "/leads", "/reports/sales", "/imports", "/duplicates"]
   );
+  assert.deepEqual(dataRoutes.map((item) => item.label), ["Imports", "Possible duplicates"]);
   assert.deepEqual(systemRoutes.map((item) => item.href), ["/health"]);
   assert.ok(mainRoutes.every((item) => item.priority === "primary"));
   assert.ok(systemRoutes.every((item) => item.priority === "secondary"));

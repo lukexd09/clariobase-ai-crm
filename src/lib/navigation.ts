@@ -49,13 +49,11 @@ export const NAVIGATION_SECTIONS = [
       {
         href: "/imports",
         label: "Imports",
-        description: "Review completed import batches.",
         priority: "primary"
       },
       {
         href: "/duplicates",
-        label: "Duplicates",
-        description: "Review likely duplicate candidates.",
+        label: "Possible duplicates",
         priority: "primary"
       }
     ] as const
@@ -77,4 +75,16 @@ export const NAVIGATION_SECTIONS = [
 export function isNavigationItemActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function getNavigationItemForPathname(pathname: string) {
+  for (const section of NAVIGATION_SECTIONS) {
+    for (const item of section.items) {
+      if (isNavigationItemActive(item.href, pathname)) {
+        return item;
+      }
+    }
+  }
+
+  return undefined;
 }

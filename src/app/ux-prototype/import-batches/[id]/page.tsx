@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getReviewState, prototypeImports } from "@/lib/ux-prototype";
 
 export default async function ImportBatchDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
@@ -10,6 +11,13 @@ export default async function ImportBatchDetailPage({ params, searchParams }: { 
 
   return (
     <div className="space-y-4">
+      <nav aria-label="Import batch detail breadcrumb" className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+        <Link href="/ux-prototype/import-batches" prefetch={false} className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+          Imports
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span>Batch details</span>
+      </nav>
       <section className="rounded-2xl border border-slate-200 p-4">
         <h2 className="text-lg font-semibold text-slate-950">{batch.label}</h2>
         <p className="mt-1 text-sm text-slate-600">{batch.summary}</p>

@@ -23,6 +23,13 @@ export default async function DuplicateComparisonPage({
 
   return (
     <div className="space-y-4">
+      <nav aria-label="Duplicate comparison breadcrumb" className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+        <Link href="/ux-prototype/duplicate-candidates" prefetch={false} className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+          Possible duplicates
+        </Link>
+        <span aria-hidden="true">/</span>
+        <span>Compare records</span>
+      </nav>
       <section className="grid gap-3 md:grid-cols-2">
         <Record title="Existing record" value={item.left} />
         <Record title="Imported record" value={item.right} />
