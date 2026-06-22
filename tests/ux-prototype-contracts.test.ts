@@ -34,7 +34,9 @@ test("ux prototype routes stay isolated from Prisma and production mutations", (
   }
 
   assert.match(read("src/app/ux-prototype/layout.tsx"), /robots: \{ index: false, follow: false \}/);
-  assert.match(read("src/components/ux-prototype-shell.tsx"), /UX prototype — no data is saved/);
+  assert.match(read("src/components/ux-prototype-shell.tsx"), /UX prototype/);
+  assert.match(read("src/components/ux-prototype-shell.tsx"), /No data is saved/);
+  assert.match(read("src/components/ux-prototype-shell.tsx"), /Review tools/);
   assert.match(read("src/components/ux-prototype-shell.tsx"), /Manual keyboard, zoom and screen-reader checks remain pending\./);
   assert.match(read("src/components/ux-prototype-shell.tsx"), /aria-label="Prototype sections"/);
   assert.match(read("src/components/ux-prototype-shell.tsx"), /aria-current=\{active \? "page" : undefined\}/);
@@ -56,12 +58,9 @@ test("prototype route map covers all required review screens", () => {
     "/ux-prototype/dashboard",
     "/ux-prototype/daily-work",
     "/ux-prototype/leads",
-    "/ux-prototype/leads/lead-aurora-bikes",
     "/ux-prototype/sales-overview",
     "/ux-prototype/import-batches",
-    "/ux-prototype/import-batches/batch-2026-06-21",
     "/ux-prototype/duplicate-candidates",
-    "/ux-prototype/duplicate-candidates/dup-aurora-bikes",
     "/ux-prototype/system-status"
   ]) {
     assert.match(source, new RegExp(route.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));

@@ -75,7 +75,7 @@ test("ux prototype renders state-specific review copy without a database", { tim
     },
     {
       path: "/ux-prototype/leads?state=default",
-      includes: ["Search", "Possible duplicate", "North Star Wellness and Recovery Center for Local Service Teams"]
+      includes: ["Search", "All cities", "Priority"]
     },
     {
       path: "/ux-prototype/leads?state=stress",
@@ -127,7 +127,8 @@ test("ux prototype renders state-specific review copy without a database", { tim
     for (const item of cases) {
       const response = await waitForPage(`http://127.0.0.1:${port}${item.path}`);
       const html = await response.text();
-      assert.match(html, /UX prototype — no data is saved/);
+      assert.match(html, /UX prototype/);
+      assert.match(html, /No data is saved/);
       assert.match(html, /<main/i);
       assert.match(html, /noindex/i);
       for (const expected of item.includes) {
@@ -137,6 +138,11 @@ test("ux prototype renders state-specific review copy without a database", { tim
 
     const defaultDuplicate = await (await waitForPage(`http://127.0.0.1:${port}/ux-prototype/duplicate-candidates/dup-aurora-bikes`)).text();
     assert.doesNotMatch(defaultDuplicate, /Success feedback/);
+
+    const defaultLeads = await (await waitForPage(`http://127.0.0.1:${port}/ux-prototype/leads?state=default`)).text();
+    assert.doesNotMatch(defaultLeads, /Leads pagination/);
+    assert.doesNotMatch(defaultLeads, /aria-label="Previous page"/);
+    assert.doesNotMatch(defaultLeads, /aria-label="Next page"/);
   } finally {
     terminateProcessTree(child.pid ?? 0);
   }

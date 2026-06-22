@@ -14,6 +14,22 @@
 - `/ux-prototype/duplicate-candidates/[id]`
 - `/ux-prototype/system-status`
 
+## Navigation model
+
+- Hub is a review utility, not a normal CRM area.
+- Business navigation is compact and focused on Dashboard, Daily work, Leads, Sales, Data quality and System status.
+- Data quality groups Imports and Possible duplicates together.
+- Detail routes are reached from their parent screen and are not shown in the primary menu.
+- The production CRM sidebar is bypassed on all `/ux-prototype` routes.
+
+## Fluid layout principles
+
+- Use responsive grid and flex layouts instead of a single global max width.
+- Let data-heavy regions expand while paragraphs keep readable line lengths.
+- Use local horizontal scrolling only for real tables.
+- Collapse the prototype review tools on business screens.
+- Keep the shell usable at desktop, laptop, tablet and mobile widths without JavaScript viewport logic.
+
 ## Route and state matrix
 
 | Route | Default | Loading | Empty | Error / unavailable | Success | Stress |
@@ -43,7 +59,7 @@
 
 1. Start the app with `corepack pnpm dev`.
 2. Open `/ux-prototype`.
-3. Use the state controls in the prototype header.
+3. Use the Review tools disclosure on the prototype screens.
 4. Review desktop, tablet, mobile and 200% zoom behavior.
 
 ## UX review checklist
@@ -56,6 +72,8 @@
 - Tables scroll only when the content genuinely requires it.
 - No prototype screen depends on database access.
 - The state selector changes the visible copy on each route.
+- Review tools stay visually secondary on business screens.
+- The prototype shell remains fluid at roughly 1920 px, 1440 px, 1280 px, 1024 px and 390 px.
 
 ## Manual WCAG gates still pending
 

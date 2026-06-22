@@ -5,13 +5,10 @@ export const PROTOTYPE_ROUTE_MAP = [
   { href: "/ux-prototype", label: "Hub", description: "Route overview." },
   { href: "/ux-prototype/dashboard", label: "Dashboard" },
   { href: "/ux-prototype/daily-work", label: "Daily work" },
-  { href: "/ux-prototype/leads", label: "Leads list" },
-  { href: "/ux-prototype/leads/lead-aurora-bikes", label: "Lead detail" },
-  { href: "/ux-prototype/sales-overview", label: "Sales overview" },
-  { href: "/ux-prototype/import-batches", label: "Import batches" },
-  { href: "/ux-prototype/import-batches/batch-2026-06-21", label: "Import batch detail" },
-  { href: "/ux-prototype/duplicate-candidates", label: "Duplicate candidates" },
-  { href: "/ux-prototype/duplicate-candidates/dup-aurora-bikes", label: "Duplicate comparison detail" },
+  { href: "/ux-prototype/leads", label: "Leads" },
+  { href: "/ux-prototype/sales-overview", label: "Sales" },
+  { href: "/ux-prototype/import-batches", label: "Imports", description: "Batch review and row outcomes." },
+  { href: "/ux-prototype/duplicate-candidates", label: "Possible duplicates", description: "Likely duplicate review." },
   { href: "/ux-prototype/system-status", label: "System status" }
 ] as const;
 
