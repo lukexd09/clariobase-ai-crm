@@ -17,10 +17,11 @@ test("core CRM work screens use the light shell baseline", () => {
   const salesReportPage = read("src/app/reports/sales/page.tsx");
 
   assert.doesNotMatch(homepage, /radial-gradient/);
-  assert.match(homepage, /bg-slate-50/);
-  assert.match(homepage, /focus-visible:ring-2/);
+  assert.match(homepage, /PageHeader title="Dashboard"/);
+  assert.match(homepage, /PipelineSnapshot items=\{pipeline\}/);
   assert.doesNotMatch(homepage, /text-\[0\.68rem\]/);
-  assert.match(appShell, /nav aria-label="Main navigation"/);
+  assert.match(appShell, /nav aria-label="Primary navigation"/);
+  assert.match(appShell, /nav aria-label="Compact navigation"/);
   assert.match(appShell, /aria-current=\{active \? "page" : undefined\}/);
 
   for (const source of [workPage, leadsPage, salesReportPage]) {
@@ -89,8 +90,8 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
     /Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead\./
   );
 
-  assert.match(homepage, /focus-visible:ring-2/);
-  assert.match(homepage, /HOME_SYSTEM_LINK/);
+  assert.match(homepage, /Today&apos;s priorities/);
+  assert.match(homepage, /3 possible duplicates need review/);
 });
 
 test("leads screen keeps a compact operational header and active filter chips", () => {

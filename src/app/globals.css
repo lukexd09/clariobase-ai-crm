@@ -4,16 +4,34 @@
 
 :root {
   color-scheme: light;
+  --clariobase-primary: #006194;
+  --clariobase-background: #f8fafc;
+  --clariobase-surface: #ffffff;
+  --clariobase-surface-subtle: #f1f5f9;
+  --clariobase-text-primary: #0f172a;
+  --clariobase-text-secondary: #475569;
+  --clariobase-border: #cbd5e1;
 }
 
 html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--clariobase-background);
+  color: var(--clariobase-text-primary);
+  font-family: "Geist", "Geist Sans", sans-serif;
 }
 
 * {
   box-sizing: border-box;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+}
+
+a,
+button,
+summary {
+  -webkit-tap-highlight-color: transparent;
 }
