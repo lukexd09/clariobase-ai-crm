@@ -41,7 +41,8 @@ error: '#B91C1C'
 - At 1100 px and wider, the global top header is removed and the sidebar is the only shell navigation surface.
 - Below 1100 px, a compact app bar shows only `ClarioBase` and the `Menu` disclosure.
 - The shell must not rely on viewport JavaScript detection for the responsive switch.
-- Operator section shows a lightweight account chip with `Łukasz Chmiel` and `Operator`.
+- Operator section shows a lightweight static account chip with `Łukasz Chmiel` and `Operator`.
+- The operator identity is visible, but the account menu is intentionally not interactive before account functionality exists.
 - Do not show notification controls before notifications exist.
 - Do not show calendar controls before calendar functionality exists.
 - Do not expose working logout actions before authentication exists.
@@ -62,4 +63,5 @@ error: '#B91C1C'
 - Pipeline snapshot is secondary and compact.
 - The data-quality warning is placed after the main priorities/pipeline area as a restrained warning row.
 - Use warning semantics for duplicate review messaging, but do not rely on color alone.
+- Do not show fake account menus or placeholder logout actions before authentication exists.
 

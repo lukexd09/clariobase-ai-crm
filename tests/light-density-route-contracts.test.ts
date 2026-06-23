@@ -112,6 +112,7 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
       assert.doesNotMatch(html, /Current<\/span>/);
       assert.doesNotMatch(html, /Keep the app check handy\./);
       assert.doesNotMatch(html, /Sign out/);
+      assert.doesNotMatch(html, /Account menu coming soon\./);
       assert.doesNotMatch(html, /Overview Dashboard/);
       assert.doesNotMatch(html, /bg-slate-950|border-slate-800/);
       assert.doesNotMatch(html, /Minimal runtime probe for deployment and uptime checks\./);

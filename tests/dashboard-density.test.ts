@@ -28,7 +28,7 @@ test("dashboard density contracts keep business values and link-based priorities
   assert.match(primitives, /Deadline:/);
   assert.match(primitives, /Pipeline snapshot/);
   assert.match(primitives, /stage: string; value: number/);
-  assert.match(primitives, /Open →/);
   assert.doesNotMatch(primitives, /4 active tasks/);
   assert.doesNotMatch(primitives, /Current/);
+  assert.doesNotMatch(primitives, /border-t border-\[#E2E8F0\]/);
 });

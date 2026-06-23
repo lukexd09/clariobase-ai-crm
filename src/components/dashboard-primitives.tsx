@@ -45,7 +45,7 @@ export function PriorityItem({
 }) {
   return (
     <article className="py-4 first:pt-0 last:pb-0">
-      <div className="flex flex-col gap-3 border-t border-[#E2E8F0] pt-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1.5">
           <h3 className="text-base font-semibold text-[#0F172A]">
             <Link
