@@ -107,6 +107,7 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
       assert.match(html, /aria-current="page"/, `${route.path} should expose the active route`);
       assert.match(html, new RegExp(route.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
       assert.match(html, new RegExp(route.activeNav.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      assert.doesNotMatch(html, /Overview Dashboard/);
       assert.doesNotMatch(html, /bg-slate-950|border-slate-800/);
       assert.doesNotMatch(html, /Minimal runtime probe for deployment and uptime checks\./);
 

@@ -57,6 +57,7 @@ export default function DashboardPage() {
         body="3 possible duplicates need review"
         actionHref="/duplicates"
         actionLabel="Review duplicates"
+        tone="warning"
       />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -26,6 +26,7 @@ test("canonical design token contract is documented and exposed", () => {
 
 test("global foundation keeps light-first production styling", () => {
   const globalsCss = read("src/app/globals.css");
+  const dashboardPrimitives = read("src/components/dashboard-primitives.tsx");
 
   assert.match(globalsCss, /color-scheme:\s*light;/);
   assert.match(globalsCss, /font-family:\s*"Geist"/);
@@ -33,4 +34,9 @@ test("global foundation keeps light-first production styling", () => {
   assert.match(globalsCss, /background:\s*var\(--clariobase-background\);/);
   assert.doesNotMatch(globalsCss, /#004870/);
   assert.doesNotMatch(globalsCss, /#0284C7/);
+
+  assert.match(dashboardPrimitives, /tone = "info"/);
+  assert.match(dashboardPrimitives, /warning: \{/);
+  assert.match(dashboardPrimitives, /Deadline:/);
+  assert.doesNotMatch(dashboardPrimitives, /StatusBadge>\{deadline\}/);
 });

@@ -55,34 +55,63 @@ export function PriorityItem({
           >
             Open lead
           </Link>
+          <p className="text-sm text-[#475569]">
+            <span className="font-medium text-[#0F172A]">Deadline:</span> {deadline}
+          </p>
         </div>
-        <StatusBadge>{deadline}</StatusBadge>
       </div>
     </article>
   );
 }
 
+type AlertTone = "warning" | "error" | "info";
+
+const alertToneStyles: Record<AlertTone, { wrapper: string; title: string; body: string; button: string }> = {
+  warning: {
+    wrapper: "border-[#B45309] bg-[#FFFBEB]",
+    title: "text-[#B45309]",
+    body: "text-[#0F172A]",
+    button: "bg-[#B45309] text-white"
+  },
+  error: {
+    wrapper: "border-[#B91C1C] bg-[#FEF2F2]",
+    title: "text-[#B91C1C]",
+    body: "text-[#0F172A]",
+    button: "bg-[#B91C1C] text-white"
+  },
+  info: {
+    wrapper: "border-[#CBD5E1] bg-white",
+    title: "text-[#0F172A]",
+    body: "text-[#475569]",
+    button: "bg-[#006194] text-white"
+  }
+};
+
 export function Alert({
   title,
   body,
   actionHref,
-  actionLabel
+  actionLabel,
+  tone = "info"
 }: {
   title: string;
   body: string;
   actionHref: string;
   actionLabel: string;
+  tone?: AlertTone;
 }) {
+  const styles = alertToneStyles[tone];
+
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-[#B91C1C] bg-[#FEF2F2] p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className={`flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${styles.wrapper}`}>
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-[#B91C1C]">{title}</p>
-        <p className="mt-1 text-sm text-[#0F172A]">{body}</p>
+        <p className={`text-sm font-semibold ${styles.title}`}>{title}</p>
+        <p className={`mt-1 text-sm ${styles.body}`}>{body}</p>
       </div>
       <Link
         href={actionHref}
         prefetch={false}
-        className="inline-flex min-h-11 items-center rounded-lg bg-[#B91C1C] px-4 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+        className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${styles.button}`}
       >
         {actionLabel}
       </Link>

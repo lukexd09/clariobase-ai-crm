@@ -61,8 +61,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] lg:grid lg:grid-cols-[clamp(220px,16vw,260px)_minmax(0,1fr)]">
-      <aside className="hidden border-r border-[#CBD5E1] bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] min-[1100px]:grid min-[1100px]:grid-cols-[clamp(220px,16vw,260px)_minmax(0,1fr)]">
+      <aside className="hidden border-r border-[#CBD5E1] bg-white min-[1100px]:sticky min-[1100px]:top-0 min-[1100px]:flex min-[1100px]:h-screen min-[1100px]:flex-col">
         <div className="border-b border-[#CBD5E1] px-[clamp(16px,2vw,32px)] py-5">
           <Link
             href="/"
@@ -105,9 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="min-w-0">
         <header className="border-b border-[#CBD5E1] bg-white">
           <div className="flex min-h-[64px] items-center justify-between gap-4 px-[clamp(16px,2vw,32px)]">
-            <div className="min-w-0">
-              <p className="truncate text-lg font-semibold text-[#0F172A]">Overview Dashboard</p>
-            </div>
+            <div className="min-w-0" aria-hidden="true" />
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -121,7 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <span aria-hidden="true">📅</span>
                 <span>21 June 2026</span>
               </div>
-              <details className="group relative lg:hidden">
+              <details className="group relative min-[1100px]:hidden">
                 <summary className="list-none rounded-lg border border-[#CBD5E1] bg-white px-3 py-2 text-sm font-medium text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white">
                   Menu
                 </summary>

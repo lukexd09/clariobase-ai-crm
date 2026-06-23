@@ -33,9 +33,12 @@ test("app shell source uses semantic primary and compact navigation", () => {
 
   assert.match(shellSource, /aria-label="Primary navigation"/);
   assert.match(shellSource, /aria-label="Compact navigation"/);
-  assert.match(shellSource, /details className="group relative lg:hidden"/);
+  assert.match(shellSource, /min-\[1100px\]:grid/);
+  assert.match(shellSource, /min-\[1100px\]:flex/);
+  assert.match(shellSource, /min-\[1100px\]:hidden/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(shellSource, /focus-visible:ring-\[#006194\]/);
   assert.doesNotMatch(shellSource, /Support/);
   assert.doesNotMatch(shellSource, /Settings/);
+  assert.doesNotMatch(shellSource, /Overview Dashboard/);
 });
