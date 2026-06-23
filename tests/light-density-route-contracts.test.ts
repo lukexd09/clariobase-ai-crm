@@ -81,14 +81,14 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
   const routes = [
     {
       path: "/",
-      heading: "Lead operations in one focused workspace.",
-      activeNav: "Home",
-      includes: ["Open leads", "Open workbench", "Health check"]
+      heading: "Dashboard",
+      activeNav: "Dashboard",
+      includes: ["Your priorities for 21 June 2026", "Today's priorities", "Pipeline snapshot"]
     },
     {
       path: "/health",
       heading: "Health check",
-      activeNav: "Health check",
+      activeNav: "System status",
       includes: ["System status", "Timestamp"]
     }
   ] as const;
@@ -99,7 +99,11 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
       const html = await response.text();
 
       assert.match(html, /<main/i, `${route.path} should render a main landmark`);
-      assert.match(html, /Main navigation/, `${route.path} should render shell navigation`);
+      assert.match(
+        html,
+        /Primary navigation|Compact navigation/,
+        `${route.path} should render shell navigation`
+      );
       assert.match(html, /aria-current="page"/, `${route.path} should expose the active route`);
       assert.match(html, new RegExp(route.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
       assert.match(html, new RegExp(route.activeNav.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
