@@ -50,7 +50,7 @@ export default function DashboardPage() {
     <div className="space-y-5">
       <PageHeader title="Dashboard" subtitle="Your priorities for 21 June 2026" />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 rounded-none border-0 bg-transparent max-[759px]:rounded-xl max-[759px]:border max-[759px]:border-[#CBD5E1] max-[759px]:bg-white max-[759px]:divide-y max-[759px]:divide-[#E2E8F0] min-[760px]:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Overdue" value="2" />
         <MetricCard label="Due today" value="4" />
         <MetricCard label="Upcoming" value="11" />
@@ -58,11 +58,13 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)]">
-        <div className="rounded-xl border border-[#CBD5E1] bg-white p-4">
+        <div className="rounded-xl border border-[#CBD5E1] bg-white p-4 max-[759px]:rounded-none max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:p-0">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-[#0F172A]">Today&apos;s priorities</h2>
+            <h2 className="text-lg font-semibold text-[#0F172A] max-[759px]:text-[1.1rem]">
+              Today&apos;s priorities
+            </h2>
           </div>
-          <div className="mt-2 divide-y divide-[#E2E8F0]">
+          <div className="mt-2 divide-y divide-[#E2E8F0] max-[759px]:mt-1">
             {priorities.map((item) => (
               <PriorityItem key={item.company} {...item} />
             ))}

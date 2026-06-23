@@ -3,7 +3,7 @@ import Link from "next/link";
 export function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <header className="space-y-1">
-      <h1 className="text-[1.8rem] font-semibold tracking-tight text-[#0F172A] sm:text-[2rem]">
+      <h1 className="text-[1.7rem] font-semibold tracking-tight text-[#0F172A] min-[760px]:text-[1.8rem] sm:text-[2rem]">
         {title}
       </h1>
       <p className="text-sm text-[#475569] sm:text-base">{subtitle}</p>
@@ -13,11 +13,15 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle: strin
 
 export function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569]">{label}</p>
-      <p className="mt-2 text-[1.95rem] font-semibold tracking-tight text-[#0F172A] tabular-nums">
-        {value}
-      </p>
+    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 max-[759px]:rounded-none max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:px-0 max-[759px]:py-3.5">
+      <div className="max-[759px]:flex max-[759px]:min-h-14 max-[759px]:items-center max-[759px]:justify-between max-[759px]:gap-4 max-[759px]:px-0 max-[759px]:py-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569] max-[759px]:text-[11px] max-[759px]:tracking-[0.14em]">
+          {label}
+        </p>
+        <p className="text-[1.95rem] font-semibold tracking-tight text-[#0F172A] tabular-nums max-[759px]:text-[1.3rem]">
+          {value}
+        </p>
+      </div>
     </div>
   );
 }
@@ -45,7 +49,7 @@ export function PriorityItem({
 }) {
   return (
     <article className="py-4 first:pt-0 last:pb-0">
-      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between max-[759px]:gap-2 max-[759px]:pt-3">
         <div className="min-w-0 space-y-1.5">
           <h3 className="text-base font-semibold text-[#0F172A]">
             <Link
@@ -59,14 +63,14 @@ export function PriorityItem({
           <p className="text-sm font-medium text-[#0F172A]">{action}</p>
           <p className="text-sm leading-6 text-[#475569]">{context}</p>
         </div>
-        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+        <div className="flex shrink-0 flex-col gap-2 sm:items-end max-[759px]:items-start">
           <p className="text-sm text-[#475569]">
             <span className="font-medium text-[#0F172A]">Deadline:</span> {deadline}
           </p>
           <Link
             href={href}
             prefetch={false}
-            className="inline-flex min-h-11 items-center rounded-lg border border-[#CBD5E1] bg-white px-3 text-sm font-medium text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            className="inline-flex min-h-11 items-center rounded-lg border border-[#CBD5E1] bg-white px-3 text-sm font-medium text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:px-0 max-[759px]:font-semibold"
           >
             Open →
           </Link>
