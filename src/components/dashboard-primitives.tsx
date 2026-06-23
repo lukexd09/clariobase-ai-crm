@@ -3,17 +3,21 @@ import Link from "next/link";
 export function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <header className="space-y-1">
-      <h1 className="text-3xl font-semibold tracking-tight text-[#0F172A] sm:text-[2.35rem]">{title}</h1>
-      <p className="text-base text-[#475569]">{subtitle}</p>
+      <h1 className="text-[1.8rem] font-semibold tracking-tight text-[#0F172A] sm:text-[2rem]">
+        {title}
+      </h1>
+      <p className="text-sm text-[#475569] sm:text-base">{subtitle}</p>
     </header>
   );
 }
 
 export function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-4">
+    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569]">{label}</p>
-      <p className="mt-3 text-4xl font-semibold tracking-tight text-[#0F172A] tabular-nums">{value}</p>
+      <p className="mt-2 text-[1.95rem] font-semibold tracking-tight text-[#0F172A] tabular-nums">
+        {value}
+      </p>
     </div>
   );
 }
@@ -40,24 +44,32 @@ export function PriorityItem({
   href: string;
 }) {
   return (
-    <article className="rounded-xl border border-[#CBD5E1] bg-white p-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-2">
-          <h3 className="text-lg font-semibold text-[#0F172A]">{company}</h3>
-          <p className="text-sm text-[#0F172A]">
-            <span className="font-medium">{action}</span>
-          </p>
+    <article className="py-4 first:pt-0 last:pb-0">
+      <div className="flex flex-col gap-3 border-t border-[#E2E8F0] pt-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1.5">
+          <h3 className="text-base font-semibold text-[#0F172A]">
+            <Link
+              href={href}
+              prefetch={false}
+              className="rounded-sm text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            >
+              {company}
+            </Link>
+          </h3>
+          <p className="text-sm font-medium text-[#0F172A]">{action}</p>
           <p className="text-sm leading-6 text-[#475569]">{context}</p>
+        </div>
+        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+          <p className="text-sm text-[#475569]">
+            <span className="font-medium text-[#0F172A]">Deadline:</span> {deadline}
+          </p>
           <Link
             href={href}
             prefetch={false}
             className="inline-flex min-h-11 items-center rounded-lg border border-[#CBD5E1] bg-white px-3 text-sm font-medium text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
           >
-            Open lead
+            Open →
           </Link>
-          <p className="text-sm text-[#475569]">
-            <span className="font-medium text-[#0F172A]">Deadline:</span> {deadline}
-          </p>
         </div>
       </div>
     </article>
@@ -103,38 +115,42 @@ export function Alert({
   const styles = alertToneStyles[tone];
 
   return (
-    <div className={`flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${styles.wrapper}`}>
-      <div className="min-w-0">
-        <p className={`text-sm font-semibold ${styles.title}`}>{title}</p>
-        <p className={`mt-1 text-sm ${styles.body}`}>{body}</p>
+    <div className={`rounded-xl border px-4 py-3 ${styles.wrapper}`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className={`text-sm font-semibold ${styles.title}`}>{title}</p>
+          <p className={`mt-1 text-sm ${styles.body}`}>{body}</p>
+        </div>
+        <Link
+          href={actionHref}
+          prefetch={false}
+          className={`inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${styles.button}`}
+        >
+          {actionLabel}
+        </Link>
       </div>
-      <Link
-        href={actionHref}
-        prefetch={false}
-        className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${styles.button}`}
-      >
-        {actionLabel}
-      </Link>
     </div>
   );
 }
 
 export function PipelineSnapshot({ items }: { items: readonly { stage: string; value: number }[] }) {
   return (
-    <section className="rounded-xl border border-[#CBD5E1] bg-white p-5">
+    <section className="rounded-xl border border-[#CBD5E1] bg-white p-4">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold text-[#0F172A]">Pipeline snapshot</h2>
+        <h2 className="text-base font-semibold text-[#0F172A]">Pipeline snapshot</h2>
       </div>
-      <div className="mt-5 space-y-4">
+      <div className="mt-4 space-y-3">
         {items.map((item) => (
-          <div key={item.stage} className="space-y-2">
+          <div key={item.stage} className="space-y-1.5">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-semibold uppercase tracking-[0.16em] text-[#475569]">{item.stage}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569]">
+                {item.stage}
+              </span>
               <span className="font-semibold text-[#0F172A] tabular-nums">{item.value}</span>
             </div>
-            <div className="h-2 rounded-full bg-[#F1F5F9]">
+            <div className="h-1.5 rounded-full bg-[#F1F5F9]">
               <div
-                className="h-2 rounded-full bg-[#006194]"
+                className="h-1.5 rounded-full bg-[#006194]"
                 style={{ width: `${Math.max(8, Math.min(100, item.value * 5))}%` }}
               />
             </div>

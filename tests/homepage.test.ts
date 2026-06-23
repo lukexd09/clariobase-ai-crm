@@ -15,9 +15,11 @@ test("dashboard page exposes the production priorities and pipeline snapshot", (
   assert.match(pageSource, /Sienna Dental Care/);
   assert.match(pageSource, /Velvet Brows & Lashes/);
   assert.match(pageSource, /3 possible duplicates need review/);
+  assert.match(pageSource, /actionLabel="Review"/);
   assert.match(pageSource, /tone="warning"/);
   assert.doesNotMatch(pageSource, /Focus on Conversion/);
   assert.doesNotMatch(pageSource, /motivational quote/i);
   assert.doesNotMatch(pageSource, /stock image/i);
   assert.doesNotMatch(pageSource, /StatusBadge>.*deadline/i);
+  assert.doesNotMatch(pageSource, /4 active tasks/);
 });
