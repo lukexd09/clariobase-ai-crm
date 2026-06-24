@@ -104,6 +104,7 @@ After `.github/workflows/auto-deploy-preview.yml` is merged to `main`, a success
 Automatic rules:
 
 - trigger source is `workflow_run` for `CI` with `completed`;
+- the downstream workflow uses `actions: read` for exact-run artifact retrieval, `pull-requests: read` for live PR verification, `issues: write` for the persistent PR status comment, and `contents: read` for trusted and exact-SHA checkouts;
 - only `pull_request` CI runs with conclusion `success` are eligible;
 - the auto-preview job downloads the `auto-preview-context` artifact from the exact triggering CI run ID;
 - the artifact is validated before deployment and must match the triggering run SHA, repository, PR number, and PR head metadata;
