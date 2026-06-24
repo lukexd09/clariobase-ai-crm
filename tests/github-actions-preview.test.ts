@@ -116,6 +116,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /contents: read/);
   assert.match(deployWorkflow, /actions\/checkout@v5/);
   assert.match(deployWorkflow, /actions\/setup-node@v5/);
+  assert.match(deployWorkflow, /docker\/login-action@v3/);
   assert.match(deployWorkflow, /node-version: 22/);
   assert.match(deployWorkflow, /package-manager-cache: false/);
   assert.match(deployWorkflow, /group: clariobase-preview-slot/);
@@ -124,6 +125,8 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /path: source/);
   assert.match(deployWorkflow, /persist-credentials: false/);
   assert.match(deployWorkflow, /scripts\/resolve-preview-ref\.ts/);
+  assert.match(deployWorkflow, /Resolve immutable preview image digest/);
+  assert.match(deployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ steps\.image\.outputs\.preview_image_ref \}\}/);
   assert.match(deployWorkflow, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
   assert.match(deployWorkflow, /\$deployExitCode = \$LASTEXITCODE/);
   assert.match(deployWorkflow, /if \(\$deployExitCode -ne 0\)/);
@@ -167,10 +170,13 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(autoDeployWorkflow, /group: clariobase-preview-slot/);
   assert.match(autoDeployWorkflow, /resolve-auto-preview\.ts/);
   assert.match(autoDeployWorkflow, /actions\/download-artifact@v4/);
+  assert.match(autoDeployWorkflow, /docker\/login-action@v3/);
   assert.match(autoDeployWorkflow, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/);
   assert.match(autoDeployWorkflow, /name: auto-preview-context/);
   assert.match(autoDeployWorkflow, /\/tmp\/auto-preview-context\/auto-preview-context\.json/);
   assert.match(autoDeployWorkflow, /--context-path "\/tmp\/auto-preview-context\/auto-preview-context\.json"/);
+  assert.match(autoDeployWorkflow, /Resolve immutable preview image digest/);
+  assert.match(autoDeployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ steps\.image\.outputs\.preview_image_ref \}\}/);
   assert.match(autoDeployWorkflow, /ref: main/);
   assert.match(autoDeployWorkflow, /path: control/);
   assert.match(autoDeployWorkflow, /path: source/);
@@ -1027,7 +1033,7 @@ test("deploy preview dry-run validates the source checkout SHA independently fro
       encoding: "utf8",
       env: {
         ...process.env,
-        CRM_BUILD_CONTEXT: sourceCheckout
+        CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
       }
     });
 

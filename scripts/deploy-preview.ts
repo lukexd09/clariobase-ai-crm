@@ -144,6 +144,7 @@ async function main() {
           summary,
           previewEnvFilePath: runtimeConfig.previewEnvFilePath,
           previewAiExchangePath: runtimeConfig.previewAiExchangeAbsolutePath,
+          previewImageRef: runtimeConfig.previewImageRef,
           controlCheckoutPath,
           sourceCheckoutPath,
           previewVolumeName: PREVIEW_VOLUME_NAME,
@@ -160,7 +161,7 @@ async function main() {
   }
 
   executeDeployPlanWithEnv(deployPlan, {
-    CRM_BUILD_CONTEXT: sourceCheckoutPath
+    CRM_PREVIEW_IMAGE_REF: runtimeConfig.previewImageRef
   });
 
   await waitForHttpReady(runtimeConfig.previewLocalReadyUrl, options.timeoutSeconds);

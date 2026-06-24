@@ -146,12 +146,20 @@ test("health endpoint is non-cacheable and returns a fresh timestamp on every re
   }
 });
 
-test("health endpoint cleanup controller reaps next start on SIGTERM interruption", { timeout: 180000 }, async () => {
-  buildProductionApp();
+test("health endpoint cleanup controller reaps the immutable container smoke deployment on SIGTERM interruption", { timeout: 180000 }, async () => {
+  const imageTag = `clariobase-ai-crm:health-container-smoke-${Date.now()}`;
+  const build = spawnSync("docker", ["build", "-t", imageTag, "."], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: "pipe"
+  });
 
-  const readinessFile = path.join(createRepoTmpDir(repoRoot, "health-next-start-"), `health-next-start-${Date.now()}.json`);
-  const fixture = path.join(repoRoot, "tests", "fixtures", "health-next-start-smoke.ts");
-  const child = spawn(process.execPath, [path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), fixture, readinessFile], {
+  assert.equal(build.status, 0, `docker build should pass: ${build.stderr ?? build.stdout}`);
+
+  const port = String(await reserveFreePort());
+  const readinessFile = path.join(createRepoTmpDir(repoRoot, "health-container-smoke-"), `health-container-smoke-${Date.now()}.json`);
+  const fixture = path.join(repoRoot, "tests", "fixtures", "health-container-smoke.ts");
+  const child = spawn(process.execPath, [path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), fixture, readinessFile, imageTag, port], {
     cwd: repoRoot,
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -169,17 +177,20 @@ test("health endpoint cleanup controller reaps next start on SIGTERM interruptio
 
   try {
     await waitForFile(readinessFile);
-    const payload = JSON.parse(fs.readFileSync(readinessFile, "utf8")) as { childPid: number };
+    const payload = JSON.parse(fs.readFileSync(readinessFile, "utf8")) as { containerId: string; containerName: string };
 
-    assert.ok(Number.isInteger(payload.childPid) && payload.childPid > 0, "child PID should be discoverable");
-    assert.equal(processExists(payload.childPid), true);
+    assert.match(payload.containerId, /^[0-9a-f]{12,64}$/i);
+    assert.match(payload.containerName, /^health-container-smoke-/);
 
     child.kill("SIGTERM");
     const result = await waitForChildExit(child);
-    terminateProcessTree(child.pid ?? 0);
-
     assert.ok(result.signal === "SIGTERM" || result.code === 143, "fixture should exit from SIGTERM cleanup");
-    assert.equal(processExists(payload.childPid), false, output);
+    terminateProcessTree(child.pid ?? 0);
+    assert.equal(
+      spawnSync("docker", ["inspect", payload.containerName], { cwd: repoRoot, encoding: "utf8" }).status,
+      1,
+      output
+    );
   } finally {
     fs.rmSync(readinessFile, { force: true });
     terminateProcessTree(child.pid ?? 0);
