@@ -13,12 +13,12 @@ export function PageHeader({ title, subtitle }: { title: string; subtitle: strin
 
 export function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 max-[759px]:rounded-none max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:px-0 max-[759px]:py-0">
-      <div className="max-[759px]:flex max-[759px]:min-h-[52px] max-[759px]:items-center max-[759px]:justify-between max-[759px]:gap-4 max-[759px]:px-4 max-[759px]:py-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569] max-[759px]:text-[11px] max-[759px]:tracking-[0.14em]">
+    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 max-[359px]:rounded-none max-[359px]:border-0 max-[359px]:bg-transparent max-[359px]:px-0 max-[359px]:py-0 min-[360px]:rounded-none min-[360px]:border-0 min-[360px]:bg-transparent min-[360px]:px-0 min-[360px]:py-0 min-[760px]:rounded-xl min-[760px]:border min-[760px]:bg-white min-[760px]:px-4 min-[760px]:py-3.5">
+      <div className="max-[359px]:flex max-[359px]:min-h-[50px] max-[359px]:items-center max-[359px]:justify-between max-[359px]:gap-4 max-[359px]:px-4 max-[359px]:py-0 min-[360px]:flex min-[360px]:min-h-[70px] min-[360px]:items-center min-[360px]:justify-between min-[360px]:gap-4 min-[360px]:px-4 min-[360px]:py-0 min-[760px]:block">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569] max-[359px]:text-[11px] max-[359px]:tracking-[0.14em] min-[360px]:text-[11px] min-[360px]:tracking-[0.14em] min-[760px]:text-xs min-[760px]:tracking-[0.16em]">
           {label}
         </p>
-        <p className="text-[1.95rem] font-semibold tracking-tight text-[#0F172A] tabular-nums max-[759px]:text-[1.3rem]">
+        <p className="text-[1.95rem] font-semibold tracking-tight text-[#0F172A] tabular-nums max-[359px]:text-[1.25rem] min-[360px]:text-[1.25rem] min-[760px]:mt-2 min-[760px]:text-[1.95rem]">
           {value}
         </p>
       </div>

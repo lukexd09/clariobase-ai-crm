@@ -50,7 +50,7 @@ export default function DashboardPage() {
     <div className="space-y-5">
       <PageHeader title="Dashboard" subtitle="Your priorities for 21 June 2026" />
 
-      <section className="grid gap-3 rounded-none border-0 bg-transparent max-[759px]:gap-0 max-[759px]:rounded-xl max-[759px]:border max-[759px]:border-[#CBD5E1] max-[759px]:bg-white max-[759px]:divide-y max-[759px]:divide-[#E2E8F0] min-[760px]:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 rounded-none border-0 bg-transparent max-[359px]:grid-cols-1 max-[359px]:gap-0 max-[359px]:rounded-xl max-[359px]:border max-[359px]:border-[#CBD5E1] max-[359px]:bg-white max-[359px]:divide-y max-[359px]:divide-[#E2E8F0] min-[360px]:grid-cols-2 min-[360px]:gap-0 min-[360px]:rounded-xl min-[360px]:border min-[360px]:border-[#CBD5E1] min-[360px]:bg-white min-[360px]:divide-y min-[360px]:divide-[#E2E8F0] min-[760px]:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Overdue" value="2" />
         <MetricCard label="Due today" value="4" />
         <MetricCard label="Upcoming" value="11" />
