@@ -36,6 +36,81 @@ jobs:
             echo "Validated SHA: $ACTUAL_SHA"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Write auto-preview context
+        shell: bash
+        env:
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+
+          if ! printf '%s' "$ACTUAL_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "Checked out SHA is invalid." >&2
+            exit 1
+          fi
+
+          if [ "$ACTUAL_SHA" != "$HEAD_SHA" ]; then
+            echo "Checked out SHA $ACTUAL_SHA does not match headSha $HEAD_SHA." >&2
+            exit 1
+          fi
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+
+          const repository = process.env.REPOSITORY || '';
+          const prNumber = Number(process.env.PR_NUMBER);
+          const headSha = process.env.HEAD_SHA || '';
+          const headRef = process.env.HEAD_REF || '';
+          const headRepository = process.env.HEAD_REPOSITORY || '';
+          const baseRef = process.env.BASE_REF || '';
+          const baseRepository = process.env.BASE_REPOSITORY || '';
+          const workflowRunId = Number(process.env.WORKFLOW_RUN_ID);
+
+          if (!/^[0-9a-f]{40}$/i.test(headSha)) {
+            throw new Error('headSha must be exactly 40 hexadecimal characters.');
+          }
+
+          if (repository !== headRepository) {
+            throw new Error('repository must equal headRepository for trusted same-repository PRs.');
+          }
+
+          if (!Number.isInteger(prNumber) || prNumber <= 0) {
+            throw new Error('prNumber must be a positive integer.');
+          }
+
+          if (!Number.isInteger(workflowRunId) || workflowRunId <= 0) {
+            throw new Error('workflowRunId must be a positive integer.');
+          }
+
+          const context = {
+            schemaVersion: 1,
+            repository,
+            prNumber,
+            headSha,
+            headRef,
+            headRepository,
+            baseRef,
+            baseRepository,
+            workflowRunId
+          };
+
+          fs.writeFileSync(path.join(process.cwd(), 'auto-preview-context.json'), `${JSON.stringify(context, null, 2)}\n`, 'utf8');
+          NODE
+
+      - name: Upload auto-preview context artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-preview-context
+          path: auto-preview-context.json
+          retention-days: 7
+
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:

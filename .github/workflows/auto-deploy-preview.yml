@@ -51,6 +51,14 @@ jobs:
       - name: Install dependencies
         run: corepack pnpm install --frozen-lockfile
 
+      - name: Download auto-preview context artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: auto-preview-context
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: /tmp/auto-preview-context
+
       - name: Resolve trusted PR head
         id: resolve
         env:
@@ -59,6 +67,7 @@ jobs:
           node ./node_modules/tsx/dist/cli.mjs scripts/resolve-auto-preview.ts
           --event-path "${{ github.event_path }}"
           --repository "${{ github.repository }}"
+          --context-path "/tmp/auto-preview-context/auto-preview-context.json"
 
       - name: Classify resolver execution failure
         if: failure()

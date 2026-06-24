@@ -36,6 +36,7 @@ function createWorkflowRunEvent(overrides?: Record<string, unknown>) {
       event: "pull_request",
       status: "completed",
       conclusion: "success",
+      id: 123456,
       head_branch: "feature/e016-preview",
       head_sha: "1111111111111111111111111111111111111111",
       html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456",
@@ -63,6 +64,21 @@ function createWorkflowRunEvent(overrides?: Record<string, unknown>) {
   };
 }
 
+function createAutoPreviewContext(overrides?: Record<string, unknown>) {
+  return {
+    schemaVersion: 1,
+    repository: EXPECTED_REPOSITORY,
+    prNumber: 113,
+    headSha: "1111111111111111111111111111111111111111",
+    headRef: "feature/e016-preview",
+    headRepository: EXPECTED_REPOSITORY,
+    baseRef: "main",
+    baseRepository: EXPECTED_REPOSITORY,
+    workflowRunId: 123456,
+    ...overrides
+  };
+}
+
 test("preview workflows use trusted triggers, least privilege, and the approved scripts", () => {
   const ciWorkflow = read(".github/workflows/ci.yml");
   const autoDeployWorkflow = read(".github/workflows/auto-deploy-preview.yml");
@@ -81,6 +97,9 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(ciWorkflow, /EXPECTED_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
   assert.match(ciWorkflow, /ACTUAL_SHA="\$\(git rev-parse HEAD\)"/);
   assert.match(ciWorkflow, /Validated SHA: \$ACTUAL_SHA/);
+  assert.match(ciWorkflow, /Write auto-preview context/);
+  assert.match(ciWorkflow, /actions\/upload-artifact@v4/);
+  assert.match(ciWorkflow, /name: auto-preview-context/);
   assert.match(ciWorkflow, /actions\/setup-node@v5/);
   assert.match(ciWorkflow, /node-version: 22/);
   assert.match(ciWorkflow, /package-manager-cache: false/);
@@ -144,6 +163,11 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(autoDeployWorkflow, /issues: write/);
   assert.match(autoDeployWorkflow, /group: clariobase-preview-slot/);
   assert.match(autoDeployWorkflow, /resolve-auto-preview\.ts/);
+  assert.match(autoDeployWorkflow, /actions\/download-artifact@v4/);
+  assert.match(autoDeployWorkflow, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/);
+  assert.match(autoDeployWorkflow, /name: auto-preview-context/);
+  assert.match(autoDeployWorkflow, /\/tmp\/auto-preview-context\/auto-preview-context\.json/);
+  assert.match(autoDeployWorkflow, /--context-path "\/tmp\/auto-preview-context\/auto-preview-context\.json"/);
   assert.match(autoDeployWorkflow, /ref: main/);
   assert.match(autoDeployWorkflow, /path: control/);
   assert.match(autoDeployWorkflow, /path: source/);
@@ -251,6 +275,7 @@ test("resolve-auto-preview accepts a successful same-repository open PR at the e
   const result = await resolveAutoPreview({
     event,
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
     fetchPullRequest: async () => ({
       number: 113,
       state: "open",
@@ -270,6 +295,87 @@ test("resolve-auto-preview accepts a successful same-repository open PR at the e
   assert.equal(result.prNumber, "113");
   assert.equal(result.headRef, "feature/e016-preview");
   assert.equal(result.validatedSha, "1111111111111111111111111111111111111111");
+});
+
+test("resolve-auto-preview uses CI artifact context as the authoritative PR identity", async () => {
+  const event = parseWorkflowRunEvent(
+    JSON.stringify({
+      ...createWorkflowRunEvent(),
+      workflow_run: {
+        ...createWorkflowRunEvent().workflow_run,
+        pull_requests: []
+      }
+    })
+  );
+  const result = await resolveAutoPreview({
+    event,
+    repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
+    fetchPullRequest: async () => ({
+      number: 113,
+      state: "open",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+      head: {
+        ref: "feature/e016-preview",
+        sha: "1111111111111111111111111111111111111111",
+        repo: {
+          full_name: EXPECTED_REPOSITORY
+        }
+      }
+    })
+  });
+
+  assert.equal(result.resolutionStatus, "deploy");
+  assert.equal(result.shouldDeploy, true);
+});
+
+test("resolve-auto-preview blocks artifact mismatches and forked artifact metadata", async () => {
+  const event = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
+  const baseOptions = {
+    event,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({
+      number: 113,
+      state: "open",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+      head: {
+        ref: "feature/e016-preview",
+        sha: "1111111111111111111111111111111111111111",
+        repo: {
+          full_name: EXPECTED_REPOSITORY
+        }
+      }
+    })
+  };
+
+  const missingArtifact = await resolveAutoPreview({ ...baseOptions, context: {} });
+  const malformedArtifact = await resolveAutoPreview({
+    ...baseOptions,
+    context: createAutoPreviewContext({ schemaVersion: 2 })
+  });
+  const runIdMismatch = await resolveAutoPreview({
+    ...baseOptions,
+    context: createAutoPreviewContext({ workflowRunId: 999999 })
+  });
+  const shaMismatch = await resolveAutoPreview({
+    ...baseOptions,
+    context: createAutoPreviewContext({ headSha: "2222222222222222222222222222222222222222" })
+  });
+  const forkArtifact = await resolveAutoPreview({
+    ...baseOptions,
+    context: createAutoPreviewContext({ repository: "someone-else/clariobase-ai-crm", headRepository: "someone-else/clariobase-ai-crm" })
+  });
+
+  assert.equal(missingArtifact.resolutionStatus, "blocked");
+  assert.match(missingArtifact.skipReason, /unsupported auto-preview context schema|artifact repository mismatch/);
+  assert.equal(malformedArtifact.resolutionStatus, "blocked");
+  assert.match(malformedArtifact.skipReason, /unsupported auto-preview context schema/);
+  assert.equal(runIdMismatch.resolutionStatus, "blocked");
+  assert.match(runIdMismatch.skipReason, /artifact workflow run ID mismatch/);
+  assert.equal(shaMismatch.resolutionStatus, "blocked");
+  assert.match(shaMismatch.skipReason, /artifact SHA mismatch/);
+  assert.equal(forkArtifact.resolutionStatus, "blocked");
+  assert.match(forkArtifact.skipReason, /artifact repository mismatch/);
 });
 
 test("resolve-auto-preview skips failed and cancelled CI runs", async () => {
@@ -297,11 +403,13 @@ test("resolve-auto-preview skips failed and cancelled CI runs", async () => {
   const failedResult = await resolveAutoPreview({
     event: failedEvent,
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
     fetchPullRequest: async () => ({})
   });
   const cancelledResult = await resolveAutoPreview({
     event: cancelledEvent,
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
     fetchPullRequest: async () => ({})
   });
 
@@ -335,18 +443,31 @@ test("resolve-auto-preview skips push-triggered CI runs and runs without a PR", 
   const pushResult = await resolveAutoPreview({
     event: pushEvent,
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
     fetchPullRequest: async () => ({})
   });
   const noPrResult = await resolveAutoPreview({
     event: noPrEvent,
     repository: EXPECTED_REPOSITORY,
-    fetchPullRequest: async () => ({})
+    context: createAutoPreviewContext({ headSha: "1111111111111111111111111111111111111111" }),
+    fetchPullRequest: async () => ({
+      number: 113,
+      state: "open",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+      head: {
+        ref: "feature/e016-preview",
+        sha: "1111111111111111111111111111111111111111",
+        repo: {
+          full_name: EXPECTED_REPOSITORY
+        }
+      }
+    })
   });
 
   assert.equal(pushResult.resolutionStatus, "skipped");
   assert.match(pushResult.skipReason, /CI event is push/);
-  assert.equal(noPrResult.resolutionStatus, "skipped");
-  assert.match(noPrResult.skipReason, /no associated pull request/i);
+  assert.equal(noPrResult.resolutionStatus, "deploy");
+  assert.equal(noPrResult.shouldDeploy, true);
 });
 
 test("resolve-auto-preview rejects forked, closed, and stale PR heads", async () => {
@@ -376,11 +497,13 @@ test("resolve-auto-preview rejects forked, closed, and stale PR heads", async ()
   const forkResult = await resolveAutoPreview({
     event: forkEvent,
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext({ headRepository: "someone-else/clariobase-ai-crm" }),
     fetchPullRequest: async () => ({})
   });
   const closedResult = await resolveAutoPreview({
     event: closedEvent,
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
     fetchPullRequest: async () => ({
       state: "closed",
       head: {
@@ -395,6 +518,7 @@ test("resolve-auto-preview rejects forked, closed, and stale PR heads", async ()
   const staleResult = await resolveAutoPreview({
     event: staleEvent,
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
     fetchPullRequest: async () => ({
       state: "open",
       head: {
@@ -407,8 +531,8 @@ test("resolve-auto-preview rejects forked, closed, and stale PR heads", async ()
     })
   });
 
-  assert.equal(forkResult.resolutionStatus, "skipped");
-  assert.match(forkResult.skipReason, /head repository/i);
+  assert.equal(forkResult.resolutionStatus, "blocked");
+  assert.match(forkResult.skipReason, /artifact repository mismatch|artifact head repository mismatch/);
   assert.equal(closedResult.resolutionStatus, "skipped");
   assert.match(closedResult.skipReason, /is closed/i);
   assert.equal(staleResult.resolutionStatus, "blocked");
@@ -427,6 +551,7 @@ test("resolve-auto-preview emits controlled blocked and skipped machine-readable
       })
     ),
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
     fetchPullRequest: async () => ({})
   });
   const skippedResult = await resolveAutoPreview({
@@ -440,6 +565,7 @@ test("resolve-auto-preview emits controlled blocked and skipped machine-readable
       })
     ),
     repository: EXPECTED_REPOSITORY,
+    context: createAutoPreviewContext(),
     fetchPullRequest: async () => ({})
   });
 
@@ -452,10 +578,12 @@ test("resolve-auto-preview emits controlled blocked and skipped machine-readable
 test("resolve-auto-preview CLI fails hard for malformed event payloads and missing token", () => {
   const tmpRoot = createSystemTmpDir("clariobase-auto-preview-cli-");
   const eventPath = path.join(tmpRoot, "event.json");
+  const contextPath = path.join(tmpRoot, "auto-preview-context.json");
   const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
 
   try {
     fs.writeFileSync(eventPath, "{bad json", "utf8");
+    fs.writeFileSync(contextPath, JSON.stringify(createAutoPreviewContext()), "utf8");
 
     const malformed = spawnSync(process.execPath, [
       tsxCli,
@@ -463,7 +591,9 @@ test("resolve-auto-preview CLI fails hard for malformed event payloads and missi
       "--event-path",
       eventPath,
       "--repository",
-      EXPECTED_REPOSITORY
+      EXPECTED_REPOSITORY,
+      "--context-path",
+      contextPath
     ], {
       cwd: repoRoot,
       encoding: "utf8",
@@ -475,13 +605,16 @@ test("resolve-auto-preview CLI fails hard for malformed event payloads and missi
     assert.notEqual(malformed.status, 0);
 
     fs.writeFileSync(eventPath, JSON.stringify(createWorkflowRunEvent()), "utf8");
+    fs.writeFileSync(contextPath, JSON.stringify(createAutoPreviewContext()), "utf8");
     const missingToken = spawnSync(process.execPath, [
       tsxCli,
       path.join(repoRoot, "scripts/resolve-auto-preview.ts"),
       "--event-path",
       eventPath,
       "--repository",
-      EXPECTED_REPOSITORY
+      EXPECTED_REPOSITORY,
+      "--context-path",
+      contextPath
     ], {
       cwd: repoRoot,
       encoding: "utf8",
@@ -501,11 +634,13 @@ test("resolve-auto-preview CLI fails hard for malformed event payloads and missi
 test("resolve-auto-preview CLI fails hard for GitHub API failures", () => {
   const tmpRoot = createSystemTmpDir("clariobase-auto-preview-api-failure-");
   const eventPath = path.join(tmpRoot, "event.json");
+  const contextPath = path.join(tmpRoot, "auto-preview-context.json");
   const loaderPath = path.join(tmpRoot, "mock-loader.cjs");
   const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
 
   try {
     fs.writeFileSync(eventPath, JSON.stringify(createWorkflowRunEvent()), "utf8");
+    fs.writeFileSync(contextPath, JSON.stringify(createAutoPreviewContext()), "utf8");
     fs.writeFileSync(
       loaderPath,
       "global.fetch = async () => ({ ok: false, status: 503 });",
@@ -520,7 +655,9 @@ test("resolve-auto-preview CLI fails hard for GitHub API failures", () => {
       "--event-path",
       eventPath,
       "--repository",
-      EXPECTED_REPOSITORY
+      EXPECTED_REPOSITORY,
+      "--context-path",
+      contextPath
     ], {
       cwd: repoRoot,
       encoding: "utf8",
