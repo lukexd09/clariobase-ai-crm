@@ -20,6 +20,7 @@ jobs:
   resolve-auto-preview:
     runs-on: ubuntu-latest
     outputs:
+      resolution_status: ${{ steps.resolve.outputs.resolution_status }}
       should_deploy: ${{ steps.resolve.outputs.should_deploy }}
       pr_number: ${{ steps.resolve.outputs.pr_number }}
       pr_url: ${{ steps.resolve.outputs.pr_url }}
@@ -27,7 +28,8 @@ jobs:
       validated_sha: ${{ steps.resolve.outputs.validated_sha }}
       skip_reason: ${{ steps.resolve.outputs.skip_reason }}
       ci_run_url: ${{ steps.resolve.outputs.ci_run_url }}
-      gate_result: ${{ steps.gate_result.outputs.gate_result }}
+      gate_result: ${{ steps.classify.outputs.gate_result }}
+      gate_reason: ${{ steps.classify.outputs.gate_reason }}
 
     steps:
       - name: Check out trusted workflow revision
@@ -51,7 +53,6 @@ jobs:
 
       - name: Resolve trusted PR head
         id: resolve
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: >
@@ -59,48 +60,82 @@ jobs:
           --event-path "${{ github.event_path }}"
           --repository "${{ github.repository }}"
 
-      - name: Classify gate result
-        id: gate_result
+      - name: Classify resolver execution failure
+        if: failure()
         shell: bash
         run: |
-          if [ "${{ steps.resolve.outcome }}" = "success" ] && [ "${{ steps.resolve.outputs.should_deploy }}" = "true" ]; then
-            echo "gate_result=PASS" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ steps.resolve.outputs.skip_reason }}" == BLOCKED:* ]]; then
-            echo "gate_result=BLOCKED" >> "$GITHUB_OUTPUT"
+          {
+            echo "gate_result=BLOCKED"
+            echo "gate_reason=BLOCKED: resolver execution failed"
+          } >> "$GITHUB_OUTPUT"
+        id: classify_failure
+
+      - name: Classify gate result
+        if: success()
+        id: classify
+        shell: bash
+        env:
+          RESOLUTION_STATUS: ${{ steps.resolve.outputs.resolution_status }}
+          SHOULD_DEPLOY: ${{ steps.resolve.outputs.should_deploy }}
+          SKIP_REASON: ${{ steps.resolve.outputs.skip_reason }}
+        run: |
+          if [ "$RESOLUTION_STATUS" = "deploy" ] && [ "$SHOULD_DEPLOY" = "true" ]; then
+            {
+              echo "gate_result=PASS"
+              echo "gate_reason=eligible"
+            } >> "$GITHUB_OUTPUT"
+          elif [ "$RESOLUTION_STATUS" = "blocked" ]; then
+            {
+              echo "gate_result=BLOCKED"
+              echo "gate_reason=$SKIP_REASON"
+            } >> "$GITHUB_OUTPUT"
           else
-            echo "gate_result=SKIPPED" >> "$GITHUB_OUTPUT"
+            {
+              echo "gate_result=SKIPPED"
+              echo "gate_reason=$SKIP_REASON"
+            } >> "$GITHUB_OUTPUT"
           fi
 
       - name: Write gate summary
         shell: bash
+        env:
+          GATE_RESULT: ${{ steps.classify.outputs.gate_result || steps.classify_failure.outputs.gate_result }}
+          PR_URL: ${{ steps.resolve.outputs.pr_url }}
+          HEAD_REF: ${{ steps.resolve.outputs.head_ref }}
+          VALIDATED_SHA: ${{ steps.resolve.outputs.validated_sha }}
+          CI_RUN_URL: ${{ steps.resolve.outputs.ci_run_url }}
+          GATE_REASON: ${{ steps.classify.outputs.gate_reason || steps.classify_failure.outputs.gate_reason }}
         run: |
           {
-            echo "Result: ${{ steps.gate_result.outputs.gate_result }}"
+            echo "Result: ${GATE_RESULT:-BLOCKED}"
             echo
-            echo "PR: ${{ steps.resolve.outputs.pr_url || 'n/a' }}"
-            echo "Branch: ${{ steps.resolve.outputs.head_ref || 'n/a' }}"
-            echo "Validated SHA: ${{ steps.resolve.outputs.validated_sha || 'n/a' }}"
-            echo "CI run: ${{ steps.resolve.outputs.ci_run_url || 'n/a' }}"
-            echo "Reason: ${{ steps.resolve.outputs.skip_reason || 'eligible' }}"
+            echo "PR: ${PR_URL:-n/a}"
+            echo "Branch: ${HEAD_REF:-n/a}"
+            echo "Validated SHA: ${VALIDATED_SHA:-n/a}"
+            echo "CI run: ${CI_RUN_URL:-n/a}"
+            echo "Reason: ${GATE_REASON:-BLOCKED: resolver execution failed}"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upsert PR preview comment as blocked
-        if: steps.gate_result.outputs.gate_result == 'BLOCKED' && steps.resolve.outputs.pr_number != ''
+        if: always() && (steps.classify.outputs.gate_result == 'BLOCKED' || steps.classify_failure.outputs.gate_result == 'BLOCKED') && steps.resolve.outputs.pr_number != ''
         uses: actions/github-script@v8
         env:
           PR_NUMBER: ${{ steps.resolve.outputs.pr_number }}
           VALIDATED_SHA: ${{ steps.resolve.outputs.validated_sha }}
           HEAD_REF: ${{ steps.resolve.outputs.head_ref }}
           CI_RUN_URL: ${{ steps.resolve.outputs.ci_run_url }}
+          BLOCK_REASON: ${{ steps.classify.outputs.gate_reason || steps.classify_failure.outputs.gate_reason }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
+            const reason = process.env.BLOCK_REASON || "BLOCKED: resolver execution failed";
             const body = [
               marker,
               "",
               "Preview blocked",
               "",
               "Result: blocked",
+              `Reason: ${reason}`,
               "URL: http://Serwer:3001",
               `Commit: ${process.env.VALIDATED_SHA || "n/a"}`,
               `Branch: ${process.env.HEAD_REF || "n/a"}`,
@@ -134,10 +169,12 @@ jobs:
             }
 
       - name: Fail on blocked gate
-        if: steps.gate_result.outputs.gate_result == 'BLOCKED'
+        if: always() && (steps.classify.outputs.gate_result == 'BLOCKED' || steps.classify_failure.outputs.gate_result == 'BLOCKED')
         shell: bash
+        env:
+          GATE_REASON: ${{ steps.classify.outputs.gate_reason || steps.classify_failure.outputs.gate_reason }}
         run: |
-          echo "${{ steps.resolve.outputs.skip_reason || 'BLOCKED: ambiguous event payload' }}"
+          echo "${GATE_REASON:-BLOCKED: resolver execution failed}"
           exit 1
 
   deploy-preview:
@@ -184,10 +221,15 @@ jobs:
         run: corepack pnpm install --frozen-lockfile
 
       - name: Revalidate PR head before deployment
+        id: revalidate
         shell: pwsh
+        continue-on-error: true
         working-directory: control
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
         run: |
           $headers = @{
             Accept = "application/vnd.github+json"
@@ -195,22 +237,107 @@ jobs:
             "X-GitHub-Api-Version" = "2022-11-28"
           }
 
-          $prNumber = "${{ needs.resolve-auto-preview.outputs.pr_number }}"
-          $pr = Invoke-RestMethod -Method Get -Headers $headers -Uri "https://api.github.com/repos/${{ github.repository }}/pulls/$prNumber"
+          try {
+            $pr = Invoke-RestMethod -Method Get -Headers $headers -Uri "https://api.github.com/repos/$env:REPOSITORY/pulls/$env:PR_NUMBER"
+          } catch {
+            throw "FAIL: runner-side PR revalidation request failed"
+          }
+
+          $result = "PASS"
+          $reason = ""
 
           if ($pr.state -ne "open") {
-            throw "BLOCKED: PR is no longer open"
+            $result = "BLOCKED"
+            $reason = "BLOCKED: PR is no longer open"
+          } elseif ($pr.head.repo.full_name -ne $env:REPOSITORY) {
+            $result = "BLOCKED"
+            $reason = "BLOCKED: PR head repository is no longer trusted"
+          } elseif ($pr.head.sha.ToLowerInvariant() -ne $env:VALIDATED_SHA.ToLowerInvariant()) {
+            $result = "BLOCKED"
+            $reason = "BLOCKED: stale validated SHA"
           }
 
-          if ($pr.head.repo.full_name -ne "${{ github.repository }}") {
-            throw "BLOCKED: PR head repository is no longer trusted"
+          "runner_revalidation_result=$result" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "runner_revalidation_reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+          if ($result -eq "BLOCKED") {
+            exit 0
           }
 
-          if ($pr.head.sha.ToLowerInvariant() -ne "${{ needs.resolve-auto-preview.outputs.validated_sha }}") {
-            throw "BLOCKED: stale validated SHA"
-          }
+      - name: Stop on blocked runner revalidation
+        if: steps.revalidate.outputs.runner_revalidation_result == 'BLOCKED'
+        shell: pwsh
+        env:
+          BLOCK_REASON: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
+        run: |
+          @"
+          Result: BLOCKED
+
+          Reason: $env:BLOCK_REASON
+          Preview URL: http://Serwer:3001
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Upsert PR preview comment as blocked after runner revalidation
+        if: steps.revalidate.outputs.runner_revalidation_result == 'BLOCKED'
+        uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
+          HEAD_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
+          CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
+          BLOCK_REASON: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
+        with:
+          script: |
+            const marker = "<!-- clariobase-preview-status -->";
+            const body = [
+              marker,
+              "",
+              "Preview blocked",
+              "",
+              "Result: blocked",
+              `Reason: ${process.env.BLOCK_REASON}`,
+              "URL: http://Serwer:3001",
+              `Commit: ${process.env.VALIDATED_SHA}`,
+              `Branch: ${process.env.HEAD_REF}`,
+              `CI: ${process.env.CI_RUN_URL}`,
+              `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `Timestamp: ${new Date().toISOString()}`
+            ].join("\n");
+            const issue_number = Number(process.env.PR_NUMBER);
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100
+            });
+            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body
+              });
+            }
+
+      - name: Fail on blocked runner revalidation
+        if: steps.revalidate.outputs.runner_revalidation_result == 'BLOCKED'
+        shell: pwsh
+        env:
+          BLOCK_REASON: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
+        run: |
+          throw $env:BLOCK_REASON
 
       - name: Materialize preview env file
+        if: steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
         shell: pwsh
         working-directory: control
         env:
@@ -226,6 +353,7 @@ jobs:
           Set-Content .env.compose.preview.local $updated
 
       - name: Upsert PR preview comment as deploying
+        if: steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
         uses: actions/github-script@v8
         env:
           PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
@@ -275,12 +403,16 @@ jobs:
 
       - name: Deploy preview
         id: deploy
+        if: steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
         shell: pwsh
         working-directory: control
+        env:
+          REQUESTED_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
+          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
-            -RequestedRef "${{ needs.resolve-auto-preview.outputs.head_ref }}" `
-            -ResolvedSha "${{ needs.resolve-auto-preview.outputs.validated_sha }}" `
+            -RequestedRef $env:REQUESTED_REF `
+            -ResolvedSha $env:VALIDATED_SHA `
             -ControlCheckoutPath $PWD `
             -SourceCheckoutPath (Join-Path $PWD "..\source") `
             -PreviewEnvFile .\.env.compose.preview.local
@@ -294,6 +426,7 @@ jobs:
           "preview_url=http://Serwer:3001" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Verify preview readiness
+        if: steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
         shell: pwsh
         run: |
           $response = Invoke-WebRequest -Method Get -Uri "http://127.0.0.1:3001/api/ready"
@@ -307,39 +440,29 @@ jobs:
             throw "Preview readiness failed."
           }
 
-      - name: Verify production readiness
-        shell: pwsh
-        run: |
-          $response = Invoke-WebRequest -Method Get -Uri "http://127.0.0.1:3000/api/ready"
-          if ($response.StatusCode -ne 200) {
-            throw "Production readiness HTTP status was $($response.StatusCode)."
-          }
-
-          $production = $response.Content | ConvertFrom-Json
-
-          if ($production.status -ne "ok" -or $production.checks.database -ne "ok") {
-            throw "Production readiness failed."
-          }
-
       - name: Write deployment summary
-        if: success()
+        if: success() && steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
         shell: pwsh
+        env:
+          PR_URL: ${{ needs.resolve-auto-preview.outputs.pr_url }}
+          HEAD_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
+          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
+          CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
         run: |
           @"
           Result: PASS
 
-          PR: `${{ needs.resolve-auto-preview.outputs.pr_url }}`
-          Branch: `${{ needs.resolve-auto-preview.outputs.head_ref }}`
-          Validated SHA: `${{ needs.resolve-auto-preview.outputs.validated_sha }}`
-          Preview URL: `http://Serwer:3001`
+          PR: $env:PR_URL
+          Branch: $env:HEAD_REF
+          Validated SHA: $env:VALIDATED_SHA
+          Preview URL: http://Serwer:3001
           Preview readiness: PASS
-          Production readiness: PASS
-          CI run: `${{ needs.resolve-auto-preview.outputs.ci_run_url }}`
-          Deployment run: `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`
+          CI run: $env:CI_RUN_URL
+          Deployment run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
       - name: Upsert PR preview comment as ready
-        if: success()
+        if: success() && steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
         uses: actions/github-script@v8
         env:
           PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
@@ -388,7 +511,7 @@ jobs:
             }
 
       - name: Upsert PR preview comment as failed
-        if: failure()
+        if: failure() && steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
         uses: actions/github-script@v8
         env:
           PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}

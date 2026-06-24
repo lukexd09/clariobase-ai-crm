@@ -70,6 +70,7 @@ Startup mode: Automatic with delayed startup behavior
 The runner root and work directories must stay outside the protected production checkout.
 Normal operation must not require an interactive `run.cmd` listener window.
 The runner services one shared preview slot, so manual deploy, automatic deploy, and stop preview workflows must serialize through the same GitHub Actions concurrency group: `clariobase-preview-slot`.
+Preview automation must not depend on any production runtime endpoint being reachable from this host.
 
 ## Preflight
 
@@ -167,7 +168,7 @@ The E016 restart rehearsal completed successfully on `2026-06-16`:
 - a new runner diagnostic log appeared in `_diag`;
 - Deploy Preview succeeded after restart;
 - preview readiness on port `3001` returned `database: ok`;
-- production readiness on port `3000` remained `database: ok`;
+- any separate production verification remained out of band and was not part of preview workflow gating;
 - the preview slot was switched from `main` to `epic/e009-light-crm-closeout`;
 - Stop Preview completed successfully after restart;
 - post-stop Docker inspection showed no `clariobase-crm-preview` containers or Compose project.
@@ -227,6 +228,7 @@ Then clean only the dedicated runner root and work directories, never the produc
 
 - self-hosted preview jobs execute trusted same-repository code on the server;
 - automatic preview deploys are allowed only after trusted `CI` success for an open same-repository PR whose live head still matches the validated SHA;
+- preview may succeed while production is remote, stopped, or not yet deployed because production safety is enforced through identifier guards and isolation rather than runtime health checks;
 - only trusted repository refs may be deployed;
 - `pull_request_target` must not be used for untrusted code execution;
 - the runner must not be installed inside the production checkout;

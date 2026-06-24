@@ -53,7 +53,7 @@ export type ResolutionStatus = "deploy" | "skipped" | "blocked";
 export type CommentResult = "deploying" | "ready" | "failed" | "blocked";
 
 export type ResolutionResult = {
-  status: ResolutionStatus;
+  resolutionStatus: ResolutionStatus;
   shouldDeploy: boolean;
   skipReason: string;
   prNumber: string;
@@ -89,7 +89,7 @@ function isFullSha(value: string | undefined): value is string {
 
 function createResult(partial?: Partial<ResolutionResult>): ResolutionResult {
   return {
-    status: "blocked",
+    resolutionStatus: "blocked",
     shouldDeploy: false,
     skipReason: "BLOCKED: ambiguous event payload",
     prNumber: "",
@@ -125,16 +125,16 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
   const validatedSha = workflowRun.head_sha?.toLowerCase() ?? "";
 
   if (workflowRun.name !== "CI") {
-    return createResult({ status: "skipped", skipReason: "SKIPPED: triggering workflow is not CI", ciRunUrl });
+    return createResult({ resolutionStatus: "skipped", skipReason: "SKIPPED: triggering workflow is not CI", ciRunUrl });
   }
 
   if (workflowRun.status !== "completed") {
-    return createResult({ status: "blocked", skipReason: "BLOCKED: workflow_run status must be completed", ciRunUrl });
+    return createResult({ resolutionStatus: "blocked", skipReason: "BLOCKED: workflow_run status must be completed", ciRunUrl });
   }
 
   if (workflowRun.conclusion !== "success") {
     return createResult({
-      status: "skipped",
+      resolutionStatus: "skipped",
       skipReason: `SKIPPED: CI conclusion is ${workflowRun.conclusion ?? "null"}`,
       ciRunUrl,
       validatedSha
@@ -143,7 +143,7 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
 
   if (workflowRun.event !== "pull_request") {
     return createResult({
-      status: "skipped",
+      resolutionStatus: "skipped",
       skipReason: `SKIPPED: CI event is ${workflowRun.event ?? "unknown"}`,
       ciRunUrl,
       validatedSha
@@ -158,7 +158,7 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
 
   if (associatedPullRequests.length !== 1) {
     return createResult({
-      status: associatedPullRequests.length === 0 ? "skipped" : "blocked",
+      resolutionStatus: associatedPullRequests.length === 0 ? "skipped" : "blocked",
       skipReason:
         associatedPullRequests.length === 0
           ? "SKIPPED: CI run has no associated pull request"
@@ -189,7 +189,7 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
 
   if (associatedHeadRepository !== EXPECTED_REPOSITORY) {
     return createResult({
-      status: "skipped",
+      resolutionStatus: "skipped",
       skipReason: `SKIPPED: PR head repository is ${associatedHeadRepository ?? "unknown"}`,
       ciRunUrl,
       validatedSha,
@@ -205,7 +205,7 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
 
   if (currentPullRequest.state !== "open") {
     return createResult({
-      status: "skipped",
+      resolutionStatus: "skipped",
       skipReason: `SKIPPED: PR #${prNumber} is ${currentPullRequest.state ?? "unknown"}`,
       ciRunUrl,
       validatedSha,
@@ -217,7 +217,7 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
 
   if (currentHeadRepository !== EXPECTED_REPOSITORY) {
     return createResult({
-      status: "skipped",
+      resolutionStatus: "skipped",
       skipReason: `SKIPPED: current PR head repository is ${currentHeadRepository || "unknown"}`,
       ciRunUrl,
       validatedSha,
@@ -240,7 +240,7 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
 
   if (currentHeadSha !== validatedSha) {
     return createResult({
-      status: "blocked",
+      resolutionStatus: "blocked",
       skipReason: "BLOCKED: stale validated SHA",
       ciRunUrl,
       validatedSha,
@@ -251,7 +251,7 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
   }
 
   return createResult({
-    status: "deploy",
+    resolutionStatus: "deploy",
     shouldDeploy: true,
     skipReason: "",
     prNumber: String(prNumber),
@@ -293,6 +293,7 @@ export function writeGithubOutput(result: ResolutionResult) {
   }
 
   const lines = [
+    `resolution_status=${result.resolutionStatus}`,
     `should_deploy=${result.shouldDeploy ? "true" : "false"}`,
     `pr_number=${result.prNumber}`,
     `pr_url=${result.prUrl}`,
@@ -375,9 +376,6 @@ async function main() {
   writeGithubOutput(result);
   console.log(JSON.stringify(result, null, 2));
 
-  if (result.status === "blocked") {
-    process.exitCode = 1;
-  }
 }
 
 const currentFilePath = fileURLToPath(import.meta.url);

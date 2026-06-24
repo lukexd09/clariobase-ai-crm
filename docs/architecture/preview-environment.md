@@ -40,9 +40,9 @@ The current CRM environments are:
 ```text
 Production
   Compose project: clariobase-crm
-  Port:            3000
+  Port:            implementation-specific
   Database:        clariobase_crm
-  URL:             http://Serwer:3000
+  URL:             implementation-specific
 
 Preview
   Compose project: clariobase-crm-preview
@@ -60,7 +60,7 @@ The preview contract distinguishes three boundaries:
 
 - development checkout and local test resources inside this repository;
 - preview runtime deployed from a trusted repository ref into the dedicated preview slot;
-- protected production runtime on `clariobase-crm`.
+- protected production runtime on `clariobase-crm`, which may be local, remote, or not yet deployed.
 
 Preview must remain isolated from production by:
 
@@ -73,6 +73,7 @@ Preview must remain isolated from production by:
 - cleanup scope.
 
 Preview must never reuse production `.env.compose.local`, production AI exchange paths, production containers, or production database identifiers.
+Preview deployment does not query production health and must not depend on production being reachable from the preview host.
 
 ## Approved preview topology
 
@@ -145,7 +146,7 @@ The preview lifecycle is:
 4. the deployment script validates all preview identifiers and guardrails;
 5. preview runtime is built and replaced only inside the approved preview slot;
 6. `prisma migrate deploy` runs only against the preview database;
-7. readiness waits for `/api/ready` on preview and production is checked separately afterward;
+7. readiness waits for `/api/ready` on preview only;
 8. the workflow reports requested ref, resolved SHA, runtime identity, preview URL, and the current PR comment status;
 9. stop or cleanup acts only on the approved preview scope.
 
@@ -157,7 +158,7 @@ Failure behavior must be explicit:
 - gate rejections must surface as explicit `SKIPPED` or `BLOCKED` summaries before the self-hosted runner is used;
 - failed preview startup must not be represented as healthy before `/api/ready` returns HTTP `200`;
 - cleanup after failure must stay within approved preview resources only;
-- a preview failure must not stop, recreate, or mutate the production runtime;
+- a preview failure must not stop, recreate, mutate, or query the production runtime;
 - `SKIPPED` checks remain explicit and must not be reported as `PASS`.
 
 ## Workflow and reporting contract
@@ -173,6 +174,7 @@ The workflow contract must include:
 - shared preview concurrency group `clariobase-preview-slot` across manual deploy, auto deploy, and stop preview;
 - least-privilege permissions;
 - a single persistent PR status comment identified by `<!-- clariobase-preview-status -->`;
+- environment-derived and PR-derived values must be passed into shells through step-level environment variables rather than direct inline interpolation inside `run:` bodies;
 - job summaries that distinguish `PASS`, `FAIL`, `SKIPPED`, and `BLOCKED`.
 
 ## Bootstrap limitation
@@ -186,8 +188,7 @@ The following operator actions remain a post-merge manual gate:
 1. register or confirm the repository-scoped runner;
 2. run `Deploy Preview` from GitHub Actions;
 3. verify `http://Serwer:3001` from another LAN device;
-4. run `Stop Preview`;
-5. confirm production remains healthy.
+4. run `Stop Preview`.
 
 These steps must not be claimed as completed before they actually run.
 

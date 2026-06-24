@@ -30,7 +30,7 @@ tags:
 ## Purpose
 
 This document is the canonical operator runbook for the E016 preview slot.
-It describes the approved preview env file, manual and automatic deployment behavior, operator-visible outputs, and fail-closed safety guards that protect production.
+It describes the approved preview env file, manual and automatic deployment behavior, operator-visible outputs, and fail-closed safety guards that protect production through isolation rather than production-runtime dependencies.
 
 ## Canonical preview assets
 
@@ -112,7 +112,8 @@ Automatic rules:
 - if the current PR head no longer matches that validated SHA, the job stops with `BLOCKED: stale validated SHA`;
 - the deployment still runs through `scripts/deploy-preview.ps1` from the trusted `main` control checkout;
 - application source is checked out at the exact validated SHA into a separate `source` directory;
-- preview and production readiness are reported separately after deployment.
+- preview readiness alone determines automatic preview deployment success.
+- production may run on the same machine, on another machine, or not yet exist, without affecting preview deployment eligibility.
 
 Because the preview slot is shared, the most recently completed eligible successful PR deployment replaces the previous preview regardless of which PR deployed earlier.
 
@@ -180,7 +181,7 @@ Automatic deploy additionally reports:
 
 - CI run URL;
 - automatic deployment run URL;
-- explicit preview and production readiness results;
+- explicit preview readiness results;
 - one persistent PR status comment showing which SHA currently occupies the slot.
 
 Successful stop reports:
