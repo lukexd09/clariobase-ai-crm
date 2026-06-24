@@ -11,7 +11,14 @@ const config = [
     extends: ["next/core-web-vitals"]
   }),
   {
-    ignores: ["node_modules/**", ".next/**", "coverage/**", "generated/**", "src/generated/**"]
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      ".pytest_cache/**",
+      "coverage/**",
+      "generated/**",
+      "src/generated/**"
+    ]
   }
 ];
 

@@ -1,14 +1,15 @@
 ---
-title: Manual preview environment contract
+title: Preview environment contract
 document_id: DOC-E016-PREVIEW-ENVIRONMENT
 document_type: architecture
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-15
+last_updated: 2026-06-24
 related_epic: E016
 related_tasks:
   - E016.T001
+  - E016.T009
 related_components:
   - COMP-CRM-PREVIEW-APP
   - COMP-CRM-PREVIEW-POSTGRES
@@ -25,12 +26,12 @@ tags:
   - safety
 ---
 
-# Manual preview environment contract
+# Preview environment contract
 
 ## Purpose
 
 This document is the canonical architecture contract for `E016 - Add manual branch preview environment and CI foundation`.
-It defines the approved preview topology, trust boundaries, production-protection rules, lifecycle, and operator-visible reporting rules for a single manually deployed preview slot.
+It defines the approved preview topology, trust boundaries, production-protection rules, lifecycle, and operator-visible reporting rules for a single shared preview slot used by both manual and post-CI automatic deployments.
 
 ## Implemented and protected environments
 
@@ -95,13 +96,16 @@ Because Docker Compose namespaces containers, networks, and named volumes by pro
 
 ## Trust boundaries for refs and execution
 
-Preview deployment is manual and trusted-ref only.
+Preview deployment uses trusted control workflows only.
 
 The trust contract is:
 
 - only refs from `lukexd09/clariobase-ai-crm` may be deployed;
 - forked pull request code must not execute on the self-hosted runner;
-- workflow inputs must resolve to an exact commit SHA before deployment begins;
+- manual workflow inputs must resolve to an exact commit SHA before deployment begins;
+- automatic preview deployment must trigger only from the trusted `workflow_run` completion of `CI` after the workflow file exists on the default branch;
+- automatic preview deployment must treat the completed CI run `head_sha` as the validated commit and must separately confirm through the GitHub API that the current PR head still matches that SHA;
+- stale CI results must stop with `BLOCKED: stale validated SHA`;
 - the resolved SHA must be reported back to the operator;
 - preview jobs run code on the server and therefore require explicit runner and workflow documentation;
 - preview deploy and stop operations must serialize access to the single preview slot.
@@ -135,20 +139,22 @@ docker network prune
 
 The preview lifecycle is:
 
-1. operator selects a trusted repository ref;
-2. workflow resolves the exact commit SHA;
-3. deployment script validates all preview identifiers and guardrails;
-4. preview runtime is built and replaced only inside the approved preview slot;
-5. `prisma migrate deploy` runs only against the preview database;
-6. readiness waits for `/api/ready`;
-7. workflow reports requested ref, resolved SHA, runtime identity, and preview URL;
-8. stop or cleanup acts only on the approved preview scope.
+1. a manual operator selects a trusted repository ref or a successful same-repository PR CI run triggers the trusted auto-deploy workflow from `main`;
+2. the workflow resolves the exact commit SHA that is allowed to deploy;
+3. automatic deployment revalidates the live PR state before using the self-hosted runner and again immediately before deployment after any queue wait;
+4. the deployment script validates all preview identifiers and guardrails;
+5. preview runtime is built and replaced only inside the approved preview slot;
+6. `prisma migrate deploy` runs only against the preview database;
+7. readiness waits for `/api/ready` on preview and production is checked separately afterward;
+8. the workflow reports requested ref, resolved SHA, runtime identity, preview URL, and the current PR comment status;
+9. stop or cleanup acts only on the approved preview scope.
 
 ## Failure-state contract
 
 Failure behavior must be explicit:
 
 - preview deployment failure must return `FAIL` or `BLOCKED`, never a hidden success;
+- gate rejections must surface as explicit `SKIPPED` or `BLOCKED` summaries before the self-hosted runner is used;
 - failed preview startup must not be represented as healthy before `/api/ready` returns HTTP `200`;
 - cleanup after failure must stay within approved preview resources only;
 - a preview failure must not stop, recreate, or mutate the production runtime;
@@ -157,19 +163,22 @@ Failure behavior must be explicit:
 ## Workflow and reporting contract
 
 Manual preview control is implemented through `workflow_dispatch`.
+Automatic preview replacement is implemented through `workflow_run` for the `CI` workflow after merge to `main`.
 
 The workflow contract must include:
 
 - trusted ref input;
 - exact resolved SHA reporting;
 - preview URL reporting as `http://Serwer:3001`;
-- dedicated preview concurrency group;
+- shared preview concurrency group `clariobase-preview-slot` across manual deploy, auto deploy, and stop preview;
 - least-privilege permissions;
+- a single persistent PR status comment identified by `<!-- clariobase-preview-status -->`;
 - job summaries that distinguish `PASS`, `FAIL`, `SKIPPED`, and `BLOCKED`.
 
 ## Bootstrap limitation
 
 The preview workflows normally become available in the GitHub UI after the workflow files exist on the default branch.
+This applies especially to the automatic `workflow_run` preview workflow, which cannot react to PR CI runs until its file is merged to `main`.
 
 Pre-merge evidence may cover static workflow validation, scripts, tests, and documentation.
 The following operator actions remain a post-merge manual gate:

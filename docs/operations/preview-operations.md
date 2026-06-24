@@ -1,14 +1,15 @@
 ---
-title: Manual preview operations runbook
+title: Preview operations runbook
 document_id: DOC-E016-PREVIEW-OPERATIONS
 document_type: operations-runbook
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-16
+last_updated: 2026-06-24
 related_epic: E016
 related_tasks:
   - E016.T002
+  - E016.T009
 related_components:
   - COMP-CRM-PREVIEW-APP
   - COMP-CRM-PREVIEW-POSTGRES
@@ -24,12 +25,12 @@ tags:
   - docker
 ---
 
-# Manual preview operations runbook
+# Preview operations runbook
 
 ## Purpose
 
-This document is the canonical operator runbook for the E016 manual preview slot.
-It describes the approved preview env file, deploy and stop commands, operator-visible outputs, and fail-closed safety guards that protect production.
+This document is the canonical operator runbook for the E016 preview slot.
+It describes the approved preview env file, manual and automatic deployment behavior, operator-visible outputs, and fail-closed safety guards that protect production.
 
 ## Canonical preview assets
 
@@ -96,6 +97,25 @@ Deployment behavior:
 
 Each deployment replaces the single preview slot. Preview database contents are intentionally reset so that migrations and test data from a previously deployed branch cannot contaminate the next branch.
 
+## Automatic post-CI preview deploy
+
+After `.github/workflows/auto-deploy-preview.yml` is merged to `main`, a successful `CI` workflow run for an open same-repository pull request automatically replaces the shared preview slot.
+
+Automatic rules:
+
+- trigger source is `workflow_run` for `CI` with `completed`;
+- only `pull_request` CI runs with conclusion `success` are eligible;
+- the workflow must resolve exactly one associated PR;
+- forked PRs are rejected;
+- closed PRs are rejected;
+- the validated SHA is the completed CI run SHA, not a guessed branch ref;
+- if the current PR head no longer matches that validated SHA, the job stops with `BLOCKED: stale validated SHA`;
+- the deployment still runs through `scripts/deploy-preview.ps1` from the trusted `main` control checkout;
+- application source is checked out at the exact validated SHA into a separate `source` directory;
+- preview and production readiness are reported separately after deployment.
+
+Because the preview slot is shared, the most recently completed eligible successful PR deployment replaces the previous preview regardless of which PR deployed earlier.
+
 ## Stop preview
 
 The safe preview stop entrypoint is:
@@ -155,6 +175,13 @@ Successful deploy reports:
 - preview project name;
 - preview volume name;
 - preview network name.
+
+Automatic deploy additionally reports:
+
+- CI run URL;
+- automatic deployment run URL;
+- explicit preview and production readiness results;
+- one persistent PR status comment showing which SHA currently occupies the slot.
 
 Successful stop reports:
 
