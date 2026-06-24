@@ -74,6 +74,13 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(ciWorkflow, /pull_request:/);
   assert.match(ciWorkflow, /contents: read/);
   assert.match(ciWorkflow, /actions\/checkout@v5/);
+  assert.match(ciWorkflow, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  assert.match(ciWorkflow, /fetch-depth: 1/);
+  assert.match(ciWorkflow, /persist-credentials: false/);
+  assert.match(ciWorkflow, /Verify checked-out PR head SHA/);
+  assert.match(ciWorkflow, /EXPECTED_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  assert.match(ciWorkflow, /ACTUAL_SHA="\$\(git rev-parse HEAD\)"/);
+  assert.match(ciWorkflow, /Validated SHA: \$ACTUAL_SHA/);
   assert.match(ciWorkflow, /actions\/setup-node@v5/);
   assert.match(ciWorkflow, /node-version: 22/);
   assert.match(ciWorkflow, /package-manager-cache: false/);
@@ -149,6 +156,9 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(autoDeployWorkflow, /resolution_status: \$\{\{ steps\.resolve\.outputs\.resolution_status \}\}/);
   assert.match(autoDeployWorkflow, /BLOCKED: resolver execution failed/);
   assert.match(autoDeployWorkflow, /runner_revalidation_result=\$result/);
+  assert.match(autoDeployWorkflow, /if: always\(\)\s*\n\s*shell: bash\s*\n\s*env:\s*\n\s*GATE_RESULT:/);
+  assert.match(autoDeployWorkflow, /gate_result: \$\{\{ steps\.classify\.outputs\.gate_result \|\| steps\.classify_failure\.outputs\.gate_result \}\}/);
+  assert.match(autoDeployWorkflow, /gate_reason: \$\{\{ steps\.classify\.outputs\.gate_reason \|\| steps\.classify_failure\.outputs\.gate_reason \}\}/);
   assert.doesNotMatch(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3000\/api\/ready/);
   assert.doesNotMatch(autoDeployWorkflow, /\non:\s*\n\s*push:/);
   assert.doesNotMatch(autoDeployWorkflow, /pull_request_target/);
@@ -183,6 +193,36 @@ test("auto preview workflow passes PR-derived values through env inside run step
       assert.doesNotMatch(block, pattern);
     }
   }
+});
+
+test("auto preview workflow revalidation fails closed and gates deployment on exact PASS", () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+
+  assert.doesNotMatch(workflow, /Revalidate PR head before deployment[\s\S]*continue-on-error:\s*true/);
+  assert.match(workflow, /BLOCKED: runner-side PR revalidation request failed/);
+
+  const passGatedSteps = [
+    "Materialize preview env file",
+    "Upsert PR preview comment as deploying",
+    "Deploy preview",
+    "Verify preview readiness"
+  ];
+
+  for (const stepName of passGatedSteps) {
+    const pattern = new RegExp(`- name: ${stepName}[\\s\\S]*?if: steps\\.revalidate\\.outputs\\.runner_revalidation_result == 'PASS'`);
+    assert.match(workflow, pattern);
+  }
+
+  assert.match(
+    workflow,
+    /- name: Write deployment summary[\s\S]*?if: success\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/
+  );
+  assert.match(
+    workflow,
+    /- name: Upsert PR preview comment as ready[\s\S]*?if: success\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/
+  );
+
+  assert.doesNotMatch(workflow, /runner_revalidation_result != 'BLOCKED'/);
 });
 
 test("E016 telemetry keeps implementation evidence separate from dynamic PR metadata", () => {
@@ -765,7 +805,7 @@ test("runner-side blocked states are documented separately from deployment failu
 
   assert.match(workflow, /runner_revalidation_result=\$result/);
   assert.match(workflow, /Upsert PR preview comment as blocked after runner revalidation/);
-  assert.match(workflow, /if: failure\(\) && steps\.revalidate\.outputs\.runner_revalidation_result != 'BLOCKED'/);
+  assert.match(workflow, /if: failure\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/);
   assert.doesNotMatch(workflow, /Verify production readiness/);
 });
 

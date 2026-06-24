@@ -105,6 +105,7 @@ Automatic rules:
 
 - trigger source is `workflow_run` for `CI` with `completed`;
 - only `pull_request` CI runs with conclusion `success` are eligible;
+- the CI workflow checks out the exact PR head SHA rather than `refs/pull/<n>/merge`;
 - the workflow must resolve exactly one associated PR;
 - forked PRs are rejected;
 - closed PRs are rejected;

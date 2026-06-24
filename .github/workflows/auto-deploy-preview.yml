@@ -28,8 +28,8 @@ jobs:
       validated_sha: ${{ steps.resolve.outputs.validated_sha }}
       skip_reason: ${{ steps.resolve.outputs.skip_reason }}
       ci_run_url: ${{ steps.resolve.outputs.ci_run_url }}
-      gate_result: ${{ steps.classify.outputs.gate_result }}
-      gate_reason: ${{ steps.classify.outputs.gate_reason }}
+      gate_result: ${{ steps.classify.outputs.gate_result || steps.classify_failure.outputs.gate_result }}
+      gate_reason: ${{ steps.classify.outputs.gate_reason || steps.classify_failure.outputs.gate_reason }}
 
     steps:
       - name: Check out trusted workflow revision
@@ -97,6 +97,7 @@ jobs:
           fi
 
       - name: Write gate summary
+        if: always()
         shell: bash
         env:
           GATE_RESULT: ${{ steps.classify.outputs.gate_result || steps.classify_failure.outputs.gate_result }}
@@ -223,7 +224,6 @@ jobs:
       - name: Revalidate PR head before deployment
         id: revalidate
         shell: pwsh
-        continue-on-error: true
         working-directory: control
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -237,32 +237,29 @@ jobs:
             "X-GitHub-Api-Version" = "2022-11-28"
           }
 
-          try {
-            $pr = Invoke-RestMethod -Method Get -Headers $headers -Uri "https://api.github.com/repos/$env:REPOSITORY/pulls/$env:PR_NUMBER"
-          } catch {
-            throw "FAIL: runner-side PR revalidation request failed"
-          }
-
           $result = "PASS"
           $reason = ""
 
-          if ($pr.state -ne "open") {
+          try {
+            $pr = Invoke-RestMethod -Method Get -Headers $headers -Uri "https://api.github.com/repos/$env:REPOSITORY/pulls/$env:PR_NUMBER"
+
+            if ($pr.state -ne "open") {
+              $result = "BLOCKED"
+              $reason = "BLOCKED: PR is no longer open"
+            } elseif ($pr.head.repo.full_name -ne $env:REPOSITORY) {
+              $result = "BLOCKED"
+              $reason = "BLOCKED: PR head repository is no longer trusted"
+            } elseif ($pr.head.sha.ToLowerInvariant() -ne $env:VALIDATED_SHA.ToLowerInvariant()) {
+              $result = "BLOCKED"
+              $reason = "BLOCKED: stale validated SHA"
+            }
+          } catch {
             $result = "BLOCKED"
-            $reason = "BLOCKED: PR is no longer open"
-          } elseif ($pr.head.repo.full_name -ne $env:REPOSITORY) {
-            $result = "BLOCKED"
-            $reason = "BLOCKED: PR head repository is no longer trusted"
-          } elseif ($pr.head.sha.ToLowerInvariant() -ne $env:VALIDATED_SHA.ToLowerInvariant()) {
-            $result = "BLOCKED"
-            $reason = "BLOCKED: stale validated SHA"
+            $reason = "BLOCKED: runner-side PR revalidation request failed"
           }
 
           "runner_revalidation_result=$result" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "runner_revalidation_reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
-          if ($result -eq "BLOCKED") {
-            exit 0
-          }
 
       - name: Stop on blocked runner revalidation
         if: steps.revalidate.outputs.runner_revalidation_result == 'BLOCKED'
@@ -337,7 +334,7 @@ jobs:
           throw $env:BLOCK_REASON
 
       - name: Materialize preview env file
-        if: steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
         working-directory: control
         env:
@@ -353,7 +350,7 @@ jobs:
           Set-Content .env.compose.preview.local $updated
 
       - name: Upsert PR preview comment as deploying
-        if: steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         uses: actions/github-script@v8
         env:
           PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
@@ -403,7 +400,7 @@ jobs:
 
       - name: Deploy preview
         id: deploy
-        if: steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
         working-directory: control
         env:
@@ -426,7 +423,7 @@ jobs:
           "preview_url=http://Serwer:3001" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Verify preview readiness
-        if: steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
         run: |
           $response = Invoke-WebRequest -Method Get -Uri "http://127.0.0.1:3001/api/ready"
@@ -441,7 +438,7 @@ jobs:
           }
 
       - name: Write deployment summary
-        if: success() && steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
+        if: success() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
         env:
           PR_URL: ${{ needs.resolve-auto-preview.outputs.pr_url }}
@@ -462,7 +459,7 @@ jobs:
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
       - name: Upsert PR preview comment as ready
-        if: success() && steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
+        if: success() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         uses: actions/github-script@v8
         env:
           PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
@@ -511,7 +508,7 @@ jobs:
             }
 
       - name: Upsert PR preview comment as failed
-        if: failure() && steps.revalidate.outputs.runner_revalidation_result != 'BLOCKED'
+        if: failure() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         uses: actions/github-script@v8
         env:
           PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}

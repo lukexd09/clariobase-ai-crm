@@ -105,6 +105,7 @@ The trust contract is:
 - forked pull request code must not execute on the self-hosted runner;
 - manual workflow inputs must resolve to an exact commit SHA before deployment begins;
 - automatic preview deployment must trigger only from the trusted `workflow_run` completion of `CI` after the workflow file exists on the default branch;
+- CI must check out and validate the exact pull-request head SHA rather than GitHub's synthetic pull-request merge ref so that `workflow_run.head_sha` is the validated preview source;
 - automatic preview deployment must treat the completed CI run `head_sha` as the validated commit and must separately confirm through the GitHub API that the current PR head still matches that SHA;
 - stale CI results must stop with `BLOCKED: stale validated SHA`;
 - the resolved SHA must be reported back to the operator;
