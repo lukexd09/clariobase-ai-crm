@@ -40,7 +40,7 @@ export type PreviewRuntimeConfig = {
   previewAiExchangeAbsolutePath: string;
   previewLocalReadyUrl: string;
   previewUrl: string;
-  buildContextPath: string;
+  previewImageRef: string;
   env: PreviewEnv;
 };
 
@@ -186,6 +186,18 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
     throw new Error(`Preview AI exchange path must stay pinned to ${PREVIEW_AI_EXCHANGE_PATH}.`);
   }
 
+  const previewImageRef = process.env.CRM_PREVIEW_IMAGE_REF ?? "";
+
+  if (!previewImageRef.trim()) {
+    throw new Error("CRM_PREVIEW_IMAGE_REF must be provided for immutable preview deployments.");
+  }
+
+  if (!/^ghcr\.io\/lukexd09\/clariobase-ai-crm@sha256:[0-9a-f]{64}$/.test(previewImageRef)) {
+    throw new Error(
+      "CRM_PREVIEW_IMAGE_REF must match ghcr.io/lukexd09/clariobase-ai-crm@sha256:<64 lowercase hex characters>."
+    );
+  }
+
   const previewAiExchangeAbsolutePath = path.resolve(repoRoot, env.AI_EXCHANGE_HOST_PATH);
 
   assertDistinctComparablePath(
@@ -200,7 +212,7 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
     previewAiExchangeAbsolutePath,
     previewLocalReadyUrl: `http://127.0.0.1:${PREVIEW_HOST_PORT}/api/ready`,
     previewUrl: PREVIEW_URL,
-    buildContextPath: path.resolve(process.env.CRM_BUILD_CONTEXT ?? repoRoot),
+    previewImageRef,
     env
   };
 }
@@ -254,7 +266,6 @@ export function buildComposeArgs(previewEnvFilePath: string, composeArgs: string
 
 export function buildDeployPlan(previewEnvFilePath: string) {
   return {
-    buildApp: buildComposeArgs(previewEnvFilePath, ["build", "crm-app"]),
     replaceExistingPreview: buildComposeArgs(
       previewEnvFilePath,
       ["down", "-v", "--remove-orphans"]
@@ -367,7 +378,6 @@ export function executeDeployPlanWithEnv(
   ) => runCommandWithMergedEnv(command, args, env)
 ) {
   const steps = [
-    ["docker compose build crm-app", deployPlan.buildApp],
     ["replace existing preview stack", deployPlan.replaceExistingPreview],
     ["docker compose up -d crm-postgres", deployPlan.startDatabase],
     ["preview prisma migrate deploy", deployPlan.migrate],

@@ -188,8 +188,128 @@ jobs:
           echo "${GATE_REASON:-BLOCKED: resolver execution failed}"
           exit 1
 
-  deploy-preview:
+  build-preview-image:
     needs: resolve-auto-preview
+    if: needs.resolve-auto-preview.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_ref: ${{ steps.publish.outputs.image_ref }}
+      image_digest: ${{ steps.publish.outputs.image_digest }}
+      source_sha: ${{ steps.publish.outputs.source_sha }}
+      ci_run_id: ${{ steps.publish.outputs.ci_run_id }}
+      image_build_run_id: ${{ steps.publish.outputs.image_build_run_id }}
+
+    steps:
+      - name: Check out validated source SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ needs.resolve-auto-preview.outputs.validated_sha }}
+
+      - name: Build immutable preview image
+        id: build-image
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: true
+          sbom: true
+
+      - name: Smoke test immutable image
+        shell: pwsh
+        run: |
+          $imageRef = "ghcr.io/${{ github.repository }}:${{ needs.resolve-auto-preview.outputs.validated_sha }}"
+          $env:CRM_PREVIEW_IMAGE_REF = $imageRef
+          $env:CRM_POSTGRES_PASSWORD = "preview-password"
+          corepack pnpm exec tsx tests/fixtures/health-container-smoke.ts $imageRef 3001
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Push immutable preview image
+        shell: bash
+        env:
+          IMAGE_TAG: ghcr.io/${{ github.repository }}:${{ needs.resolve-auto-preview.outputs.validated_sha }}
+        run: |
+          docker push "$IMAGE_TAG"
+
+      - name: Publish immutable image metadata
+        id: publish
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
+          IMAGE_DIGEST: ${{ steps.build-image.outputs.digest }}
+          CI_RUN_ID: ${{ github.event.workflow_run.id }}
+          IMAGE_BUILD_RUN_ID: ${{ github.run_id }}
+        run: |
+          IMAGE_REF="ghcr.io/${{ github.repository }}@${IMAGE_DIGEST}"
+
+          cat > immutable-preview-image.json <<JSON
+          {
+            "repository": "${{ github.repository }}",
+            "sourceSha": "${SOURCE_SHA}",
+            "image": "ghcr.io/${{ github.repository }}",
+            "digest": "${IMAGE_DIGEST}",
+            "imageRef": "${IMAGE_REF}",
+            "ciRunId": "${CI_RUN_ID}",
+            "imageBuildRunId": "${IMAGE_BUILD_RUN_ID}"
+          }
+          JSON
+
+          {
+            echo "image_ref=${IMAGE_REF}"
+            echo "image_digest=${IMAGE_DIGEST}"
+            echo "source_sha=${SOURCE_SHA}"
+            echo "ci_run_id=${CI_RUN_ID}"
+            echo "image_build_run_id=${IMAGE_BUILD_RUN_ID}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable preview image metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: immutable-preview-image
+          path: immutable-preview-image.json
+          retention-days: 7
+
+  deploy-preview:
+    needs:
+      - resolve-auto-preview
+      - build-preview-image
     if: needs.resolve-auto-preview.outputs.should_deploy == 'true'
     runs-on:
       - self-hosted
@@ -197,6 +317,11 @@ jobs:
       - x64
       - clariobase-preview
     environment: e016-preview-operator
+    permissions:
+      contents: read
+      packages: read
+      issues: write
+      pull-requests: read
 
     steps:
       - name: Check out trusted control checkout
@@ -204,14 +329,6 @@ jobs:
         with:
           ref: main
           path: control
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Check out validated source SHA
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
-          path: source
           fetch-depth: 1
           persist-credentials: false
 
@@ -416,12 +533,12 @@ jobs:
         env:
           REQUESTED_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
           VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
+          CRM_PREVIEW_IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
             -RequestedRef $env:REQUESTED_REF `
             -ResolvedSha $env:VALIDATED_SHA `
             -ControlCheckoutPath $PWD `
-            -SourceCheckoutPath (Join-Path $PWD "..\source") `
             -PreviewEnvFile .\.env.compose.preview.local
 
           $deployExitCode = $LASTEXITCODE
@@ -465,6 +582,7 @@ jobs:
           Preview URL: http://Serwer:3001
           Preview readiness: PASS
           CI run: $env:CI_RUN_URL
+          Image build run: ${{ needs.build-preview-image.outputs.image_build_run_id }}
           Deployment run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
@@ -476,6 +594,8 @@ jobs:
           VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
           HEAD_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
           CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
+          IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+          IMAGE_BUILD_RUN_ID: ${{ needs.build-preview-image.outputs.image_build_run_id }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
@@ -487,8 +607,10 @@ jobs:
               "Result: ready",
               "URL: http://Serwer:3001",
               `Commit: ${process.env.VALIDATED_SHA}`,
+              `Image: ${process.env.IMAGE_REF}`,
               `Branch: ${process.env.HEAD_REF}`,
               `CI: ${process.env.CI_RUN_URL}`,
+              `Image build: ${process.env.IMAGE_BUILD_RUN_ID}`,
               `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               `Timestamp: ${new Date().toISOString()}`
             ].join("\n");

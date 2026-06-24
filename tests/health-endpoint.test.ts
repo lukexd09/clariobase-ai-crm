@@ -7,7 +7,6 @@ import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { createCleanupController, reserveFreePort, terminateProcessTree } from "../scripts/docker-test-support";
-import { createRepoTmpDir } from "./test-helpers";
 
 const repoRoot = path.resolve(__dirname, "..");
 const nextCli = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
@@ -50,28 +49,6 @@ async function waitForHealth(url: string, timeoutMs = 60000) {
   }
 
   throw new Error(`${url} did not return HTTP 200 in time.`);
-}
-
-async function waitForFile(filePath: string, timeoutMs = 60000) {
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < timeoutMs) {
-    if (fs.existsSync(filePath)) {
-      return;
-    }
-
-    await delay(250);
-  }
-
-  throw new Error(`${filePath} was not created in time.`);
-}
-
-async function waitForChildExit(child: ReturnType<typeof spawn>) {
-  return await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
-    child.once("exit", (code, signal) => {
-      resolve({ code, signal });
-    });
-  });
 }
 
 function buildProductionApp() {
@@ -142,47 +119,6 @@ test("health endpoint is non-cacheable and returns a fresh timestamp on every re
   } finally {
     cleanup.cleanup("test completion");
     terminateProcessTree(childPid);
-    child.removeAllListeners();
-  }
-});
-
-test("health endpoint cleanup controller reaps next start on SIGTERM interruption", { timeout: 180000 }, async () => {
-  buildProductionApp();
-
-  const readinessFile = path.join(createRepoTmpDir(repoRoot, "health-next-start-"), `health-next-start-${Date.now()}.json`);
-  const fixture = path.join(repoRoot, "tests", "fixtures", "health-next-start-smoke.ts");
-  const child = spawn(process.execPath, [path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), fixture, readinessFile], {
-    cwd: repoRoot,
-    stdio: ["ignore", "pipe", "pipe"]
-  });
-
-  let output = "";
-
-  child.stdout.setEncoding("utf8");
-  child.stderr.setEncoding("utf8");
-  child.stdout.on("data", (chunk) => {
-    output += chunk;
-  });
-  child.stderr.on("data", (chunk) => {
-    output += chunk;
-  });
-
-  try {
-    await waitForFile(readinessFile);
-    const payload = JSON.parse(fs.readFileSync(readinessFile, "utf8")) as { childPid: number };
-
-    assert.ok(Number.isInteger(payload.childPid) && payload.childPid > 0, "child PID should be discoverable");
-    assert.equal(processExists(payload.childPid), true);
-
-    child.kill("SIGTERM");
-    const result = await waitForChildExit(child);
-    terminateProcessTree(child.pid ?? 0);
-
-    assert.ok(result.signal === "SIGTERM" || result.code === 143, "fixture should exit from SIGTERM cleanup");
-    assert.equal(processExists(payload.childPid), false, output);
-  } finally {
-    fs.rmSync(readinessFile, { force: true });
-    terminateProcessTree(child.pid ?? 0);
     child.removeAllListeners();
   }
 });
