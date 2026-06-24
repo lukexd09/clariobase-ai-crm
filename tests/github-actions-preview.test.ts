@@ -161,6 +161,9 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(autoDeployWorkflow, /actions: read/);
   assert.match(autoDeployWorkflow, /contents: read/);
   assert.match(autoDeployWorkflow, /issues: write/);
+  assert.match(autoDeployWorkflow, /pull-requests: read/);
+  assert.doesNotMatch(autoDeployWorkflow, /pull-requests: write/);
+  assert.doesNotMatch(autoDeployWorkflow, /write-all/);
   assert.match(autoDeployWorkflow, /group: clariobase-preview-slot/);
   assert.match(autoDeployWorkflow, /resolve-auto-preview\.ts/);
   assert.match(autoDeployWorkflow, /actions\/download-artifact@v4/);
@@ -943,6 +946,8 @@ test("runner-side blocked states are documented separately from deployment failu
   assert.match(workflow, /runner_revalidation_result=\$result/);
   assert.match(workflow, /Upsert PR preview comment as blocked after runner revalidation/);
   assert.match(workflow, /if: failure\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/);
+  assert.match(workflow, /pull-requests: read/);
+  assert.doesNotMatch(workflow, /pull-requests: write/);
   assert.doesNotMatch(workflow, /Verify production readiness/);
 });
 
