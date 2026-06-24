@@ -8,8 +8,7 @@ services:
     labels:
       io.clariobase.runtime-scope: preview
       io.clariobase.preview-slot: manual
-    build:
-      context: ${CRM_BUILD_CONTEXT:?Set_CRM_BUILD_CONTEXT}
+    image: ${CRM_PREVIEW_IMAGE_REF:?Set_CRM_PREVIEW_IMAGE_REF}
 
 networks:
   default:

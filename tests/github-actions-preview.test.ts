@@ -121,9 +121,10 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /group: clariobase-preview-slot/);
   assert.match(deployWorkflow, /ref: main/);
   assert.match(deployWorkflow, /path: control/);
-  assert.match(deployWorkflow, /path: source/);
   assert.match(deployWorkflow, /persist-credentials: false/);
   assert.match(deployWorkflow, /scripts\/resolve-preview-ref\.ts/);
+  assert.match(deployWorkflow, /Validate immutable preview image ref/);
+  assert.match(deployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ inputs\.image_ref \}\}/);
   assert.match(deployWorkflow, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
   assert.match(deployWorkflow, /\$deployExitCode = \$LASTEXITCODE/);
   assert.match(deployWorkflow, /if \(\$deployExitCode -ne 0\)/);
@@ -171,9 +172,11 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(autoDeployWorkflow, /name: auto-preview-context/);
   assert.match(autoDeployWorkflow, /\/tmp\/auto-preview-context\/auto-preview-context\.json/);
   assert.match(autoDeployWorkflow, /--context-path "\/tmp\/auto-preview-context\/auto-preview-context\.json"/);
+  assert.match(autoDeployWorkflow, /Build immutable preview image/);
+  assert.match(autoDeployWorkflow, /Push immutable preview image/);
+  assert.match(autoDeployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ needs\.build-preview-image\.outputs\.image_ref \}\}/);
   assert.match(autoDeployWorkflow, /ref: main/);
   assert.match(autoDeployWorkflow, /path: control/);
-  assert.match(autoDeployWorkflow, /path: source/);
   assert.match(autoDeployWorkflow, /ref: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
   assert.match(autoDeployWorkflow, /BLOCKED: stale validated SHA/);
   assert.match(autoDeployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
@@ -212,7 +215,7 @@ test("auto preview workflow passes PR-derived values through env inside run step
   const runBlocks = [...workflow.matchAll(/run:\s*\|([\s\S]*?)(?=\n\s*-[ \w]|\n[A-Za-z]|\s*$)/g)].map((match) => match[1]);
   const riskyPatterns = [
     /\$\{\{\s*steps\.resolve\.outputs\.(pr_url|head_ref|skip_reason|pr_number|ci_run_url)\s*\}\}/,
-    /\$\{\{\s*needs\.resolve-auto-preview\.outputs\.(pr_url|head_ref|skip_reason|pr_number|ci_run_url|validated_sha)\s*\}\}/
+    /\$\{\{\s*needs\.resolve-auto-preview\.outputs\.(pr_url|head_ref|skip_reason|pr_number|ci_run_url)\s*\}\}/
   ];
 
   for (const block of runBlocks) {
@@ -220,6 +223,29 @@ test("auto preview workflow passes PR-derived values through env inside run step
       assert.doesNotMatch(block, pattern);
     }
   }
+});
+
+test("trusted image-build workflow keeps registry credentials outside resolver and deploy jobs", () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+  const resolverBlock = workflow.split("  build-preview-image:")[0];
+  const buildBlock = workflow.split("  deploy-preview:")[0].split("  build-preview-image:")[1] ?? "";
+  const deployBlock = workflow.split("  deploy-preview:")[1] ?? "";
+
+  assert.match(workflow, /build-preview-image:/);
+  assert.match(workflow, /permissions:\s*\n\s*contents: read\s*\n\s*packages: write/);
+  assert.match(workflow, /permissions:\s*\n\s*contents: read\s*\n\s*packages: read\s*\n\s*issues: write\s*\n\s*pull-requests: read/);
+  assert.match(workflow, /Build immutable preview image[\s\S]*Smoke test immutable image[\s\S]*Log in to GitHub Container Registry[\s\S]*Push immutable preview image/);
+  assert.doesNotMatch(resolverBlock, /docker\/login-action@[0-9a-f]{40}/);
+  assert.doesNotMatch(resolverBlock, /packages: write/);
+  assert.match(buildBlock, /docker\/login-action@[0-9a-f]{40}/);
+  assert.doesNotMatch(deployBlock, /docker\/login-action@[0-9a-f]{40}/);
+});
+
+test("immutable preview image reference validation is exact and lowercase", () => {
+  const support = read("scripts/preview-runtime-support.ts");
+
+  assert.ok(support.includes('ghcr\\.io\\/lukexd09\\/clariobase-ai-crm@sha256:[0-9a-f]{64}'));
+  assert.match(support, /CRM_PREVIEW_IMAGE_REF must match ghcr\.io\/lukexd09\/clariobase-ai-crm@sha256:<64 lowercase hex characters>\./);
 });
 
 test("auto preview workflow revalidation fails closed and gates deployment on exact PASS", () => {
@@ -903,16 +929,13 @@ test("preview workflows keep the requested SHA as source input while control scr
   const stopWrapper = read("scripts/stop-preview.ps1");
 
   assert.match(autoDeployWorkflow, /Check out trusted control checkout/);
-  assert.match(autoDeployWorkflow, /Check out validated source SHA/);
   assert.match(autoDeployWorkflow, /VALIDATED_SHA: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
   assert.match(autoDeployWorkflow, /REQUESTED_REF: \$\{\{ needs\.resolve-auto-preview\.outputs\.head_ref \}\}/);
   assert.match(autoDeployWorkflow, /-ResolvedSha \$env:VALIDATED_SHA/);
   assert.match(autoDeployWorkflow, /-RequestedRef \$env:REQUESTED_REF/);
-  assert.match(autoDeployWorkflow, /-SourceCheckoutPath \(Join-Path \$PWD "\.\.\\source"\)/);
   assert.match(deployWorkflow, /Check out trusted workflow revision/);
-  assert.match(deployWorkflow, /Check out requested source SHA/);
   assert.match(deployWorkflow, /-ControlCheckoutPath \$PWD/);
-  assert.match(deployWorkflow, /-SourceCheckoutPath \(Join-Path \$PWD "\.\.\\source"\)/);
+  assert.doesNotMatch(deployWorkflow, /-SourceCheckoutPath/);
   assert.match(deployWorkflow, /Requested ref:/);
   assert.match(deployWorkflow, /Resolved SHA:/);
   assert.match(stopWorkflow, /Stop preview/);
@@ -1027,7 +1050,7 @@ test("deploy preview dry-run validates the source checkout SHA independently fro
       encoding: "utf8",
       env: {
         ...process.env,
-        CRM_BUILD_CONTEXT: sourceCheckout
+        CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
       }
     });
 

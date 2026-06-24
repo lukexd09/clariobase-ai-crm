@@ -96,9 +96,7 @@ async function main() {
     return;
   }
 
-  const result = runCommandWithEnv("docker", stopPlan.down, {
-    CRM_BUILD_CONTEXT: controlCheckoutPath
-  });
+  const result = runCommandWithEnv("docker", stopPlan.down, {});
   assertSuccessfulCommand(result, "docker compose down -v --remove-orphans");
 
   console.log(

@@ -7,6 +7,10 @@ on:
         description: Trusted repository branch, tag, or exact commit SHA to deploy
         required: true
         type: string
+      image_ref:
+        description: Immutable GHCR image reference to deploy
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -58,6 +62,11 @@ jobs:
       - clariobase-preview
     environment: e016-preview-operator
     if: github.actor == github.repository_owner
+    permissions:
+      contents: read
+      packages: read
+      issues: write
+      pull-requests: read
 
     steps:
       - name: Check out trusted control checkout
@@ -65,14 +74,6 @@ jobs:
         with:
           ref: main
           path: control
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Check out requested source SHA
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.resolve-preview-ref.outputs.resolved_sha }}
-          path: source
           fetch-depth: 1
           persist-credentials: false
 
@@ -91,6 +92,16 @@ jobs:
         shell: pwsh
         working-directory: control
         run: corepack pnpm install --frozen-lockfile
+
+      - name: Validate immutable preview image ref
+        shell: pwsh
+        working-directory: control
+        env:
+          IMAGE_REF: ${{ inputs.image_ref }}
+        run: |
+          if ($env:IMAGE_REF -notmatch '^ghcr\.io\/lukexd09\/clariobase-ai-crm@sha256:[0-9a-f]{64}$') {
+            throw "image_ref must be an exact immutable GHCR digest reference."
+          }
 
       - name: Materialize preview env file
         shell: pwsh
@@ -111,12 +122,13 @@ jobs:
         id: deploy
         shell: pwsh
         working-directory: control
+        env:
+          CRM_PREVIEW_IMAGE_REF: ${{ inputs.image_ref }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
             -RequestedRef "${{ needs.resolve-preview-ref.outputs.requested_ref }}" `
             -ResolvedSha "${{ needs.resolve-preview-ref.outputs.resolved_sha }}" `
             -ControlCheckoutPath $PWD `
-            -SourceCheckoutPath (Join-Path $PWD "..\source") `
             -PreviewEnvFile .\.env.compose.preview.local
 
           $deployExitCode = $LASTEXITCODE
