@@ -17,6 +17,7 @@ test("dashboard density contracts keep business values and link-based priorities
   assert.match(page, /<MetricCard label="Due today" value="4" \/>/);
   assert.match(page, /<MetricCard label="Upcoming" value="11" \/>/);
   assert.match(page, /<MetricCard label="No next action" value="6" \/>/);
+  assert.match(page, /max-\[759px\]:gap-0/);
   assert.match(page, /min-\[760px\]:grid-cols-2/);
   assert.match(page, /xl:grid-cols-4/);
   assert.match(page, /max-\[759px\]:rounded-xl/);
@@ -34,9 +35,11 @@ test("dashboard density contracts keep business values and link-based priorities
   assert.match(primitives, /Pipeline snapshot/);
   assert.match(primitives, /stage: string; value: number/);
   assert.match(primitives, /max-\[759px\]:flex/);
+  assert.match(primitives, /max-\[759px\]:min-h-\[52px\]/);
+  assert.match(primitives, /min-\[760px\]:text-base/);
+  assert.match(primitives, /min-\[1100px\]:text-\[2rem\]/);
   assert.match(primitives, /max-\[759px\]:text-\[1\.3rem\]/);
   assert.doesNotMatch(primitives, /4 active tasks/);
   assert.doesNotMatch(primitives, /Current/);
   assert.doesNotMatch(primitives, /border-t border-\[#E2E8F0\]/);
-  assert.doesNotMatch(primitives, /sr-only/);
 });

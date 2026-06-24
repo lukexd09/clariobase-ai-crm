@@ -3,18 +3,18 @@ import Link from "next/link";
 export function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <header className="space-y-1">
-      <h1 className="text-[1.7rem] font-semibold tracking-tight text-[#0F172A] min-[760px]:text-[1.8rem] sm:text-[2rem]">
+      <h1 className="text-[1.7rem] font-semibold tracking-tight text-[#0F172A] min-[760px]:text-[1.8rem] min-[1100px]:text-[2rem]">
         {title}
       </h1>
-      <p className="text-sm text-[#475569] sm:text-base">{subtitle}</p>
+      <p className="text-sm text-[#475569] min-[760px]:text-base">{subtitle}</p>
     </header>
   );
 }
 
 export function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 max-[759px]:rounded-none max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:px-0 max-[759px]:py-3.5">
-      <div className="max-[759px]:flex max-[759px]:min-h-14 max-[759px]:items-center max-[759px]:justify-between max-[759px]:gap-4 max-[759px]:px-0 max-[759px]:py-0">
+    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 max-[759px]:rounded-none max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:px-0 max-[759px]:py-0">
+      <div className="max-[759px]:flex max-[759px]:min-h-[52px] max-[759px]:items-center max-[759px]:justify-between max-[759px]:gap-4 max-[759px]:px-4 max-[759px]:py-0">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569] max-[759px]:text-[11px] max-[759px]:tracking-[0.14em]">
           {label}
         </p>
