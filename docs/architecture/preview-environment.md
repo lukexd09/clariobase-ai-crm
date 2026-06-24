@@ -106,7 +106,10 @@ The trust contract is:
 - manual workflow inputs must resolve to an exact commit SHA before deployment begins;
 - automatic preview deployment must trigger only from the trusted `workflow_run` completion of `CI` after the workflow file exists on the default branch;
 - CI must check out and validate the exact pull-request head SHA rather than GitHub's synthetic pull-request merge ref so that `workflow_run.head_sha` is the validated preview source;
+- CI must publish a small trusted `auto-preview-context` artifact that records the validated PR number, head SHA, ref, base branch, and workflow run ID;
+- automatic preview deployment must download that artifact from the exact triggering CI run and validate it before any self-hosted runner work begins;
 - automatic preview deployment must treat the completed CI run `head_sha` as the validated commit and must separately confirm through the GitHub API that the current PR head still matches that SHA;
+- `workflow_run.pull_requests` is only corroborating evidence and must not be the sole source of PR identity;
 - stale CI results must stop with `BLOCKED: stale validated SHA`;
 - the resolved SHA must be reported back to the operator;
 - preview jobs run code on the server and therefore require explicit runner and workflow documentation;

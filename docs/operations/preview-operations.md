@@ -105,6 +105,8 @@ Automatic rules:
 
 - trigger source is `workflow_run` for `CI` with `completed`;
 - only `pull_request` CI runs with conclusion `success` are eligible;
+- the auto-preview job downloads the `auto-preview-context` artifact from the exact triggering CI run ID;
+- the artifact is validated before deployment and must match the triggering run SHA, repository, PR number, and PR head metadata;
 - the CI workflow checks out the exact PR head SHA rather than `refs/pull/<n>/merge`;
 - the workflow must resolve exactly one associated PR;
 - forked PRs are rejected;
