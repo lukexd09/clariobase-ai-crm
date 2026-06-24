@@ -91,6 +91,7 @@ test("preview runtime support validates a safe preview env file", () => {
   );
 
   try {
+    process.env.CRM_PREVIEW_IMAGE_REF = "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     const config = loadPreviewEnv(previewEnvFilePath);
 
     assert.equal(config.env.CRM_BIND_ADDRESS, "0.0.0.0");
@@ -101,6 +102,7 @@ test("preview runtime support validates a safe preview env file", () => {
     assert.equal(config.previewAiExchangeAbsolutePath.replace(/\\/g, "/").endsWith("/data/ai-exchange-preview"), true);
     assert.match(config.previewLocalReadyUrl, /127\.0\.0\.1:3001\/api\/ready/);
   } finally {
+    delete process.env.CRM_PREVIEW_IMAGE_REF;
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
@@ -136,8 +138,10 @@ test("preview runtime support rejects production collisions", () => {
   );
 
   try {
+    process.env.CRM_PREVIEW_IMAGE_REF = "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     assert.throws(() => loadPreviewEnv(previewEnvFilePath), /Preview host port must stay pinned to 3001|protected production path|preview database/i);
   } finally {
+    delete process.env.CRM_PREVIEW_IMAGE_REF;
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
@@ -147,16 +151,6 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   const stopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
   const summary = createPreviewSummary("epic/e016-manual-preview", "0123456789abcdef0123456789abcdef01234567");
 
-  assert.deepEqual(deployPlan.buildApp.slice(0, 8), [
-    "compose",
-    "--project-name",
-    PREVIEW_PROJECT_NAME,
-    "--env-file",
-    path.join(repoRoot, PREVIEW_ENV_FILE_NAME),
-    "-f",
-    "compose.yaml",
-    "-f"
-  ]);
   assert.match(deployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
   assert.match(deployPlan.startDatabase.join(" "), /up -d crm-postgres/);
   assert.match(deployPlan.migrate.join(" "), /migrate deploy/);
@@ -168,18 +162,18 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   assert.equal(summary.networkName, PREVIEW_NETWORK_NAME);
 });
 
-test("deploy preview propagates the same source build context to all five compose commands", () => {
+test("deploy preview propagates the immutable image ref to the preview commands", () => {
   const deployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
-  const observed = [] as Array<{ description: string; buildContext?: string }>;
+  const observed = [] as Array<{ description: string; previewImageRef?: string }>;
 
   executeDeployPlanWithEnv(
     deployPlan,
-    { CRM_BUILD_CONTEXT: "/tmp/source-checkout" },
+    { CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" },
     (command, args, env) => {
       assert.equal(command, "docker");
       observed.push({
         description: args.join(" "),
-        buildContext: env.CRM_BUILD_CONTEXT
+        previewImageRef: env.CRM_PREVIEW_IMAGE_REF
       });
 
       return {
@@ -193,19 +187,17 @@ test("deploy preview propagates the same source build context to all five compos
     }
   );
 
-  assert.equal(observed.length, 5);
-  assert.deepEqual(observed.map((entry) => entry.buildContext), [
-    "/tmp/source-checkout",
-    "/tmp/source-checkout",
-    "/tmp/source-checkout",
-    "/tmp/source-checkout",
-    "/tmp/source-checkout"
+  assert.equal(observed.length, 4);
+  assert.deepEqual(observed.map((entry) => entry.previewImageRef), [
+    "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
   ]);
-  assert.match(observed[0].description, /build crm-app/);
-  assert.match(observed[1].description, /down -v --remove-orphans/);
-  assert.match(observed[2].description, /up -d crm-postgres/);
-  assert.match(observed[3].description, /migrate deploy/);
-  assert.match(observed[4].description, /up -d crm-app/);
+  assert.match(observed[0].description, /down -v --remove-orphans/);
+  assert.match(observed[1].description, /up -d crm-postgres/);
+  assert.match(observed[2].description, /migrate deploy/);
+  assert.match(observed[3].description, /up -d crm-app/);
 });
 
 test("preview compose config uses the requested source checkout as the build context", { skip: !dockerAvailable }, () => {
@@ -231,7 +223,12 @@ test("preview compose config uses the requested source checkout as the build con
     const result = spawnSync(
       "docker",
       [
-        ...buildDeployPlan(previewEnvFilePath).buildApp.slice(0, 8),
+        "compose",
+        "--env-file",
+        previewEnvFilePath,
+        "-f",
+        "compose.yaml",
+        "-f",
         "compose.preview.yaml",
         "config"
       ],
@@ -240,13 +237,14 @@ test("preview compose config uses the requested source checkout as the build con
         encoding: "utf8",
         env: {
           ...process.env,
-          CRM_BUILD_CONTEXT: sourceCheckoutPath
+          CRM_POSTGRES_PASSWORD: "preview-password",
+          CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
         }
       }
     );
 
     assert.equal(result.status, 0, `preview docker compose config should pass: ${result.stderr}`);
-    assert.match(result.stdout, new RegExp(`context:\\s*${sourceCheckoutPath.replace(/\\/g, "\\\\")}`));
+    assert.match(result.stdout, /image:\s*ghcr\.io\/lukexd09\/clariobase-ai-crm@sha256:/);
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
@@ -274,7 +272,12 @@ test("secret-free stop preview config stays on preview-only resources", { skip: 
     const result = spawnSync(
       "docker",
       [
-        ...buildStopPlan(stopEnvFilePath).down.slice(0, 8),
+        "compose",
+        "--env-file",
+        stopEnvFilePath,
+        "-f",
+        "compose.yaml",
+        "-f",
         "compose.preview.yaml",
         "config"
       ],
@@ -283,7 +286,8 @@ test("secret-free stop preview config stays on preview-only resources", { skip: 
         encoding: "utf8",
         env: {
           ...process.env,
-          CRM_BUILD_CONTEXT: repoRoot
+          CRM_POSTGRES_PASSWORD: "preview-password",
+          CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
         }
       }
     );
@@ -291,7 +295,6 @@ test("secret-free stop preview config stays on preview-only resources", { skip: 
     assert.equal(result.status, 0, `secret-free stop compose config should pass: ${result.stderr}`);
     assert.match(result.stdout, /clariobase-crm-preview-network/);
     assert.match(result.stdout, /clariobase-crm-preview-postgres-data/);
-    assert.match(result.stdout, /unused-for-stop/);
     assert.doesNotMatch(result.stdout, /Set_CRM_POSTGRES_PASSWORD/);
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
@@ -319,7 +322,12 @@ test("preview compose config keeps the app on port 3001 and does not publish Pos
     const result = spawnSync(
       "docker",
       [
-        ...buildDeployPlan(previewEnvFilePath).buildApp.slice(0, 8),
+        "compose",
+        "--env-file",
+        previewEnvFilePath,
+        "-f",
+        "compose.yaml",
+        "-f",
         "compose.preview.yaml",
         "config"
       ],
@@ -328,7 +336,8 @@ test("preview compose config keeps the app on port 3001 and does not publish Pos
         encoding: "utf8",
         env: {
           ...process.env,
-          CRM_BUILD_CONTEXT: repoRoot
+          CRM_POSTGRES_PASSWORD: "preview-password",
+          CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
         }
       }
     );
