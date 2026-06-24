@@ -10,6 +10,12 @@ import {
   assertTrustedRequestedRef,
   normalizeRequestedRef
 } from "../scripts/resolve-preview-ref";
+import {
+  PREVIEW_STATUS_COMMENT_MARKER,
+  formatPreviewStatusComment,
+  parseWorkflowRunEvent,
+  resolveAutoPreview
+} from "../scripts/resolve-auto-preview";
 import { createSystemTmpDir } from "./test-helpers";
 
 const repoRoot = path.resolve(__dirname, "..");
@@ -18,8 +24,48 @@ function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
+function createWorkflowRunEvent(overrides?: Record<string, unknown>) {
+  return {
+    action: "completed",
+    repository: {
+      full_name: EXPECTED_REPOSITORY,
+      default_branch: "main"
+    },
+    workflow_run: {
+      name: "CI",
+      event: "pull_request",
+      status: "completed",
+      conclusion: "success",
+      head_branch: "feature/e016-preview",
+      head_sha: "1111111111111111111111111111111111111111",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456",
+      pull_requests: [
+        {
+          number: 113,
+          html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+          head: {
+            ref: "feature/e016-preview",
+            sha: "1111111111111111111111111111111111111111",
+            repo: {
+              full_name: EXPECTED_REPOSITORY
+            }
+          },
+          base: {
+            ref: "main",
+            repo: {
+              full_name: EXPECTED_REPOSITORY
+            }
+          }
+        }
+      ]
+    },
+    ...overrides
+  };
+}
+
 test("preview workflows use trusted triggers, least privilege, and the approved scripts", () => {
   const ciWorkflow = read(".github/workflows/ci.yml");
+  const autoDeployWorkflow = read(".github/workflows/auto-deploy-preview.yml");
   const deployWorkflow = read(".github/workflows/deploy-preview.yml");
   const stopWorkflow = read(".github/workflows/stop-preview.yml");
   const runnerDoc = read("docs/operations/windows-self-hosted-runner.md");
@@ -28,6 +74,13 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(ciWorkflow, /pull_request:/);
   assert.match(ciWorkflow, /contents: read/);
   assert.match(ciWorkflow, /actions\/checkout@v5/);
+  assert.match(ciWorkflow, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  assert.match(ciWorkflow, /fetch-depth: 1/);
+  assert.match(ciWorkflow, /persist-credentials: false/);
+  assert.match(ciWorkflow, /Verify checked-out PR head SHA/);
+  assert.match(ciWorkflow, /EXPECTED_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  assert.match(ciWorkflow, /ACTUAL_SHA="\$\(git rev-parse HEAD\)"/);
+  assert.match(ciWorkflow, /Validated SHA: \$ACTUAL_SHA/);
   assert.match(ciWorkflow, /actions\/setup-node@v5/);
   assert.match(ciWorkflow, /node-version: 22/);
   assert.match(ciWorkflow, /package-manager-cache: false/);
@@ -46,7 +99,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /actions\/setup-node@v5/);
   assert.match(deployWorkflow, /node-version: 22/);
   assert.match(deployWorkflow, /package-manager-cache: false/);
-  assert.match(deployWorkflow, /group: clariobase-manual-preview-slot/);
+  assert.match(deployWorkflow, /group: clariobase-preview-slot/);
   assert.match(deployWorkflow, /ref: main/);
   assert.match(deployWorkflow, /path: control/);
   assert.match(deployWorkflow, /path: source/);
@@ -69,7 +122,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.doesNotMatch(deployWorkflow, /pull_request_target/);
 
   assert.match(stopWorkflow, /workflow_dispatch:/);
-  assert.match(stopWorkflow, /group: clariobase-manual-preview-slot/);
+  assert.match(stopWorkflow, /group: clariobase-preview-slot/);
   assert.match(stopWorkflow, /actions\/checkout@v5/);
   assert.match(stopWorkflow, /actions\/setup-node@v5/);
   assert.match(stopWorkflow, /node-version: 22/);
@@ -83,7 +136,33 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
   assert.match(stopWorkflow, /if: always\(\)/);
   assert.doesNotMatch(stopWorkflow, /pull_request_target/);
-  assert.doesNotMatch(`${ciWorkflow}\n${deployWorkflow}\n${stopWorkflow}`, /actions\/(checkout|setup-node)@v4/);
+  assert.match(autoDeployWorkflow, /workflow_run:/);
+  assert.match(autoDeployWorkflow, /workflows:\s*\n\s*-\s*CI/);
+  assert.match(autoDeployWorkflow, /types:\s*\n\s*-\s*completed/);
+  assert.match(autoDeployWorkflow, /actions: read/);
+  assert.match(autoDeployWorkflow, /contents: read/);
+  assert.match(autoDeployWorkflow, /issues: write/);
+  assert.match(autoDeployWorkflow, /group: clariobase-preview-slot/);
+  assert.match(autoDeployWorkflow, /resolve-auto-preview\.ts/);
+  assert.match(autoDeployWorkflow, /ref: main/);
+  assert.match(autoDeployWorkflow, /path: control/);
+  assert.match(autoDeployWorkflow, /path: source/);
+  assert.match(autoDeployWorkflow, /ref: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
+  assert.match(autoDeployWorkflow, /BLOCKED: stale validated SHA/);
+  assert.match(autoDeployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
+  assert.match(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3001\/api\/ready/);
+  assert.match(autoDeployWorkflow, /environment: e016-preview-operator/);
+  assert.match(autoDeployWorkflow, /<!-- clariobase-preview-status -->/);
+  assert.match(autoDeployWorkflow, /resolution_status: \$\{\{ steps\.resolve\.outputs\.resolution_status \}\}/);
+  assert.match(autoDeployWorkflow, /BLOCKED: resolver execution failed/);
+  assert.match(autoDeployWorkflow, /runner_revalidation_result=\$result/);
+  assert.match(autoDeployWorkflow, /if: always\(\)\s*\n\s*shell: bash\s*\n\s*env:\s*\n\s*GATE_RESULT:/);
+  assert.match(autoDeployWorkflow, /gate_result: \$\{\{ steps\.classify\.outputs\.gate_result \|\| steps\.classify_failure\.outputs\.gate_result \}\}/);
+  assert.match(autoDeployWorkflow, /gate_reason: \$\{\{ steps\.classify\.outputs\.gate_reason \|\| steps\.classify_failure\.outputs\.gate_reason \}\}/);
+  assert.doesNotMatch(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3000\/api\/ready/);
+  assert.doesNotMatch(autoDeployWorkflow, /\non:\s*\n\s*push:/);
+  assert.doesNotMatch(autoDeployWorkflow, /pull_request_target/);
+  assert.doesNotMatch(`${ciWorkflow}\n${autoDeployWorkflow}\n${deployWorkflow}\n${stopWorkflow}`, /actions\/(checkout|setup-node)@v4/);
 
   assert.match(runnerDoc, /document_id: DOC-E016-WINDOWS-RUNNER/);
   assert.match(runnerDoc, /C:\\actions-runners\\clariobase-preview/);
@@ -99,6 +178,51 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(preflightScript, /docker version/);
   assert.match(preflightScript, /MinimumRunnerVersion/);
   assert.match(preflightScript, /runnerVersion/);
+});
+
+test("auto preview workflow passes PR-derived values through env inside run steps", () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+  const runBlocks = [...workflow.matchAll(/run:\s*\|([\s\S]*?)(?=\n\s*-[ \w]|\n[A-Za-z]|\s*$)/g)].map((match) => match[1]);
+  const riskyPatterns = [
+    /\$\{\{\s*steps\.resolve\.outputs\.(pr_url|head_ref|skip_reason|pr_number|ci_run_url)\s*\}\}/,
+    /\$\{\{\s*needs\.resolve-auto-preview\.outputs\.(pr_url|head_ref|skip_reason|pr_number|ci_run_url|validated_sha)\s*\}\}/
+  ];
+
+  for (const block of runBlocks) {
+    for (const pattern of riskyPatterns) {
+      assert.doesNotMatch(block, pattern);
+    }
+  }
+});
+
+test("auto preview workflow revalidation fails closed and gates deployment on exact PASS", () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+
+  assert.doesNotMatch(workflow, /Revalidate PR head before deployment[\s\S]*continue-on-error:\s*true/);
+  assert.match(workflow, /BLOCKED: runner-side PR revalidation request failed/);
+
+  const passGatedSteps = [
+    "Materialize preview env file",
+    "Upsert PR preview comment as deploying",
+    "Deploy preview",
+    "Verify preview readiness"
+  ];
+
+  for (const stepName of passGatedSteps) {
+    const pattern = new RegExp(`- name: ${stepName}[\\s\\S]*?if: steps\\.revalidate\\.outputs\\.runner_revalidation_result == 'PASS'`);
+    assert.match(workflow, pattern);
+  }
+
+  assert.match(
+    workflow,
+    /- name: Write deployment summary[\s\S]*?if: success\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/
+  );
+  assert.match(
+    workflow,
+    /- name: Upsert PR preview comment as ready[\s\S]*?if: success\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/
+  );
+
+  assert.doesNotMatch(workflow, /runner_revalidation_result != 'BLOCKED'/);
 });
 
 test("E016 telemetry keeps implementation evidence separate from dynamic PR metadata", () => {
@@ -120,6 +244,297 @@ test("E016 telemetry keeps implementation evidence separate from dynamic PR meta
   assert.match(assurance, /Conclusion:\s+success/i);
   assert.match(assurance, /Post-stop evidence:/);
   assert.match(assurance, /The final preview contract test set passed with no failures after the Windows workflow correction/i);
+});
+
+test("resolve-auto-preview accepts a successful same-repository open PR at the exact validated SHA", async () => {
+  const event = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
+  const result = await resolveAutoPreview({
+    event,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({
+      number: 113,
+      state: "open",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+      head: {
+        ref: "feature/e016-preview",
+        sha: "1111111111111111111111111111111111111111",
+        repo: {
+          full_name: EXPECTED_REPOSITORY
+        }
+      }
+    })
+  });
+
+  assert.equal(result.resolutionStatus, "deploy");
+  assert.equal(result.shouldDeploy, true);
+  assert.equal(result.prNumber, "113");
+  assert.equal(result.headRef, "feature/e016-preview");
+  assert.equal(result.validatedSha, "1111111111111111111111111111111111111111");
+});
+
+test("resolve-auto-preview skips failed and cancelled CI runs", async () => {
+  const failedEvent = parseWorkflowRunEvent(
+    JSON.stringify(
+      createWorkflowRunEvent({
+        workflow_run: {
+          ...createWorkflowRunEvent().workflow_run,
+          conclusion: "failure"
+        }
+      })
+    )
+  );
+  const cancelledEvent = parseWorkflowRunEvent(
+    JSON.stringify(
+      createWorkflowRunEvent({
+        workflow_run: {
+          ...createWorkflowRunEvent().workflow_run,
+          conclusion: "cancelled"
+        }
+      })
+    )
+  );
+
+  const failedResult = await resolveAutoPreview({
+    event: failedEvent,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({})
+  });
+  const cancelledResult = await resolveAutoPreview({
+    event: cancelledEvent,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({})
+  });
+
+  assert.equal(failedResult.resolutionStatus, "skipped");
+  assert.match(failedResult.skipReason, /failure/);
+  assert.equal(cancelledResult.resolutionStatus, "skipped");
+  assert.match(cancelledResult.skipReason, /cancelled/);
+});
+
+test("resolve-auto-preview skips push-triggered CI runs and runs without a PR", async () => {
+  const pushEvent = parseWorkflowRunEvent(
+    JSON.stringify(
+      createWorkflowRunEvent({
+        workflow_run: {
+          ...createWorkflowRunEvent().workflow_run,
+          event: "push"
+        }
+      })
+    )
+  );
+  const noPrEvent = parseWorkflowRunEvent(
+    JSON.stringify({
+      ...createWorkflowRunEvent(),
+      workflow_run: {
+        ...createWorkflowRunEvent().workflow_run,
+        pull_requests: []
+      }
+    })
+  );
+
+  const pushResult = await resolveAutoPreview({
+    event: pushEvent,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({})
+  });
+  const noPrResult = await resolveAutoPreview({
+    event: noPrEvent,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({})
+  });
+
+  assert.equal(pushResult.resolutionStatus, "skipped");
+  assert.match(pushResult.skipReason, /CI event is push/);
+  assert.equal(noPrResult.resolutionStatus, "skipped");
+  assert.match(noPrResult.skipReason, /no associated pull request/i);
+});
+
+test("resolve-auto-preview rejects forked, closed, and stale PR heads", async () => {
+  const forkEvent = parseWorkflowRunEvent(
+    JSON.stringify({
+      ...createWorkflowRunEvent(),
+      workflow_run: {
+        ...createWorkflowRunEvent().workflow_run,
+        pull_requests: [
+          {
+            number: 113,
+            head: {
+              ref: "fork/preview",
+              sha: "1111111111111111111111111111111111111111",
+              repo: {
+                full_name: "someone-else/clariobase-ai-crm"
+              }
+            }
+          }
+        ]
+      }
+    })
+  );
+  const closedEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
+  const staleEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
+
+  const forkResult = await resolveAutoPreview({
+    event: forkEvent,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({})
+  });
+  const closedResult = await resolveAutoPreview({
+    event: closedEvent,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({
+      state: "closed",
+      head: {
+        ref: "feature/e016-preview",
+        sha: "1111111111111111111111111111111111111111",
+        repo: {
+          full_name: EXPECTED_REPOSITORY
+        }
+      }
+    })
+  });
+  const staleResult = await resolveAutoPreview({
+    event: staleEvent,
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({
+      state: "open",
+      head: {
+        ref: "feature/e016-preview",
+        sha: "2222222222222222222222222222222222222222",
+        repo: {
+          full_name: EXPECTED_REPOSITORY
+        }
+      }
+    })
+  });
+
+  assert.equal(forkResult.resolutionStatus, "skipped");
+  assert.match(forkResult.skipReason, /head repository/i);
+  assert.equal(closedResult.resolutionStatus, "skipped");
+  assert.match(closedResult.skipReason, /is closed/i);
+  assert.equal(staleResult.resolutionStatus, "blocked");
+  assert.equal(staleResult.skipReason, "BLOCKED: stale validated SHA");
+});
+
+test("resolve-auto-preview emits controlled blocked and skipped machine-readable outcomes", async () => {
+  const blockedResult = await resolveAutoPreview({
+    event: parseWorkflowRunEvent(
+      JSON.stringify({
+        ...createWorkflowRunEvent(),
+        workflow_run: {
+          ...createWorkflowRunEvent().workflow_run,
+          status: "queued"
+        }
+      })
+    ),
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({})
+  });
+  const skippedResult = await resolveAutoPreview({
+    event: parseWorkflowRunEvent(
+      JSON.stringify({
+        ...createWorkflowRunEvent(),
+        workflow_run: {
+          ...createWorkflowRunEvent().workflow_run,
+          name: "Something Else"
+        }
+      })
+    ),
+    repository: EXPECTED_REPOSITORY,
+    fetchPullRequest: async () => ({})
+  });
+
+  assert.equal(blockedResult.resolutionStatus, "blocked");
+  assert.equal(blockedResult.shouldDeploy, false);
+  assert.equal(skippedResult.resolutionStatus, "skipped");
+  assert.equal(skippedResult.shouldDeploy, false);
+});
+
+test("resolve-auto-preview CLI fails hard for malformed event payloads and missing token", () => {
+  const tmpRoot = createSystemTmpDir("clariobase-auto-preview-cli-");
+  const eventPath = path.join(tmpRoot, "event.json");
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+  try {
+    fs.writeFileSync(eventPath, "{bad json", "utf8");
+
+    const malformed = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-auto-preview.ts"),
+      "--event-path",
+      eventPath,
+      "--repository",
+      EXPECTED_REPOSITORY
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env
+      }
+    });
+
+    assert.notEqual(malformed.status, 0);
+
+    fs.writeFileSync(eventPath, JSON.stringify(createWorkflowRunEvent()), "utf8");
+    const missingToken = spawnSync(process.execPath, [
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-auto-preview.ts"),
+      "--event-path",
+      eventPath,
+      "--repository",
+      EXPECTED_REPOSITORY
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GITHUB_TOKEN: ""
+      }
+    });
+
+    assert.notEqual(missingToken.status, 0);
+    assert.match(missingToken.stderr || missingToken.stdout, /Missing GITHUB_TOKEN/i);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("resolve-auto-preview CLI fails hard for GitHub API failures", () => {
+  const tmpRoot = createSystemTmpDir("clariobase-auto-preview-api-failure-");
+  const eventPath = path.join(tmpRoot, "event.json");
+  const loaderPath = path.join(tmpRoot, "mock-loader.cjs");
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+  try {
+    fs.writeFileSync(eventPath, JSON.stringify(createWorkflowRunEvent()), "utf8");
+    fs.writeFileSync(
+      loaderPath,
+      "global.fetch = async () => ({ ok: false, status: 503 });",
+      "utf8"
+    );
+
+    const failedApi = spawnSync(process.execPath, [
+      "--require",
+      loaderPath,
+      tsxCli,
+      path.join(repoRoot, "scripts/resolve-auto-preview.ts"),
+      "--event-path",
+      eventPath,
+      "--repository",
+      EXPECTED_REPOSITORY
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        GITHUB_TOKEN: "test-token"
+      }
+    });
+
+    assert.notEqual(failedApi.status, 0);
+    assert.match(failedApi.stderr || failedApi.stdout, /GitHub API pull request lookup failed/i);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
 });
 
 test("trusted preview ref validation rejects fork-style and pull-request refs", () => {
@@ -341,11 +756,19 @@ test("resolve-preview-ref works offline from local trusted refs without a second
 });
 
 test("preview workflows keep the requested SHA as source input while control scripts come from the trusted checkout", () => {
+  const autoDeployWorkflow = read(".github/workflows/auto-deploy-preview.yml");
   const deployWorkflow = read(".github/workflows/deploy-preview.yml");
   const stopWorkflow = read(".github/workflows/stop-preview.yml");
   const deployWrapper = read("scripts/deploy-preview.ps1");
   const stopWrapper = read("scripts/stop-preview.ps1");
 
+  assert.match(autoDeployWorkflow, /Check out trusted control checkout/);
+  assert.match(autoDeployWorkflow, /Check out validated source SHA/);
+  assert.match(autoDeployWorkflow, /VALIDATED_SHA: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
+  assert.match(autoDeployWorkflow, /REQUESTED_REF: \$\{\{ needs\.resolve-auto-preview\.outputs\.head_ref \}\}/);
+  assert.match(autoDeployWorkflow, /-ResolvedSha \$env:VALIDATED_SHA/);
+  assert.match(autoDeployWorkflow, /-RequestedRef \$env:REQUESTED_REF/);
+  assert.match(autoDeployWorkflow, /-SourceCheckoutPath \(Join-Path \$PWD "\.\.\\source"\)/);
   assert.match(deployWorkflow, /Check out trusted workflow revision/);
   assert.match(deployWorkflow, /Check out requested source SHA/);
   assert.match(deployWorkflow, /-ControlCheckoutPath \$PWD/);
@@ -357,6 +780,33 @@ test("preview workflows keep the requested SHA as source input while control scr
   assert.match(deployWrapper, /ControlCheckoutPath/);
   assert.match(deployWrapper, /SourceCheckoutPath/);
   assert.match(stopWrapper, /ControlCheckoutPath/);
+});
+
+test("preview comment marker and body stay stable for repeated PR updates", () => {
+  const comment = formatPreviewStatusComment({
+    result: "ready",
+    attemptedSha: "1111111111111111111111111111111111111111",
+    headRef: "feature/e016-preview",
+    ciRunUrl: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456",
+    deploymentRunUrl: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/654321",
+    timestamp: "2026-06-24T12:00:00.000Z"
+  });
+
+  assert.match(comment, new RegExp(PREVIEW_STATUS_COMMENT_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(comment, /Preview ready/);
+  assert.match(comment, /Result: ready/);
+  assert.match(comment, /URL: http:\/\/Serwer:3001/);
+  assert.match(comment, /Commit: 1111111111111111111111111111111111111111/);
+  assert.match(comment, /Branch: feature\/e016-preview/);
+});
+
+test("runner-side blocked states are documented separately from deployment failures", () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+
+  assert.match(workflow, /runner_revalidation_result=\$result/);
+  assert.match(workflow, /Upsert PR preview comment as blocked after runner revalidation/);
+  assert.match(workflow, /if: failure\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/);
+  assert.doesNotMatch(workflow, /Verify production readiness/);
 });
 
 test("deploy preview dry-run validates the source checkout SHA independently from the control checkout", () => {
