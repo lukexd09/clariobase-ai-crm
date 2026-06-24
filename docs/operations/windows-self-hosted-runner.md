@@ -5,15 +5,17 @@ document_type: operations-runbook
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-16
+last_updated: 2026-06-24
 related_epic: E016
 related_tasks:
   - E016.T003
   - E016.T008
+  - E016.T009
 related_documents:
   - docs/architecture/preview-environment.md
   - docs/operations/preview-operations.md
   - docs/verification/e016-integrated-assurance.md
+  - .github/workflows/auto-deploy-preview.yml
   - .github/workflows/deploy-preview.yml
   - .github/workflows/stop-preview.yml
   - scripts/runner-preflight.ps1
@@ -67,6 +69,8 @@ Startup mode: Automatic with delayed startup behavior
 
 The runner root and work directories must stay outside the protected production checkout.
 Normal operation must not require an interactive `run.cmd` listener window.
+The runner services one shared preview slot, so manual deploy, automatic deploy, and stop preview workflows must serialize through the same GitHub Actions concurrency group: `clariobase-preview-slot`.
+Preview automation must not depend on any production runtime endpoint being reachable from this host.
 
 ## Preflight
 
@@ -164,7 +168,7 @@ The E016 restart rehearsal completed successfully on `2026-06-16`:
 - a new runner diagnostic log appeared in `_diag`;
 - Deploy Preview succeeded after restart;
 - preview readiness on port `3001` returned `database: ok`;
-- production readiness on port `3000` remained `database: ok`;
+- any separate production verification remained out of band and was not part of preview workflow gating;
 - the preview slot was switched from `main` to `epic/e009-light-crm-closeout`;
 - Stop Preview completed successfully after restart;
 - post-stop Docker inspection showed no `clariobase-crm-preview` containers or Compose project.
@@ -198,7 +202,7 @@ Runner appears offline:
 
 Runner is busy or stuck:
 
-- let the current preview-control job finish when possible because concurrency protects one slot;
+- let the current preview-control job finish when possible because concurrency protects one shared preview slot;
 - inspect the active job in GitHub Actions;
 - if a process is orphaned, stop only the preview stack with `scripts/stop-preview.ps1`;
 - restart only the runner service when necessary.
@@ -223,6 +227,8 @@ Then clean only the dedicated runner root and work directories, never the produc
 ## Security reminders
 
 - self-hosted preview jobs execute trusted same-repository code on the server;
+- automatic preview deploys are allowed only after trusted `CI` success for an open same-repository PR whose live head still matches the validated SHA;
+- preview may succeed while production is remote, stopped, or not yet deployed because production safety is enforced through identifier guards and isolation rather than runtime health checks;
 - only trusted repository refs may be deployed;
 - `pull_request_target` must not be used for untrusted code execution;
 - the runner must not be installed inside the production checkout;
