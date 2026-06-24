@@ -127,9 +127,9 @@ async function main() {
 
   const runtimeConfig = loadPreviewEnv(options.previewEnvFile);
   const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : path.dirname(runtimeConfig.previewEnvFilePath);
-  const sourceCheckoutPath = options.sourceCheckoutPath ? path.resolve(options.sourceCheckoutPath) : controlCheckoutPath;
   const controlHeadSha = getHeadSha(controlCheckoutPath);
-  const sourceHeadSha = getHeadSha(sourceCheckoutPath);
+  const sourceCheckoutPath = options.sourceCheckoutPath ? path.resolve(options.sourceCheckoutPath) : controlCheckoutPath;
+  const sourceHeadSha = options.sourceCheckoutPath ? getHeadSha(sourceCheckoutPath) : controlHeadSha;
   const resolvedSha = validateResolvedSha(sourceHeadSha, options.resolvedSha);
   const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath);
   const summary = createPreviewSummary(options.requestedRef, resolvedSha);
@@ -147,6 +147,7 @@ async function main() {
           previewImageRef: runtimeConfig.previewImageRef,
           controlCheckoutPath,
           sourceCheckoutPath,
+          sourceCheckoutProvided: Boolean(options.sourceCheckoutPath),
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
           controlHeadSha,

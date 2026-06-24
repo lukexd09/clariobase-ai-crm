@@ -7,10 +7,13 @@ on:
         description: Trusted repository branch, tag, or exact commit SHA to deploy
         required: true
         type: string
+      image_ref:
+        description: Immutable GHCR image reference to deploy
+        required: true
+        type: string
 
 permissions:
   contents: read
-  packages: read
 
 concurrency:
   group: clariobase-preview-slot
@@ -37,13 +40,6 @@ jobs:
           node-version: 22
           package-manager-cache: false
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
       - name: Enable Corepack
         run: corepack enable
 
@@ -66,6 +62,11 @@ jobs:
       - clariobase-preview
     environment: e016-preview-operator
     if: github.actor == github.repository_owner
+    permissions:
+      contents: read
+      packages: read
+      issues: write
+      pull-requests: read
 
     steps:
       - name: Check out trusted control checkout
@@ -73,14 +74,6 @@ jobs:
         with:
           ref: main
           path: control
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Check out requested source SHA
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.resolve-preview-ref.outputs.resolved_sha }}
-          path: source
           fetch-depth: 1
           persist-credentials: false
 
@@ -100,6 +93,16 @@ jobs:
         working-directory: control
         run: corepack pnpm install --frozen-lockfile
 
+      - name: Validate immutable preview image ref
+        shell: pwsh
+        working-directory: control
+        env:
+          IMAGE_REF: ${{ inputs.image_ref }}
+        run: |
+          if ($env:IMAGE_REF -notmatch '^ghcr\.io\/lukexd09\/clariobase-ai-crm@sha256:[0-9a-f]{64}$') {
+            throw "image_ref must be an exact immutable GHCR digest reference."
+          }
+
       - name: Materialize preview env file
         shell: pwsh
         working-directory: control
@@ -115,34 +118,17 @@ jobs:
           $updated = $content -replace '^CRM_POSTGRES_PASSWORD=$', "CRM_POSTGRES_PASSWORD=$env:CRM_PREVIEW_POSTGRES_PASSWORD"
           Set-Content .env.compose.preview.local $updated
 
-      - name: Resolve immutable preview image digest
-        id: image
-        shell: pwsh
-        working-directory: control
-        env:
-          IMAGE_TAG: ghcr.io/${{ github.repository }}:${{ needs.resolve-preview-ref.outputs.resolved_sha }}
-        run: |
-          docker pull $env:IMAGE_TAG
-          $digest = docker inspect --format='{{index .RepoDigests 0}}' $env:IMAGE_TAG
-
-          if (-not $digest -or $digest -notmatch '@sha256:[0-9a-f]{64}$') {
-            throw "Could not resolve immutable digest for $env:IMAGE_TAG."
-          }
-
-          "preview_image_ref=$digest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
       - name: Deploy preview
         id: deploy
         shell: pwsh
         working-directory: control
         env:
-          CRM_PREVIEW_IMAGE_REF: ${{ steps.image.outputs.preview_image_ref }}
+          CRM_PREVIEW_IMAGE_REF: ${{ inputs.image_ref }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
             -RequestedRef "${{ needs.resolve-preview-ref.outputs.requested_ref }}" `
             -ResolvedSha "${{ needs.resolve-preview-ref.outputs.resolved_sha }}" `
             -ControlCheckoutPath $PWD `
-            -SourceCheckoutPath (Join-Path $PWD "..\source") `
             -PreviewEnvFile .\.env.compose.preview.local
 
           $deployExitCode = $LASTEXITCODE

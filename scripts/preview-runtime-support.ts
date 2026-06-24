@@ -192,8 +192,10 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
     throw new Error("CRM_PREVIEW_IMAGE_REF must be provided for immutable preview deployments.");
   }
 
-  if (!previewImageRef.startsWith("ghcr.io/")) {
-    throw new Error("CRM_PREVIEW_IMAGE_REF must use the private GHCR namespace ghcr.io/.");
+  if (!/^ghcr\.io\/lukexd09\/clariobase-ai-crm@sha256:[0-9a-f]{64}$/.test(previewImageRef)) {
+    throw new Error(
+      "CRM_PREVIEW_IMAGE_REF must match ghcr.io/lukexd09/clariobase-ai-crm@sha256:<64 lowercase hex characters>."
+    );
   }
 
   const previewAiExchangeAbsolutePath = path.resolve(repoRoot, env.AI_EXCHANGE_HOST_PATH);

@@ -37,7 +37,7 @@ This assessment records the trust boundary, licensing basis, and commercial-use 
 
 - Component: Docker registry login action.
 - Exact version or commit SHA: `9780b0c442fbb1117ed29e0efdff1e18412f7567` (`v3.3.0`).
-- SPDX identifier or exact terms: GitHub Action repository code under the upstream repository license; use is governed by GitHub Actions terms and the action repository license.
+- SPDX identifier: `Apache-2.0`.
 - Authoritative source: [docker/login-action repository](https://github.com/docker/login-action), [Docker docs for GitHub Actions](https://docs.docker.com/build/ci/github-actions/).
 - Commercial-use decision: approved for commercial internal CI use.
 - Attribution/notice obligation: preserve upstream license notices if redistributing workflow snippets or documentation.
@@ -51,7 +51,7 @@ This assessment records the trust boundary, licensing basis, and commercial-use 
 
 - Component: Docker Buildx setup action.
 - Exact version or commit SHA: `b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2` (`v3.10.0`).
-- SPDX identifier or exact terms: upstream repository license and GitHub Actions terms.
+- SPDX identifier: `Apache-2.0`.
 - Authoritative source: [docker/setup-buildx-action repository](https://github.com/docker/setup-buildx-action), [Docker docs for Buildx in GitHub Actions](https://docs.docker.com/build/ci/github-actions/setup-buildx/).
 - Commercial-use decision: approved.
 - Attribution/notice obligation: retain upstream notices in downstream copies.
@@ -65,7 +65,7 @@ This assessment records the trust boundary, licensing basis, and commercial-use 
 
 - Component: Docker metadata/tag generation action.
 - Exact version or commit SHA: `902fa8ec7d6ecbf8d84d538b9b233a880e428804` (`v5.7.0`).
-- SPDX identifier or exact terms: upstream repository license and GitHub Actions terms.
+- SPDX identifier: `Apache-2.0`.
 - Authoritative source: [docker/metadata-action repository](https://github.com/docker/metadata-action), [Docker docs for tags and labels](https://docs.docker.com/build/ci/github-actions/manage-tags-labels/).
 - Commercial-use decision: approved.
 - Attribution/notice obligation: retain upstream notices if workflow logic is copied elsewhere.
@@ -79,7 +79,7 @@ This assessment records the trust boundary, licensing basis, and commercial-use 
 
 - Component: Docker build and publish action.
 - Exact version or commit SHA: `471d1dc4e07e5cdedd4c2171150001c434f0b7a4` (`v6.15.0`).
-- SPDX identifier or exact terms: upstream repository license and GitHub Actions terms.
+- SPDX identifier: `Apache-2.0`.
 - Authoritative source: [docker/build-push-action repository](https://github.com/docker/build-push-action), [Docker docs for GitHub Actions](https://docs.docker.com/build/ci/github-actions/).
 - Commercial-use decision: approved.
 - Attribution/notice obligation: retain upstream notices in redistributed documentation.
@@ -93,7 +93,7 @@ This assessment records the trust boundary, licensing basis, and commercial-use 
 
 - Component: BuildKit / Buildx build backend.
 - Exact version or commit SHA: provided by the pinned Docker Buildx action and the runner Docker installation; no standalone BuildKit package is redistributed by the repo.
-- SPDX identifier or exact terms: governed by Docker's published build tooling terms and the upstream BuildKit license in the BuildKit project.
+- SPDX identifier: `Apache-2.0`.
 - Authoritative source: [Docker BuildKit docs](https://docs.docker.com/build/buildkit/), upstream BuildKit repository documentation.
 - Commercial-use decision: approved for internal build use.
 - Attribution/notice obligation: retain upstream notices if redistributing build instructions.
@@ -121,9 +121,9 @@ This assessment records the trust boundary, licensing basis, and commercial-use 
 
 - Component: Docker runtime on the Windows preview runner.
 - Exact version or commit SHA: runner-managed installation, not pinned in repo code.
-- SPDX identifier or exact terms: Docker Desktop / Docker Engine commercial and subscription terms apply to the installed product; usage is bound by Docker's published terms.
+- SPDX identifier or exact terms: applicable Docker Desktop or Docker Engine subscription and service terms govern the installed product.
 - Authoritative source: [Docker Desktop license / terms](https://www.docker.com/legal/docker-subscription-service-agreement/), [Docker Engine documentation](https://docs.docker.com/engine/).
-- Commercial-use decision: approved for the current preview host deployment model.
+- Commercial-use decision: approved only if the deployed runner’s Docker product usage satisfies the applicable subscription terms.
 - Attribution/notice obligation: none beyond the installed product terms and any redistributed docs.
 - Patent terms: governed by the Docker product terms and upstream licensing.
 - Redistribution implications: the repo does not redistribute Docker Desktop or Docker Engine.
@@ -178,4 +178,3 @@ Approved for internal commercial preview operations, subject to the upstream lic
 - No rebuild on the Windows runner.
 - No mutable tag discovery during deploy.
 - No claim of public redistribution rights for Docker-hosted services or GitHub-hosted services.
-

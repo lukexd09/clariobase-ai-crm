@@ -1,10 +1,13 @@
-import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { createCleanupController } from "../../scripts/docker-test-support";
+import {
+  createCleanupController,
+  DISPOSABLE_RUNTIME_PREFIX,
+  reserveFreePort
+} from "../../scripts/docker-test-support";
 
 const repoRoot = path.resolve(__dirname, "../..");
 
@@ -33,10 +36,9 @@ async function waitForHealth(url: string, timeoutMs = 60000) {
 }
 
 async function main() {
-  const readinessFile = process.argv[2];
-  const imageTag = process.argv[3];
-  const port = process.argv[4];
-  const containerName = `health-container-smoke-${Date.now()}`;
+  const imageTag = process.argv[2];
+  const port = process.argv[3] ?? await reserveFreePort();
+  const containerName = `${DISPOSABLE_RUNTIME_PREFIX}health-container-smoke-${Date.now()}`;
   const cleanup = createCleanupController("health-container-smoke");
   const run = spawnSync("docker", [
     "run",
@@ -59,18 +61,60 @@ async function main() {
     throw new Error(`docker run failed: ${(run.stderr ?? run.stdout ?? "").trim()}`);
   }
 
-  const containerId = run.stdout.trim();
   cleanup.registerDockerContainer(containerName);
   cleanup.installProcessHandlers();
 
-  process.once("SIGTERM", () => {
-    process.exit(143);
-  });
+  try {
+    await waitForHealth(`http://127.0.0.1:${port}/health`);
 
-  fs.writeFileSync(readinessFile, JSON.stringify({ containerId, containerName, port }));
+    const logs = spawnSync("docker", ["logs", containerName], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: "pipe"
+    });
 
-  await waitForHealth(`http://127.0.0.1:${port}/health`);
-  setInterval(() => {}, 1000);
+    if (logs.status !== 0) {
+      throw new Error(`docker logs failed: ${(logs.stderr ?? logs.stdout ?? "").trim()}`);
+    }
+
+    const stop = spawnSync("docker", ["stop", containerName], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: "pipe"
+    });
+
+    if (stop.status !== 0) {
+      throw new Error(`docker stop failed: ${(stop.stderr ?? stop.stdout ?? "").trim()}`);
+    }
+
+    const inspect = spawnSync("docker", ["inspect", containerName], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: "pipe"
+    });
+
+    if (inspect.status === 0) {
+      throw new Error("Container still exists after stop.");
+    }
+  } catch (error) {
+    const logs = spawnSync("docker", ["logs", containerName], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: "pipe"
+    });
+
+    if (logs.status === 0 && logs.stdout) {
+      console.error(logs.stdout);
+    }
+
+    throw error;
+  } finally {
+    spawnSync("docker", ["rm", "-f", containerName], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: "pipe"
+    });
+  }
 }
 
 main().catch((error) => {
