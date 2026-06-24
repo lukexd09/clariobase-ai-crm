@@ -116,7 +116,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /contents: read/);
   assert.match(deployWorkflow, /actions\/checkout@v5/);
   assert.match(deployWorkflow, /actions\/setup-node@v5/);
-  assert.match(deployWorkflow, /docker\/login-action@v3/);
+  assert.match(deployWorkflow, /docker\/login-action@[0-9a-f]{40}/);
   assert.match(deployWorkflow, /node-version: 22/);
   assert.match(deployWorkflow, /package-manager-cache: false/);
   assert.match(deployWorkflow, /group: clariobase-preview-slot/);
@@ -170,13 +170,13 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(autoDeployWorkflow, /group: clariobase-preview-slot/);
   assert.match(autoDeployWorkflow, /resolve-auto-preview\.ts/);
   assert.match(autoDeployWorkflow, /actions\/download-artifact@v4/);
-  assert.match(autoDeployWorkflow, /docker\/login-action@v3/);
+  assert.match(autoDeployWorkflow, /docker\/login-action@[0-9a-f]{40}/);
   assert.match(autoDeployWorkflow, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/);
   assert.match(autoDeployWorkflow, /name: auto-preview-context/);
   assert.match(autoDeployWorkflow, /\/tmp\/auto-preview-context\/auto-preview-context\.json/);
   assert.match(autoDeployWorkflow, /--context-path "\/tmp\/auto-preview-context\/auto-preview-context\.json"/);
-  assert.match(autoDeployWorkflow, /Resolve immutable preview image digest/);
-  assert.match(autoDeployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ steps\.image\.outputs\.preview_image_ref \}\}/);
+  assert.match(autoDeployWorkflow, /Build and push immutable preview image/);
+  assert.match(autoDeployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ needs\.build-preview-image\.outputs\.image_ref \}\}/);
   assert.match(autoDeployWorkflow, /ref: main/);
   assert.match(autoDeployWorkflow, /path: control/);
   assert.match(autoDeployWorkflow, /path: source/);

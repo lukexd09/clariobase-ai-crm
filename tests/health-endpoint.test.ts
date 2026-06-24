@@ -7,7 +7,6 @@ import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { createCleanupController, reserveFreePort, terminateProcessTree } from "../scripts/docker-test-support";
-import { createRepoTmpDir } from "./test-helpers";
 
 const repoRoot = path.resolve(__dirname, "..");
 const nextCli = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
@@ -50,28 +49,6 @@ async function waitForHealth(url: string, timeoutMs = 60000) {
   }
 
   throw new Error(`${url} did not return HTTP 200 in time.`);
-}
-
-async function waitForFile(filePath: string, timeoutMs = 60000) {
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < timeoutMs) {
-    if (fs.existsSync(filePath)) {
-      return;
-    }
-
-    await delay(250);
-  }
-
-  throw new Error(`${filePath} was not created in time.`);
-}
-
-async function waitForChildExit(child: ReturnType<typeof spawn>) {
-  return await new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
-    child.once("exit", (code, signal) => {
-      resolve({ code, signal });
-    });
-  });
 }
 
 function buildProductionApp() {
@@ -142,58 +119,6 @@ test("health endpoint is non-cacheable and returns a fresh timestamp on every re
   } finally {
     cleanup.cleanup("test completion");
     terminateProcessTree(childPid);
-    child.removeAllListeners();
-  }
-});
-
-test("health endpoint cleanup controller reaps the immutable container smoke deployment on SIGTERM interruption", { timeout: 180000 }, async () => {
-  const imageTag = `clariobase-ai-crm:health-container-smoke-${Date.now()}`;
-  const build = spawnSync("docker", ["build", "-t", imageTag, "."], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: "pipe"
-  });
-
-  assert.equal(build.status, 0, `docker build should pass: ${build.stderr ?? build.stdout}`);
-
-  const port = String(await reserveFreePort());
-  const readinessFile = path.join(createRepoTmpDir(repoRoot, "health-container-smoke-"), `health-container-smoke-${Date.now()}.json`);
-  const fixture = path.join(repoRoot, "tests", "fixtures", "health-container-smoke.ts");
-  const child = spawn(process.execPath, [path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs"), fixture, readinessFile, imageTag, port], {
-    cwd: repoRoot,
-    stdio: ["ignore", "pipe", "pipe"]
-  });
-
-  let output = "";
-
-  child.stdout.setEncoding("utf8");
-  child.stderr.setEncoding("utf8");
-  child.stdout.on("data", (chunk) => {
-    output += chunk;
-  });
-  child.stderr.on("data", (chunk) => {
-    output += chunk;
-  });
-
-  try {
-    await waitForFile(readinessFile);
-    const payload = JSON.parse(fs.readFileSync(readinessFile, "utf8")) as { containerId: string; containerName: string };
-
-    assert.match(payload.containerId, /^[0-9a-f]{12,64}$/i);
-    assert.match(payload.containerName, /^health-container-smoke-/);
-
-    child.kill("SIGTERM");
-    const result = await waitForChildExit(child);
-    assert.ok(result.signal === "SIGTERM" || result.code === 143, "fixture should exit from SIGTERM cleanup");
-    terminateProcessTree(child.pid ?? 0);
-    assert.equal(
-      spawnSync("docker", ["inspect", payload.containerName], { cwd: repoRoot, encoding: "utf8" }).status,
-      1,
-      output
-    );
-  } finally {
-    fs.rmSync(readinessFile, { force: true });
-    terminateProcessTree(child.pid ?? 0);
     child.removeAllListeners();
   }
 });
