@@ -10,7 +10,6 @@ on:
 permissions:
   actions: read
   contents: read
-  issues: write
   pull-requests: read
 
 concurrency:
@@ -20,6 +19,10 @@ concurrency:
 jobs:
   resolve-auto-preview:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
     outputs:
       resolution_status: ${{ steps.resolve.outputs.resolution_status }}
       should_deploy: ${{ steps.resolve.outputs.should_deploy }}
@@ -127,26 +130,32 @@ jobs:
             echo "Reason: ${GATE_REASON:-BLOCKED: resolver execution failed}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upsert PR preview comment as blocked
-        if: always() && (steps.classify.outputs.gate_result == 'BLOCKED' || steps.classify_failure.outputs.gate_result == 'BLOCKED') && steps.resolve.outputs.pr_number != ''
+  report-blocked-resolution:
+    needs: resolve-auto-preview
+    if: needs.resolve-auto-preview.outputs.gate_result == 'BLOCKED'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Upsert blocked preview comment
         uses: actions/github-script@v8
         env:
-          PR_NUMBER: ${{ steps.resolve.outputs.pr_number }}
-          VALIDATED_SHA: ${{ steps.resolve.outputs.validated_sha }}
-          HEAD_REF: ${{ steps.resolve.outputs.head_ref }}
-          CI_RUN_URL: ${{ steps.resolve.outputs.ci_run_url }}
-          BLOCK_REASON: ${{ steps.classify.outputs.gate_reason || steps.classify_failure.outputs.gate_reason }}
+          PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
+          HEAD_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
+          CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
+          BLOCK_REASON: ${{ needs.resolve-auto-preview.outputs.gate_reason }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
-            const reason = process.env.BLOCK_REASON || "BLOCKED: resolver execution failed";
             const body = [
               marker,
               "",
               "Preview blocked",
               "",
               "Result: blocked",
-              `Reason: ${reason}`,
+              `Reason: ${process.env.BLOCK_REASON || "BLOCKED: resolver execution failed"}`,
               "URL: http://Serwer:3001",
               `Commit: ${process.env.VALIDATED_SHA || "n/a"}`,
               `Branch: ${process.env.HEAD_REF || "n/a"}`,
@@ -162,21 +171,10 @@ jobs:
               per_page: 100
             });
             const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
-
             if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body
-              });
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
             } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number,
-                body
-              });
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
             }
 
       - name: Fail on blocked gate
@@ -332,10 +330,62 @@ jobs:
           path: immutable-preview-image.json
           retention-days: 7
 
+  report-deploying:
+    needs:
+      - resolve-auto-preview
+      - build-preview-image
+    if: needs.resolve-auto-preview.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Upsert PR preview comment as deploying
+        uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
+          HEAD_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
+          CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
+          IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+          IMAGE_BUILD_RUN_ID: ${{ needs.build-preview-image.outputs.image_build_run_id }}
+        with:
+          script: |
+            const marker = "<!-- clariobase-preview-status -->";
+            const body = [
+              marker,
+              "",
+              "Preview deploying",
+              "",
+              "Result: deploying",
+              "URL: http://Serwer:3001",
+              `Commit: ${process.env.VALIDATED_SHA}`,
+              `Image: ${process.env.IMAGE_REF}`,
+              `Branch: ${process.env.HEAD_REF}`,
+              `CI: ${process.env.CI_RUN_URL}`,
+              `Image build: ${process.env.IMAGE_BUILD_RUN_ID}`,
+              `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `Timestamp: ${new Date().toISOString()}`
+            ].join("\n");
+            const issue_number = Number(process.env.PR_NUMBER);
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100
+            });
+            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
+            }
+
   deploy-preview:
     needs:
       - resolve-auto-preview
       - build-preview-image
+      - report-deploying
     if: needs.resolve-auto-preview.outputs.should_deploy == 'true'
     runs-on:
       - self-hosted
@@ -346,8 +396,6 @@ jobs:
     permissions:
       contents: read
       packages: read
-      issues: write
-      pull-requests: read
 
     steps:
       - name: Check out trusted control checkout
@@ -427,57 +475,6 @@ jobs:
           Preview URL: http://Serwer:3001
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
-      - name: Upsert PR preview comment as blocked after runner revalidation
-        if: steps.revalidate.outputs.runner_revalidation_result == 'BLOCKED'
-        uses: actions/github-script@v8
-        env:
-          PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
-          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
-          HEAD_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
-          CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
-          BLOCK_REASON: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
-        with:
-          script: |
-            const marker = "<!-- clariobase-preview-status -->";
-            const body = [
-              marker,
-              "",
-              "Preview blocked",
-              "",
-              "Result: blocked",
-              `Reason: ${process.env.BLOCK_REASON}`,
-              "URL: http://Serwer:3001",
-              `Commit: ${process.env.VALIDATED_SHA}`,
-              `Branch: ${process.env.HEAD_REF}`,
-              `CI: ${process.env.CI_RUN_URL}`,
-              `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              `Timestamp: ${new Date().toISOString()}`
-            ].join("\n");
-            const issue_number = Number(process.env.PR_NUMBER);
-            const comments = await github.paginate(github.rest.issues.listComments, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number,
-              per_page: 100
-            });
-            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number,
-                body
-              });
-            }
-
       - name: Fail on blocked runner revalidation
         if: steps.revalidate.outputs.runner_revalidation_result == 'BLOCKED'
         shell: pwsh
@@ -501,55 +498,6 @@ jobs:
           $content = Get-Content .env.compose.preview.local
           $updated = $content -replace '^CRM_POSTGRES_PASSWORD=$', "CRM_POSTGRES_PASSWORD=$env:CRM_PREVIEW_POSTGRES_PASSWORD"
           Set-Content .env.compose.preview.local $updated
-
-      - name: Upsert PR preview comment as deploying
-        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
-        uses: actions/github-script@v8
-        env:
-          PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
-          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
-          HEAD_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
-          CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
-        with:
-          script: |
-            const marker = "<!-- clariobase-preview-status -->";
-            const body = [
-              marker,
-              "",
-              "Preview deploying",
-              "",
-              "Result: deploying",
-              "URL: http://Serwer:3001",
-              `Commit: ${process.env.VALIDATED_SHA}`,
-              `Branch: ${process.env.HEAD_REF}`,
-              `CI: ${process.env.CI_RUN_URL}`,
-              `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              `Timestamp: ${new Date().toISOString()}`
-            ].join("\n");
-            const issue_number = Number(process.env.PR_NUMBER);
-            const comments = await github.paginate(github.rest.issues.listComments, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number,
-              per_page: 100
-            });
-            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number,
-                body
-              });
-            }
 
       - name: Deploy preview
         id: deploy
@@ -612,8 +560,25 @@ jobs:
           Deployment run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
-      - name: Upsert PR preview comment as ready
-        if: success() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+      - name: Cleanup secrets and job artifacts
+        if: always()
+        shell: pwsh
+        working-directory: control
+        run: |
+          Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue
+
+  report-final:
+    needs:
+      - resolve-auto-preview
+      - build-preview-image
+      - deploy-preview
+    if: always() && needs.resolve-auto-preview.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Upsert final preview comment
         uses: actions/github-script@v8
         env:
           PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
@@ -622,18 +587,20 @@ jobs:
           CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
           IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
           IMAGE_BUILD_RUN_ID: ${{ needs.build-preview-image.outputs.image_build_run_id }}
+          DEPLOYMENT_RESULT: ${{ needs.deploy-preview.result }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
+            const ready = process.env.DEPLOYMENT_RESULT === "success";
             const body = [
               marker,
               "",
-              "Preview ready",
+              ready ? "Preview ready" : "Preview failed",
               "",
-              "Result: ready",
+              `Result: ${ready ? "ready" : "failed"}`,
               "URL: http://Serwer:3001",
               `Commit: ${process.env.VALIDATED_SHA}`,
-              `Image: ${process.env.IMAGE_REF}`,
+              `Image: ${process.env.IMAGE_REF || "n/a"}`,
               `Branch: ${process.env.HEAD_REF}`,
               `CI: ${process.env.CI_RUN_URL}`,
               `Image build: ${process.env.IMAGE_BUILD_RUN_ID}`,
@@ -648,75 +615,8 @@ jobs:
               per_page: 100
             });
             const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
-
             if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body
-              });
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
             } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number,
-                body
-              });
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
             }
-
-      - name: Upsert PR preview comment as failed
-        if: failure() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'
-        uses: actions/github-script@v8
-        env:
-          PR_NUMBER: ${{ needs.resolve-auto-preview.outputs.pr_number }}
-          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
-          HEAD_REF: ${{ needs.resolve-auto-preview.outputs.head_ref }}
-          CI_RUN_URL: ${{ needs.resolve-auto-preview.outputs.ci_run_url }}
-        with:
-          script: |
-            const marker = "<!-- clariobase-preview-status -->";
-            const body = [
-              marker,
-              "",
-              "Preview failed",
-              "",
-              "Result: failed",
-              "URL: http://Serwer:3001",
-              `Commit: ${process.env.VALIDATED_SHA}`,
-              `Branch: ${process.env.HEAD_REF}`,
-              `CI: ${process.env.CI_RUN_URL}`,
-              `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              `Timestamp: ${new Date().toISOString()}`
-            ].join("\n");
-            const issue_number = Number(process.env.PR_NUMBER);
-            const comments = await github.paginate(github.rest.issues.listComments, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number,
-              per_page: 100
-            });
-            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number,
-                body
-              });
-            }
-
-      - name: Cleanup secrets and job artifacts
-        if: always()
-        shell: pwsh
-        working-directory: control
-        run: |
-          Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue
