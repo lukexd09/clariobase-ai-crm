@@ -21,7 +21,9 @@ import {
   executeDeployPlanWithEnv,
   getRepoRoot,
   loadPreviewEnv,
-  parseEnvFileContent
+  parseEnvFileContent,
+  validateFullCommitSha,
+  validateResolvedSha
 } from "../scripts/preview-runtime-support";
 import { createRepoTmpDir } from "./test-helpers";
 
@@ -41,6 +43,22 @@ function hasDocker() {
 }
 
 const dockerAvailable = hasDocker();
+
+function createCommitRepo(rootDir: string, label: string) {
+  fs.rmSync(rootDir, { recursive: true, force: true });
+  fs.mkdirSync(rootDir, { recursive: true });
+
+  assert.equal(spawnSync("git", ["init"], { cwd: rootDir, encoding: "utf8" }).status, 0);
+  assert.equal(spawnSync("git", ["config", "user.email", "codex@example.com"], { cwd: rootDir, encoding: "utf8" }).status, 0);
+  assert.equal(spawnSync("git", ["config", "user.name", "Codex"], { cwd: rootDir, encoding: "utf8" }).status, 0);
+  fs.writeFileSync(path.join(rootDir, "README.md"), `${label}\n`, "utf8");
+  assert.equal(spawnSync("git", ["add", "README.md"], { cwd: rootDir, encoding: "utf8" }).status, 0);
+  assert.equal(spawnSync("git", ["commit", "-m", label], { cwd: rootDir, encoding: "utf8" }).status, 0);
+
+  const head = spawnSync("git", ["rev-parse", "HEAD"], { cwd: rootDir, encoding: "utf8" });
+  assert.equal(head.status, 0, head.stderr);
+  return head.stdout.trim();
+}
 
 test("preview runtime assets pin the approved preview identity", () => {
   const composePreviewFile = read("compose.preview.yaml");
@@ -160,6 +178,333 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   assert.equal(summary.projectName, PREVIEW_PROJECT_NAME);
   assert.equal(summary.volumeName, PREVIEW_VOLUME_NAME);
   assert.equal(summary.networkName, PREVIEW_NETWORK_NAME);
+});
+
+test("preview identity validation separates control and source checkout identities", () => {
+  const controlSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const sourceSha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+  assert.equal(validateFullCommitSha(controlSha, "Control checkout HEAD"), controlSha);
+  assert.equal(validateFullCommitSha(sourceSha, "Resolved SHA"), sourceSha);
+  assert.equal(validateResolvedSha(sourceSha, sourceSha), sourceSha);
+  assert.equal(validateResolvedSha(controlSha), controlSha);
+  assert.throws(
+    () => validateResolvedSha(controlSha, sourceSha),
+    /Current checkout SHA aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa does not match the expected resolved SHA bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\./
+  );
+  assert.throws(
+    () => validateFullCommitSha("not-a-sha", "Resolved SHA"),
+    /Resolved SHA must be a full 40-character Git commit SHA: not-a-sha/
+  );
+});
+
+test("deploy preview dry-run separates trusted control checkout from resolved deployment SHA", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "deploy-preview-dry-run-control-only-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+  const previewEnvDir = path.join(tmpRoot, "env");
+  const previewEnvFile = path.join(previewEnvDir, PREVIEW_ENV_FILE_NAME);
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+  fs.mkdirSync(previewEnvDir, { recursive: true });
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+    const resolvedSha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+    fs.writeFileSync(
+      previewEnvFile,
+      [
+        "CRM_BIND_ADDRESS=0.0.0.0",
+        "CRM_HOST_PORT=3001",
+        "AI_EXCHANGE_HOST_PATH=./data/ai-exchange-preview",
+        "CRM_POSTGRES_DB=clariobase_crm_preview",
+        "CRM_POSTGRES_USER=clariobase_crm_preview_user",
+        "CRM_POSTGRES_PASSWORD=preview-password",
+        "CRM_DATABASE_URL=postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = spawnSync(process.execPath, [
+      tsxCli,
+      "scripts/deploy-preview.ts",
+      "--dry-run",
+      "--requested-ref",
+      "feature/test",
+      "--control-checkout-path",
+      controlCheckoutPath,
+      "--resolved-sha",
+      resolvedSha,
+      "--preview-env-file",
+      previewEnvFile
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout) as {
+      controlHeadSha: string;
+      resolvedSha: string;
+      sourceCheckoutProvided: boolean;
+      sourceHeadSha?: string;
+    };
+
+    assert.equal(output.controlHeadSha, controlHeadSha);
+    assert.equal(output.resolvedSha, resolvedSha);
+    assert.equal(output.sourceCheckoutProvided, false);
+    assert.equal(output.sourceHeadSha, undefined);
+    assert.doesNotMatch(result.stdout, /Current checkout SHA .* does not match the expected resolved SHA/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("deploy preview dry-run accepts an explicit source checkout when it matches the resolved SHA", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "deploy-preview-dry-run-source-match-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+  const sourceCheckoutPath = path.join(tmpRoot, "source");
+  const previewEnvDir = path.join(tmpRoot, "env");
+  const previewEnvFile = path.join(previewEnvDir, PREVIEW_ENV_FILE_NAME);
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+  fs.mkdirSync(previewEnvDir, { recursive: true });
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+    const sourceHeadSha = createCommitRepo(sourceCheckoutPath, "source-checkout");
+
+    fs.writeFileSync(
+      previewEnvFile,
+      [
+        "CRM_BIND_ADDRESS=0.0.0.0",
+        "CRM_HOST_PORT=3001",
+        "AI_EXCHANGE_HOST_PATH=./data/ai-exchange-preview",
+        "CRM_POSTGRES_DB=clariobase_crm_preview",
+        "CRM_POSTGRES_USER=clariobase_crm_preview_user",
+        "CRM_POSTGRES_PASSWORD=preview-password",
+        "CRM_DATABASE_URL=postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = spawnSync(process.execPath, [
+      tsxCli,
+      "scripts/deploy-preview.ts",
+      "--dry-run",
+      "--requested-ref",
+      "feature/test",
+      "--control-checkout-path",
+      controlCheckoutPath,
+      "--source-checkout-path",
+      sourceCheckoutPath,
+      "--resolved-sha",
+      sourceHeadSha,
+      "--preview-env-file",
+      previewEnvFile
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout) as {
+      controlHeadSha: string;
+      resolvedSha: string;
+      sourceCheckoutProvided: boolean;
+      sourceHeadSha: string;
+    };
+
+    assert.equal(output.controlHeadSha, controlHeadSha);
+    assert.equal(output.sourceHeadSha, sourceHeadSha);
+    assert.equal(output.resolvedSha, sourceHeadSha);
+    assert.equal(output.sourceCheckoutProvided, true);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("deploy preview dry-run fails when the explicit source checkout mismatches the resolved SHA", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "deploy-preview-dry-run-source-mismatch-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+  const sourceCheckoutPath = path.join(tmpRoot, "source");
+  const previewEnvDir = path.join(tmpRoot, "env");
+  const previewEnvFile = path.join(previewEnvDir, PREVIEW_ENV_FILE_NAME);
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+  fs.mkdirSync(previewEnvDir, { recursive: true });
+
+  try {
+    createCommitRepo(controlCheckoutPath, "control-checkout");
+    const sourceHeadSha = createCommitRepo(sourceCheckoutPath, "source-checkout");
+    const expectedResolvedSha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+    fs.writeFileSync(
+      previewEnvFile,
+      [
+        "CRM_BIND_ADDRESS=0.0.0.0",
+        "CRM_HOST_PORT=3001",
+        "AI_EXCHANGE_HOST_PATH=./data/ai-exchange-preview",
+        "CRM_POSTGRES_DB=clariobase_crm_preview",
+        "CRM_POSTGRES_USER=clariobase_crm_preview_user",
+        "CRM_POSTGRES_PASSWORD=preview-password",
+        "CRM_DATABASE_URL=postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = spawnSync(process.execPath, [
+      tsxCli,
+      "scripts/deploy-preview.ts",
+      "--dry-run",
+      "--requested-ref",
+      "feature/test",
+      "--control-checkout-path",
+      controlCheckoutPath,
+      "--source-checkout-path",
+      sourceCheckoutPath,
+      "--resolved-sha",
+      expectedResolvedSha,
+      "--preview-env-file",
+      previewEnvFile
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr || result.stdout, new RegExp(`Current checkout SHA ${sourceHeadSha} does not match the expected resolved SHA ${expectedResolvedSha}\\.`, "i"));
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("deploy preview dry-run rejects invalid resolved SHAs without a source checkout", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "deploy-preview-dry-run-invalid-sha-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+  const previewEnvDir = path.join(tmpRoot, "env");
+  const previewEnvFile = path.join(previewEnvDir, PREVIEW_ENV_FILE_NAME);
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+  fs.mkdirSync(previewEnvDir, { recursive: true });
+
+  try {
+    createCommitRepo(controlCheckoutPath, "control-checkout");
+
+    fs.writeFileSync(
+      previewEnvFile,
+      [
+        "CRM_BIND_ADDRESS=0.0.0.0",
+        "CRM_HOST_PORT=3001",
+        "AI_EXCHANGE_HOST_PATH=./data/ai-exchange-preview",
+        "CRM_POSTGRES_DB=clariobase_crm_preview",
+        "CRM_POSTGRES_USER=clariobase_crm_preview_user",
+        "CRM_POSTGRES_PASSWORD=preview-password",
+        "CRM_DATABASE_URL=postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = spawnSync(process.execPath, [
+      tsxCli,
+      "scripts/deploy-preview.ts",
+      "--dry-run",
+      "--requested-ref",
+      "feature/test",
+      "--control-checkout-path",
+      controlCheckoutPath,
+      "--resolved-sha",
+      "not-a-sha",
+      "--preview-env-file",
+      previewEnvFile
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr || result.stdout, /Resolved SHA must be a full 40-character Git commit SHA: not-a-sha/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("deploy preview dry-run falls back to the trusted control checkout HEAD when no resolved SHA is provided", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "deploy-preview-dry-run-fallback-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+  const previewEnvDir = path.join(tmpRoot, "env");
+  const previewEnvFile = path.join(previewEnvDir, PREVIEW_ENV_FILE_NAME);
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+
+  fs.mkdirSync(previewEnvDir, { recursive: true });
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+
+    fs.writeFileSync(
+      previewEnvFile,
+      [
+        "CRM_BIND_ADDRESS=0.0.0.0",
+        "CRM_HOST_PORT=3001",
+        "AI_EXCHANGE_HOST_PATH=./data/ai-exchange-preview",
+        "CRM_POSTGRES_DB=clariobase_crm_preview",
+        "CRM_POSTGRES_USER=clariobase_crm_preview_user",
+        "CRM_POSTGRES_PASSWORD=preview-password",
+        "CRM_DATABASE_URL=postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = spawnSync(process.execPath, [
+      tsxCli,
+      "scripts/deploy-preview.ts",
+      "--dry-run",
+      "--requested-ref",
+      "feature/test",
+      "--control-checkout-path",
+      controlCheckoutPath,
+      "--preview-env-file",
+      previewEnvFile
+    ], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    const output = JSON.parse(result.stdout) as {
+      controlHeadSha: string;
+      resolvedSha: string;
+      sourceCheckoutProvided: boolean;
+      sourceHeadSha?: string;
+    };
+
+    assert.equal(output.controlHeadSha, controlHeadSha);
+    assert.equal(output.resolvedSha, controlHeadSha);
+    assert.equal(output.sourceCheckoutProvided, false);
+    assert.equal(output.sourceHeadSha, undefined);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
 });
 
 test("deploy preview propagates the immutable image ref to the preview commands", () => {
