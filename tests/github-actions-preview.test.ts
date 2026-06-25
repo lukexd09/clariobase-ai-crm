@@ -19,6 +19,8 @@ import {
 import { createSystemTmpDir } from "./test-helpers";
 
 const repoRoot = path.resolve(__dirname, "..");
+process.env.GITHUB_TOKEN = process.env.GITHUB_TOKEN || "test-token";
+global.fetch = (async () => new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })) as typeof fetch;
 
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
@@ -185,7 +187,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.doesNotMatch(autoDeployWorkflow, /write-all/);
   assert.match(autoDeployWorkflow, /group: clariobase-preview-slot/);
   assert.match(autoDeployWorkflow, /resolve-auto-preview\.ts/);
-  assert.match(autoDeployWorkflow, /actions\/download-artifact@v4/);
+  assert.match(autoDeployWorkflow, /actions\/download-artifact@v8/);
   assert.match(autoDeployWorkflow, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/);
   assert.match(autoDeployWorkflow, /name: auto-preview-context/);
   assert.match(autoDeployWorkflow, /\/tmp\/auto-preview-context\/auto-preview-context\.json/);
@@ -213,7 +215,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.doesNotMatch(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3000\/api\/ready/);
   assert.doesNotMatch(autoDeployWorkflow, /\non:\s*\n\s*push:/);
   assert.doesNotMatch(autoDeployWorkflow, /pull_request_target/);
-  assert.doesNotMatch(`${ciWorkflow}\n${autoDeployWorkflow}\n${deployWorkflow}\n${stopWorkflow}`, /actions\/(checkout|setup-node)@v4/);
+  assert.doesNotMatch(`${ciWorkflow}\n${autoDeployWorkflow}\n${deployWorkflow}\n${stopWorkflow}`, /actions\/(checkout|setup-node|download-artifact)@v4/);
 
   assert.match(runnerDoc, /document_id: DOC-E016-WINDOWS-RUNNER/);
   assert.match(runnerDoc, /C:\\actions-runners\\clariobase-preview/);
@@ -690,6 +692,120 @@ test("resolve-auto-preview emits controlled blocked and skipped machine-readable
   assert.equal(blockedResult.shouldDeploy, false);
   assert.equal(skippedResult.resolutionStatus, "skipped");
   assert.equal(skippedResult.shouldDeploy, false);
+});
+
+test("resolve-auto-preview blocks trusted control-plane file changes and keeps the PR metadata for reporting", async () => {
+  const baseEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
+  const baseContext = createAutoPreviewContext();
+  const originalFetch = global.fetch;
+
+  try {
+    global.fetch = (async () =>
+      new Response(JSON.stringify([{ filename: "scripts/deploy-preview.ts" }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })) as typeof fetch;
+
+    const result = await resolveAutoPreview({
+      event: baseEvent,
+      repository: EXPECTED_REPOSITORY,
+      context: baseContext,
+      fetchPullRequest: async () => ({
+        number: 113,
+        state: "open",
+        html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+        head: {
+          ref: "feature/e016-preview",
+          sha: "1111111111111111111111111111111111111111",
+          repo: {
+            full_name: EXPECTED_REPOSITORY
+          }
+        }
+      })
+    });
+
+    assert.equal(result.resolutionStatus, "blocked");
+    assert.equal(result.shouldDeploy, false);
+    assert.match(result.skipReason, /trusted preview control-plane files/);
+    assert.equal(result.prNumber, "113");
+    assert.equal(result.prUrl, "https://github.com/lukexd09/clariobase-ai-crm/pull/113");
+    assert.equal(result.headRef, "feature/e016-preview");
+    assert.equal(result.validatedSha, "1111111111111111111111111111111111111111");
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("resolve-auto-preview inspects paginated changed files and fails closed on API errors", async () => {
+  const baseEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
+  const baseContext = createAutoPreviewContext();
+  const requestedPages: number[] = [];
+  const originalFetch = global.fetch;
+
+  const mockPullRequest = async () => ({
+    number: 113,
+    state: "open",
+    html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+    head: {
+      ref: "feature/e016-preview",
+      sha: "1111111111111111111111111111111111111111",
+      repo: {
+        full_name: EXPECTED_REPOSITORY
+      }
+    }
+  });
+
+  try {
+    global.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const pageMatch = /[?&]page=(\d+)/.exec(url);
+      const page = Number(pageMatch?.[1] ?? "1");
+      requestedPages.push(page);
+
+      if (page === 1) {
+        return new Response(
+          JSON.stringify(Array.from({ length: 100 }, (_, index) => ({ filename: `docs/file-${index}.md` }))),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (page === 2) {
+        return new Response(
+          JSON.stringify([{ filename: "scripts/deploy-preview.ts" }]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
+    }) as typeof fetch;
+
+    const pagedResult = await resolveAutoPreview({
+      event: baseEvent,
+      repository: EXPECTED_REPOSITORY,
+      context: baseContext,
+      fetchPullRequest: mockPullRequest
+    });
+
+    assert.equal(pagedResult.resolutionStatus, "blocked");
+    assert.equal(pagedResult.shouldDeploy, false);
+    assert.match(pagedResult.skipReason, /trusted preview control-plane files/);
+
+    assert.deepEqual(requestedPages, [1, 2]);
+
+    global.fetch = (async () => new Response("", { status: 503 })) as typeof fetch;
+
+    await assert.rejects(
+      () => resolveAutoPreview({
+        event: baseEvent,
+        repository: EXPECTED_REPOSITORY,
+        context: baseContext,
+        fetchPullRequest: mockPullRequest
+      }),
+      /GitHub API pull request files lookup failed with HTTP 503\./
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
 
 test("resolve-auto-preview CLI fails hard for malformed event payloads and missing token", () => {
