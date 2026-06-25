@@ -21,7 +21,9 @@ import {
   executeDeployPlanWithEnv,
   getRepoRoot,
   loadPreviewEnv,
-  parseEnvFileContent
+  parseEnvFileContent,
+  validateFullCommitSha,
+  validateResolvedSha
 } from "../scripts/preview-runtime-support";
 import { createRepoTmpDir } from "./test-helpers";
 
@@ -160,6 +162,24 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   assert.equal(summary.projectName, PREVIEW_PROJECT_NAME);
   assert.equal(summary.volumeName, PREVIEW_VOLUME_NAME);
   assert.equal(summary.networkName, PREVIEW_NETWORK_NAME);
+});
+
+test("preview identity validation separates control and source checkout identities", () => {
+  const controlSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const sourceSha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+  assert.equal(validateFullCommitSha(controlSha, "Control checkout HEAD"), controlSha);
+  assert.equal(validateFullCommitSha(sourceSha, "Resolved SHA"), sourceSha);
+  assert.equal(validateResolvedSha(sourceSha, sourceSha), sourceSha);
+  assert.equal(validateResolvedSha(controlSha), controlSha);
+  assert.throws(
+    () => validateResolvedSha(controlSha, sourceSha),
+    /Current checkout SHA aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa does not match the expected resolved SHA bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\./
+  );
+  assert.throws(
+    () => validateFullCommitSha("not-a-sha", "Resolved SHA"),
+    /Resolved SHA must be a full 40-character Git commit SHA: not-a-sha/
+  );
 });
 
 test("deploy preview propagates the immutable image ref to the preview commands", () => {

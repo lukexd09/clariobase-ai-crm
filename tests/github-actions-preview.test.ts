@@ -193,11 +193,14 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(autoDeployWorkflow, /Build immutable preview image/);
   assert.match(autoDeployWorkflow, /Push immutable preview image/);
   assert.match(autoDeployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ needs\.build-preview-image\.outputs\.image_ref \}\}/);
+  assert.match(autoDeployWorkflow, /IMAGE_SOURCE_SHA: \$\{\{ needs\.build-preview-image\.outputs\.source_sha \}\}/);
   assert.match(autoDeployWorkflow, /ref: main/);
   assert.match(autoDeployWorkflow, /path: control/);
   assert.match(autoDeployWorkflow, /ref: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
   assert.match(autoDeployWorkflow, /BLOCKED: stale validated SHA/);
   assert.match(autoDeployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
+  assert.match(autoDeployWorkflow, /Validate immutable image handoff/);
+  assert.match(autoDeployWorkflow, /IMAGE_SOURCE_SHA must match VALIDATED_SHA\./);
   assert.match(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3001\/api\/ready/);
   assert.match(autoDeployWorkflow, /environment: e016-preview-operator/);
   assert.match(autoDeployWorkflow, /<!-- clariobase-preview-status -->/);
@@ -1015,9 +1018,11 @@ test("preview workflows keep the requested SHA as source input while control scr
 
   assert.match(autoDeployWorkflow, /Check out trusted control checkout/);
   assert.match(autoDeployWorkflow, /VALIDATED_SHA: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
+  assert.match(autoDeployWorkflow, /IMAGE_SOURCE_SHA: \$\{\{ needs\.build-preview-image\.outputs\.source_sha \}\}/);
   assert.match(autoDeployWorkflow, /REQUESTED_REF: \$\{\{ needs\.resolve-auto-preview\.outputs\.head_ref \}\}/);
   assert.match(autoDeployWorkflow, /-ResolvedSha \$env:VALIDATED_SHA/);
   assert.match(autoDeployWorkflow, /-RequestedRef \$env:REQUESTED_REF/);
+  assert.doesNotMatch(autoDeployWorkflow, /-SourceCheckoutPath/);
   assert.match(deployWorkflow, /Check out trusted workflow revision/);
   assert.match(deployWorkflow, /-ControlCheckoutPath \$PWD/);
   assert.doesNotMatch(deployWorkflow, /-SourceCheckoutPath/);
