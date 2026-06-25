@@ -270,7 +270,10 @@ jobs:
         run: |
           docker push "$IMAGE_TAG" | tee docker-push.log
 
-          mapfile -t DIGESTS < <(grep -oE 'sha256:[0-9a-f]{64}' docker-push.log | sort -u)
+          mapfile -t DIGESTS < <(
+            sed -nE 's/^.*digest: (sha256:[0-9a-f]{64})( size:.*)?$/\1/p' docker-push.log |
+              sort -u
+          )
 
           if [ "${#DIGESTS[@]}" -ne 1 ]; then
             echo "Expected exactly one pushed registry digest, found ${#DIGESTS[@]}." >&2
@@ -278,6 +281,12 @@ jobs:
           fi
 
           IMAGE_DIGEST="${DIGESTS[0]}"
+
+          if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Invalid registry digest: $IMAGE_DIGEST" >&2
+            exit 1
+          fi
+
           IMAGE_REF="ghcr.io/${{ github.repository }}@${IMAGE_DIGEST}"
 
           {

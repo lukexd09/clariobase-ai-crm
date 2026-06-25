@@ -241,8 +241,9 @@ test("trusted image-build workflow keeps registry credentials outside resolver a
   assert.match(workflow, /sbom:\s*false/);
   assert.match(workflow, /Build immutable preview image[\s\S]*Smoke test immutable image[\s\S]*Log in to GitHub Container Registry[\s\S]*Push immutable preview image/);
   assert.match(workflow, /docker push "\$IMAGE_TAG" \| tee docker-push\.log/);
-  assert.match(workflow, /grep -oE 'sha256:\[0-9a-f\]\{64\}' docker-push\.log \| sort -u/);
+  assert.match(workflow, /sed -nE 's\/\^.*digest: \(sha256:\[0-9a-f\]\{64\}\)\( size:\.\*\)\?\$\/\\1\/p' docker-push\.log/);
   assert.match(workflow, /Expected exactly one pushed registry digest/);
+  assert.match(workflow, /Invalid registry digest: \$IMAGE_DIGEST/);
   assert.doesNotMatch(resolverBlock, /docker\/login-action@[0-9a-f]{40}/);
   assert.doesNotMatch(resolverBlock, /packages: write/);
   assert.match(buildBlock, /docker\/login-action@[0-9a-f]{40}/);
@@ -251,15 +252,27 @@ test("trusted image-build workflow keeps registry credentials outside resolver a
   assert.doesNotMatch(workflow, /steps\.build-image\.outputs\.digest/);
 });
 
-test("registry digest is captured from the pushed immutable image and handed to deploy as an exact ref", () => {
+test("registry digest is captured only from the Docker push digest line and yields an exact immutable ref", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
 
-  assert.match(workflow, /IMAGE_DIGEST="\$\{DIGESTS\[0\]\}"/);
+  assert.match(workflow, /mapfile -t DIGESTS < <\(/);
+  assert.match(workflow, /sed -nE 's\/\^.*digest: \(sha256:\[0-9a-f\]\{64\}\)\( size:\.\*\)\?\$\/\\1\/p' docker-push\.log \|/);
+  assert.doesNotMatch(workflow, /grep -oE 'sha256:/);
+  assert.match(workflow, /if \[\[ ! "\$IMAGE_DIGEST" =~ \^sha256:\[0-9a-f\]\{64\}\$ \]\]; then/);
   assert.match(workflow, /IMAGE_REF="ghcr\.io\/\$\{\{ github\.repository \}\}@\$\{IMAGE_DIGEST\}"/);
   assert.match(workflow, /echo "image_ref=\$\{IMAGE_REF\}"/);
   assert.match(workflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ needs\.build-preview-image\.outputs\.image_ref \}\}/);
   assert.doesNotMatch(workflow, /deploy-preview[\s\S]*docker compose build/);
   assert.doesNotMatch(workflow, /deploy-preview[\s\S]*mutable tag/);
+});
+
+test("digest parsing fails closed for zero, multiple, or malformed docker push digests", () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+
+  assert.match(workflow, /if \[ "\$\{#DIGESTS\[@\]\}" -ne 1 \]; then/);
+  assert.match(workflow, /Expected exactly one pushed registry digest, found \$\{#DIGESTS\[@\]\}\./);
+  assert.match(workflow, /if \[\[ ! "\$IMAGE_DIGEST" =~ \^sha256:\[0-9a-f\]\{64\}\$ \]\]; then/);
+  assert.doesNotMatch(workflow, /sort -u.*sha256:\[0-9a-f\]\{64\}.*docker-push\.log/);
 });
 
 test("immutable preview image reference validation is exact and lowercase", () => {
