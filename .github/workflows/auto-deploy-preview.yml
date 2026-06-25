@@ -239,12 +239,13 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64
           load: true
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          provenance: true
-          sbom: true
+          provenance: false
+          sbom: false
 
       - name: Smoke test immutable image
         shell: pwsh
@@ -262,18 +263,34 @@ jobs:
           password: ${{ github.token }}
 
       - name: Push immutable preview image
+        id: push
         shell: bash
         env:
           IMAGE_TAG: ghcr.io/${{ github.repository }}:${{ needs.resolve-auto-preview.outputs.validated_sha }}
         run: |
-          docker push "$IMAGE_TAG"
+          docker push "$IMAGE_TAG" | tee docker-push.log
+
+          mapfile -t DIGESTS < <(grep -oE 'sha256:[0-9a-f]{64}' docker-push.log | sort -u)
+
+          if [ "${#DIGESTS[@]}" -ne 1 ]; then
+            echo "Expected exactly one pushed registry digest, found ${#DIGESTS[@]}." >&2
+            exit 1
+          fi
+
+          IMAGE_DIGEST="${DIGESTS[0]}"
+          IMAGE_REF="ghcr.io/${{ github.repository }}@${IMAGE_DIGEST}"
+
+          {
+            echo "image_digest=${IMAGE_DIGEST}"
+            echo "image_ref=${IMAGE_REF}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Publish immutable image metadata
         id: publish
         shell: bash
         env:
           SOURCE_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
-          IMAGE_DIGEST: ${{ steps.build-image.outputs.digest }}
+          IMAGE_DIGEST: ${{ steps.push.outputs.image_digest }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
           IMAGE_BUILD_RUN_ID: ${{ github.run_id }}
         run: |
