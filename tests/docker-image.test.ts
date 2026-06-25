@@ -82,6 +82,11 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.doesNotMatch(verifierScript, /const hostPort = "3015"/);
   assert.doesNotMatch(verifierScript, /clariobase-ai-crm:test-verify";/);
 
+  const smokeFixture = read("tests/fixtures/health-container-smoke.ts");
+  assert.match(smokeFixture, /Container is still running after stop\./);
+  assert.match(smokeFixture, /Container did not reach a stopped state after stop:/);
+  assert.doesNotMatch(smokeFixture, /Container still exists after stop\./);
+
   assert.match(dockerignore, /^\.env$/m);
   assert.match(dockerignore, /^!\.env\.example$/m);
   assert.match(dockerignore, /^\.codex-tmp$/m);

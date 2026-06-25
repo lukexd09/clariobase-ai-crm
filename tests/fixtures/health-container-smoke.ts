@@ -102,7 +102,7 @@ async function main() {
       }>;
       const state = details[0]?.State;
 
-      if (state?.Running) {
+      if (state?.Running === true) {
         throw new Error("Container is still running after stop.");
       }
 
