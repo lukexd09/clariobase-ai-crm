@@ -132,7 +132,10 @@ jobs:
 
   report-blocked-resolution:
     needs: resolve-auto-preview
-    if: needs.resolve-auto-preview.outputs.gate_result == 'BLOCKED'
+    if: >
+      always() &&
+      needs.resolve-auto-preview.outputs.gate_result == 'BLOCKED' &&
+      needs.resolve-auto-preview.outputs.pr_number != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -149,6 +152,12 @@ jobs:
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
+            const issue_number = Number(process.env.PR_NUMBER);
+
+            if (!Number.isInteger(issue_number) || issue_number <= 0) {
+              throw new Error("Invalid PR number.");
+            }
+
             const body = [
               marker,
               "",
@@ -163,7 +172,6 @@ jobs:
               `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               `Timestamp: ${new Date().toISOString()}`
             ].join("\n");
-            const issue_number = Number(process.env.PR_NUMBER);
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -177,11 +185,11 @@ jobs:
               await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
             }
 
-      - name: Fail on blocked gate
-        if: always() && (steps.classify.outputs.gate_result == 'BLOCKED' || steps.classify_failure.outputs.gate_result == 'BLOCKED')
+      - name: Fail blocked preview gate
+        if: always()
         shell: bash
         env:
-          GATE_REASON: ${{ steps.classify.outputs.gate_reason || steps.classify_failure.outputs.gate_reason }}
+          GATE_REASON: ${{ needs.resolve-auto-preview.outputs.gate_reason }}
         run: |
           echo "${GATE_REASON:-BLOCKED: resolver execution failed}"
           exit 1
@@ -352,6 +360,12 @@ jobs:
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
+            const issue_number = Number(process.env.PR_NUMBER);
+
+            if (!Number.isInteger(issue_number) || issue_number <= 0) {
+              throw new Error("Invalid PR number.");
+            }
+
             const body = [
               marker,
               "",
@@ -367,7 +381,6 @@ jobs:
               `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               `Timestamp: ${new Date().toISOString()}`
             ].join("\n");
-            const issue_number = Number(process.env.PR_NUMBER);
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -396,6 +409,7 @@ jobs:
     permissions:
       contents: read
       packages: read
+      pull-requests: read
 
     steps:
       - name: Check out trusted control checkout
@@ -591,6 +605,12 @@ jobs:
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
+            const issue_number = Number(process.env.PR_NUMBER);
+
+            if (!Number.isInteger(issue_number) || issue_number <= 0) {
+              throw new Error("Invalid PR number.");
+            }
+
             const ready = process.env.DEPLOYMENT_RESULT === "success";
             const body = [
               marker,
@@ -607,7 +627,6 @@ jobs:
               `Deployment: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               `Timestamp: ${new Date().toISOString()}`
             ].join("\n");
-            const issue_number = Number(process.env.PR_NUMBER);
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
               repo: context.repo.repo,

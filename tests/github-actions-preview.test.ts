@@ -79,17 +79,27 @@ function createAutoPreviewContext(overrides?: Record<string, unknown>) {
   };
 }
 
+function splitJobBlock(workflow: string, jobName: string, nextJobName?: string) {
+  const start = workflow.indexOf(`  ${jobName}:`);
+  if (start === -1) {
+    return "";
+  }
+
+  const end = nextJobName ? workflow.indexOf(`  ${nextJobName}:`, start + 1) : workflow.length;
+  return workflow.slice(start, end === -1 ? workflow.length : end);
+}
+
 test("preview workflows use trusted triggers, least privilege, and the approved scripts", () => {
   const ciWorkflow = read(".github/workflows/ci.yml");
   const autoDeployWorkflow = read(".github/workflows/auto-deploy-preview.yml");
   const deployWorkflow = read(".github/workflows/deploy-preview.yml");
   const stopWorkflow = read(".github/workflows/stop-preview.yml");
-  const resolverBlock = autoDeployWorkflow.split("  report-blocked-resolution:")[0];
-  const reportBlockedBlock = autoDeployWorkflow.split("  report-blocked-resolution:")[1].split("  build-preview-image:")[0];
-  const buildBlock = autoDeployWorkflow.split("  build-preview-image:")[1].split("  report-deploying:")[0];
-  const reportDeployingBlock = autoDeployWorkflow.split("  report-deploying:")[1].split("  deploy-preview:")[0];
-  const deployBlock = autoDeployWorkflow.split("  deploy-preview:")[1].split("  report-final:")[0];
-  const reportFinalBlock = autoDeployWorkflow.split("  report-final:")[1];
+  const resolverBlock = autoDeployWorkflow.slice(0, autoDeployWorkflow.indexOf("  report-blocked-resolution:"));
+  const reportBlockedBlock = splitJobBlock(autoDeployWorkflow, "report-blocked-resolution", "build-preview-image");
+  const buildBlock = splitJobBlock(autoDeployWorkflow, "build-preview-image", "report-deploying");
+  const reportDeployingBlock = splitJobBlock(autoDeployWorkflow, "report-deploying", "deploy-preview");
+  const deployBlock = splitJobBlock(autoDeployWorkflow, "deploy-preview", "report-final");
+  const reportFinalBlock = splitJobBlock(autoDeployWorkflow, "report-final");
   const runnerDoc = read("docs/operations/windows-self-hosted-runner.md");
   const preflightScript = read("scripts/runner-preflight.ps1");
 
@@ -235,9 +245,9 @@ test("auto preview workflow passes PR-derived values through env inside run step
 
 test("trusted image-build workflow keeps registry credentials outside resolver and deploy jobs", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const resolverBlock = workflow.split("  build-preview-image:")[0];
-  const buildBlock = workflow.split("  build-preview-image:")[1].split("  report-deploying:")[0];
-  const deployBlock = workflow.split("  deploy-preview:")[1].split("  report-final:")[0];
+  const resolverBlock = workflow.slice(0, workflow.indexOf("  build-preview-image:"));
+  const buildBlock = splitJobBlock(workflow, "build-preview-image", "report-deploying");
+  const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
 
   assert.match(workflow, /build-preview-image:/);
   assert.match(buildBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: write/);
@@ -264,9 +274,9 @@ test("trusted image-build workflow keeps registry credentials outside resolver a
 
 test("preview reporting jobs stay on GitHub-hosted runners and hold comment-only write permissions", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const reportDeployingBlock = workflow.split("  report-deploying:")[1].split("  deploy-preview:")[0];
-  const reportFinalBlock = workflow.split("  report-final:")[1];
-  const deployBlock = workflow.split("  deploy-preview:")[1].split("  report-final:")[0];
+  const reportDeployingBlock = splitJobBlock(workflow, "report-deploying", "deploy-preview");
+  const reportFinalBlock = splitJobBlock(workflow, "report-final");
+  const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
 
   assert.match(workflow, /report-deploying:/);
   assert.match(workflow, /report-final:/);
@@ -278,9 +288,11 @@ test("preview reporting jobs stay on GitHub-hosted runners and hold comment-only
   assert.doesNotMatch(reportFinalBlock, /packages: write/);
   assert.doesNotMatch(reportDeployingBlock, /CRM_PREVIEW_POSTGRES_PASSWORD/);
   assert.doesNotMatch(reportFinalBlock, /CRM_PREVIEW_POSTGRES_PASSWORD/);
-  assert.match(reportDeployingBlock, /Upsert PR preview comment as deploying/);
   assert.match(deployBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: read/);
+  assert.match(deployBlock, /pull-requests: read/);
   assert.doesNotMatch(deployBlock, /issues: write/);
+  assert.doesNotMatch(deployBlock, /pull-requests: write/);
+  assert.doesNotMatch(deployBlock, /actions\/github-script/);
   assert.match(reportFinalBlock, /DEPLOYMENT_RESULT/);
   assert.match(reportFinalBlock, /if: always\(\)/);
   assert.match(reportFinalBlock, /Preview ready/);
@@ -319,15 +331,15 @@ test("immutable preview image reference validation is exact and lowercase", () =
 
 test("auto preview workflow revalidation fails closed and gates deployment on exact PASS", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const deployBlock = workflow.split("  deploy-preview:")[1].split("  report-final:")[0];
-  const reportFinalBlock = workflow.split("  report-final:")[1];
+  const reportDeployingBlock = splitJobBlock(workflow, "report-deploying", "deploy-preview");
+  const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
+  const reportFinalBlock = splitJobBlock(workflow, "report-final");
 
   assert.doesNotMatch(workflow, /Revalidate PR head before deployment[\s\S]*continue-on-error:\s*true/);
   assert.match(workflow, /BLOCKED: runner-side PR revalidation request failed/);
 
   const passGatedSteps = [
     "Materialize preview env file",
-    "Upsert PR preview comment as deploying",
     "Deploy preview",
     "Verify preview readiness"
   ];
@@ -341,6 +353,10 @@ test("auto preview workflow revalidation fails closed and gates deployment on ex
     deployBlock,
     /- name: Write deployment summary[\s\S]*?if: success\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/
   );
+  assert.match(reportDeployingBlock, /needs:\s*\n\s*- resolve-auto-preview\s*\n\s*- build-preview-image/);
+  assert.match(reportDeployingBlock, /Upsert PR preview comment as deploying/);
+  assert.match(reportFinalBlock, /ready = process\.env\.DEPLOYMENT_RESULT === "success"/);
+  assert.match(reportFinalBlock, /needs\.deploy-preview\.result/);
   assert.match(reportFinalBlock, /- name: Upsert final preview comment/);
   assert.match(reportFinalBlock, /if: always\(\) && needs\.resolve-auto-preview\.outputs\.should_deploy == 'true'/);
 
@@ -1034,13 +1050,51 @@ test("preview comment marker and body stay stable for repeated PR updates", () =
 
 test("runner-side blocked states are documented separately from deployment failures", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const reportBlockedBlock = workflow.split("  report-blocked-resolution:")[1].split("  build-preview-image:")[0];
+  const reportBlockedBlock = splitJobBlock(workflow, "report-blocked-resolution", "build-preview-image");
 
   assert.match(workflow, /runner_revalidation_result=\$result/);
   assert.match(workflow, /report-blocked-resolution:/);
   assert.match(reportBlockedBlock, /pull-requests: write/);
   assert.doesNotMatch(reportBlockedBlock, /packages: write/);
+  assert.match(reportBlockedBlock, /always\(\) &&/);
+  assert.match(reportBlockedBlock, /needs\.resolve-auto-preview\.outputs\.pr_number != ''/);
+  assert.match(reportBlockedBlock, /needs\.resolve-auto-preview\.outputs\.gate_reason/);
+  assert.doesNotMatch(reportBlockedBlock, /steps\.classify/);
+  assert.doesNotMatch(reportBlockedBlock, /steps\.classify_failure/);
+  assert.match(reportBlockedBlock, /Fail blocked preview gate/);
+  assert.match(reportBlockedBlock, /exit 1/);
   assert.doesNotMatch(workflow, /Verify production readiness/);
+});
+
+test("reporters validate PR numbers before GitHub API calls and block comments on invalid input", () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+  const reportBlockedBlock = splitJobBlock(workflow, "report-blocked-resolution", "build-preview-image");
+  const reportDeployingBlock = splitJobBlock(workflow, "report-deploying", "deploy-preview");
+  const reportFinalBlock = splitJobBlock(workflow, "report-final");
+
+  for (const block of [reportBlockedBlock, reportDeployingBlock, reportFinalBlock]) {
+    assert.match(block, /const issue_number = Number\(process\.env\.PR_NUMBER\);/);
+    assert.match(block, /Number\.isInteger\(issue_number\) \|\| issue_number <= 0/);
+    assert.match(block, /Invalid PR number\./);
+    assert.match(block, /owner: context\.repo\.owner/);
+    assert.match(block, /repo: context\.repo\.repo/);
+  }
+
+  assert.match(splitJobBlock(workflow, "deploy-preview", "report-final"), /pull-requests: read/);
+  assert.doesNotMatch(reportBlockedBlock, /steps\.classify/);
+  assert.doesNotMatch(reportBlockedBlock, /steps\.classify_failure/);
+  assert.match(reportBlockedBlock, /needs\.resolve-auto-preview\.outputs\.gate_reason/);
+});
+
+test("blocked resolution flow reports when PR number is present and skips comments when it is absent", () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+  const reportBlockedBlock = splitJobBlock(workflow, "report-blocked-resolution", "build-preview-image");
+
+  assert.match(reportBlockedBlock, /always\(\) &&/);
+  assert.match(reportBlockedBlock, /needs\.resolve-auto-preview\.outputs\.pr_number != ''/);
+  assert.match(reportBlockedBlock, /Upsert blocked preview comment/);
+  assert.match(reportBlockedBlock, /Fail blocked preview gate/);
+  assert.match(reportBlockedBlock, /exit 1/);
 });
 
 test("deploy preview dry-run validates the source checkout SHA independently from the control checkout", () => {
