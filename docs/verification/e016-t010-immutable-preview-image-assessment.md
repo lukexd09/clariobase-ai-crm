@@ -167,6 +167,14 @@ This assessment records the trust boundary, licensing basis, and commercial-use 
 - The Windows deploy job consumes the immutable digest handed off by the trusted build job.
 - The PR-controlled workflow never publishes the preview image.
 
+## Attestation deferral
+
+- Provenance and SBOM are disabled only for the current Docker daemon `load: true` build path.
+- Enabling attestations on that load path currently produces a manifest-list export that Docker cannot load back into the local daemon.
+- The application image is still built exactly once.
+- Attestations must not be restored by adding a second application build.
+- This is a bounded follow-up to restore OCI provenance and SBOM through a compatible registry/export path, not a permanent security decision.
+
 ## Commercial-use conclusion
 
 Approved for internal commercial preview operations, subject to the upstream license and hosted-service constraints above.
