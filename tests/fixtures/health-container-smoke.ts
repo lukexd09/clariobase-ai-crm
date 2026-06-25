@@ -94,7 +94,21 @@ async function main() {
     });
 
     if (inspect.status === 0) {
-      throw new Error("Container still exists after stop.");
+      const details = JSON.parse(inspect.stdout) as Array<{
+        State?: {
+          Running?: boolean;
+          Status?: string;
+        };
+      }>;
+      const state = details[0]?.State;
+
+      if (state?.Running) {
+        throw new Error("Container is still running after stop.");
+      }
+
+      if (state?.Status !== "exited" && state?.Status !== "created") {
+        throw new Error(`Container did not reach a stopped state after stop: ${state?.Status ?? "unknown"}.`);
+      }
     }
   } catch (error) {
     const logs = spawnSync("docker", ["logs", containerName], {
