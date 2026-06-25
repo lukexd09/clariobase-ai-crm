@@ -12,6 +12,7 @@ import {
   loadPreviewEnv,
   PREVIEW_NETWORK_NAME,
   PREVIEW_VOLUME_NAME,
+  validateFullCommitSha,
   validateResolvedSha
 } from "./preview-runtime-support";
 
@@ -128,9 +129,18 @@ async function main() {
   const runtimeConfig = loadPreviewEnv(options.previewEnvFile);
   const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : path.dirname(runtimeConfig.previewEnvFilePath);
   const controlHeadSha = getHeadSha(controlCheckoutPath);
-  const sourceCheckoutPath = options.sourceCheckoutPath ? path.resolve(options.sourceCheckoutPath) : controlCheckoutPath;
-  const sourceHeadSha = options.sourceCheckoutPath ? getHeadSha(sourceCheckoutPath) : controlHeadSha;
-  const resolvedSha = validateResolvedSha(sourceHeadSha, options.resolvedSha);
+  const explicitSourceCheckoutPath = options.sourceCheckoutPath ? path.resolve(options.sourceCheckoutPath) : undefined;
+  const sourceHeadSha = explicitSourceCheckoutPath ? getHeadSha(explicitSourceCheckoutPath) : undefined;
+  let resolvedSha: string;
+
+  if (sourceHeadSha) {
+    resolvedSha = validateResolvedSha(sourceHeadSha, options.resolvedSha);
+  } else if (options.resolvedSha) {
+    resolvedSha = validateFullCommitSha(options.resolvedSha, "Resolved SHA");
+  } else {
+    resolvedSha = validateFullCommitSha(controlHeadSha, "Control checkout HEAD");
+  }
+
   const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath);
   const summary = createPreviewSummary(options.requestedRef, resolvedSha);
 
@@ -146,12 +156,13 @@ async function main() {
           previewAiExchangePath: runtimeConfig.previewAiExchangeAbsolutePath,
           previewImageRef: runtimeConfig.previewImageRef,
           controlCheckoutPath,
-          sourceCheckoutPath,
-          sourceCheckoutProvided: Boolean(options.sourceCheckoutPath),
+          controlHeadSha,
+          sourceCheckoutPath: explicitSourceCheckoutPath,
+          sourceHeadSha,
+          sourceCheckoutProvided: Boolean(explicitSourceCheckoutPath),
+          resolvedSha,
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
-          controlHeadSha,
-          sourceHeadSha,
           deployPlan
         },
         null,
