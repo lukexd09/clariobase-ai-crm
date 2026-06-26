@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -111,29 +115,33 @@ jobs:
           path: auto-preview-context.json
           retention-days: 7
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
-          package-manager-cache: false
-
-      - name: Enable Corepack
-        run: corepack enable
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: corepack pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Validate Prisma schema
-        run: corepack pnpm prisma:validate
+        run: pnpm prisma:validate
 
       - name: Generate Prisma client
-        run: corepack pnpm prisma:generate
+        run: pnpm prisma:generate
 
       - name: Lint
-        run: corepack pnpm lint
+        run: pnpm lint
 
-      - name: Test
-        run: corepack pnpm test
+      - name: Fast tests
+        run: pnpm test:fast
 
       - name: Build
-        run: corepack pnpm build
+        run: pnpm build
