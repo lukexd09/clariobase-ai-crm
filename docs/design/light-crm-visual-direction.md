@@ -22,6 +22,8 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Accent: a single restrained blue or sky tone.
 - Typography: calm, readable, and slightly larger than dense admin UIs.
 - Radius: rounded cards and controls, not sharp dashboard blocks.
+- Primary CTA buttons should keep accessible white-on-blue contrast on every active state.
+- Current primary CTA contract: `bg-sky-700 text-white` with `hover:bg-sky-800`.
 
 ## Avoid
 
@@ -47,6 +49,8 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Active navigation state is visible without color alone.
 - Preserve visible focus-visible states on all navigation links and shell-level actions.
 - Keep the shell light, calm, and compact rather than admin-heavy.
+- Prefer one compact sidebar treatment without repeated instructional copy on every primary route.
+- When the active route needs extra emphasis, use a label or weight change in addition to color.
 
 ## UI foundation
 
@@ -57,6 +61,20 @@ It is a practical implementation guide for future screen-by-screen UI work.
 - Secondary text must keep readable contrast against the background.
 - System and admin areas should remain visually secondary to business work.
 - Future UI PRs should include manual keyboard and contrast checks.
+- Do not use lighter primary CTA blues that weaken text contrast below the operational baseline.
+
+## Operational layout guidance
+
+- Use one shared full-width operational canvas across homepage, core business routes, data-quality lists, and `/health`.
+- Reduce oversized headers; page headers should usually fit within one title block plus one supporting block.
+- Prefer `rounded-2xl` route surfaces and `rounded-xl` inner controls before introducing larger card radii.
+- Use shadows sparingly; route grouping should come from layout and headings before decorative chrome.
+- Homepage should highlight the main daily entry points first and keep system routes secondary.
+- Data-intake and diagnostic routes should feel integrated with the CRM shell, not detached or marketing-like.
+- Import and duplicate-review screens should lead with operator-facing status or confidence language; raw enum or validator wording belongs in secondary detail.
+- When technical IDs or validation output are still useful, keep them readable but visually secondary through subdued metadata or clear disclosures.
+- Dense lead-workspace routes should not duplicate the global app navigation inside the page body; use compact breadcrumbs or in-page section links instead.
+- Before the first draft record exists, draft-creation UI may explain the upcoming workflow but must not present persisted `DRAFT` status as if a saved record already exists.
 
 ## Future UI checklist
 

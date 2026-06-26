@@ -5,38 +5,45 @@ export type HomeActionCard = {
   label: string;
 };
 
+export type HomeSecondaryAction = {
+  href: string;
+  title: string;
+  description: string;
+};
+
 export const HOME_PRIMARY_ACTION_CARDS = [
   {
     href: "/leads",
     title: "Leads",
     label: "Pipeline",
-    description: "Review the current lead list, open records, and keep the queue moving."
+    description: "Review the current lead list and move work forward."
   },
   {
     href: "/work",
     title: "Workbench",
     label: "Daily work",
-    description: "Focus on today's work in overdue, due-today, upcoming, and empty-action buckets."
+    description: "Focus on overdue, due-today, upcoming, and empty-action buckets."
   },
   {
     href: "/reports/sales",
     title: "Sales report",
     label: "Reporting",
-    description: "Check the light operational summary for status, workbench, drafts, and activity."
-  },
+    description: "Check the operational summary for status, workbench, drafts, and activity."
+  }
+] as const satisfies readonly HomeActionCard[];
+
+export const HOME_SECONDARY_ACTIONS = [
   {
     href: "/imports",
     title: "Imports",
-    label: "Data intake",
-    description: "Review local import batches and row-level results from file-based lead intake."
+    description: "Review completed import batches and row outcomes."
   },
   {
     href: "/duplicates",
     title: "Duplicates",
-    label: "Data quality",
-    description: "Inspect likely duplicate candidates before any future merge workflow exists."
+    description: "Review likely duplicate candidates."
   }
-] as const satisfies readonly HomeActionCard[];
+] as const satisfies readonly HomeSecondaryAction[];
 
 export const HOME_SYSTEM_LINK = {
   href: "/health",
@@ -45,10 +52,10 @@ export const HOME_SYSTEM_LINK = {
 } as const;
 
 export const HOME_STATUS_ITEMS = [
-  "Lead work stays organized in one CRM workspace.",
-  "AI-assisted files stay under your control.",
-  "Daily sales work is ready to use."
+  "Lead work stays visible without dashboard clutter.",
+  "Imports and duplicate review stay available without taking over the page.",
+  "System checks stay secondary but easy to reach."
 ] as const;
 
 export const HOME_POSITIONING =
-  "Use ClarioBase AI CRM to review leads, plan daily outreach, check sales status, and keep imported data under control.";
+  "Review leads, clear follow-ups, check pipeline health, and keep imported data under control from one focused CRM workspace.";

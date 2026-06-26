@@ -18,19 +18,17 @@ export default async function SalesReportPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-5 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-6">
-        <header className="mb-5 grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)] lg:p-5">
+      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
+        <header className="mb-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)] lg:p-5">
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sky-700">
-              Sales reporting
-            </p>
+            <p className="text-sm font-medium text-sky-700">Sales reporting</p>
             <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
               Operational pipeline report
             </h1>
           </div>
         </header>
 
-        <section className="mb-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <section className="mb-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <Metric label="Total leads" value={report.totalLeads} />
           <Metric label="Active leads" value={report.activeLeads} />
           <Metric label="Overdue work items" value={report.workbenchBucketCounts.overdue} tone="overdue" />
@@ -42,7 +40,7 @@ export default async function SalesReportPage() {
           <Metric label="Activities in last 7 days" value={report.activityLast7DaysCount} />
         </section>
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           <ReportSection
             title="Lead status summary"
             description="Archived leads are excluded from active totals, while WON, LOST and DO_NOT_CONTACT remain visible as separate operational states."
@@ -80,7 +78,7 @@ export default async function SalesReportPage() {
             </div>
           </ReportSection>
 
-          <div className="grid gap-8 xl:grid-cols-2">
+          <div className="grid gap-4 xl:grid-cols-2">
             <ReportSection title="Priority summary" description="Count of leads by operational priority.">
               <SimpleCountTable
                 rows={LEAD_PRIORITY_VALUES.map((value) => ({
@@ -183,9 +181,9 @@ function Metric({
       : "border-slate-200 bg-white";
 
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${classes}`}>
+    <div className={`rounded-xl border p-4 shadow-sm ${classes}`}>
       <p
-        className={`text-xs font-semibold uppercase tracking-[0.24em] ${
+        className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${
           tone && value > 0
             ? tone === "overdue"
               ? "text-rose-700"
@@ -210,7 +208,7 @@ function ReportSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
       <div className="mb-4">
         <h2 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
         <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
@@ -230,7 +228,7 @@ function SimpleCountTable({
   return (
     <div className="space-y-3">
       {heading ? (
-        <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
           {heading}
         </h3>
       ) : null}

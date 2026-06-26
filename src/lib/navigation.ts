@@ -2,77 +2,35 @@ export type NavigationItem = {
   href: string;
   label: string;
   description?: string;
-  priority: "primary" | "secondary";
 };
 
-export type NavigationSection = {
-  key: string;
+export type NavigationGroup = {
   title: string;
   items: readonly NavigationItem[];
 };
 
-export const NAVIGATION_SECTIONS = [
+export const NAVIGATION_GROUPS = [
   {
-    key: "main-work",
-    title: "Main work",
+    title: "Workspace",
     items: [
-      {
-        href: "/",
-        label: "Dashboard",
-        description: "Start from the CRM overview.",
-        priority: "primary"
-      },
-      {
-        href: "/work",
-        label: "Daily work",
-        description: "Open the workbench and clear the day.",
-        priority: "primary"
-      },
-      {
-        href: "/leads",
-        label: "Leads",
-        description: "Review and update lead records.",
-        priority: "primary"
-      },
-      {
-        href: "/reports/sales",
-        label: "Reports",
-        description: "Check the sales summary and pipeline health.",
-        priority: "primary"
-      }
-    ] as const
+      { href: "/", label: "Dashboard" },
+      { href: "/work", label: "Daily work" },
+      { href: "/leads", label: "Leads" },
+      { href: "/reports/sales", label: "Sales" }
+    ]
   },
   {
-    key: "data",
-    title: "Data",
+    title: "Data quality",
     items: [
-      {
-        href: "/imports",
-        label: "Imports",
-        description: "Review local import batches.",
-        priority: "primary"
-      },
-      {
-        href: "/duplicates",
-        label: "Duplicates",
-        description: "Review likely duplicate candidates.",
-        priority: "primary"
-      }
-    ] as const
+      { href: "/imports", label: "Imports" },
+      { href: "/duplicates", label: "Possible duplicates" }
+    ]
   },
   {
-    key: "system",
     title: "System",
-    items: [
-      {
-        href: "/health",
-        label: "Health check",
-        description: "Confirm the app is responding locally.",
-        priority: "secondary"
-      }
-    ] as const
+    items: [{ href: "/health", label: "System status" }]
   }
-] as const satisfies readonly NavigationSection[];
+] as const satisfies readonly NavigationGroup[];
 
 export function isNavigationItemActive(href: string, pathname: string) {
   if (href === "/") return pathname === "/";

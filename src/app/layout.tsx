@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ClarioBase AI CRM",
-  description: "ClarioBase AI CRM light CRM workspace"
+  description: "ClarioBase production CRM workspace"
 };
 
 export default function RootLayout({
