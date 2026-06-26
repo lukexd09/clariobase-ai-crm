@@ -2,83 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import process from "node:process";
-import { spawnSync } from "node:child_process";
-
-import {
-  EXPECTED_REPOSITORY,
-  assertTrustedRequestedRef,
-  normalizeRequestedRef
-} from "../scripts/resolve-preview-ref";
-import {
-  PREVIEW_STATUS_COMMENT_MARKER,
-  formatPreviewStatusComment,
-  parseWorkflowRunEvent,
-  resolveAutoPreview
-} from "../scripts/resolve-auto-preview";
-import { createSystemTmpDir } from "./test-helpers";
 
 const repoRoot = path.resolve(__dirname, "..");
-process.env.GITHUB_TOKEN = process.env.GITHUB_TOKEN || "test-token";
-global.fetch = (async () => new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })) as typeof fetch;
 
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
-}
-
-function createWorkflowRunEvent(overrides?: Record<string, unknown>) {
-  return {
-    action: "completed",
-    repository: {
-      full_name: EXPECTED_REPOSITORY,
-      default_branch: "main"
-    },
-    workflow_run: {
-      name: "CI",
-      event: "pull_request",
-      status: "completed",
-      conclusion: "success",
-      id: 123456,
-      head_branch: "feature/e016-preview",
-      head_sha: "1111111111111111111111111111111111111111",
-      html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456",
-      pull_requests: [
-        {
-          number: 113,
-          html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
-          head: {
-            ref: "feature/e016-preview",
-            sha: "1111111111111111111111111111111111111111",
-            repo: {
-              full_name: EXPECTED_REPOSITORY
-            }
-          },
-          base: {
-            ref: "main",
-            repo: {
-              full_name: EXPECTED_REPOSITORY
-            }
-          }
-        }
-      ]
-    },
-    ...overrides
-  };
-}
-
-function createAutoPreviewContext(overrides?: Record<string, unknown>) {
-  return {
-    schemaVersion: 1,
-    repository: EXPECTED_REPOSITORY,
-    prNumber: 113,
-    headSha: "1111111111111111111111111111111111111111",
-    headRef: "feature/e016-preview",
-    headRepository: EXPECTED_REPOSITORY,
-    baseRef: "main",
-    baseRepository: EXPECTED_REPOSITORY,
-    workflowRunId: 123456,
-    ...overrides
-  };
 }
 
 function splitJobBlock(workflow: string, jobName: string, nextJobName?: string) {
@@ -100,1310 +28,224 @@ function assertOrdered(block: string, earlier: string, later: string) {
   assert.ok(earlierIndex < laterIndex, `${earlier} must appear before ${later}`);
 }
 
-test("preview workflows use trusted triggers, least privilege, and the approved scripts", () => {
-  const ciWorkflow = read(".github/workflows/ci.yml");
-  const autoDeployWorkflow = read(".github/workflows/auto-deploy-preview.yml");
-  const deployWorkflow = read(".github/workflows/deploy-preview.yml");
-  const stopWorkflow = read(".github/workflows/stop-preview.yml");
-  const loginStep = "Log in to GitHub Container Registry";
-  const logoutStep = "Log out of GitHub Container Registry";
-  const immutabilityStep = "Validate immutable preview image ref";
-  const envStep = "Materialize preview env file";
-  const resolverBlock = autoDeployWorkflow.slice(0, autoDeployWorkflow.indexOf("  report-blocked-resolution:"));
-  const reportBlockedBlock = splitJobBlock(autoDeployWorkflow, "report-blocked-resolution", "build-preview-image");
-  const buildBlock = splitJobBlock(autoDeployWorkflow, "build-preview-image", "report-deploying");
-  const reportDeployingBlock = splitJobBlock(autoDeployWorkflow, "report-deploying", "deploy-preview");
-  const deployBlock = splitJobBlock(autoDeployWorkflow, "deploy-preview", "report-final");
-  const reportFinalBlock = splitJobBlock(autoDeployWorkflow, "report-final");
-  const runnerDoc = read("docs/operations/windows-self-hosted-runner.md");
-  const preflightScript = read("scripts/runner-preflight.ps1");
+test("Fast CI validates the exact PR head and never starts release work", () => {
+  const workflow = read(".github/workflows/ci.yml");
 
-  assert.match(ciWorkflow, /pull_request:/);
-  assert.match(ciWorkflow, /contents: read/);
-  assert.match(ciWorkflow, /actions\/checkout@v5/);
-  assert.match(ciWorkflow, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
-  assert.match(ciWorkflow, /fetch-depth: 1/);
-  assert.match(ciWorkflow, /persist-credentials: false/);
-  assert.match(ciWorkflow, /Verify checked-out PR head SHA/);
-  assert.match(ciWorkflow, /EXPECTED_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
-  assert.match(ciWorkflow, /ACTUAL_SHA="\$\(git rev-parse HEAD\)"/);
-  assert.match(ciWorkflow, /Validated SHA: \$ACTUAL_SHA/);
-  assert.match(ciWorkflow, /Write auto-preview context/);
-  assert.match(ciWorkflow, /actions\/upload-artifact@v4/);
-  assert.match(ciWorkflow, /name: auto-preview-context/);
-  assert.match(ciWorkflow, /actions\/setup-node@v5/);
-  assert.match(ciWorkflow, /node-version: 22/);
-  assert.match(ciWorkflow, /package-manager-cache: false/);
-  assert.match(ciWorkflow, /corepack pnpm install --frozen-lockfile/);
-  assert.match(ciWorkflow, /corepack pnpm prisma:validate/);
-  assert.match(ciWorkflow, /corepack pnpm prisma:generate/);
-  assert.match(ciWorkflow, /corepack pnpm lint/);
-  assert.match(ciWorkflow, /corepack pnpm test/);
-  assert.match(ciWorkflow, /corepack pnpm build/);
-  assert.doesNotMatch(ciWorkflow, /pull_request_target/);
+  assert.match(workflow, /^name: CI$/m);
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /group: ci-pr-\$\{\{ github\.event\.pull_request\.number \}\}/);
+  assert.match(workflow, /cancel-in-progress: true/);
+  assert.match(workflow, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
+  assert.match(workflow, /Verify checked-out PR head SHA/);
+  assert.match(workflow, /name: auto-preview-context/);
+  assert.match(workflow, /workflowRunId/);
+  assert.match(workflow, /pnpm\/action-setup@v4/);
+  assert.match(workflow, /actions\/setup-node@v5/);
+  assert.match(workflow, /cache: pnpm/);
+  assert.match(workflow, /cache-dependency-path: pnpm-lock\.yaml/);
+  assert.match(workflow, /pnpm install --frozen-lockfile/);
+  assert.match(workflow, /pnpm prisma:validate/);
+  assert.match(workflow, /pnpm prisma:generate/);
+  assert.match(workflow, /pnpm lint/);
+  assert.match(workflow, /pnpm test:fast/);
+  assert.match(workflow, /pnpm build/);
 
-  assert.match(deployWorkflow, /workflow_dispatch:/);
-  assert.match(deployWorkflow, /requested_ref:/);
-  assert.match(deployWorkflow, /contents: read/);
-  assert.match(deployWorkflow, /actions\/checkout@v5/);
-  assert.match(deployWorkflow, /actions\/setup-node@v5/);
-  assert.match(deployWorkflow, /node-version: 22/);
-  assert.match(deployWorkflow, /package-manager-cache: false/);
-  assert.match(deployWorkflow, /group: clariobase-preview-slot/);
-  assert.match(deployWorkflow, /ref: main/);
-  assert.match(deployWorkflow, /path: control/);
-  assert.match(deployWorkflow, /persist-credentials: false/);
-  assert.match(deployWorkflow, /scripts\/resolve-preview-ref\.ts/);
-  assert.match(deployWorkflow, /Validate immutable preview image ref/);
-  assert.match(deployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ inputs\.image_ref \}\}/);
-  assert.match(deployWorkflow, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
-  assert.match(deployWorkflow, /Log in to GitHub Container Registry/);
-  assert.match(deployWorkflow, /Log out of GitHub Container Registry/);
-  assert.match(deployWorkflow, /GHCR_USERNAME: \$\{\{ github\.actor \}\}/);
-  assert.match(deployWorkflow, /GHCR_TOKEN: \$\{\{ github\.token \}\}/);
-  assert.match(deployWorkflow, /\$env:GHCR_TOKEN \| docker login ghcr\.io --username \$env:GHCR_USERNAME --password-stdin/);
-  assert.match(deployWorkflow, /docker logout ghcr\.io \| Out-Host/);
-  assert.match(deployWorkflow, /\$deployExitCode = \$LASTEXITCODE/);
-  assert.match(deployWorkflow, /if \(\$deployExitCode -ne 0\)/);
-  assert.doesNotMatch(deployWorkflow, /\$deployOutput\s*=/);
-  assert.doesNotMatch(deployWorkflow, /ConvertFrom-Json/);
-  assert.match(deployWorkflow, /preview_url=http:\/\/Serwer:3001/);
-  assert.match(
-    deployWorkflow,
-    /resolved_sha=\$\{\{ needs\.resolve-preview-ref\.outputs\.resolved_sha \}\}/
-  );
-  assert.match(deployWorkflow, /clariobase-preview/);
-  assert.match(deployWorkflow, /http:\/\/Serwer:3001/);
-  assert.match(deployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
-  assert.match(deployWorkflow, /if: always\(\)/);
-  assert.equal((deployWorkflow.match(/Log in to GitHub Container Registry/g) ?? []).length, 1);
-  assert.equal((deployWorkflow.match(/Log out of GitHub Container Registry/g) ?? []).length, 1);
-  assert.doesNotMatch(deployWorkflow, /GHCR_PAT|PERSONAL_ACCESS_TOKEN|REGISTRY_SECRET|REGISTRY_TOKEN/);
-  assertOrdered(deployWorkflow, "Validate immutable preview image ref", loginStep);
-  assertOrdered(deployWorkflow, loginStep, "Materialize preview env file");
-  assertOrdered(deployWorkflow, "Materialize preview env file", "Deploy preview");
-  assertOrdered(deployWorkflow, "Deploy preview", "Cleanup secrets and job artifacts");
-  assertOrdered(deployWorkflow, "Cleanup secrets and job artifacts", logoutStep);
-  assertOrdered(deployWorkflow, "Deploy preview", logoutStep);
-  assert.doesNotMatch(deployWorkflow, /pull_request_target/);
-
-  assert.match(stopWorkflow, /workflow_dispatch:/);
-  assert.match(stopWorkflow, /group: clariobase-preview-slot/);
-  assert.match(stopWorkflow, /actions\/checkout@v5/);
-  assert.match(stopWorkflow, /actions\/setup-node@v5/);
-  assert.match(stopWorkflow, /node-version: 22/);
-  assert.match(stopWorkflow, /package-manager-cache: false/);
-  assert.match(stopWorkflow, /ref: main/);
-  assert.match(stopWorkflow, /path: control/);
-  assert.match(stopWorkflow, /persist-credentials: false/);
-  assert.match(stopWorkflow, /scripts\\stop-preview\.ps1|scripts\/stop-preview\.ps1/);
-  assert.match(stopWorkflow, /\$stopExitCode = \$LASTEXITCODE/);
-  assert.match(stopWorkflow, /if \(\$stopExitCode -ne 0\)/);
-  assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
-  assert.match(stopWorkflow, /if: always\(\)/);
-  assert.doesNotMatch(stopWorkflow, /pull_request_target/);
-  assert.match(autoDeployWorkflow, /workflow_run:/);
-  assert.match(autoDeployWorkflow, /workflows:\s*\n\s*-\s*CI/);
-  assert.match(autoDeployWorkflow, /types:\s*\n\s*-\s*completed/);
-  assert.match(autoDeployWorkflow, /actions: read/);
-  assert.match(autoDeployWorkflow, /contents: read/);
-  assert.match(resolverBlock, /pull-requests: read/);
-  assert.doesNotMatch(resolverBlock, /pull-requests: write/);
-  assert.match(reportBlockedBlock, /pull-requests: write/);
-  assert.match(reportDeployingBlock, /pull-requests: write/);
-  assert.match(reportFinalBlock, /pull-requests: write/);
-  assert.doesNotMatch(autoDeployWorkflow, /write-all/);
-  assert.match(autoDeployWorkflow, /group: clariobase-preview-slot/);
-  assert.match(autoDeployWorkflow, /resolve-auto-preview\.ts/);
-  assert.match(autoDeployWorkflow, /actions\/download-artifact@v8/);
-  assert.match(autoDeployWorkflow, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/);
-  assert.match(autoDeployWorkflow, /name: auto-preview-context/);
-  assert.match(autoDeployWorkflow, /\/tmp\/auto-preview-context\/auto-preview-context\.json/);
-  assert.match(autoDeployWorkflow, /--context-path "\/tmp\/auto-preview-context\/auto-preview-context\.json"/);
-  assert.match(autoDeployWorkflow, /Build immutable preview image/);
-  assert.match(autoDeployWorkflow, /Push immutable preview image/);
-  assert.match(autoDeployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ needs\.build-preview-image\.outputs\.image_ref \}\}/);
-  assert.match(autoDeployWorkflow, /IMAGE_SOURCE_SHA: \$\{\{ needs\.build-preview-image\.outputs\.source_sha \}\}/);
-  assert.match(autoDeployWorkflow, /ref: main/);
-  assert.match(autoDeployWorkflow, /path: control/);
-  assert.match(autoDeployWorkflow, /ref: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
-  assert.match(autoDeployWorkflow, /BLOCKED: stale validated SHA/);
-  assert.match(autoDeployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
-  assert.match(autoDeployWorkflow, /Validate immutable image handoff/);
-  assert.match(autoDeployWorkflow, /IMAGE_SOURCE_SHA must match VALIDATED_SHA\./);
-  assert.match(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3001\/api\/ready/);
-  assert.match(autoDeployWorkflow, /environment: e016-preview-operator/);
-  assert.match(autoDeployWorkflow, /<!-- clariobase-preview-status -->/);
-  assert.match(autoDeployWorkflow, /resolution_status: \$\{\{ steps\.resolve\.outputs\.resolution_status \}\}/);
-  assert.match(autoDeployWorkflow, /BLOCKED: resolver execution failed/);
-  assert.match(autoDeployWorkflow, /runner_revalidation_result=\$result/);
-  assert.match(autoDeployWorkflow, /if: always\(\)\s*\n\s*shell: bash\s*\n\s*env:\s*\n\s*GATE_RESULT:/);
-  assert.match(autoDeployWorkflow, /gate_result: \$\{\{ steps\.classify\.outputs\.gate_result \|\| steps\.classify_failure\.outputs\.gate_result \}\}/);
-  assert.match(autoDeployWorkflow, /gate_reason: \$\{\{ steps\.classify\.outputs\.gate_reason \|\| steps\.classify_failure\.outputs\.gate_reason \}\}/);
-  assert.doesNotMatch(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3000\/api\/ready/);
-  assert.doesNotMatch(autoDeployWorkflow, /\non:\s*\n\s*push:/);
-  assert.doesNotMatch(autoDeployWorkflow, /pull_request_target/);
-  assert.doesNotMatch(`${ciWorkflow}\n${autoDeployWorkflow}\n${deployWorkflow}\n${stopWorkflow}`, /actions\/(checkout|setup-node|download-artifact)@v4/);
-
-  assert.match(runnerDoc, /document_id: DOC-E016-WINDOWS-RUNNER/);
-  assert.match(runnerDoc, /C:\\actions-runners\\clariobase-preview/);
-  assert.match(runnerDoc, /C:\\actions-work\\clariobase-preview/);
-  assert.match(runnerDoc, /clariobase-preview/);
-  assert.match(runnerDoc, /short-lived repository-scoped registration token/i);
-  assert.match(runnerDoc, /minimum supported version/i);
-  assert.match(runnerDoc, /2\.327\.1/);
-  assert.match(runnerDoc, /VersionInfo|FileVersion|Runner\.Listener\.exe/i);
-  assert.match(runnerDoc, /Automatic with delayed startup behavior/i);
-  assert.match(runnerDoc, /Stop Preview completed successfully after restart/i);
-  assert.match(preflightScript, /must stay outside the protected production checkout path/);
-  assert.match(preflightScript, /docker version/);
-  assert.match(preflightScript, /MinimumRunnerVersion/);
-  assert.match(preflightScript, /runnerVersion/);
+  assert.doesNotMatch(workflow, /pnpm test:infra/);
+  assert.doesNotMatch(workflow, /pnpm test\s*$/m);
+  assert.doesNotMatch(workflow, /docker\/build-push-action/);
+  assert.doesNotMatch(workflow, /packages: write/);
+  assert.doesNotMatch(workflow, /self-hosted/);
+  assert.doesNotMatch(workflow, /workflow_run:/);
+  assert.doesNotMatch(workflow, /pull_request_target/);
 });
 
-test("auto preview readiness workflow matches the real runtime readiness body contract", async () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const readinessBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
+test("Full Integration is path-aware on PRs and always available on main and manually", () => {
+  const workflow = read(".github/workflows/full-integration.yml");
+  const classifyBlock = splitJobBlock(workflow, "classify", "integration");
+  const integrationBlock = splitJobBlock(workflow, "integration", "gate");
+  const gateBlock = splitJobBlock(workflow, "gate");
+
+  assert.match(workflow, /^name: Full Integration$/m);
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /push:\s*\n\s*branches:\s*\n\s*- main/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /cancel-in-progress: true/);
+  assert.match(classifyBlock, /github\.event\.pull_request\.head\.sha/);
+  assert.match(classifyBlock, /git diff --name-only "\$BASE_SHA" "\$HEAD_SHA"/);
+  assert.match(classifyBlock, /\.github\/workflows\/\*/);
+  assert.match(classifyBlock, /Dockerfile/);
+  assert.match(classifyBlock, /compose\*\.yaml/);
+  assert.match(classifyBlock, /scripts\/deploy-preview\*/);
+  assert.match(classifyBlock, /prisma\/schema\.prisma/);
+  assert.match(classifyBlock, /prisma\/migrations\/\*/);
+  assert.match(classifyBlock, /tests\/github-actions-\*/);
+  assert.match(classifyBlock, /package\.json/);
+  assert.match(classifyBlock, /pnpm-lock\.yaml/);
+  assert.match(classifyBlock, /EVENT_NAME" != "pull_request/);
+  assert.match(integrationBlock, /if: needs\.classify\.outputs\.should_run == 'true'/);
+  assert.match(integrationBlock, /cache: pnpm/);
+  assert.match(integrationBlock, /pnpm test:infra/);
+  assert.match(gateBlock, /if: always\(\)/);
+  assert.match(gateBlock, /Full Integration was required but ended with/);
+  assert.doesNotMatch(workflow, /pull_request_target/);
+});
+
+test("Preview Release uses only trusted manual dispatch and exact Fast CI correlation", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const resolverBlock = splitJobBlock(workflow, "resolve-preview-release", "report-blocked");
+
+  assert.match(workflow, /^name: Preview Release$/m);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /pr_number:/);
+  assert.match(workflow, /expected_sha:/);
+  assert.doesNotMatch(workflow, /workflow_run:/);
+  assert.doesNotMatch(workflow, /pull_request_target/);
+  assert.match(workflow, /group: clariobase-preview-slot/);
+  assert.match(workflow, /cancel-in-progress: false/);
+
+  assert.match(resolverBlock, /ref: main/);
+  assert.match(resolverBlock, /DISPATCH_REF: \$\{\{ github\.ref \}\}/);
+  assert.match(resolverBlock, /refs\/heads\/main/);
+  assert.match(resolverBlock, /pull\.state !== "open"/);
+  assert.match(resolverBlock, /headRepository !== expectedRepository/);
+  assert.match(resolverBlock, /expected_sha does not match the current PR head/);
+  assert.match(resolverBlock, /workflow_id: "ci\.yml"/);
+  assert.match(resolverBlock, /event: "pull_request"/);
+  assert.match(resolverBlock, /status: "completed"/);
+  assert.match(resolverBlock, /head_sha: headSha/);
+  assert.match(resolverBlock, /run\.name === "CI"/);
+  assert.match(resolverBlock, /run\.conclusion === "success"/);
+  assert.match(resolverBlock, /auto-preview-context/);
+  assert.match(resolverBlock, /artifactContext\.prNumber/);
+  assert.match(resolverBlock, /artifactContext\.headSha/);
+  assert.match(resolverBlock, /artifactContext\.workflowRunId/);
+  assert.match(resolverBlock, /Fast CI context workflow run ID mismatch/);
+  assert.match(resolverBlock, /PR changes trusted preview control-plane files/);
+  assert.doesNotMatch(resolverBlock, /pnpm install/);
+});
+
+test("Preview Release reports queued, deploying, ready, failed and blocked with one exact-SHA status contract", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+
+  for (const status of ["queued", "deploying", "ready", "failed", "blocked"]) {
+    assert.match(workflow, new RegExp(`Result: ${status}|result = .*"${status}"`));
+  }
+
+  assert.match(workflow, /<!-- clariobase-preview-status -->/);
+  assert.match(workflow, /PR: #/);
+  assert.match(workflow, /Commit:/);
+  assert.match(workflow, /Branch:/);
+  assert.match(workflow, /Fast CI run:/);
+  assert.match(workflow, /Image build run:/);
+  assert.match(workflow, /Immutable image:/);
+  assert.match(workflow, /Deployment run:/);
+  assert.match(workflow, /Preview URL:/);
+  assert.match(workflow, /Timestamp:/);
+  assert.match(workflow, /RUNNER_REVALIDATION_RESULT/);
+  assert.match(workflow, /blocked \? "blocked" : ready \? "ready" : "failed"/);
+});
+
+test("Preview Release builds one linux image, smokes it, then captures only the pushed registry digest", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const buildBlock = splitJobBlock(workflow, "build-preview-image", "report-deploying");
+
+  assert.match(buildBlock, /platforms: linux\/amd64/);
+  assert.match(buildBlock, /load: true/);
+  assert.match(buildBlock, /push: false/);
+  assert.match(buildBlock, /cache-from: type=gha,scope=preview-image/);
+  assert.match(buildBlock, /cache-to: type=gha,mode=max,scope=preview-image/);
+  assert.match(buildBlock, /Smoke test immutable image/);
+  assert.match(buildBlock, /Log in to GitHub Container Registry/);
+  assert.match(buildBlock, /Push immutable preview image/);
+  assertOrdered(buildBlock, "Build immutable preview image", "Smoke test immutable image");
+  assertOrdered(buildBlock, "Smoke test immutable image", "Log in to GitHub Container Registry");
+  assertOrdered(buildBlock, "Log in to GitHub Container Registry", "Push immutable preview image");
+  assert.match(buildBlock, /docker push "\$IMAGE_TAG" \| tee docker-push\.log/);
+  assert.match(buildBlock, /Expected exactly one pushed registry digest/);
+  assert.match(buildBlock, /\^sha256:\[0-9a-f\]\{64\}\$/);
+  assert.match(buildBlock, /IMAGE_REF="ghcr\.io\/\$\{\{ github\.repository \}\}@\$\{IMAGE_DIGEST\}"/);
+  assert.doesNotMatch(buildBlock, /steps\.build-image\.outputs\.digest/);
+  assert.match(buildBlock, /"prNumber": \$\{PR_NUMBER\}/);
+  assert.match(buildBlock, /"sourceSha": "\$\{SOURCE_SHA\}"/);
+  assert.match(buildBlock, /"ciRunId": "\$\{CI_RUN_ID\}"/);
+  assert.match(buildBlock, /"imageBuildRunId": "\$\{IMAGE_BUILD_RUN_ID\}"/);
+  assert.match(buildBlock, /"digest": "\$\{IMAGE_DIGEST\}"/);
+  assert.match(buildBlock, /"imageRef": "\$\{IMAGE_REF\}"/);
+  assert.match(buildBlock, /Log out of GitHub Container Registry/);
+});
+
+test("Windows deployment revalidates the PR and preserves immutable no-build runtime sequencing", async () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
+  const composePreview = read("compose.preview.yaml");
+  const runtimeSupport = read("scripts/preview-runtime-support.ts");
   const runtimeReadiness = await import("../src/lib/runtime-readiness");
-  const success = await runtimeReadiness.getRuntimeReadiness(
+  const ready = await runtimeReadiness.getRuntimeReadiness(
     async () => undefined,
     () => "2026-06-14T00:00:00.000Z"
   );
 
-  assert.equal(success.body.service, "clariobase-ai-crm");
-  assert.equal(success.body.status, "ready");
-  assert.equal(success.body.checks.database, "ok");
-  assert.match(readinessBlock, /service -ne "clariobase-ai-crm"/);
-  assert.match(readinessBlock, /status -ne "ready"/);
-  assert.match(readinessBlock, /checks\.database -ne "ok"/);
-  assert.match(readinessBlock, /Preview readiness failed: service=\$service, status=\$status, database=\$database\./);
-});
-
-test("auto preview workflow passes PR-derived values through env inside run steps", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const runBlocks = [...workflow.matchAll(/run:\s*\|([\s\S]*?)(?=\n\s*-[ \w]|\n[A-Za-z]|\s*$)/g)].map((match) => match[1]);
-  const riskyPatterns = [
-    /\$\{\{\s*steps\.resolve\.outputs\.(pr_url|head_ref|skip_reason|pr_number|ci_run_url)\s*\}\}/,
-    /\$\{\{\s*needs\.resolve-auto-preview\.outputs\.(pr_url|head_ref|skip_reason|pr_number|ci_run_url)\s*\}\}/
-  ];
-
-  for (const block of runBlocks) {
-    for (const pattern of riskyPatterns) {
-      assert.doesNotMatch(block, pattern);
-    }
-  }
-});
-
-test("trusted image-auth workflow keeps least privilege and exact step ordering", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const resolverBlock = workflow.slice(0, workflow.indexOf("  build-preview-image:"));
-  const buildBlock = splitJobBlock(workflow, "build-preview-image", "report-deploying");
-  const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
-  const loginStep = "Log in to GitHub Container Registry";
-  const logoutStep = "Log out of GitHub Container Registry";
-  const immutabilityStep = "Validate immutable image handoff";
-  const envStep = "Materialize preview env file";
-  const readinessStep = "Verify preview readiness";
-  const cleanupStep = "Cleanup secrets and job artifacts";
-
-  assert.match(workflow, /build-preview-image:/);
-  assert.match(buildBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: write/);
-  assert.match(deployBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: read/);
-  assert.equal((deployBlock.match(new RegExp(loginStep, "g")) ?? []).length, 1);
-  assert.equal((deployBlock.match(new RegExp(logoutStep, "g")) ?? []).length, 1);
-  assert.match(workflow, /Log in to GitHub Container Registry/);
-  assert.match(workflow, /Log out of GitHub Container Registry/);
-  assert.doesNotMatch(workflow, /issues: write/);
-  assert.doesNotMatch(deployBlock, /pull-requests: write/);
-  assert.doesNotMatch(deployBlock, /GHCR_PAT|PERSONAL_ACCESS_TOKEN|REGISTRY_SECRET|REGISTRY_TOKEN/);
-  assert.match(workflow, /platforms:\s*linux\/amd64/);
-  assert.match(workflow, /load:\s*true/);
-  assert.match(workflow, /push:\s*false/);
-  assert.match(workflow, /provenance:\s*false/);
-  assert.match(workflow, /sbom:\s*false/);
-  assert.match(workflow, /Build immutable preview image[\s\S]*Smoke test immutable image[\s\S]*Log in to GitHub Container Registry[\s\S]*Push immutable preview image/);
-  assert.match(workflow, /docker push "\$IMAGE_TAG" \| tee docker-push\.log/);
-  assert.match(workflow, /sed -nE 's\/\^.*digest: \(sha256:\[0-9a-f\]\{64\}\)\( size:\.\*\)\?\$\/\\1\/p' docker-push\.log/);
-  assert.match(workflow, /Expected exactly one pushed registry digest/);
-  assert.match(workflow, /Invalid registry digest: \$IMAGE_DIGEST/);
-  assert.doesNotMatch(resolverBlock, /docker\/login-action@[0-9a-f]{40}/);
-  assert.doesNotMatch(resolverBlock, /packages: write/);
-  assert.match(buildBlock, /docker\/login-action@[0-9a-f]{40}/);
-  assert.match(buildBlock, /Log in to GitHub Container Registry/);
-  assert.doesNotMatch(buildBlock, /Log out of GitHub Container Registry/);
-  assert.match(deployBlock, /GHCR_USERNAME: \$\{\{ github\.actor \}\}/);
-  assert.match(deployBlock, /GHCR_TOKEN: \$\{\{ github\.token \}\}/);
-  assert.match(deployBlock, /\$env:GHCR_TOKEN \| docker login ghcr\.io --username \$env:GHCR_USERNAME --password-stdin/);
-  assert.match(deployBlock, /docker logout ghcr\.io \| Out-Host/);
-  assert.match(deployBlock, /if: always\(\)/);
-  assert.match(workflow, /IMAGE_DIGEST: \$\{\{ steps\.push\.outputs\.image_digest \}\}/);
-  assert.doesNotMatch(workflow, /steps\.build-image\.outputs\.digest/);
-  assertOrdered(deployBlock, "Revalidate PR head before deployment", immutabilityStep);
-  assertOrdered(deployBlock, immutabilityStep, loginStep);
-  assertOrdered(deployBlock, loginStep, envStep);
-  assertOrdered(deployBlock, envStep, "Deploy preview");
-  assertOrdered(deployBlock, "Deploy preview", readinessStep);
-  assertOrdered(deployBlock, readinessStep, cleanupStep);
-  assertOrdered(deployBlock, cleanupStep, logoutStep);
-});
-
-test("preview reporting jobs stay on GitHub-hosted runners and hold comment-only write permissions", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const reportDeployingBlock = splitJobBlock(workflow, "report-deploying", "deploy-preview");
-  const reportFinalBlock = splitJobBlock(workflow, "report-final");
-  const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
-
-  assert.match(workflow, /report-deploying:/);
-  assert.match(workflow, /report-final:/);
-  assert.match(reportDeployingBlock, /runs-on:\s*ubuntu-latest/);
-  assert.match(reportFinalBlock, /runs-on:\s*ubuntu-latest/);
-  assert.match(reportDeployingBlock, /pull-requests: write/);
-  assert.match(reportFinalBlock, /pull-requests: write/);
-  assert.doesNotMatch(reportDeployingBlock, /packages: write/);
-  assert.doesNotMatch(reportFinalBlock, /packages: write/);
-  assert.doesNotMatch(reportDeployingBlock, /CRM_PREVIEW_POSTGRES_PASSWORD/);
-  assert.doesNotMatch(reportFinalBlock, /CRM_PREVIEW_POSTGRES_PASSWORD/);
-  assert.match(deployBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: read/);
-  assert.match(deployBlock, /pull-requests: read/);
-  assert.doesNotMatch(deployBlock, /issues: write/);
-  assert.doesNotMatch(deployBlock, /pull-requests: write/);
-  assert.doesNotMatch(deployBlock, /actions\/github-script/);
-  assert.match(reportFinalBlock, /DEPLOYMENT_RESULT/);
-  assert.match(reportFinalBlock, /if: always\(\)/);
-  assert.match(reportFinalBlock, /Preview ready/);
-  assert.match(reportFinalBlock, /Preview failed/);
-});
-
-test("registry digest is captured only from the Docker push digest line and yields an exact immutable ref", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-
-  assert.match(workflow, /mapfile -t DIGESTS < <\(/);
-  assert.match(workflow, /sed -nE 's\/\^.*digest: \(sha256:\[0-9a-f\]\{64\}\)\( size:\.\*\)\?\$\/\\1\/p' docker-push\.log \|/);
-  assert.doesNotMatch(workflow, /grep -oE 'sha256:/);
-  assert.match(workflow, /if \[\[ ! "\$IMAGE_DIGEST" =~ \^sha256:\[0-9a-f\]\{64\}\$ \]\]; then/);
-  assert.match(workflow, /IMAGE_REF="ghcr\.io\/\$\{\{ github\.repository \}\}@\$\{IMAGE_DIGEST\}"/);
-  assert.match(workflow, /echo "image_ref=\$\{IMAGE_REF\}"/);
-  assert.match(workflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ needs\.build-preview-image\.outputs\.image_ref \}\}/);
-  assert.doesNotMatch(workflow, /deploy-preview[\s\S]*docker compose build/);
-  assert.doesNotMatch(workflow, /deploy-preview[\s\S]*mutable tag/);
-});
-
-test("digest parsing fails closed for zero, multiple, or malformed docker push digests", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-
-  assert.match(workflow, /if \[ "\$\{#DIGESTS\[@\]\}" -ne 1 \]; then/);
-  assert.match(workflow, /Expected exactly one pushed registry digest, found \$\{#DIGESTS\[@\]\}\./);
-  assert.match(workflow, /if \[\[ ! "\$IMAGE_DIGEST" =~ \^sha256:\[0-9a-f\]\{64\}\$ \]\]; then/);
-  assert.doesNotMatch(workflow, /sort -u.*sha256:\[0-9a-f\]\{64\}.*docker-push\.log/);
-});
-
-test("immutable preview image reference validation is exact and lowercase", () => {
-  const support = read("scripts/preview-runtime-support.ts");
-
-  assert.ok(support.includes('ghcr\\.io\\/lukexd09\\/clariobase-ai-crm@sha256:[0-9a-f]{64}'));
-  assert.match(support, /CRM_PREVIEW_IMAGE_REF must match ghcr\.io\/lukexd09\/clariobase-ai-crm@sha256:<64 lowercase hex characters>\./);
-});
-
-test("auto preview workflow revalidation fails closed and gates deployment on exact PASS", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const reportDeployingBlock = splitJobBlock(workflow, "report-deploying", "deploy-preview");
-  const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
-  const reportFinalBlock = splitJobBlock(workflow, "report-final");
-
-  assert.doesNotMatch(workflow, /Revalidate PR head before deployment[\s\S]*continue-on-error:\s*true/);
-  assert.match(workflow, /BLOCKED: runner-side PR revalidation request failed/);
-
-  const passGatedSteps = [
-    "Materialize preview env file",
-    "Deploy preview",
-    "Verify preview readiness"
-  ];
-
-  for (const stepName of passGatedSteps) {
-    const pattern = new RegExp(`- name: ${stepName}[\\s\\S]*?if: steps\\.revalidate\\.outputs\\.runner_revalidation_result == 'PASS'`);
-    assert.match(workflow, pattern);
-  }
-
-  assert.match(
-    deployBlock,
-    /- name: Write deployment summary[\s\S]*?if: success\(\) && steps\.revalidate\.outputs\.runner_revalidation_result == 'PASS'/
-  );
-  assert.match(reportDeployingBlock, /needs:\s*\n\s*- resolve-auto-preview\s*\n\s*- build-preview-image/);
-  assert.match(reportDeployingBlock, /Upsert PR preview comment as deploying/);
-  assert.match(reportFinalBlock, /ready = process\.env\.DEPLOYMENT_RESULT === "success"/);
-  assert.match(reportFinalBlock, /needs\.deploy-preview\.result/);
-  assert.match(reportFinalBlock, /- name: Upsert final preview comment/);
-  assert.match(reportFinalBlock, /if: always\(\) && needs\.resolve-auto-preview\.outputs\.should_deploy == 'true'/);
-
-  assert.doesNotMatch(workflow, /runner_revalidation_result != 'BLOCKED'/);
-});
-
-test("E016 telemetry keeps implementation evidence separate from dynamic PR metadata", () => {
-  const telemetry = read("docs/verification/e016-budget-telemetry.yaml");
-  const assurance = read("docs/verification/e016-integrated-assurance.md");
-
-  assert.match(telemetry, /implementation_evidence:/);
-  assert.match(telemetry, /final_pr_evidence:/);
-  assert.match(telemetry, /source: github_pr_metadata/);
-  assert.match(telemetry, /head_sha: dynamic/);
-  assert.match(telemetry, /ci_run_id: dynamic/);
-  assert.match(telemetry, /ci_conclusion: dynamic/);
-  assert.match(telemetry, /verification_rule: resolve from GitHub after the final documentation commit/);
-  assert.doesNotMatch(telemetry, /final_pr_head_sha:/);
-  assert.doesNotMatch(telemetry, /final_ci_run_id:/);
-  assert.doesNotMatch(telemetry, /final_ci_conclusion:/);
-  assert.match(assurance, /Final Stop Preview workflow run:/);
-  assert.match(assurance, /Result: `PASS`/);
-  assert.match(assurance, /Conclusion:\s+success/i);
-  assert.match(assurance, /Post-stop evidence:/);
-  assert.match(assurance, /The final preview contract test set passed with no failures after the Windows workflow correction/i);
-});
-
-test("resolve-auto-preview accepts a successful same-repository open PR at the exact validated SHA", async () => {
-  const event = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
-  const result = await resolveAutoPreview({
-    event,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({
-      number: 113,
-      state: "open",
-      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
-      head: {
-        ref: "feature/e016-preview",
-        sha: "1111111111111111111111111111111111111111",
-        repo: {
-          full_name: EXPECTED_REPOSITORY
-        }
-      }
-    })
-  });
-
-  assert.equal(result.resolutionStatus, "deploy");
-  assert.equal(result.shouldDeploy, true);
-  assert.equal(result.prNumber, "113");
-  assert.equal(result.headRef, "feature/e016-preview");
-  assert.equal(result.validatedSha, "1111111111111111111111111111111111111111");
-});
-
-test("resolve-auto-preview uses CI artifact context as the authoritative PR identity", async () => {
-  const event = parseWorkflowRunEvent(
-    JSON.stringify({
-      ...createWorkflowRunEvent(),
-      workflow_run: {
-        ...createWorkflowRunEvent().workflow_run,
-        pull_requests: []
-      }
-    })
-  );
-  const result = await resolveAutoPreview({
-    event,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({
-      number: 113,
-      state: "open",
-      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
-      head: {
-        ref: "feature/e016-preview",
-        sha: "1111111111111111111111111111111111111111",
-        repo: {
-          full_name: EXPECTED_REPOSITORY
-        }
-      }
-    })
-  });
-
-  assert.equal(result.resolutionStatus, "deploy");
-  assert.equal(result.shouldDeploy, true);
-});
-
-test("resolve-auto-preview blocks artifact mismatches and forked artifact metadata", async () => {
-  const event = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
-  const baseOptions = {
-    event,
-    repository: EXPECTED_REPOSITORY,
-    fetchPullRequest: async () => ({
-      number: 113,
-      state: "open",
-      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
-      head: {
-        ref: "feature/e016-preview",
-        sha: "1111111111111111111111111111111111111111",
-        repo: {
-          full_name: EXPECTED_REPOSITORY
-        }
-      }
-    })
-  };
-
-  const missingArtifact = await resolveAutoPreview({ ...baseOptions, context: {} });
-  const malformedArtifact = await resolveAutoPreview({
-    ...baseOptions,
-    context: createAutoPreviewContext({ schemaVersion: 2 })
-  });
-  const runIdMismatch = await resolveAutoPreview({
-    ...baseOptions,
-    context: createAutoPreviewContext({ workflowRunId: 999999 })
-  });
-  const shaMismatch = await resolveAutoPreview({
-    ...baseOptions,
-    context: createAutoPreviewContext({ headSha: "2222222222222222222222222222222222222222" })
-  });
-  const forkArtifact = await resolveAutoPreview({
-    ...baseOptions,
-    context: createAutoPreviewContext({ repository: "someone-else/clariobase-ai-crm", headRepository: "someone-else/clariobase-ai-crm" })
-  });
-
-  assert.equal(missingArtifact.resolutionStatus, "blocked");
-  assert.match(missingArtifact.skipReason, /unsupported auto-preview context schema|artifact repository mismatch/);
-  assert.equal(malformedArtifact.resolutionStatus, "blocked");
-  assert.match(malformedArtifact.skipReason, /unsupported auto-preview context schema/);
-  assert.equal(runIdMismatch.resolutionStatus, "blocked");
-  assert.match(runIdMismatch.skipReason, /artifact workflow run ID mismatch/);
-  assert.equal(shaMismatch.resolutionStatus, "blocked");
-  assert.match(shaMismatch.skipReason, /artifact SHA mismatch/);
-  assert.equal(forkArtifact.resolutionStatus, "blocked");
-  assert.match(forkArtifact.skipReason, /artifact repository mismatch/);
-});
-
-test("resolve-auto-preview skips failed and cancelled CI runs", async () => {
-  const failedEvent = parseWorkflowRunEvent(
-    JSON.stringify(
-      createWorkflowRunEvent({
-        workflow_run: {
-          ...createWorkflowRunEvent().workflow_run,
-          conclusion: "failure"
-        }
-      })
-    )
-  );
-  const cancelledEvent = parseWorkflowRunEvent(
-    JSON.stringify(
-      createWorkflowRunEvent({
-        workflow_run: {
-          ...createWorkflowRunEvent().workflow_run,
-          conclusion: "cancelled"
-        }
-      })
-    )
-  );
-
-  const failedResult = await resolveAutoPreview({
-    event: failedEvent,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({})
-  });
-  const cancelledResult = await resolveAutoPreview({
-    event: cancelledEvent,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({})
-  });
-
-  assert.equal(failedResult.resolutionStatus, "skipped");
-  assert.match(failedResult.skipReason, /failure/);
-  assert.equal(cancelledResult.resolutionStatus, "skipped");
-  assert.match(cancelledResult.skipReason, /cancelled/);
-});
-
-test("resolve-auto-preview skips push-triggered CI runs and runs without a PR", async () => {
-  const pushEvent = parseWorkflowRunEvent(
-    JSON.stringify(
-      createWorkflowRunEvent({
-        workflow_run: {
-          ...createWorkflowRunEvent().workflow_run,
-          event: "push"
-        }
-      })
-    )
-  );
-  const noPrEvent = parseWorkflowRunEvent(
-    JSON.stringify({
-      ...createWorkflowRunEvent(),
-      workflow_run: {
-        ...createWorkflowRunEvent().workflow_run,
-        pull_requests: []
-      }
-    })
-  );
-
-  const pushResult = await resolveAutoPreview({
-    event: pushEvent,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({})
-  });
-  const noPrResult = await resolveAutoPreview({
-    event: noPrEvent,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext({ headSha: "1111111111111111111111111111111111111111" }),
-    fetchPullRequest: async () => ({
-      number: 113,
-      state: "open",
-      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
-      head: {
-        ref: "feature/e016-preview",
-        sha: "1111111111111111111111111111111111111111",
-        repo: {
-          full_name: EXPECTED_REPOSITORY
-        }
-      }
-    })
-  });
-
-  assert.equal(pushResult.resolutionStatus, "skipped");
-  assert.match(pushResult.skipReason, /CI event is push/);
-  assert.equal(noPrResult.resolutionStatus, "deploy");
-  assert.equal(noPrResult.shouldDeploy, true);
-});
-
-test("resolve-auto-preview rejects forked, closed, and stale PR heads", async () => {
-  const forkEvent = parseWorkflowRunEvent(
-    JSON.stringify({
-      ...createWorkflowRunEvent(),
-      workflow_run: {
-        ...createWorkflowRunEvent().workflow_run,
-        pull_requests: [
-          {
-            number: 113,
-            head: {
-              ref: "fork/preview",
-              sha: "1111111111111111111111111111111111111111",
-              repo: {
-                full_name: "someone-else/clariobase-ai-crm"
-              }
-            }
-          }
-        ]
-      }
-    })
-  );
-  const closedEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
-  const staleEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
-
-  const forkResult = await resolveAutoPreview({
-    event: forkEvent,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext({ headRepository: "someone-else/clariobase-ai-crm" }),
-    fetchPullRequest: async () => ({})
-  });
-  const closedResult = await resolveAutoPreview({
-    event: closedEvent,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({
-      state: "closed",
-      head: {
-        ref: "feature/e016-preview",
-        sha: "1111111111111111111111111111111111111111",
-        repo: {
-          full_name: EXPECTED_REPOSITORY
-        }
-      }
-    })
-  });
-  const staleResult = await resolveAutoPreview({
-    event: staleEvent,
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({
-      state: "open",
-      head: {
-        ref: "feature/e016-preview",
-        sha: "2222222222222222222222222222222222222222",
-        repo: {
-          full_name: EXPECTED_REPOSITORY
-        }
-      }
-    })
-  });
-
-  assert.equal(forkResult.resolutionStatus, "blocked");
-  assert.match(forkResult.skipReason, /artifact repository mismatch|artifact head repository mismatch/);
-  assert.equal(closedResult.resolutionStatus, "skipped");
-  assert.match(closedResult.skipReason, /is closed/i);
-  assert.equal(staleResult.resolutionStatus, "blocked");
-  assert.equal(staleResult.skipReason, "BLOCKED: stale validated SHA");
-});
-
-test("resolve-auto-preview emits controlled blocked and skipped machine-readable outcomes", async () => {
-  const blockedResult = await resolveAutoPreview({
-    event: parseWorkflowRunEvent(
-      JSON.stringify({
-        ...createWorkflowRunEvent(),
-        workflow_run: {
-          ...createWorkflowRunEvent().workflow_run,
-          status: "queued"
-        }
-      })
-    ),
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({})
-  });
-  const skippedResult = await resolveAutoPreview({
-    event: parseWorkflowRunEvent(
-      JSON.stringify({
-        ...createWorkflowRunEvent(),
-        workflow_run: {
-          ...createWorkflowRunEvent().workflow_run,
-          name: "Something Else"
-        }
-      })
-    ),
-    repository: EXPECTED_REPOSITORY,
-    context: createAutoPreviewContext(),
-    fetchPullRequest: async () => ({})
-  });
-
-  assert.equal(blockedResult.resolutionStatus, "blocked");
-  assert.equal(blockedResult.shouldDeploy, false);
-  assert.equal(skippedResult.resolutionStatus, "skipped");
-  assert.equal(skippedResult.shouldDeploy, false);
-});
-
-test("resolve-auto-preview blocks trusted control-plane file changes and keeps the PR metadata for reporting", async () => {
-  const baseEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
-  const baseContext = createAutoPreviewContext();
-  const originalFetch = global.fetch;
-
-  try {
-    global.fetch = (async () =>
-      new Response(JSON.stringify([{ filename: "scripts/deploy-preview.ts" }]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" }
-      })) as typeof fetch;
-
-    const result = await resolveAutoPreview({
-      event: baseEvent,
-      repository: EXPECTED_REPOSITORY,
-      context: baseContext,
-      fetchPullRequest: async () => ({
-        number: 113,
-        state: "open",
-        html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
-        head: {
-          ref: "feature/e016-preview",
-          sha: "1111111111111111111111111111111111111111",
-          repo: {
-            full_name: EXPECTED_REPOSITORY
-          }
-        }
-      })
-    });
-
-    assert.equal(result.resolutionStatus, "blocked");
-    assert.equal(result.shouldDeploy, false);
-    assert.match(result.skipReason, /trusted preview control-plane files/);
-    assert.equal(result.prNumber, "113");
-    assert.equal(result.prUrl, "https://github.com/lukexd09/clariobase-ai-crm/pull/113");
-    assert.equal(result.headRef, "feature/e016-preview");
-    assert.equal(result.validatedSha, "1111111111111111111111111111111111111111");
-  } finally {
-    global.fetch = originalFetch;
-  }
-});
-
-test("resolve-auto-preview inspects paginated changed files and fails closed on API errors", async () => {
-  const baseEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
-  const baseContext = createAutoPreviewContext();
-  const requestedPages: number[] = [];
-  const originalFetch = global.fetch;
-
-  const mockPullRequest = async () => ({
-    number: 113,
-    state: "open",
-    html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
-    head: {
-      ref: "feature/e016-preview",
-      sha: "1111111111111111111111111111111111111111",
-      repo: {
-        full_name: EXPECTED_REPOSITORY
-      }
-    }
-  });
-
-  try {
-    global.fetch = (async (input: RequestInfo | URL) => {
-      const url = String(input);
-      const pageMatch = /[?&]page=(\d+)/.exec(url);
-      const page = Number(pageMatch?.[1] ?? "1");
-      requestedPages.push(page);
-
-      if (page === 1) {
-        return new Response(
-          JSON.stringify(Array.from({ length: 100 }, (_, index) => ({ filename: `docs/file-${index}.md` }))),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      if (page === 2) {
-        return new Response(
-          JSON.stringify([{ filename: "scripts/deploy-preview.ts" }]),
-          { status: 200, headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
-    }) as typeof fetch;
-
-    const pagedResult = await resolveAutoPreview({
-      event: baseEvent,
-      repository: EXPECTED_REPOSITORY,
-      context: baseContext,
-      fetchPullRequest: mockPullRequest
-    });
-
-    assert.equal(pagedResult.resolutionStatus, "blocked");
-    assert.equal(pagedResult.shouldDeploy, false);
-    assert.match(pagedResult.skipReason, /trusted preview control-plane files/);
-
-    assert.deepEqual(requestedPages, [1, 2]);
-
-    global.fetch = (async () => new Response("", { status: 503 })) as typeof fetch;
-
-    await assert.rejects(
-      () => resolveAutoPreview({
-        event: baseEvent,
-        repository: EXPECTED_REPOSITORY,
-        context: baseContext,
-        fetchPullRequest: mockPullRequest
-      }),
-      /GitHub API pull request files lookup failed with HTTP 503\./
-    );
-  } finally {
-    global.fetch = originalFetch;
-  }
-});
-
-test("resolve-auto-preview CLI fails hard for malformed event payloads and missing token", () => {
-  const tmpRoot = createSystemTmpDir("clariobase-auto-preview-cli-");
-  const eventPath = path.join(tmpRoot, "event.json");
-  const contextPath = path.join(tmpRoot, "auto-preview-context.json");
-  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
-
-  try {
-    fs.writeFileSync(eventPath, "{bad json", "utf8");
-    fs.writeFileSync(contextPath, JSON.stringify(createAutoPreviewContext()), "utf8");
-
-    const malformed = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-auto-preview.ts"),
-      "--event-path",
-      eventPath,
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--context-path",
-      contextPath
-    ], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      env: {
-        ...process.env
-      }
-    });
-
-    assert.notEqual(malformed.status, 0);
-
-    fs.writeFileSync(eventPath, JSON.stringify(createWorkflowRunEvent()), "utf8");
-    fs.writeFileSync(contextPath, JSON.stringify(createAutoPreviewContext()), "utf8");
-    const missingToken = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-auto-preview.ts"),
-      "--event-path",
-      eventPath,
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--context-path",
-      contextPath
-    ], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GITHUB_TOKEN: ""
-      }
-    });
-
-    assert.notEqual(missingToken.status, 0);
-    assert.match(missingToken.stderr || missingToken.stdout, /Missing GITHUB_TOKEN/i);
-  } finally {
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
-  }
-});
-
-test("resolve-auto-preview CLI fails hard for GitHub API failures", () => {
-  const tmpRoot = createSystemTmpDir("clariobase-auto-preview-api-failure-");
-  const eventPath = path.join(tmpRoot, "event.json");
-  const contextPath = path.join(tmpRoot, "auto-preview-context.json");
-  const loaderPath = path.join(tmpRoot, "mock-loader.cjs");
-  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
-
-  try {
-    fs.writeFileSync(eventPath, JSON.stringify(createWorkflowRunEvent()), "utf8");
-    fs.writeFileSync(contextPath, JSON.stringify(createAutoPreviewContext()), "utf8");
-    fs.writeFileSync(
-      loaderPath,
-      "global.fetch = async () => ({ ok: false, status: 503 });",
-      "utf8"
-    );
-
-    const failedApi = spawnSync(process.execPath, [
-      "--require",
-      loaderPath,
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-auto-preview.ts"),
-      "--event-path",
-      eventPath,
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--context-path",
-      contextPath
-    ], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GITHUB_TOKEN: "test-token"
-      }
-    });
-
-    assert.notEqual(failedApi.status, 0);
-    assert.match(failedApi.stderr || failedApi.stdout, /GitHub API pull request lookup failed/i);
-  } finally {
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
-  }
-});
-
-test("trusted preview ref validation rejects fork-style and pull-request refs", () => {
-  assert.equal(normalizeRequestedRef("refs/heads/main"), "main");
-  assert.equal(normalizeRequestedRef("refs/tags/v1.2.3"), "v1.2.3");
-  assert.equal(assertTrustedRequestedRef("epic/e016-manual-preview", EXPECTED_REPOSITORY), "epic/e016-manual-preview");
-
-  assert.throws(() => normalizeRequestedRef("refs/pull/1/head"), /not trusted preview deployment targets/i);
-  assert.throws(() => normalizeRequestedRef("owner:branch"), /disallowed characters/i);
-  assert.throws(() => assertTrustedRequestedRef("main", "someone-else/repo"), /may only run inside/i);
-});
-
-test("resolve-preview-ref works offline from local trusted refs without a second network fetch", () => {
-  const tmpRoot = createSystemTmpDir("clariobase-resolve-preview-ref-");
-  const originRepo = path.join(tmpRoot, "origin.git");
-  const workRepo = path.join(tmpRoot, "work");
-  const outputFile = path.join(tmpRoot, "github-output.txt");
-  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
-
-  fs.rmSync(originRepo, { recursive: true, force: true });
-  fs.rmSync(workRepo, { recursive: true, force: true });
-  fs.mkdirSync(tmpRoot, { recursive: true });
-
-  try {
-    assert.equal(spawnSync("git", ["init", "--bare", originRepo], { encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["init", workRepo], { encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["config", "user.email", "codex@example.com"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["config", "user.name", "Codex"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["remote", "add", "origin", originRepo], { cwd: workRepo, encoding: "utf8" }).status, 0);
-
-    fs.writeFileSync(path.join(workRepo, "README.md"), "first\n", "utf8");
-    assert.equal(spawnSync("git", ["add", "README.md"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["commit", "-m", "first"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["branch", "-M", "main"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["push", "-u", "origin", "main"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-
-    fs.writeFileSync(path.join(workRepo, "README.md"), "second\n", "utf8");
-    assert.equal(spawnSync("git", ["add", "README.md"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["commit", "-m", "second"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["checkout", "-b", "feature/ref-resolution"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    fs.writeFileSync(path.join(workRepo, "feature.txt"), "feature\n", "utf8");
-    assert.equal(spawnSync("git", ["add", "feature.txt"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["commit", "-m", "feature"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["tag", "v1.2.3"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["push", "origin", "feature/ref-resolution", "v1.2.3"], { cwd: workRepo, encoding: "utf8" }).status, 0);
-
-    const mainSha = spawnSync("git", ["rev-parse", "main"], { cwd: workRepo, encoding: "utf8" });
-    const featureSha = spawnSync("git", ["rev-parse", "feature/ref-resolution"], { cwd: workRepo, encoding: "utf8" });
-    const tagSha = spawnSync("git", ["rev-parse", "v1.2.3"], { cwd: workRepo, encoding: "utf8" });
-
-    assert.equal(mainSha.status, 0, mainSha.stderr);
-    assert.equal(featureSha.status, 0, featureSha.stderr);
-    assert.equal(tagSha.status, 0, tagSha.stderr);
-
-    const checkoutRepo = path.join(tmpRoot, "checkout");
-    assert.equal(spawnSync("git", ["clone", originRepo, checkoutRepo], { encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["fetch", "--all", "--tags"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["remote", "set-url", "origin", "https://github.invalid/private/repository.git"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["config", "user.email", "codex@example.com"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["config", "user.name", "Codex"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
-
-    const mainLocalRef = spawnSync("git", ["rev-parse", "refs/remotes/origin/main^{commit}"], { cwd: checkoutRepo, encoding: "utf8" });
-    const featureLocalRef = spawnSync("git", ["rev-parse", "refs/remotes/origin/feature/ref-resolution^{commit}"], { cwd: checkoutRepo, encoding: "utf8" });
-    const tagLocalRef = spawnSync("git", ["rev-parse", "refs/tags/v1.2.3^{commit}"], { cwd: checkoutRepo, encoding: "utf8" });
-
-    assert.equal(mainLocalRef.status, 0, mainLocalRef.stderr);
-    assert.equal(featureLocalRef.status, 0, featureLocalRef.stderr);
-    assert.equal(tagLocalRef.status, 0, tagLocalRef.stderr);
-
-    const branchOutput = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--requested-ref",
-      "refs/heads/main"
-    ], {
-      cwd: checkoutRepo,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GIT_TERMINAL_PROMPT: "0",
-        GITHUB_OUTPUT: outputFile
-      }
-    });
-
-    assert.equal(branchOutput.status, 0, branchOutput.stderr);
-    assert.match(branchOutput.stdout, new RegExp(`"requestedRef":\\s*"main"`));
-    assert.match(branchOutput.stdout, new RegExp(`"resolvedSha":\\s*"${mainLocalRef.stdout.trim()}"`));
-
-    const outputContent = fs.readFileSync(outputFile, "utf8");
-    assert.match(outputContent, /requested_ref=main/);
-    assert.match(outputContent, new RegExp(`resolved_sha=${mainLocalRef.stdout.trim()}`));
-
-    const featureOutput = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--requested-ref",
-      "feature/ref-resolution"
-    ], {
-      cwd: checkoutRepo,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GIT_TERMINAL_PROMPT: "0"
-      }
-    });
-
-    assert.equal(featureOutput.status, 0, featureOutput.stderr);
-    assert.match(featureOutput.stdout, new RegExp(`"resolvedSha":\\s*"${featureLocalRef.stdout.trim()}"`));
-
-    const tagOutput = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--requested-ref",
-      "v1.2.3"
-    ], {
-      cwd: checkoutRepo,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GIT_TERMINAL_PROMPT: "0"
-      }
-    });
-
-    assert.equal(tagOutput.status, 0, tagOutput.stderr);
-    assert.match(tagOutput.stdout, new RegExp(`"resolvedSha":\\s*"${tagLocalRef.stdout.trim()}"`));
-
-    const reachableShaOutput = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--requested-ref",
-      featureLocalRef.stdout.trim()
-    ], {
-      cwd: checkoutRepo,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GIT_TERMINAL_PROMPT: "0"
-      }
-    });
-
-    assert.equal(reachableShaOutput.status, 0, reachableShaOutput.stderr);
-    assert.match(reachableShaOutput.stdout, new RegExp(`"resolvedSha":\\s*"${featureLocalRef.stdout.trim()}"`));
-
-    const missingRef = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--requested-ref",
-      "missing/ref"
-    ], {
-      cwd: checkoutRepo,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GIT_TERMINAL_PROMPT: "0"
-      }
-    });
-
-    assert.notEqual(missingRef.status, 0);
-    assert.match(missingRef.stderr || missingRef.stdout, /Could not resolve trusted origin branch, tag, or commit/i);
-
-    const pullRef = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--requested-ref",
-      "refs/pull/1/head"
-    ], {
-      cwd: checkoutRepo,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GIT_TERMINAL_PROMPT: "0"
-      }
-    });
-
-    assert.notEqual(pullRef.status, 0);
-    assert.match(pullRef.stderr || pullRef.stdout, /Pull request refs are not trusted preview deployment targets/i);
-
-    assert.equal(spawnSync("git", ["checkout", "-b", "local-only"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
-    fs.writeFileSync(path.join(checkoutRepo, "local-only.txt"), "local only\n", "utf8");
-    assert.equal(spawnSync("git", ["add", "local-only.txt"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
-    assert.equal(spawnSync("git", ["commit", "-m", "local-only"], { cwd: checkoutRepo, encoding: "utf8" }).status, 0);
-    const unreachableSha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: checkoutRepo, encoding: "utf8" });
-
-    assert.equal(unreachableSha.status, 0, unreachableSha.stderr);
-
-    const unreachableOutput = spawnSync(process.execPath, [
-      tsxCli,
-      path.join(repoRoot, "scripts/resolve-preview-ref.ts"),
-      "--repository",
-      EXPECTED_REPOSITORY,
-      "--requested-ref",
-      unreachableSha.stdout.trim()
-    ], {
-      cwd: checkoutRepo,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        GIT_TERMINAL_PROMPT: "0"
-      }
-    });
-
-    assert.notEqual(unreachableOutput.status, 0);
-    assert.match(unreachableOutput.stderr || unreachableOutput.stdout, /not reachable from a trusted origin ref/i);
-  } finally {
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
-  }
-});
-
-test("preview workflows keep the requested SHA as source input while control scripts come from the trusted checkout", () => {
-  const autoDeployWorkflow = read(".github/workflows/auto-deploy-preview.yml");
-  const deployWorkflow = read(".github/workflows/deploy-preview.yml");
-  const stopWorkflow = read(".github/workflows/stop-preview.yml");
-  const deployWrapper = read("scripts/deploy-preview.ps1");
-  const stopWrapper = read("scripts/stop-preview.ps1");
-  const deployBlock = splitJobBlock(autoDeployWorkflow, "deploy-preview", "report-final");
-
-  assert.match(autoDeployWorkflow, /Check out trusted control checkout/);
-  assert.match(autoDeployWorkflow, /VALIDATED_SHA: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
-  assert.match(deployBlock, /IMAGE_SOURCE_SHA: \$\{\{ needs\.build-preview-image\.outputs\.source_sha \}\}/);
-  assert.match(autoDeployWorkflow, /REQUESTED_REF: \$\{\{ needs\.resolve-auto-preview\.outputs\.head_ref \}\}/);
-  assert.match(autoDeployWorkflow, /-ResolvedSha \$env:VALIDATED_SHA/);
-  assert.match(autoDeployWorkflow, /-RequestedRef \$env:REQUESTED_REF/);
-  assert.doesNotMatch(deployBlock, /-SourceCheckoutPath/);
-  assert.match(deployBlock, /Check out trusted control checkout/);
-  assert.match(deployBlock, /-ControlCheckoutPath \$PWD/);
-  assert.match(deployBlock, /Validate immutable image handoff/);
-  assert.match(deployBlock, /IMAGE_SOURCE_SHA must match VALIDATED_SHA\./);
+  assert.match(deployBlock, /self-hosted/);
+  assert.match(deployBlock, /windows/);
+  assert.match(deployBlock, /clariobase-preview/);
+  assert.match(deployBlock, /environment: e016-preview-operator/);
+  assert.match(deployBlock, /ref: main/);
+  assert.match(deployBlock, /path: control/);
+  assert.match(deployBlock, /Revalidate PR head before deployment/);
+  assert.match(deployBlock, /BLOCKED: stale validated SHA/);
+  assert.match(deployBlock, /runner-side PR revalidation request failed/);
+  assert.match(deployBlock, /IMAGE_SOURCE_SHA must match VALIDATED_SHA/);
+  assert.match(deployBlock, /ghcr\\\.io\/lukexd09\/clariobase-ai-crm@sha256:\[0-9a-f\]\{64\}/);
   assert.match(deployBlock, /Log in to GitHub Container Registry/);
-  assert.match(deployBlock, /GHCR_USERNAME: \$\{\{ github\.actor \}\}/);
-  assert.match(deployBlock, /GHCR_TOKEN: \$\{\{ github\.token \}\}/);
-  assert.match(deployBlock, /\$env:GHCR_TOKEN \| docker login ghcr\.io --username \$env:GHCR_USERNAME --password-stdin/);
-  assert.match(deployBlock, /docker logout ghcr\.io \| Out-Host/);
-  assert.match(deployBlock, /Materialize preview env file/);
-  assert.match(deployBlock, /Validate immutable image handoff[\s\S]*Materialize preview env file/);
-  assert.doesNotMatch(deployBlock, /build-preview-image:|docker compose build|docker build|source-checkout-path/);
-  assert.match(stopWorkflow, /Stop preview/);
-  assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
-  assert.match(deployWrapper, /ControlCheckoutPath/);
-  assert.match(deployWrapper, /SourceCheckoutPath/);
-  assert.match(stopWrapper, /ControlCheckoutPath/);
+  assert.match(deployBlock, /scripts\\deploy-preview\.ps1/);
+  assert.match(deployBlock, /http:\/\/127\.0\.0\.1:3001\/api\/ready/);
+  assert.match(deployBlock, /service -ne "clariobase-ai-crm"/);
+  assert.match(deployBlock, /status -ne "ready"/);
+  assert.match(deployBlock, /checks\.database -ne "ok"/);
+  assert.match(deployBlock, /Cleanup secrets and job artifacts/);
+  assert.match(deployBlock, /Log out of GitHub Container Registry/);
+
+  assertOrdered(deployBlock, "Revalidate PR head before deployment", "Validate immutable image handoff");
+  assertOrdered(deployBlock, "Validate immutable image handoff", "Log in to GitHub Container Registry");
+  assertOrdered(deployBlock, "Log in to GitHub Container Registry", "Deploy preview");
+  assertOrdered(deployBlock, "Deploy preview", "Verify preview readiness");
+  assertOrdered(deployBlock, "Verify preview readiness", "Cleanup secrets and job artifacts");
+  assertOrdered(deployBlock, "Cleanup secrets and job artifacts", "Log out of GitHub Container Registry");
+
+  assert.equal(ready.body.service, "clariobase-ai-crm");
+  assert.equal(ready.body.status, "ready");
+  assert.equal(ready.body.checks.database, "ok");
+  assert.match(composePreview, /build: !reset null/);
+  assert.match(composePreview, /pull_policy: never/);
+  assert.match(runtimeSupport, /pullExactImage/);
+  assert.match(runtimeSupport, /"run",\s*"--rm",\s*"--pull",\s*"never"/);
+  assert.match(runtimeSupport, /"up",\s*"-d",\s*"--no-build",\s*"--pull",\s*"never",\s*"crm-app"/);
 });
 
-test("preview comment marker and body stay stable for repeated PR updates", () => {
-  const comment = formatPreviewStatusComment({
-    result: "ready",
-    attemptedSha: "1111111111111111111111111111111111111111",
-    headRef: "feature/e016-preview",
-    ciRunUrl: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456",
-    deploymentRunUrl: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/654321",
-    timestamp: "2026-06-24T12:00:00.000Z"
-  });
+test("retired preview workflows cannot auto-deploy or bypass exact Fast CI correlation", () => {
+  const autoDeploy = read(".github/workflows/auto-deploy-preview.yml");
+  const directDeploy = read(".github/workflows/deploy-preview.yml");
 
-  assert.match(comment, new RegExp(PREVIEW_STATUS_COMMENT_MARKER.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.match(comment, /Preview ready/);
-  assert.match(comment, /Result: ready/);
-  assert.match(comment, /URL: http:\/\/Serwer:3001/);
-  assert.match(comment, /Commit: 1111111111111111111111111111111111111111/);
-  assert.match(comment, /Branch: feature\/e016-preview/);
+  assert.match(autoDeploy, /^name: Retired Auto Deploy Preview$/m);
+  assert.match(directDeploy, /^name: Retired Deploy Preview$/m);
+  assert.match(autoDeploy, /workflow_dispatch:/);
+  assert.match(directDeploy, /workflow_dispatch:/);
+  assert.match(autoDeploy, /exit 1/);
+  assert.match(directDeploy, /exit 1/);
+  assert.doesNotMatch(autoDeploy, /workflow_run:/);
+  assert.doesNotMatch(autoDeploy, /self-hosted|docker\/build-push-action|packages: write/);
+  assert.doesNotMatch(directDeploy, /self-hosted|scripts\\deploy-preview|packages: read/);
 });
 
-test("runner-side blocked states are documented separately from deployment failures", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const reportBlockedBlock = splitJobBlock(workflow, "report-blocked-resolution", "build-preview-image");
+test("preview workflow actions remain current and no untrusted target trigger is introduced", () => {
+  const workflows = [
+    read(".github/workflows/ci.yml"),
+    read(".github/workflows/full-integration.yml"),
+    read(".github/workflows/preview-release.yml"),
+    read(".github/workflows/stop-preview.yml")
+  ].join("\n");
 
-  assert.match(workflow, /runner_revalidation_result=\$result/);
-  assert.match(workflow, /report-blocked-resolution:/);
-  assert.match(reportBlockedBlock, /pull-requests: write/);
-  assert.doesNotMatch(reportBlockedBlock, /packages: write/);
-  assert.match(reportBlockedBlock, /always\(\) &&/);
-  assert.match(reportBlockedBlock, /needs\.resolve-auto-preview\.outputs\.pr_number != ''/);
-  assert.match(reportBlockedBlock, /needs\.resolve-auto-preview\.outputs\.gate_reason/);
-  assert.doesNotMatch(reportBlockedBlock, /steps\.classify/);
-  assert.doesNotMatch(reportBlockedBlock, /steps\.classify_failure/);
-  assert.match(reportBlockedBlock, /Fail blocked preview gate/);
-  assert.match(reportBlockedBlock, /exit 1/);
-  assert.doesNotMatch(workflow, /Verify production readiness/);
-});
-
-test("reporters validate PR numbers before GitHub API calls and block comments on invalid input", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const reportBlockedBlock = splitJobBlock(workflow, "report-blocked-resolution", "build-preview-image");
-  const reportDeployingBlock = splitJobBlock(workflow, "report-deploying", "deploy-preview");
-  const reportFinalBlock = splitJobBlock(workflow, "report-final");
-
-  for (const block of [reportBlockedBlock, reportDeployingBlock, reportFinalBlock]) {
-    assert.match(block, /const issue_number = Number\(process\.env\.PR_NUMBER\);/);
-    assert.match(block, /Number\.isInteger\(issue_number\) \|\| issue_number <= 0/);
-    assert.match(block, /Invalid PR number\./);
-    assert.match(block, /owner: context\.repo\.owner/);
-    assert.match(block, /repo: context\.repo\.repo/);
-  }
-
-  assert.match(splitJobBlock(workflow, "deploy-preview", "report-final"), /pull-requests: read/);
-  assert.doesNotMatch(reportBlockedBlock, /steps\.classify/);
-  assert.doesNotMatch(reportBlockedBlock, /steps\.classify_failure/);
-  assert.match(reportBlockedBlock, /needs\.resolve-auto-preview\.outputs\.gate_reason/);
-});
-
-test("blocked resolution flow reports when PR number is present and skips comments when it is absent", () => {
-  const workflow = read(".github/workflows/auto-deploy-preview.yml");
-  const reportBlockedBlock = splitJobBlock(workflow, "report-blocked-resolution", "build-preview-image");
-
-  assert.match(reportBlockedBlock, /always\(\) &&/);
-  assert.match(reportBlockedBlock, /needs\.resolve-auto-preview\.outputs\.pr_number != ''/);
-  assert.match(reportBlockedBlock, /Upsert blocked preview comment/);
-  assert.match(reportBlockedBlock, /Fail blocked preview gate/);
-  assert.match(reportBlockedBlock, /exit 1/);
-});
-
-test("deploy preview dry-run validates the source checkout SHA independently from the control checkout", () => {
-  const tmpRoot = createSystemTmpDir("clariobase-deploy-preview-");
-  const sourceCheckout = path.join(tmpRoot, "source-checkout");
-  const previewEnvDir = createSystemTmpDir("clariobase-deploy-preview-env-");
-  const previewEnvFile = path.join(previewEnvDir, ".env.compose.preview.local");
-  const currentHead = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repoRoot, encoding: "utf8" });
-
-  assert.equal(currentHead.status, 0);
-
-  try {
-    fs.rmSync(sourceCheckout, { recursive: true, force: true });
-    fs.mkdirSync(sourceCheckout, { recursive: true });
-
-    const initResult = spawnSync("git", ["init"], { cwd: sourceCheckout, encoding: "utf8" });
-    assert.equal(initResult.status, 0, initResult.stderr);
-
-    const configEmail = spawnSync("git", ["config", "user.email", "codex@example.com"], {
-      cwd: sourceCheckout,
-      encoding: "utf8"
-    });
-    assert.equal(configEmail.status, 0, configEmail.stderr);
-
-    const configName = spawnSync("git", ["config", "user.name", "Codex"], {
-      cwd: sourceCheckout,
-      encoding: "utf8"
-    });
-    assert.equal(configName.status, 0, configName.stderr);
-
-    fs.writeFileSync(path.join(sourceCheckout, "README.md"), "source checkout test\n");
-    let commitResult = spawnSync("git", ["add", "README.md"], { cwd: sourceCheckout, encoding: "utf8" });
-    assert.equal(commitResult.status, 0, commitResult.stderr);
-    commitResult = spawnSync("git", ["commit", "-m", "first"], { cwd: sourceCheckout, encoding: "utf8" });
-    assert.equal(commitResult.status, 0, commitResult.stderr);
-
-    fs.writeFileSync(path.join(sourceCheckout, "README.md"), "source checkout test v2\n");
-    commitResult = spawnSync("git", ["add", "README.md"], { cwd: sourceCheckout, encoding: "utf8" });
-    assert.equal(commitResult.status, 0, commitResult.stderr);
-    commitResult = spawnSync("git", ["commit", "-m", "second"], { cwd: sourceCheckout, encoding: "utf8" });
-    assert.equal(commitResult.status, 0, commitResult.stderr);
-
-    const sourceHead = spawnSync("git", ["rev-parse", "HEAD"], { cwd: sourceCheckout, encoding: "utf8" });
-    assert.equal(sourceHead.status, 0, sourceHead.stderr);
-
-    fs.writeFileSync(
-      previewEnvFile,
-      [
-        "CRM_BIND_ADDRESS=0.0.0.0",
-        "CRM_HOST_PORT=3001",
-        "AI_EXCHANGE_HOST_PATH=./data/ai-exchange-preview",
-        "CRM_POSTGRES_DB=clariobase_crm_preview",
-        "CRM_POSTGRES_USER=clariobase_crm_preview_user",
-        "CRM_POSTGRES_PASSWORD=preview-password",
-        "CRM_DATABASE_URL=postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public"
-      ].join("\n")
-    );
-
-    const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
-    const result = spawnSync(process.execPath, [
-      tsxCli,
-      "scripts/deploy-preview.ts",
-      "--dry-run",
-      "--requested-ref",
-      "feature/preview",
-      "--control-checkout-path",
-      repoRoot,
-      "--source-checkout-path",
-      sourceCheckout,
-      "--resolved-sha",
-      sourceHead.stdout.trim(),
-      "--preview-env-file",
-      previewEnvFile
-    ], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-      }
-    });
-
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, new RegExp(`"controlHeadSha":\\s*"${currentHead.stdout.trim()}"`));
-    assert.match(result.stdout, new RegExp(`"sourceHeadSha":\\s*"${sourceHead.stdout.trim()}"`));
-    assert.match(result.stdout, /"requestedRef":\s*"feature\/preview"/);
-  } finally {
-    fs.rmSync(previewEnvDir, { recursive: true, force: true });
-    fs.rmSync(tmpRoot, { recursive: true, force: true });
-  }
-});
-
-test("stop preview dry-run uses a secret-free env file and a trusted control checkout", () => {
-  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
-  const result = spawnSync(process.execPath, [
-    tsxCli,
-    "scripts/stop-preview.ts",
-    "--dry-run",
-    "--requested-ref",
-    "stop-preview",
-    "--control-checkout-path",
-    repoRoot
-  ], {
-    cwd: repoRoot,
-    encoding: "utf8"
-  });
-
-  assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /"controlCheckoutPath":\s*"/);
-  assert.match(result.stdout, /"stopPlan":\s*\{/);
-  assert.doesNotMatch(result.stdout, /CRM_PREVIEW_POSTGRES_PASSWORD/);
-  assert.doesNotMatch(result.stdout, /\.env\.compose\.preview\.local/);
+  assert.doesNotMatch(workflows, /pull_request_target/);
+  assert.doesNotMatch(workflows, /actions\/(checkout|setup-node|download-artifact)@v4/);
+  assert.doesNotMatch(workflows, /write-all/);
 });
