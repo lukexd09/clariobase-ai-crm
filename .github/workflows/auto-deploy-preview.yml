@@ -521,6 +521,16 @@ jobs:
             throw "IMAGE_REF must be an immutable GHCR digest reference."
           }
 
+      - name: Log in to GitHub Container Registry
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        id: ghcr-login
+        shell: pwsh
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          $env:GHCR_TOKEN | docker login ghcr.io --username $env:GHCR_USERNAME --password-stdin
+
       - name: Materialize preview env file
         if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
@@ -604,6 +614,12 @@ jobs:
         working-directory: control
         run: |
           Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue
+
+      - name: Log out of GitHub Container Registry
+        if: always() && steps.ghcr-login.conclusion == 'success'
+        shell: pwsh
+        run: |
+          docker logout ghcr.io | Out-Host
 
   report-final:
     needs:

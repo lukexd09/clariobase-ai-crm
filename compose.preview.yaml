@@ -8,7 +8,9 @@ services:
     labels:
       io.clariobase.runtime-scope: preview
       io.clariobase.preview-slot: manual
+    build: !reset null
     image: ${CRM_PREVIEW_IMAGE_REF:?Set_CRM_PREVIEW_IMAGE_REF}
+    pull_policy: never
 
 networks:
   default:
