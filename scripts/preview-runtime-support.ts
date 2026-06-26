@@ -218,25 +218,28 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
 }
 
 export function validateResolvedSha(currentHeadSha: string, expectedResolvedSha?: string) {
-  if (!/^[0-9a-f]{40}$/i.test(currentHeadSha)) {
-    throw new Error(`Current HEAD is not a full Git commit SHA: ${currentHeadSha}`);
-  }
-
   if (!expectedResolvedSha) {
-    return currentHeadSha;
+    return validateFullCommitSha(currentHeadSha, "Current HEAD");
   }
 
-  if (!/^[0-9a-f]{40}$/i.test(expectedResolvedSha)) {
-    throw new Error(`Resolved SHA must be a full 40-character commit SHA: ${expectedResolvedSha}`);
-  }
+  const validatedCurrentHeadSha = validateFullCommitSha(currentHeadSha, "Current HEAD");
+  const validatedExpectedResolvedSha = validateFullCommitSha(expectedResolvedSha, "Resolved SHA");
 
-  if (currentHeadSha.toLowerCase() !== expectedResolvedSha.toLowerCase()) {
+  if (validatedCurrentHeadSha.toLowerCase() !== validatedExpectedResolvedSha.toLowerCase()) {
     throw new Error(
-      `Current checkout SHA ${currentHeadSha} does not match the expected resolved SHA ${expectedResolvedSha}.`
+      `Current checkout SHA ${validatedCurrentHeadSha} does not match the expected resolved SHA ${validatedExpectedResolvedSha}.`
     );
   }
 
-  return currentHeadSha;
+  return validatedExpectedResolvedSha;
+}
+
+export function validateFullCommitSha(value: string, label: string) {
+  if (!/^[0-9a-f]{40}$/i.test(value)) {
+    throw new Error(`${label} must be a full 40-character Git commit SHA: ${value}`);
+  }
+
+  return value.toLowerCase();
 }
 
 export function assertRequestedRef(requestedRef: string) {
