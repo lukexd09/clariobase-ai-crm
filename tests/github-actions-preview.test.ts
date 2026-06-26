@@ -91,11 +91,24 @@ function splitJobBlock(workflow: string, jobName: string, nextJobName?: string) 
   return workflow.slice(start, end === -1 ? workflow.length : end);
 }
 
+function assertOrdered(block: string, earlier: string, later: string) {
+  const earlierIndex = block.indexOf(earlier);
+  const laterIndex = block.indexOf(later);
+
+  assert.notEqual(earlierIndex, -1, `Missing step: ${earlier}`);
+  assert.notEqual(laterIndex, -1, `Missing step: ${later}`);
+  assert.ok(earlierIndex < laterIndex, `${earlier} must appear before ${later}`);
+}
+
 test("preview workflows use trusted triggers, least privilege, and the approved scripts", () => {
   const ciWorkflow = read(".github/workflows/ci.yml");
   const autoDeployWorkflow = read(".github/workflows/auto-deploy-preview.yml");
   const deployWorkflow = read(".github/workflows/deploy-preview.yml");
   const stopWorkflow = read(".github/workflows/stop-preview.yml");
+  const loginStep = "Log in to GitHub Container Registry";
+  const logoutStep = "Log out of GitHub Container Registry";
+  const immutabilityStep = "Validate immutable preview image ref";
+  const envStep = "Materialize preview env file";
   const resolverBlock = autoDeployWorkflow.slice(0, autoDeployWorkflow.indexOf("  report-blocked-resolution:"));
   const reportBlockedBlock = splitJobBlock(autoDeployWorkflow, "report-blocked-resolution", "build-preview-image");
   const buildBlock = splitJobBlock(autoDeployWorkflow, "build-preview-image", "report-deploying");
@@ -163,6 +176,15 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /http:\/\/Serwer:3001/);
   assert.match(deployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
   assert.match(deployWorkflow, /if: always\(\)/);
+  assert.equal((deployWorkflow.match(/Log in to GitHub Container Registry/g) ?? []).length, 1);
+  assert.equal((deployWorkflow.match(/Log out of GitHub Container Registry/g) ?? []).length, 1);
+  assert.doesNotMatch(deployWorkflow, /GHCR_PAT|PERSONAL_ACCESS_TOKEN|REGISTRY_SECRET|REGISTRY_TOKEN/);
+  assertOrdered(deployWorkflow, "Validate immutable preview image ref", loginStep);
+  assertOrdered(deployWorkflow, loginStep, "Materialize preview env file");
+  assertOrdered(deployWorkflow, "Materialize preview env file", "Deploy preview");
+  assertOrdered(deployWorkflow, "Deploy preview", "Cleanup secrets and job artifacts");
+  assertOrdered(deployWorkflow, "Cleanup secrets and job artifacts", logoutStep);
+  assertOrdered(deployWorkflow, "Deploy preview", logoutStep);
   assert.doesNotMatch(deployWorkflow, /pull_request_target/);
 
   assert.match(stopWorkflow, /workflow_dispatch:/);
@@ -254,19 +276,28 @@ test("auto preview workflow passes PR-derived values through env inside run step
   }
 });
 
-test("trusted image-build workflow keeps registry credentials outside resolver and deploy jobs", () => {
+test("trusted image-auth workflow keeps least privilege and exact step ordering", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
   const resolverBlock = workflow.slice(0, workflow.indexOf("  build-preview-image:"));
   const buildBlock = splitJobBlock(workflow, "build-preview-image", "report-deploying");
   const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
+  const loginStep = "Log in to GitHub Container Registry";
+  const logoutStep = "Log out of GitHub Container Registry";
+  const immutabilityStep = "Validate immutable image handoff";
+  const envStep = "Materialize preview env file";
+  const readinessStep = "Verify preview readiness";
+  const cleanupStep = "Cleanup secrets and job artifacts";
 
   assert.match(workflow, /build-preview-image:/);
   assert.match(buildBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: write/);
   assert.match(deployBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: read/);
+  assert.equal((deployBlock.match(new RegExp(loginStep, "g")) ?? []).length, 1);
+  assert.equal((deployBlock.match(new RegExp(logoutStep, "g")) ?? []).length, 1);
   assert.match(workflow, /Log in to GitHub Container Registry/);
   assert.match(workflow, /Log out of GitHub Container Registry/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.doesNotMatch(deployBlock, /pull-requests: write/);
+  assert.doesNotMatch(deployBlock, /GHCR_PAT|PERSONAL_ACCESS_TOKEN|REGISTRY_SECRET|REGISTRY_TOKEN/);
   assert.match(workflow, /platforms:\s*linux\/amd64/);
   assert.match(workflow, /load:\s*true/);
   assert.match(workflow, /push:\s*false/);
@@ -281,6 +312,7 @@ test("trusted image-build workflow keeps registry credentials outside resolver a
   assert.doesNotMatch(resolverBlock, /packages: write/);
   assert.match(buildBlock, /docker\/login-action@[0-9a-f]{40}/);
   assert.match(buildBlock, /Log in to GitHub Container Registry/);
+  assert.doesNotMatch(buildBlock, /Log out of GitHub Container Registry/);
   assert.match(deployBlock, /GHCR_USERNAME: \$\{\{ github\.actor \}\}/);
   assert.match(deployBlock, /GHCR_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(deployBlock, /\$env:GHCR_TOKEN \| docker login ghcr\.io --username \$env:GHCR_USERNAME --password-stdin/);
@@ -288,6 +320,13 @@ test("trusted image-build workflow keeps registry credentials outside resolver a
   assert.match(deployBlock, /if: always\(\)/);
   assert.match(workflow, /IMAGE_DIGEST: \$\{\{ steps\.push\.outputs\.image_digest \}\}/);
   assert.doesNotMatch(workflow, /steps\.build-image\.outputs\.digest/);
+  assertOrdered(deployBlock, "Revalidate PR head before deployment", immutabilityStep);
+  assertOrdered(deployBlock, immutabilityStep, loginStep);
+  assertOrdered(deployBlock, loginStep, envStep);
+  assertOrdered(deployBlock, envStep, "Deploy preview");
+  assertOrdered(deployBlock, "Deploy preview", readinessStep);
+  assertOrdered(deployBlock, readinessStep, cleanupStep);
+  assertOrdered(deployBlock, cleanupStep, logoutStep);
 });
 
 test("preview reporting jobs stay on GitHub-hosted runners and hold comment-only write permissions", () => {

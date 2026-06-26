@@ -104,6 +104,7 @@ jobs:
           }
 
       - name: Log in to GitHub Container Registry
+        id: ghcr-login
         shell: pwsh
         working-directory: control
         env:
@@ -111,13 +112,6 @@ jobs:
           GHCR_TOKEN: ${{ github.token }}
         run: |
           $env:GHCR_TOKEN | docker login ghcr.io --username $env:GHCR_USERNAME --password-stdin
-
-      - name: Log out of GitHub Container Registry
-        if: always()
-        shell: pwsh
-        working-directory: control
-        run: |
-          docker logout ghcr.io | Out-Host
 
       - name: Materialize preview env file
         shell: pwsh
@@ -176,3 +170,10 @@ jobs:
         working-directory: control
         run: |
           Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue
+
+      - name: Log out of GitHub Container Registry
+        if: always() && steps.ghcr-login.conclusion == 'success'
+        shell: pwsh
+        working-directory: control
+        run: |
+          docker logout ghcr.io | Out-Host

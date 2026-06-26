@@ -22,6 +22,7 @@ import {
   getRepoRoot,
   loadPreviewEnv,
   parseEnvFileContent,
+  validatePreviewComposeModel,
   validateFullCommitSha,
   validateResolvedSha
 } from "../scripts/preview-runtime-support";
@@ -165,12 +166,13 @@ test("preview runtime support rejects production collisions", () => {
 });
 
 test("preview deploy and stop plans stay scoped to the approved preview stack", () => {
-  const deployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
+  const previewImageRef = "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+  const deployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), previewImageRef);
   const stopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
   const summary = createPreviewSummary("epic/e016-manual-preview", "0123456789abcdef0123456789abcdef01234567");
 
   assert.match(deployPlan.validateComposeModel.join(" "), /config --format json/);
-  assert.match(deployPlan.pullExactImage.join(" "), /pull/);
+  assert.deepEqual(deployPlan.pullExactImage, ["pull", previewImageRef]);
   assert.match(deployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
   assert.match(deployPlan.startDatabase.join(" "), /up -d crm-postgres/);
   assert.match(deployPlan.migrate.join(" "), /run --rm --pull never crm-app/);
@@ -198,6 +200,43 @@ test("preview identity validation separates control and source checkout identiti
     () => validateFullCommitSha("not-a-sha", "Resolved SHA"),
     /Resolved SHA must be a full 40-character Git commit SHA: not-a-sha/
   );
+});
+
+test("preview compose model validation fails closed for malformed or unsafe models", () => {
+  const imageRef = "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+  const baseModel = {
+    services: {
+      "crm-app": {
+        image: imageRef,
+        pull_policy: "never"
+      }
+    }
+  };
+
+  assert.throws(() => validatePreviewComposeModel("{", imageRef), /Failed to parse preview compose model as JSON/);
+  assert.throws(() => validatePreviewComposeModel("{}", imageRef), /must define crm-app/);
+  assert.throws(() => validatePreviewComposeModel(JSON.stringify({ services: {} }), imageRef), /must define crm-app/);
+  assert.throws(
+    () => validatePreviewComposeModel(JSON.stringify({ services: { "crm-app": { pull_policy: "never" } } }), imageRef),
+    /must match/
+  );
+  assert.throws(
+    () => validatePreviewComposeModel(JSON.stringify({ services: { "crm-app": { image: imageRef, build: {} , pull_policy: "never" } } }), imageRef),
+    /must not include crm-app\.build/
+  );
+  assert.throws(
+    () => validatePreviewComposeModel(JSON.stringify({ services: { "crm-app": { image: imageRef, build: null, pull_policy: "never" } } }), imageRef),
+    /must not include crm-app\.build/
+  );
+  assert.throws(
+    () => validatePreviewComposeModel(JSON.stringify({ services: { "crm-app": { image: imageRef } } }), imageRef),
+    /pull_policy to never/
+  );
+  assert.throws(
+    () => validatePreviewComposeModel(JSON.stringify({ services: { "crm-app": { image: imageRef, pull_policy: "always" } } }), imageRef),
+    /pull_policy to never/
+  );
+  assert.doesNotThrow(() => validatePreviewComposeModel(JSON.stringify(baseModel), imageRef));
 });
 
 test("deploy preview dry-run separates trusted control checkout from resolved deployment SHA", () => {
@@ -510,12 +549,13 @@ test("deploy preview dry-run falls back to the trusted control checkout HEAD whe
 });
 
 test("deploy preview propagates the immutable image ref to the preview commands", () => {
-  const deployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
+  const previewImageRef = "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+  const deployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), previewImageRef);
   const observed = [] as Array<{ description: string; previewImageRef?: string }>;
 
   executeDeployPlanWithEnv(
     deployPlan,
-    { CRM_PREVIEW_IMAGE_REF: "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" },
+    { CRM_PREVIEW_IMAGE_REF: previewImageRef },
     (command, args, env) => {
       assert.equal(command, "docker");
       observed.push({

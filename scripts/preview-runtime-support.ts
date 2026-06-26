@@ -267,10 +267,11 @@ export function buildComposeArgs(previewEnvFilePath: string, composeArgs: string
   ];
 }
 
-export function buildDeployPlan(previewEnvFilePath: string) {
+export function buildDeployPlan(previewEnvFilePath: string, previewImageRef: string) {
+  const pullExactImage = ["pull", previewImageRef];
   return {
     validateComposeModel: buildComposeArgs(previewEnvFilePath, ["config", "--format", "json"]),
-    pullExactImage: ["pull"],
+    pullExactImage,
     replaceExistingPreview: buildComposeArgs(previewEnvFilePath, ["down", "-v", "--remove-orphans"]),
     startDatabase: buildComposeArgs(previewEnvFilePath, ["up", "-d", "crm-postgres"]),
     migrate: buildComposeArgs(previewEnvFilePath, [
@@ -417,7 +418,7 @@ export function executeDeployPlanWithEnv(
 ) {
   const steps = [
     ["validate preview compose model", deployPlan.validateComposeModel],
-    ["docker pull exact immutable preview image", ["pull", extraEnv.CRM_PREVIEW_IMAGE_REF]],
+    ["docker pull exact immutable preview image", deployPlan.pullExactImage],
     ["replace existing preview stack", deployPlan.replaceExistingPreview],
     ["docker compose up -d crm-postgres", deployPlan.startDatabase],
     ["preview prisma migrate deploy", deployPlan.migrate],

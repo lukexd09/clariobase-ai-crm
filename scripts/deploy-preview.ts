@@ -143,7 +143,7 @@ async function main() {
     resolvedSha = validateFullCommitSha(controlHeadSha, "Control checkout HEAD");
   }
 
-  const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath);
+  const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath, runtimeConfig.previewImageRef);
   const summary = createPreviewSummary(options.requestedRef, resolvedSha);
 
   fs.mkdirSync(runtimeConfig.previewAiExchangeAbsolutePath, { recursive: true });
