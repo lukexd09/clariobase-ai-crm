@@ -582,8 +582,11 @@ jobs:
 
           $preview = $response.Content | ConvertFrom-Json
 
-          if ($preview.status -ne "ok" -or $preview.checks.database -ne "ok") {
-            throw "Preview readiness failed."
+          if ($preview.service -ne "clariobase-ai-crm" -or $preview.status -ne "ready" -or $preview.checks.database -ne "ok") {
+            $service = if ($null -ne $preview.service) { $preview.service } else { "null" }
+            $status = if ($null -ne $preview.status) { $preview.status } else { "null" }
+            $database = if ($preview.checks -and $null -ne $preview.checks.database) { $preview.checks.database } else { "null" }
+            throw "Preview readiness failed: service=$service, status=$status, database=$database."
           }
 
       - name: Write deployment summary

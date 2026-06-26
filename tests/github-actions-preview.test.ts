@@ -261,6 +261,24 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(preflightScript, /runnerVersion/);
 });
 
+test("auto preview readiness workflow matches the real runtime readiness body contract", async () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+  const readinessBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
+  const runtimeReadiness = await import("../src/lib/runtime-readiness");
+  const success = await runtimeReadiness.getRuntimeReadiness(
+    async () => undefined,
+    () => "2026-06-14T00:00:00.000Z"
+  );
+
+  assert.equal(success.body.service, "clariobase-ai-crm");
+  assert.equal(success.body.status, "ready");
+  assert.equal(success.body.checks.database, "ok");
+  assert.match(readinessBlock, /service -ne "clariobase-ai-crm"/);
+  assert.match(readinessBlock, /status -ne "ready"/);
+  assert.match(readinessBlock, /checks\.database -ne "ok"/);
+  assert.match(readinessBlock, /Preview readiness failed: service=\$service, status=\$status, database=\$database\./);
+});
+
 test("auto preview workflow passes PR-derived values through env inside run steps", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
   const runBlocks = [...workflow.matchAll(/run:\s*\|([\s\S]*?)(?=\n\s*-[ \w]|\n[A-Za-z]|\s*$)/g)].map((match) => match[1]);
