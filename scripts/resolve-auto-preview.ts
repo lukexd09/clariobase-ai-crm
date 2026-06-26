@@ -63,6 +63,10 @@ type PullRequestApiResponse = {
   head?: PullRequestRef;
 };
 
+type PullRequestFileResponse = {
+  filename?: string;
+};
+
 export type ResolutionStatus = "deploy" | "skipped" | "blocked";
 export type CommentResult = "deploying" | "ready" | "failed" | "blocked";
 
@@ -338,6 +342,22 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
     });
   }
 
+  const controlPlaneGuard = await inspectTrustedControlPlaneChanges(options.repository, prNumber);
+
+  if (!controlPlaneGuard.allowed) {
+    return createResult({
+      resolutionStatus: "blocked",
+      shouldDeploy: false,
+      skipReason:
+        "BLOCKED: PR changes trusted preview control-plane files. Merge the reviewed control-plane change to main before running the runtime rehearsal.",
+      ciRunUrl,
+      validatedSha,
+      prNumber: String(prNumber),
+      prUrl,
+      headRef
+    });
+  }
+
   return createResult({
     resolutionStatus: "deploy",
     shouldDeploy: true,
@@ -348,6 +368,65 @@ export async function resolveAutoPreview(options: ResolverOptions): Promise<Reso
     validatedSha,
     ciRunUrl
   });
+}
+
+async function inspectTrustedControlPlaneChanges(repository: string, prNumber: number) {
+  const token = process.env.GITHUB_TOKEN;
+
+  if (!token) {
+    throw new Error("Missing GITHUB_TOKEN for PR file inspection.");
+  }
+
+  const protectedPaths = new Set([
+    ".github/workflows/auto-deploy-preview.yml",
+    ".github/workflows/ci.yml",
+    "scripts/resolve-auto-preview.ts",
+    "scripts/deploy-preview.ts",
+    "scripts/deploy-preview.ps1",
+    "scripts/preview-runtime-support.ts",
+    "scripts/stop-preview.ts",
+    "scripts/stop-preview.ps1",
+    "compose.yaml",
+    "compose.preview.yaml",
+    ".env.compose.preview.example"
+  ]);
+
+  const [owner, repo] = repository.split("/");
+  const changedFiles = new Set<string>();
+
+  for (let page = 1; ; page += 1) {
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=100&page=${page}`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`GitHub API pull request files lookup failed with HTTP ${response.status}.`);
+    }
+
+    const files = (await response.json()) as PullRequestFileResponse[];
+
+    for (const file of files) {
+      if (file.filename) {
+        changedFiles.add(file.filename);
+      }
+    }
+
+    if (files.length < 100) {
+      break;
+    }
+  }
+
+  for (const filename of changedFiles) {
+    if (protectedPaths.has(filename)) {
+      return { allowed: false as const, filename };
+    }
+  }
+
+  return { allowed: true as const };
 }
 
 export function formatPreviewStatusComment(inputs: PreviewCommentInputs) {

@@ -56,7 +56,7 @@ jobs:
         run: corepack pnpm install --frozen-lockfile
 
       - name: Download auto-preview context artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: auto-preview-context
           run-id: ${{ github.event.workflow_run.id }}
@@ -497,6 +497,40 @@ jobs:
         run: |
           throw $env:BLOCK_REASON
 
+      - name: Validate immutable image handoff
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        shell: pwsh
+        env:
+          VALIDATED_SHA: ${{ needs.resolve-auto-preview.outputs.validated_sha }}
+          IMAGE_SOURCE_SHA: ${{ needs.build-preview-image.outputs.source_sha }}
+          IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+        run: |
+          if ($env:VALIDATED_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "VALIDATED_SHA must be a full 40-character hexadecimal SHA."
+          }
+
+          if ($env:IMAGE_SOURCE_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "IMAGE_SOURCE_SHA must be a full 40-character hexadecimal SHA."
+          }
+
+          if ($env:IMAGE_SOURCE_SHA.ToLowerInvariant() -ne $env:VALIDATED_SHA.ToLowerInvariant()) {
+            throw "IMAGE_SOURCE_SHA must match VALIDATED_SHA."
+          }
+
+          if ($env:IMAGE_REF -notmatch '^ghcr\.io/lukexd09/clariobase-ai-crm@sha256:[0-9a-f]{64}$') {
+            throw "IMAGE_REF must be an immutable GHCR digest reference."
+          }
+
+      - name: Log in to GitHub Container Registry
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        id: ghcr-login
+        shell: pwsh
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          $env:GHCR_TOKEN | docker login ghcr.io --username $env:GHCR_USERNAME --password-stdin
+
       - name: Materialize preview env file
         if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
@@ -548,8 +582,11 @@ jobs:
 
           $preview = $response.Content | ConvertFrom-Json
 
-          if ($preview.status -ne "ok" -or $preview.checks.database -ne "ok") {
-            throw "Preview readiness failed."
+          if ($preview.service -ne "clariobase-ai-crm" -or $preview.status -ne "ready" -or $preview.checks.database -ne "ok") {
+            $service = if ($null -ne $preview.service) { $preview.service } else { "null" }
+            $status = if ($null -ne $preview.status) { $preview.status } else { "null" }
+            $database = if ($preview.checks -and $null -ne $preview.checks.database) { $preview.checks.database } else { "null" }
+            throw "Preview readiness failed: service=$service, status=$status, database=$database."
           }
 
       - name: Write deployment summary
@@ -580,6 +617,12 @@ jobs:
         working-directory: control
         run: |
           Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue
+
+      - name: Log out of GitHub Container Registry
+        if: always() && steps.ghcr-login.conclusion == 'success'
+        shell: pwsh
+        run: |
+          docker logout ghcr.io | Out-Host
 
   report-final:
     needs:

@@ -19,6 +19,8 @@ import {
 import { createSystemTmpDir } from "./test-helpers";
 
 const repoRoot = path.resolve(__dirname, "..");
+process.env.GITHUB_TOKEN = process.env.GITHUB_TOKEN || "test-token";
+global.fetch = (async () => new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } })) as typeof fetch;
 
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
@@ -89,11 +91,24 @@ function splitJobBlock(workflow: string, jobName: string, nextJobName?: string) 
   return workflow.slice(start, end === -1 ? workflow.length : end);
 }
 
+function assertOrdered(block: string, earlier: string, later: string) {
+  const earlierIndex = block.indexOf(earlier);
+  const laterIndex = block.indexOf(later);
+
+  assert.notEqual(earlierIndex, -1, `Missing step: ${earlier}`);
+  assert.notEqual(laterIndex, -1, `Missing step: ${later}`);
+  assert.ok(earlierIndex < laterIndex, `${earlier} must appear before ${later}`);
+}
+
 test("preview workflows use trusted triggers, least privilege, and the approved scripts", () => {
   const ciWorkflow = read(".github/workflows/ci.yml");
   const autoDeployWorkflow = read(".github/workflows/auto-deploy-preview.yml");
   const deployWorkflow = read(".github/workflows/deploy-preview.yml");
   const stopWorkflow = read(".github/workflows/stop-preview.yml");
+  const loginStep = "Log in to GitHub Container Registry";
+  const logoutStep = "Log out of GitHub Container Registry";
+  const immutabilityStep = "Validate immutable preview image ref";
+  const envStep = "Materialize preview env file";
   const resolverBlock = autoDeployWorkflow.slice(0, autoDeployWorkflow.indexOf("  report-blocked-resolution:"));
   const reportBlockedBlock = splitJobBlock(autoDeployWorkflow, "report-blocked-resolution", "build-preview-image");
   const buildBlock = splitJobBlock(autoDeployWorkflow, "build-preview-image", "report-deploying");
@@ -142,6 +157,12 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /Validate immutable preview image ref/);
   assert.match(deployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ inputs\.image_ref \}\}/);
   assert.match(deployWorkflow, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
+  assert.match(deployWorkflow, /Log in to GitHub Container Registry/);
+  assert.match(deployWorkflow, /Log out of GitHub Container Registry/);
+  assert.match(deployWorkflow, /GHCR_USERNAME: \$\{\{ github\.actor \}\}/);
+  assert.match(deployWorkflow, /GHCR_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(deployWorkflow, /\$env:GHCR_TOKEN \| docker login ghcr\.io --username \$env:GHCR_USERNAME --password-stdin/);
+  assert.match(deployWorkflow, /docker logout ghcr\.io \| Out-Host/);
   assert.match(deployWorkflow, /\$deployExitCode = \$LASTEXITCODE/);
   assert.match(deployWorkflow, /if \(\$deployExitCode -ne 0\)/);
   assert.doesNotMatch(deployWorkflow, /\$deployOutput\s*=/);
@@ -155,6 +176,15 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(deployWorkflow, /http:\/\/Serwer:3001/);
   assert.match(deployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
   assert.match(deployWorkflow, /if: always\(\)/);
+  assert.equal((deployWorkflow.match(/Log in to GitHub Container Registry/g) ?? []).length, 1);
+  assert.equal((deployWorkflow.match(/Log out of GitHub Container Registry/g) ?? []).length, 1);
+  assert.doesNotMatch(deployWorkflow, /GHCR_PAT|PERSONAL_ACCESS_TOKEN|REGISTRY_SECRET|REGISTRY_TOKEN/);
+  assertOrdered(deployWorkflow, "Validate immutable preview image ref", loginStep);
+  assertOrdered(deployWorkflow, loginStep, "Materialize preview env file");
+  assertOrdered(deployWorkflow, "Materialize preview env file", "Deploy preview");
+  assertOrdered(deployWorkflow, "Deploy preview", "Cleanup secrets and job artifacts");
+  assertOrdered(deployWorkflow, "Cleanup secrets and job artifacts", logoutStep);
+  assertOrdered(deployWorkflow, "Deploy preview", logoutStep);
   assert.doesNotMatch(deployWorkflow, /pull_request_target/);
 
   assert.match(stopWorkflow, /workflow_dispatch:/);
@@ -185,7 +215,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.doesNotMatch(autoDeployWorkflow, /write-all/);
   assert.match(autoDeployWorkflow, /group: clariobase-preview-slot/);
   assert.match(autoDeployWorkflow, /resolve-auto-preview\.ts/);
-  assert.match(autoDeployWorkflow, /actions\/download-artifact@v4/);
+  assert.match(autoDeployWorkflow, /actions\/download-artifact@v8/);
   assert.match(autoDeployWorkflow, /run-id: \$\{\{ github\.event\.workflow_run\.id \}\}/);
   assert.match(autoDeployWorkflow, /name: auto-preview-context/);
   assert.match(autoDeployWorkflow, /\/tmp\/auto-preview-context\/auto-preview-context\.json/);
@@ -193,11 +223,14 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(autoDeployWorkflow, /Build immutable preview image/);
   assert.match(autoDeployWorkflow, /Push immutable preview image/);
   assert.match(autoDeployWorkflow, /CRM_PREVIEW_IMAGE_REF: \$\{\{ needs\.build-preview-image\.outputs\.image_ref \}\}/);
+  assert.match(autoDeployWorkflow, /IMAGE_SOURCE_SHA: \$\{\{ needs\.build-preview-image\.outputs\.source_sha \}\}/);
   assert.match(autoDeployWorkflow, /ref: main/);
   assert.match(autoDeployWorkflow, /path: control/);
   assert.match(autoDeployWorkflow, /ref: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
   assert.match(autoDeployWorkflow, /BLOCKED: stale validated SHA/);
   assert.match(autoDeployWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
+  assert.match(autoDeployWorkflow, /Validate immutable image handoff/);
+  assert.match(autoDeployWorkflow, /IMAGE_SOURCE_SHA must match VALIDATED_SHA\./);
   assert.match(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3001\/api\/ready/);
   assert.match(autoDeployWorkflow, /environment: e016-preview-operator/);
   assert.match(autoDeployWorkflow, /<!-- clariobase-preview-status -->/);
@@ -210,7 +243,7 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.doesNotMatch(autoDeployWorkflow, /http:\/\/127\.0\.0\.1:3000\/api\/ready/);
   assert.doesNotMatch(autoDeployWorkflow, /\non:\s*\n\s*push:/);
   assert.doesNotMatch(autoDeployWorkflow, /pull_request_target/);
-  assert.doesNotMatch(`${ciWorkflow}\n${autoDeployWorkflow}\n${deployWorkflow}\n${stopWorkflow}`, /actions\/(checkout|setup-node)@v4/);
+  assert.doesNotMatch(`${ciWorkflow}\n${autoDeployWorkflow}\n${deployWorkflow}\n${stopWorkflow}`, /actions\/(checkout|setup-node|download-artifact)@v4/);
 
   assert.match(runnerDoc, /document_id: DOC-E016-WINDOWS-RUNNER/);
   assert.match(runnerDoc, /C:\\actions-runners\\clariobase-preview/);
@@ -228,6 +261,24 @@ test("preview workflows use trusted triggers, least privilege, and the approved 
   assert.match(preflightScript, /runnerVersion/);
 });
 
+test("auto preview readiness workflow matches the real runtime readiness body contract", async () => {
+  const workflow = read(".github/workflows/auto-deploy-preview.yml");
+  const readinessBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
+  const runtimeReadiness = await import("../src/lib/runtime-readiness");
+  const success = await runtimeReadiness.getRuntimeReadiness(
+    async () => undefined,
+    () => "2026-06-14T00:00:00.000Z"
+  );
+
+  assert.equal(success.body.service, "clariobase-ai-crm");
+  assert.equal(success.body.status, "ready");
+  assert.equal(success.body.checks.database, "ok");
+  assert.match(readinessBlock, /service -ne "clariobase-ai-crm"/);
+  assert.match(readinessBlock, /status -ne "ready"/);
+  assert.match(readinessBlock, /checks\.database -ne "ok"/);
+  assert.match(readinessBlock, /Preview readiness failed: service=\$service, status=\$status, database=\$database\./);
+});
+
 test("auto preview workflow passes PR-derived values through env inside run steps", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
   const runBlocks = [...workflow.matchAll(/run:\s*\|([\s\S]*?)(?=\n\s*-[ \w]|\n[A-Za-z]|\s*$)/g)].map((match) => match[1]);
@@ -243,17 +294,28 @@ test("auto preview workflow passes PR-derived values through env inside run step
   }
 });
 
-test("trusted image-build workflow keeps registry credentials outside resolver and deploy jobs", () => {
+test("trusted image-auth workflow keeps least privilege and exact step ordering", () => {
   const workflow = read(".github/workflows/auto-deploy-preview.yml");
   const resolverBlock = workflow.slice(0, workflow.indexOf("  build-preview-image:"));
   const buildBlock = splitJobBlock(workflow, "build-preview-image", "report-deploying");
   const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
+  const loginStep = "Log in to GitHub Container Registry";
+  const logoutStep = "Log out of GitHub Container Registry";
+  const immutabilityStep = "Validate immutable image handoff";
+  const envStep = "Materialize preview env file";
+  const readinessStep = "Verify preview readiness";
+  const cleanupStep = "Cleanup secrets and job artifacts";
 
   assert.match(workflow, /build-preview-image:/);
   assert.match(buildBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: write/);
   assert.match(deployBlock, /permissions:\s*\n\s*contents: read\s*\n\s*packages: read/);
+  assert.equal((deployBlock.match(new RegExp(loginStep, "g")) ?? []).length, 1);
+  assert.equal((deployBlock.match(new RegExp(logoutStep, "g")) ?? []).length, 1);
+  assert.match(workflow, /Log in to GitHub Container Registry/);
+  assert.match(workflow, /Log out of GitHub Container Registry/);
   assert.doesNotMatch(workflow, /issues: write/);
   assert.doesNotMatch(deployBlock, /pull-requests: write/);
+  assert.doesNotMatch(deployBlock, /GHCR_PAT|PERSONAL_ACCESS_TOKEN|REGISTRY_SECRET|REGISTRY_TOKEN/);
   assert.match(workflow, /platforms:\s*linux\/amd64/);
   assert.match(workflow, /load:\s*true/);
   assert.match(workflow, /push:\s*false/);
@@ -267,9 +329,22 @@ test("trusted image-build workflow keeps registry credentials outside resolver a
   assert.doesNotMatch(resolverBlock, /docker\/login-action@[0-9a-f]{40}/);
   assert.doesNotMatch(resolverBlock, /packages: write/);
   assert.match(buildBlock, /docker\/login-action@[0-9a-f]{40}/);
-  assert.doesNotMatch(deployBlock, /docker\/login-action@[0-9a-f]{40}/);
+  assert.match(buildBlock, /Log in to GitHub Container Registry/);
+  assert.doesNotMatch(buildBlock, /Log out of GitHub Container Registry/);
+  assert.match(deployBlock, /GHCR_USERNAME: \$\{\{ github\.actor \}\}/);
+  assert.match(deployBlock, /GHCR_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(deployBlock, /\$env:GHCR_TOKEN \| docker login ghcr\.io --username \$env:GHCR_USERNAME --password-stdin/);
+  assert.match(deployBlock, /docker logout ghcr\.io \| Out-Host/);
+  assert.match(deployBlock, /if: always\(\)/);
   assert.match(workflow, /IMAGE_DIGEST: \$\{\{ steps\.push\.outputs\.image_digest \}\}/);
   assert.doesNotMatch(workflow, /steps\.build-image\.outputs\.digest/);
+  assertOrdered(deployBlock, "Revalidate PR head before deployment", immutabilityStep);
+  assertOrdered(deployBlock, immutabilityStep, loginStep);
+  assertOrdered(deployBlock, loginStep, envStep);
+  assertOrdered(deployBlock, envStep, "Deploy preview");
+  assertOrdered(deployBlock, "Deploy preview", readinessStep);
+  assertOrdered(deployBlock, readinessStep, cleanupStep);
+  assertOrdered(deployBlock, cleanupStep, logoutStep);
 });
 
 test("preview reporting jobs stay on GitHub-hosted runners and hold comment-only write permissions", () => {
@@ -689,6 +764,120 @@ test("resolve-auto-preview emits controlled blocked and skipped machine-readable
   assert.equal(skippedResult.shouldDeploy, false);
 });
 
+test("resolve-auto-preview blocks trusted control-plane file changes and keeps the PR metadata for reporting", async () => {
+  const baseEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
+  const baseContext = createAutoPreviewContext();
+  const originalFetch = global.fetch;
+
+  try {
+    global.fetch = (async () =>
+      new Response(JSON.stringify([{ filename: "scripts/deploy-preview.ts" }]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })) as typeof fetch;
+
+    const result = await resolveAutoPreview({
+      event: baseEvent,
+      repository: EXPECTED_REPOSITORY,
+      context: baseContext,
+      fetchPullRequest: async () => ({
+        number: 113,
+        state: "open",
+        html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+        head: {
+          ref: "feature/e016-preview",
+          sha: "1111111111111111111111111111111111111111",
+          repo: {
+            full_name: EXPECTED_REPOSITORY
+          }
+        }
+      })
+    });
+
+    assert.equal(result.resolutionStatus, "blocked");
+    assert.equal(result.shouldDeploy, false);
+    assert.match(result.skipReason, /trusted preview control-plane files/);
+    assert.equal(result.prNumber, "113");
+    assert.equal(result.prUrl, "https://github.com/lukexd09/clariobase-ai-crm/pull/113");
+    assert.equal(result.headRef, "feature/e016-preview");
+    assert.equal(result.validatedSha, "1111111111111111111111111111111111111111");
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("resolve-auto-preview inspects paginated changed files and fails closed on API errors", async () => {
+  const baseEvent = parseWorkflowRunEvent(JSON.stringify(createWorkflowRunEvent()));
+  const baseContext = createAutoPreviewContext();
+  const requestedPages: number[] = [];
+  const originalFetch = global.fetch;
+
+  const mockPullRequest = async () => ({
+    number: 113,
+    state: "open",
+    html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/113",
+    head: {
+      ref: "feature/e016-preview",
+      sha: "1111111111111111111111111111111111111111",
+      repo: {
+        full_name: EXPECTED_REPOSITORY
+      }
+    }
+  });
+
+  try {
+    global.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const pageMatch = /[?&]page=(\d+)/.exec(url);
+      const page = Number(pageMatch?.[1] ?? "1");
+      requestedPages.push(page);
+
+      if (page === 1) {
+        return new Response(
+          JSON.stringify(Array.from({ length: 100 }, (_, index) => ({ filename: `docs/file-${index}.md` }))),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (page === 2) {
+        return new Response(
+          JSON.stringify([{ filename: "scripts/deploy-preview.ts" }]),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(JSON.stringify([]), { status: 200, headers: { "Content-Type": "application/json" } });
+    }) as typeof fetch;
+
+    const pagedResult = await resolveAutoPreview({
+      event: baseEvent,
+      repository: EXPECTED_REPOSITORY,
+      context: baseContext,
+      fetchPullRequest: mockPullRequest
+    });
+
+    assert.equal(pagedResult.resolutionStatus, "blocked");
+    assert.equal(pagedResult.shouldDeploy, false);
+    assert.match(pagedResult.skipReason, /trusted preview control-plane files/);
+
+    assert.deepEqual(requestedPages, [1, 2]);
+
+    global.fetch = (async () => new Response("", { status: 503 })) as typeof fetch;
+
+    await assert.rejects(
+      () => resolveAutoPreview({
+        event: baseEvent,
+        repository: EXPECTED_REPOSITORY,
+        context: baseContext,
+        fetchPullRequest: mockPullRequest
+      }),
+      /GitHub API pull request files lookup failed with HTTP 503\./
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test("resolve-auto-preview CLI fails hard for malformed event payloads and missing token", () => {
   const tmpRoot = createSystemTmpDir("clariobase-auto-preview-cli-");
   const eventPath = path.join(tmpRoot, "event.json");
@@ -1012,17 +1201,27 @@ test("preview workflows keep the requested SHA as source input while control scr
   const stopWorkflow = read(".github/workflows/stop-preview.yml");
   const deployWrapper = read("scripts/deploy-preview.ps1");
   const stopWrapper = read("scripts/stop-preview.ps1");
+  const deployBlock = splitJobBlock(autoDeployWorkflow, "deploy-preview", "report-final");
 
   assert.match(autoDeployWorkflow, /Check out trusted control checkout/);
   assert.match(autoDeployWorkflow, /VALIDATED_SHA: \$\{\{ needs\.resolve-auto-preview\.outputs\.validated_sha \}\}/);
+  assert.match(deployBlock, /IMAGE_SOURCE_SHA: \$\{\{ needs\.build-preview-image\.outputs\.source_sha \}\}/);
   assert.match(autoDeployWorkflow, /REQUESTED_REF: \$\{\{ needs\.resolve-auto-preview\.outputs\.head_ref \}\}/);
   assert.match(autoDeployWorkflow, /-ResolvedSha \$env:VALIDATED_SHA/);
   assert.match(autoDeployWorkflow, /-RequestedRef \$env:REQUESTED_REF/);
-  assert.match(deployWorkflow, /Check out trusted workflow revision/);
-  assert.match(deployWorkflow, /-ControlCheckoutPath \$PWD/);
-  assert.doesNotMatch(deployWorkflow, /-SourceCheckoutPath/);
-  assert.match(deployWorkflow, /Requested ref:/);
-  assert.match(deployWorkflow, /Resolved SHA:/);
+  assert.doesNotMatch(deployBlock, /-SourceCheckoutPath/);
+  assert.match(deployBlock, /Check out trusted control checkout/);
+  assert.match(deployBlock, /-ControlCheckoutPath \$PWD/);
+  assert.match(deployBlock, /Validate immutable image handoff/);
+  assert.match(deployBlock, /IMAGE_SOURCE_SHA must match VALIDATED_SHA\./);
+  assert.match(deployBlock, /Log in to GitHub Container Registry/);
+  assert.match(deployBlock, /GHCR_USERNAME: \$\{\{ github\.actor \}\}/);
+  assert.match(deployBlock, /GHCR_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(deployBlock, /\$env:GHCR_TOKEN \| docker login ghcr\.io --username \$env:GHCR_USERNAME --password-stdin/);
+  assert.match(deployBlock, /docker logout ghcr\.io \| Out-Host/);
+  assert.match(deployBlock, /Materialize preview env file/);
+  assert.match(deployBlock, /Validate immutable image handoff[\s\S]*Materialize preview env file/);
+  assert.doesNotMatch(deployBlock, /build-preview-image:|docker compose build|docker build|source-checkout-path/);
   assert.match(stopWorkflow, /Stop preview/);
   assert.doesNotMatch(stopWorkflow, /CRM_PREVIEW_POSTGRES_PASSWORD/);
   assert.match(deployWrapper, /ControlCheckoutPath/);
