@@ -83,15 +83,22 @@ powershell -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
   -PreviewEnvFile .\.env.compose.preview.local
 ```
 
+For local direct use of the deploy script:
+
+- provide `CRM_PREVIEW_IMAGE_REF=ghcr.io/...@sha256:...` exactly;
+- authenticate to the private GHCR package with read access before running the script;
+- never store a PAT or token in repository files;
+- expect the script to perform an exact pull and never build the application locally.
+
 Deployment behavior:
 
 1. validate the preview env file and protected identifiers;
 2. resolve the current checkout SHA and compare it to the optional expected SHA;
-3. build the preview app image through `compose.yaml` plus `compose.preview.yaml`;
-4. remove any existing `clariobase-crm-preview` stack and its preview database volume;
+3. validate the merged Compose model, confirm the immutable image ref, and pull that exact digest from GHCR;
+4. remove any existing `clariobase-crm-preview` stack and its preview database volume only after the exact pull succeeds;
 5. start a fresh preview PostgreSQL service;
-6. run `prisma migrate deploy` only against the fresh preview database;
-7. start the preview app service from the requested ref;
+6. run `prisma migrate deploy` only against the fresh preview database using the already pulled digest and `--pull never`;
+7. start the preview app service from the same exact digest with build fallback disabled;
 8. wait for `http://127.0.0.1:3001/api/ready`;
 9. report requested ref, resolved SHA, preview URL, project name, volume, and network.
 
@@ -114,8 +121,10 @@ Automatic rules:
 - closed PRs are rejected;
 - the validated SHA is the completed CI run SHA, not a guessed branch ref;
 - if the current PR head no longer matches that validated SHA, the job stops with `BLOCKED: stale validated SHA`;
-- the deployment still runs through `scripts/deploy-preview.ps1` from the trusted `main` control checkout;
-- application source is checked out at the exact validated SHA into a separate `source` directory;
+- the Windows runner authenticates to GHCR with the short-lived workflow token after the immutable image ref has been validated and before the deployment script runs;
+- the Windows runner always attempts `docker logout ghcr.io` after deployment;
+- the GitHub-hosted runner checks out the validated PR SHA, builds and smoke-tests one image, and pushes that exact image to GHCR;
+- the Windows runner checks out only trusted `main` control files and deploys the immutable digest;
 - preview readiness alone determines automatic preview deployment success.
 - production may run on the same machine, on another machine, or not yet exist, without affecting preview deployment eligibility.
 

@@ -1,6 +1,7 @@
 import process from "node:process";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 import {
@@ -12,6 +13,7 @@ import {
   loadPreviewEnv,
   PREVIEW_NETWORK_NAME,
   PREVIEW_VOLUME_NAME,
+  validatePreviewComposeModel,
   validateFullCommitSha,
   validateResolvedSha
 } from "./preview-runtime-support";
@@ -141,7 +143,7 @@ async function main() {
     resolvedSha = validateFullCommitSha(controlHeadSha, "Control checkout HEAD");
   }
 
-  const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath);
+  const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath, runtimeConfig.previewImageRef);
   const summary = createPreviewSummary(options.requestedRef, resolvedSha);
 
   fs.mkdirSync(runtimeConfig.previewAiExchangeAbsolutePath, { recursive: true });
@@ -171,6 +173,22 @@ async function main() {
     );
     return;
   }
+
+  const validationResult = spawnSync("docker", deployPlan.validateComposeModel, {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      CRM_PREVIEW_IMAGE_REF: runtimeConfig.previewImageRef
+    }
+  });
+
+  if (validationResult.status !== 0) {
+    throw new Error(`Preview compose model validation failed: ${(validationResult.stderr ?? validationResult.stdout ?? "").trim()}`);
+  }
+
+  validatePreviewComposeModel(validationResult.stdout, runtimeConfig.previewImageRef);
 
   executeDeployPlanWithEnv(deployPlan, {
     CRM_PREVIEW_IMAGE_REF: runtimeConfig.previewImageRef
