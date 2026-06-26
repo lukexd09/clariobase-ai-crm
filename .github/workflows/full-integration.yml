@@ -1,0 +1,199 @@
+name: Full Integration
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.classify.outputs.should_run }}
+      target_sha: ${{ steps.target.outputs.target_sha }}
+      reason: ${{ steps.classify.outputs.reason }}
+
+    steps:
+      - name: Resolve exact target SHA
+        id: target
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EVENT_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            TARGET_SHA="$PR_HEAD_SHA"
+          else
+            TARGET_SHA="$EVENT_SHA"
+          fi
+
+          if ! printf '%s' "$TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "Invalid target SHA: $TARGET_SHA" >&2
+            exit 1
+          fi
+
+          echo "target_sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Check out exact target
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.target.outputs.target_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify checked-out target SHA
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.target.outputs.target_sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+            echo "Expected $EXPECTED_SHA but checked out $ACTUAL_SHA" >&2
+            exit 1
+          fi
+
+      - name: Classify infrastructure-sensitive changes
+        id: classify
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ steps.target.outputs.target_sha }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            {
+              echo "should_run=true"
+              echo "reason=$EVENT_NAME always runs the full integration suite"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! printf '%s' "$BASE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "Invalid pull request base SHA: $BASE_SHA" >&2
+            exit 1
+          fi
+
+          mapfile -t CHANGED_FILES < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          SHOULD_RUN=false
+          MATCHED=()
+
+          for file in "${CHANGED_FILES[@]}"; do
+            case "$file" in
+              .github/workflows/*|Dockerfile|.dockerignore|compose*.yml|compose*.yaml|.env.compose*.example|package.json|pnpm-lock.yaml|next.config.ts|prisma.config.ts|prisma/schema.prisma|prisma/migrations/*|scripts/deploy-preview*|scripts/stop-preview*|scripts/preview-runtime*|scripts/resolve-preview*|scripts/resolve-auto-preview*|scripts/docker-test-support*|scripts/verify-docker*|scripts/verify-compose*|scripts/cleanup-test-runtime*|scripts/runner-preflight*|tests/docker-*|tests/compose-*|tests/preview-*|tests/github-actions-*|tests/runtime-docs-sanity.test.ts|tests/health-endpoint.test.ts|tests/fixtures/health-container-smoke.ts|docs/runtime/*|docs/architecture/preview-environment.md|docs/operations/preview-operations.md|docs/operations/windows-self-hosted-runner.md|src/lib/runtime-readiness.ts|src/app/api/ready/*)
+                SHOULD_RUN=true
+                MATCHED+=("$file")
+                ;;
+            esac
+          done
+
+          if [ "$SHOULD_RUN" = "true" ]; then
+            REASON="infrastructure-sensitive changes: $(IFS=', '; echo "${MATCHED[*]}")"
+          else
+            REASON="no infrastructure-sensitive files changed"
+          fi
+
+          {
+            echo "should_run=$SHOULD_RUN"
+            echo "reason=$REASON"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "Full Integration selection: $SHOULD_RUN"
+            echo
+            echo "$REASON"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  integration:
+    needs: classify
+    if: needs.classify.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://clariobase_crm_user:change-me@localhost:5432/clariobase_crm?schema=public
+
+    steps:
+      - name: Check out exact target
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.classify.outputs.target_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify checked-out target SHA
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ needs.classify.outputs.target_sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+            echo "Expected $EXPECTED_SHA but checked out $ACTUAL_SHA" >&2
+            exit 1
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma schema
+        run: pnpm prisma:validate
+
+      - name: Generate Prisma client
+        run: pnpm prisma:generate
+
+      - name: Infrastructure tests
+        run: pnpm test:infra
+
+  gate:
+    needs:
+      - classify
+      - integration
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Evaluate Full Integration result
+        shell: bash
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          SHOULD_RUN: ${{ needs.classify.outputs.should_run }}
+          INTEGRATION_RESULT: ${{ needs.integration.result }}
+          REASON: ${{ needs.classify.outputs.reason }}
+        run: |
+          if [ "$CLASSIFY_RESULT" != "success" ]; then
+            echo "Full Integration classification failed." >&2
+            exit 1
+          fi
+
+          if [ "$SHOULD_RUN" = "true" ] && [ "$INTEGRATION_RESULT" != "success" ]; then
+            echo "Full Integration was required but ended with $INTEGRATION_RESULT." >&2
+            exit 1
+          fi
+
+          {
+            echo "Result: PASS"
+            echo
+            echo "Infrastructure suite required: $SHOULD_RUN"
+            echo "Reason: $REASON"
+            echo "Integration job result: $INTEGRATION_RESULT"
+          } >> "$GITHUB_STEP_SUMMARY"
