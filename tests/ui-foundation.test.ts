@@ -15,7 +15,7 @@ test("canonical design token contract is documented and exposed", () => {
 
   assert.match(doc, /primary: '#006194'/);
   assert.match(doc, /Geist only/);
-  assert.match(doc, /clamp\(220px, 16vw, 260px\)/);
+  assert.match(doc, /clamp\(212px, 14vw, 236px\)/);
   assert.match(doc, /minimum 44 px height/);
 
   assert.match(tokens, /primary: "#006194"/);

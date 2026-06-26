@@ -83,7 +83,7 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
       path: "/",
       heading: "Dashboard",
       activeNav: "Dashboard",
-      includes: ["Your priorities for 21 June 2026", "Today's priorities", "Pipeline snapshot"]
+      includes: ["Your priorities for 21 June 2026", "Today's priorities", "Pipeline snapshot", "3 possible duplicates need review"]
     },
     {
       path: "/health",
@@ -107,6 +107,12 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
       assert.match(html, /aria-current="page"/, `${route.path} should expose the active route`);
       assert.match(html, new RegExp(route.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
       assert.match(html, new RegExp(route.activeNav.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      assert.doesNotMatch(html, /Notifications|🔔/);
+      assert.doesNotMatch(html, /Single Operator CRM/);
+      assert.doesNotMatch(html, /Current<\/span>/);
+      assert.doesNotMatch(html, /Keep the app check handy\./);
+      assert.doesNotMatch(html, /Sign out/);
+      assert.doesNotMatch(html, /Account menu coming soon\./);
       assert.doesNotMatch(html, /Overview Dashboard/);
       assert.doesNotMatch(html, /bg-slate-950|border-slate-800/);
       assert.doesNotMatch(html, /Minimal runtime probe for deployment and uptime checks\./);

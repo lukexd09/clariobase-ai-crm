@@ -1,11 +1,9 @@
-import Link from "next/link";
 import {
   Alert,
   MetricCard,
   PageHeader,
   PipelineSnapshot,
-  PriorityItem,
-  StatusBadge
+  PriorityItem
 } from "@/components/dashboard-primitives";
 
 const priorities = [
@@ -49,31 +47,24 @@ const pipeline = [
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader title="Dashboard" subtitle="Your priorities for 21 June 2026" />
 
-      <Alert
-        title="Data quality warning"
-        body="3 possible duplicates need review"
-        actionHref="/duplicates"
-        actionLabel="Review duplicates"
-        tone="warning"
-      />
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 rounded-none border-0 bg-transparent max-[359px]:grid-cols-1 max-[359px]:gap-0 max-[359px]:rounded-xl max-[359px]:border max-[359px]:border-[#CBD5E1] max-[359px]:bg-white max-[359px]:divide-y max-[359px]:divide-[#E2E8F0] min-[360px]:grid-cols-2 min-[360px]:gap-0 min-[360px]:rounded-xl min-[360px]:border min-[360px]:border-[#CBD5E1] min-[360px]:bg-white min-[360px]:divide-y min-[360px]:divide-[#E2E8F0] min-[760px]:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Overdue" value="2" />
         <MetricCard label="Due today" value="4" />
         <MetricCard label="Upcoming" value="11" />
         <MetricCard label="No next action" value="6" />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]">
-        <div className="space-y-4 rounded-xl border border-[#CBD5E1] bg-white p-5">
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)]">
+        <div className="rounded-xl border border-[#CBD5E1] bg-white p-4 max-[759px]:rounded-none max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:p-0">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold text-[#0F172A]">Today&apos;s priorities</h2>
-            <StatusBadge>4 active tasks</StatusBadge>
+            <h2 className="text-lg font-semibold text-[#0F172A] max-[759px]:text-[1.1rem]">
+              Today&apos;s priorities
+            </h2>
           </div>
-          <div className="space-y-3">
+          <div className="mt-2 divide-y divide-[#E2E8F0] max-[759px]:mt-1">
             {priorities.map((item) => (
               <PriorityItem key={item.company} {...item} />
             ))}
@@ -82,6 +73,14 @@ export default function DashboardPage() {
 
         <PipelineSnapshot items={pipeline} />
       </section>
+
+      <Alert
+        title="Data quality warning"
+        body="3 possible duplicates need review"
+        actionHref="/duplicates"
+        actionLabel="Review"
+        tone="warning"
+      />
     </div>
   );
 }

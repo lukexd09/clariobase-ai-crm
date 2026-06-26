@@ -28,7 +28,7 @@ export const NAVIGATION_GROUPS = [
   },
   {
     title: "System",
-    items: [{ href: "/health", label: "System status", description: "Keep the app check handy." }]
+    items: [{ href: "/health", label: "System status" }]
   }
 ] as const satisfies readonly NavigationGroup[];
 
