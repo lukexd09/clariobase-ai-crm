@@ -148,8 +148,8 @@ The preview lifecycle is:
 2. the workflow resolves the exact commit SHA that is allowed to deploy;
 3. automatic deployment revalidates the live PR state before using the self-hosted runner and again immediately before deployment after any queue wait;
 4. the deployment script validates all preview identifiers and guardrails;
-5. preview runtime is built and replaced only inside the approved preview slot;
-6. `prisma migrate deploy` runs only against the preview database;
+5. preview runtime is pulled as one immutable GHCR digest and replaced only inside the approved preview slot after pull succeeds;
+6. `prisma migrate deploy` runs only against the preview database from that exact digest and prohibits implicit pull;
 7. readiness waits for `/api/ready` on preview only;
 8. the workflow reports requested ref, resolved SHA, runtime identity, preview URL, and the current PR comment status;
 9. stop or cleanup acts only on the approved preview scope.
@@ -179,6 +179,8 @@ The workflow contract must include:
 - least-privilege permissions;
 - a single persistent PR status comment identified by `<!-- clariobase-preview-status -->`;
 - environment-derived and PR-derived values must be passed into shells through step-level environment variables rather than direct inline interpolation inside `run:` bodies;
+- the Windows runner authenticates to GHCR with the workflow token only after validating the immutable digest and before deployment begins;
+- the Windows runner must always attempt logout from GHCR after deployment;
 - job summaries that distinguish `PASS`, `FAIL`, `SKIPPED`, and `BLOCKED`.
 
 ## Bootstrap limitation

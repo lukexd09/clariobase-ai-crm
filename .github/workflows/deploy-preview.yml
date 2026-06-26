@@ -103,6 +103,22 @@ jobs:
             throw "image_ref must be an exact immutable GHCR digest reference."
           }
 
+      - name: Log in to GitHub Container Registry
+        shell: pwsh
+        working-directory: control
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          $env:GHCR_TOKEN | docker login ghcr.io --username $env:GHCR_USERNAME --password-stdin
+
+      - name: Log out of GitHub Container Registry
+        if: always()
+        shell: pwsh
+        working-directory: control
+        run: |
+          docker logout ghcr.io | Out-Host
+
       - name: Materialize preview env file
         shell: pwsh
         working-directory: control

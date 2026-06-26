@@ -231,6 +231,8 @@ Then clean only the dedicated runner root and work directories, never the produc
 - preview may succeed while production is remote, stopped, or not yet deployed because production safety is enforced through identifier guards and isolation rather than runtime health checks;
 - only trusted repository refs may be deployed;
 - `pull_request_target` must not be used for untrusted code execution;
+- preview deployment on Windows must authenticate to GHCR with the workflow token, pull the exact immutable digest, and never build the CRM application locally;
+- the preview runner must not fall back to a local Compose build if the registry pull fails;
 - the runner must not be installed inside the production checkout;
 - preview workflows must not read or mutate production `.env.compose.local` or production runtime paths;
 - interactive and service listeners must not run simultaneously;

@@ -269,20 +269,21 @@ export function buildComposeArgs(previewEnvFilePath: string, composeArgs: string
 
 export function buildDeployPlan(previewEnvFilePath: string) {
   return {
-    replaceExistingPreview: buildComposeArgs(
-      previewEnvFilePath,
-      ["down", "-v", "--remove-orphans"]
-    ),
+    validateComposeModel: buildComposeArgs(previewEnvFilePath, ["config", "--format", "json"]),
+    pullExactImage: ["pull"],
+    replaceExistingPreview: buildComposeArgs(previewEnvFilePath, ["down", "-v", "--remove-orphans"]),
     startDatabase: buildComposeArgs(previewEnvFilePath, ["up", "-d", "crm-postgres"]),
     migrate: buildComposeArgs(previewEnvFilePath, [
       "run",
       "--rm",
+      "--pull",
+      "never",
       "crm-app",
       "sh",
       "-lc",
       "node ./node_modules/prisma/build/index.js migrate deploy"
     ]),
-    startApplication: buildComposeArgs(previewEnvFilePath, ["up", "-d", "crm-app"])
+    startApplication: buildComposeArgs(previewEnvFilePath, ["up", "-d", "--no-build", "--pull", "never", "crm-app"])
   };
 }
 
@@ -301,6 +302,40 @@ export function createPreviewSummary(requestedRef: string, resolvedSha: string):
     volumeName: PREVIEW_VOLUME_NAME,
     networkName: PREVIEW_NETWORK_NAME
   };
+}
+
+export function validatePreviewComposeModel(configJson: string, expectedImageRef: string) {
+  type PreviewComposeService = { image?: unknown; build?: unknown; pull_policy?: unknown };
+  type PreviewComposeConfig = {
+    services?: Record<string, PreviewComposeService>;
+  };
+
+  let parsed: PreviewComposeConfig;
+
+  try {
+    parsed = JSON.parse(configJson) as PreviewComposeConfig;
+  } catch (error) {
+    throw new Error(`Failed to parse preview compose model as JSON: ${(error as Error).message}`);
+  }
+
+  const services = parsed.services;
+  const app: PreviewComposeService | undefined = services?.["crm-app"];
+
+  if (!app) {
+    throw new Error("Preview compose model must define crm-app.");
+  }
+
+  if (app.image !== expectedImageRef) {
+    throw new Error(`Preview compose model image must match ${expectedImageRef}.`);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(app, "build")) {
+    throw new Error("Preview compose model must not include crm-app.build.");
+  }
+
+  if (app.pull_policy !== "never") {
+    throw new Error("Preview compose model must set crm-app.pull_policy to never.");
+  }
 }
 
 export function runCommand(command: string, args: string[]) {
@@ -381,6 +416,8 @@ export function executeDeployPlanWithEnv(
   ) => runCommandWithMergedEnv(command, args, env)
 ) {
   const steps = [
+    ["validate preview compose model", deployPlan.validateComposeModel],
+    ["docker pull exact immutable preview image", ["pull", extraEnv.CRM_PREVIEW_IMAGE_REF]],
     ["replace existing preview stack", deployPlan.replaceExistingPreview],
     ["docker compose up -d crm-postgres", deployPlan.startDatabase],
     ["preview prisma migrate deploy", deployPlan.migrate],
@@ -388,7 +425,7 @@ export function executeDeployPlanWithEnv(
   ] as const;
 
   for (const [description, args] of steps) {
-    const result = runner("docker", args, extraEnv);
+    const result = runner("docker", [...args], extraEnv);
     assertSuccessfulCommand(result, description);
   }
 }

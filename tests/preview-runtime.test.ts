@@ -169,10 +169,12 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   const stopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
   const summary = createPreviewSummary("epic/e016-manual-preview", "0123456789abcdef0123456789abcdef01234567");
 
+  assert.match(deployPlan.validateComposeModel.join(" "), /config --format json/);
+  assert.match(deployPlan.pullExactImage.join(" "), /pull/);
   assert.match(deployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
   assert.match(deployPlan.startDatabase.join(" "), /up -d crm-postgres/);
-  assert.match(deployPlan.migrate.join(" "), /migrate deploy/);
-  assert.match(deployPlan.startApplication.join(" "), /up -d crm-app/);
+  assert.match(deployPlan.migrate.join(" "), /run --rm --pull never crm-app/);
+  assert.match(deployPlan.startApplication.join(" "), /up -d --no-build --pull never crm-app/);
   assert.match(stopPlan.down.join(" "), /down -v --remove-orphans/);
   assert.equal(summary.previewUrl, PREVIEW_URL);
   assert.equal(summary.projectName, PREVIEW_PROJECT_NAME);
@@ -532,25 +534,27 @@ test("deploy preview propagates the immutable image ref to the preview commands"
     }
   );
 
-  assert.equal(observed.length, 4);
+  assert.equal(observed.length, 6);
   assert.deepEqual(observed.map((entry) => entry.previewImageRef), [
+    "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
   ]);
-  assert.match(observed[0].description, /down -v --remove-orphans/);
-  assert.match(observed[1].description, /up -d crm-postgres/);
-  assert.match(observed[2].description, /migrate deploy/);
-  assert.match(observed[3].description, /up -d crm-app/);
+  assert.match(observed[0].description, /config --format json/);
+  assert.match(observed[1].description, /pull ghcr\.io/);
+  assert.match(observed[2].description, /down -v --remove-orphans/);
+  assert.match(observed[3].description, /up -d crm-postgres/);
+  assert.match(observed[4].description, /migrate deploy/);
+  assert.match(observed[5].description, /up -d --no-build --pull never crm-app/);
 });
 
-test("preview compose config uses the requested source checkout as the build context", { skip: !dockerAvailable }, () => {
-  const tmpRoot = createRepoTmpDir(repoRoot, "preview-source-build-context-");
-  const sourceCheckoutPath = path.join(tmpRoot, "source-checkout");
+test("preview compose config removes app build and keeps the immutable digest contract", { skip: !dockerAvailable }, () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "preview-compose-config-");
   const previewEnvFilePath = path.join(tmpRoot, PREVIEW_ENV_FILE_NAME);
 
-  fs.mkdirSync(sourceCheckoutPath, { recursive: true });
   fs.writeFileSync(
     previewEnvFilePath,
     [
@@ -565,6 +569,7 @@ test("preview compose config uses the requested source checkout as the build con
   );
 
   try {
+    process.env.CRM_PREVIEW_IMAGE_REF = "ghcr.io/lukexd09/clariobase-ai-crm@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     const result = spawnSync(
       "docker",
       [
@@ -575,7 +580,9 @@ test("preview compose config uses the requested source checkout as the build con
         "compose.yaml",
         "-f",
         "compose.preview.yaml",
-        "config"
+        "config",
+        "--format",
+        "json"
       ],
       {
         cwd: repoRoot,
@@ -589,8 +596,22 @@ test("preview compose config uses the requested source checkout as the build con
     );
 
     assert.equal(result.status, 0, `preview docker compose config should pass: ${result.stderr}`);
-    assert.match(result.stdout, /image:\s*ghcr\.io\/lukexd09\/clariobase-ai-crm@sha256:/);
+    const config = JSON.parse(result.stdout) as {
+      services: Record<string, { image?: string; build?: unknown; pull_policy?: string }>;
+      networks: Record<string, unknown>;
+      volumes: Record<string, unknown>;
+    };
+
+    assert.equal(config.services["crm-app"].image, process.env.CRM_PREVIEW_IMAGE_REF);
+    assert.equal(Object.prototype.hasOwnProperty.call(config.services["crm-app"], "build"), false);
+    assert.equal(config.services["crm-app"].pull_policy, "never");
+    assert.equal(config.services["crm-app"].ports?.[0]?.published, "3001");
+    assert.equal(config.services["crm-app"].ports?.[0]?.target, 3000);
+    assert.equal(config.services["crm-postgres"].ports, undefined);
+    assert.match(result.stdout, /clariobase-crm-preview-network/);
+    assert.match(result.stdout, /clariobase-crm-preview-postgres-data/);
   } finally {
+    delete process.env.CRM_PREVIEW_IMAGE_REF;
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });

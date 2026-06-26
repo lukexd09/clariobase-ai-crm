@@ -87,11 +87,11 @@ Deployment behavior:
 
 1. validate the preview env file and protected identifiers;
 2. resolve the current checkout SHA and compare it to the optional expected SHA;
-3. build the preview app image through `compose.yaml` plus `compose.preview.yaml`;
-4. remove any existing `clariobase-crm-preview` stack and its preview database volume;
+3. validate the merged Compose model, confirm the immutable image ref, and pull that exact digest from GHCR;
+4. remove any existing `clariobase-crm-preview` stack and its preview database volume only after the exact pull succeeds;
 5. start a fresh preview PostgreSQL service;
-6. run `prisma migrate deploy` only against the fresh preview database;
-7. start the preview app service from the requested ref;
+6. run `prisma migrate deploy` only against the fresh preview database using the already pulled digest and `--pull never`;
+7. start the preview app service from the same exact digest with build fallback disabled;
 8. wait for `http://127.0.0.1:3001/api/ready`;
 9. report requested ref, resolved SHA, preview URL, project name, volume, and network.
 
@@ -114,6 +114,8 @@ Automatic rules:
 - closed PRs are rejected;
 - the validated SHA is the completed CI run SHA, not a guessed branch ref;
 - if the current PR head no longer matches that validated SHA, the job stops with `BLOCKED: stale validated SHA`;
+- the Windows runner authenticates to GHCR with the short-lived workflow token after the immutable image ref has been validated and before the deployment script runs;
+- the Windows runner always attempts `docker logout ghcr.io` after deployment;
 - the deployment still runs through `scripts/deploy-preview.ps1` from the trusted `main` control checkout;
 - application source is checked out at the exact validated SHA into a separate `source` directory;
 - preview readiness alone determines automatic preview deployment success.
