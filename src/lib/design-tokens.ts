@@ -50,7 +50,6 @@ export const CLARIOBASE_UI_TOKENS = {
       lg: "1rem",
       xl: "1.25rem"
     },
-    border: "1px solid color-mix(in srgb, var(--cb-border) 90%, transparent)",
     elevation: {
       surface: "0 1px 2px rgba(23, 23, 23, 0.04)",
       raised: "0 10px 30px rgba(23, 23, 23, 0.08)"

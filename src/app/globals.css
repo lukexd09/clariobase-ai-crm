@@ -11,6 +11,12 @@
   --clariobase-text-primary: #0f172a;
   --clariobase-text-secondary: #475569;
   --clariobase-border: #cbd5e1;
+  --clariobase-ui-background: #f7f4ef;
+  --clariobase-ui-surface: #fffdfb;
+  --clariobase-ui-surface-elevated: #ffffff;
+  --clariobase-ui-text-primary: #171717;
+  --clariobase-ui-text-secondary: #6b5f5a;
+  --clariobase-ui-border: #e5dcd6;
   --clariobase-accent: #aa5e7b;
   --clariobase-accent-foreground: #ffffff;
   --clariobase-accent-hover: #9e5270;
@@ -34,12 +40,12 @@
   --clariobase-radius-xl: 1.25rem;
   --clariobase-disabled-opacity: 0.56;
 
-  --cb-background: var(--clariobase-background);
-  --cb-surface: var(--clariobase-surface);
-  --cb-elevated-surface: var(--clariobase-surface-elevated);
-  --cb-foreground: var(--clariobase-text-primary);
-  --cb-muted-foreground: var(--clariobase-text-secondary);
-  --cb-border: var(--clariobase-border);
+  --cb-background: var(--clariobase-ui-background);
+  --cb-surface: var(--clariobase-ui-surface);
+  --cb-elevated-surface: var(--clariobase-ui-surface-elevated);
+  --cb-foreground: var(--clariobase-ui-text-primary);
+  --cb-muted-foreground: var(--clariobase-ui-text-secondary);
+  --cb-border: var(--clariobase-ui-border);
   --cb-accent: var(--clariobase-accent);
   --cb-accent-foreground: var(--clariobase-accent-foreground);
   --cb-accent-hover: var(--clariobase-accent-hover);

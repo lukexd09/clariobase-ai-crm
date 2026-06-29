@@ -68,8 +68,11 @@ disabledOpacity: '0.56'
 
 ## Legacy-Route Isolation Policy
 
-Legacy routes retain their current presentation until their approved migration task.
-The ClarioBase UI v1 variables are available as a foundation but are consumed only by migrated/project-owned components.
+Legacy --clariobase-* presentation variables remain unchanged for unmigrated routes.
+
+The separate --clariobase-ui-* variables mirror the canonical UI v1 token inventory.
+
+Project-owned components consume the UI v1 values through the --cb-* aliases.
 
 ## Import Convention
 

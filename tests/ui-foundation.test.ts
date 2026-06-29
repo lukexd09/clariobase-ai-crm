@@ -40,19 +40,34 @@ test("canonical design token contract is documented, exposed and consistent", ()
   assert.match(doc, /successInk: '#22553E'/);
   assert.match(doc, /Legacy-Route Isolation Policy/);
   assert.match(doc, /project-owned primitives from `src\/components\/clariobase-ui\/`/);
+  assert.match(doc, /Legacy --clariobase-\* presentation variables remain unchanged for unmigrated routes\./);
+  assert.match(doc, /The separate --clariobase-ui-\* variables mirror the canonical UI v1 token inventory\./);
+  assert.match(doc, /Project-owned components consume the UI v1 values through the --cb-\* aliases\./);
   assert.match(tokens, /background: "#F7F4EF"/);
   assert.match(tokens, /accent: "#AA5E7B"/);
   assert.match(tokens, /accentForeground: "#FFFFFF"/);
   assert.match(tokens, /successInk: "#22553E"/);
   assert.match(tokens, /dangerInk: "#8E3636"/);
   assert.match(tokens, /neutralInk: "#594F49"/);
+  assert.match(globalsCss, /--clariobase-ui-background:\s*#f7f4ef;/);
+  assert.match(globalsCss, /--clariobase-ui-surface:\s*#fffdfb;/);
+  assert.match(globalsCss, /--clariobase-ui-surface-elevated:\s*#ffffff;/);
+  assert.match(globalsCss, /--clariobase-ui-text-primary:\s*#171717;/);
+  assert.match(globalsCss, /--clariobase-ui-text-secondary:\s*#6b5f5a;/);
+  assert.match(globalsCss, /--clariobase-ui-border:\s*#e5dcd6;/);
+  assert.match(globalsCss, /--cb-background:\s*var\(--clariobase-ui-background\)/);
+  assert.match(globalsCss, /--cb-surface:\s*var\(--clariobase-ui-surface\)/);
+  assert.match(globalsCss, /--cb-elevated-surface:\s*var\(--clariobase-ui-surface-elevated\)/);
+  assert.match(globalsCss, /--cb-foreground:\s*var\(--clariobase-ui-text-primary\)/);
+  assert.match(globalsCss, /--cb-muted-foreground:\s*var\(--clariobase-ui-text-secondary\)/);
+  assert.match(globalsCss, /--cb-border:\s*var\(--clariobase-ui-border\)/);
   assert.match(globalsCss, /--clariobase-accent:\s*#aa5e7b;/);
   assert.match(globalsCss, /--clariobase-accent-foreground:\s*#ffffff;/);
   assert.match(globalsCss, /--clariobase-success-ink:\s*#22553e;/);
   assert.match(globalsCss, /--clariobase-danger-ink:\s*#8e3636;/);
-  assert.match(globalsCss, /--cb-accent-foreground:\s*var\(--clariobase-accent-foreground\)/);
-  assert.match(globalsCss, /--cb-danger-ink:\s*var\(--clariobase-danger-ink\)/);
   assert.doesNotMatch(globalsCss, /color-scheme:\s*dark;/);
+  assert.doesNotMatch(globalsCss, /var\(--clariobase-surface-elevated\)/);
+  assert.doesNotMatch(globalsCss, /var\(--clariobase-ui-[^)]+\)\s*$/m);
 });
 
 test("global foundation keeps legacy root presentation while exposing the new foundation", () => {
@@ -65,6 +80,7 @@ test("global foundation keeps legacy root presentation while exposing the new fo
   assert.match(globalsCss, /--clariobase-text-primary:\s*#0f172a;/);
   assert.match(globalsCss, /--clariobase-text-secondary:\s*#475569;/);
   assert.match(globalsCss, /--clariobase-border:\s*#cbd5e1;/);
+  assert.match(globalsCss, /--cb-background:\s*var\(--clariobase-ui-background\)/);
   assert.doesNotMatch(globalsCss, /radial-gradient/);
   assert.doesNotMatch(globalsCss, /linear-gradient/);
 });
