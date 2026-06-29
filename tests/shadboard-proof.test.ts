@@ -14,6 +14,8 @@ test("shadboard adoption decision documents the pinned upstream ref and licensin
 
   assert.match(doc, /Current `main` incorporated: `77d888947276ac079650a9eec58d0a84e4690bc6`/);
   assert.match(doc, /Epic synchronization commit: `2363f540f0ef1a6d49e6eda1c0939d3d7b28eece`/);
+  assert.match(doc, /Current proof boundary:/);
+  assert.match(doc, /`src\/components\/clariobase-ui\/`/);
   assert.match(doc, /Pinned release: `v1.5.1`/);
   assert.match(doc, /Pinned commit: `ece0dab7282175002f5103afbac6f86306169a4e`/);
   assert.match(doc, /`starter-kit\/src\/components\/ui\/card\.tsx` -> `src\/components\/clariobase-ui\/proof-card\.tsx`/);
@@ -36,6 +38,12 @@ test("proof boundary stays project-owned and avoids prohibited dependencies", ()
   const doc = read("docs/architecture/shadboard-adoption-decision.md");
   const proofShell = read("src/components/clariobase-ui/proof-shell.tsx");
   const proofCard = read("src/components/clariobase-ui/proof-card.tsx");
+  const button = read("src/components/clariobase-ui/button.tsx");
+  const surface = read("src/components/clariobase-ui/surface.tsx");
+  const status = read("src/components/clariobase-ui/status.tsx");
+  const field = read("src/components/clariobase-ui/field.tsx");
+  const table = read("src/components/clariobase-ui/table.tsx");
+  const feedback = read("src/components/clariobase-ui/feedback.tsx");
   const notice = read("THIRD_PARTY_NOTICES.md");
 
   assert.match(doc, /`next-auth`/);
@@ -51,6 +59,13 @@ test("proof boundary stays project-owned and avoids prohibited dependencies", ()
   assert.match(proofCard, /ProofCardDescription/);
   assert.match(proofCard, /ProofCardContent/);
   assert.match(proofCard, /ProofCardFooter/);
+  assert.match(button, /focus-visible:ring-\[color:var\(--cb-focus-ring\)\]/);
+  assert.match(surface, /SurfaceTitle/);
+  assert.match(status, /role="status"/);
+  assert.match(status, /StatusMessage/);
+  assert.match(field, /disabled:opacity-\[var\(--cb-disabled-opacity\)\]/);
+  assert.match(table, /TableSurface/);
+  assert.match(feedback, /EmptyState/);
   assert.match(notice, /Shadboard/);
   assert.match(notice, /Copyright \(c\) 2025 Qualiora/);
   assert.match(
@@ -79,6 +94,14 @@ test("leads route preserves data loading and uses the proof boundary", () => {
   const table = read("src/components/lead-table.tsx");
   const pagination = read("src/components/lead-pagination.tsx");
   const globalsCss = read("src/app/globals.css");
+  const componentFiles = [
+    read("src/components/clariobase-ui/button.tsx"),
+    read("src/components/clariobase-ui/surface.tsx"),
+    read("src/components/clariobase-ui/status.tsx"),
+    read("src/components/clariobase-ui/field.tsx"),
+    read("src/components/clariobase-ui/table.tsx"),
+    read("src/components/clariobase-ui/feedback.tsx")
+  ].join("\n");
 
   assert.match(page, /getLeadPage/);
   assert.match(page, /getLeadFilterOptions/);
@@ -94,6 +117,10 @@ test("leads route preserves data loading and uses the proof boundary", () => {
   assert.match(table, /\/leads\/\$\{lead\.id\}/);
   assert.match(pagination, /buildLeadUrl/);
   assert.match(globalsCss, /\[data-ui-foundation="shadboard-proof"\]/);
-  assert.match(globalsCss, /--cb-ui-background/);
-  assert.match(globalsCss, /--cb-ui-primary/);
+  assert.match(globalsCss, /--cb-background/);
+  assert.match(globalsCss, /--cb-accent/);
+  assert.match(componentFiles, /ButtonLink/);
+  assert.match(componentFiles, /TableSurface/);
+  assert.match(componentFiles, /EmptyState/);
+  assert.doesNotMatch(componentFiles, /starter-kit\//);
 });
