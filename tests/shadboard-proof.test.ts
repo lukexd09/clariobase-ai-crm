@@ -40,6 +40,8 @@ test("proof boundary stays project-owned and avoids prohibited dependencies", ()
 
 test("leads route preserves data loading and uses the proof boundary", () => {
   const page = read("src/app/leads/page.tsx");
+  const layout = read("src/app/layout.tsx");
+  const appShell = read("src/components/app-shell.tsx");
   const filters = read("src/components/lead-filters.tsx");
   const table = read("src/components/lead-table.tsx");
   const pagination = read("src/components/lead-pagination.tsx");
@@ -50,6 +52,12 @@ test("leads route preserves data loading and uses the proof boundary", () => {
   assert.match(page, /normalizeLeadFilters/);
   assert.match(page, /ProofShell pathname="\/leads"/);
   assert.match(page, /ProofCard/);
+  assert.match(layout, /<AppShell>\{children\}<\/AppShell>/);
+  assert.match(appShell, /if \(pathname === "\/leads"\)/);
+  assert.match(appShell, /return <>\{children\}<\/>;/);
+  assert.match(appShell, /aria-label="Primary navigation"/);
+  assert.match(appShell, /pathname === "\/leads"/);
+  assert.match(page, /ProofShell pathname="\/leads"/);
   assert.doesNotMatch(page, /AppShell/);
 
   assert.match(filters, /buildLeadUrl/);
