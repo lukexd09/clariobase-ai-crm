@@ -258,9 +258,17 @@ Do not treat a green Draft PR workflow as the final end-to-end proof for a new t
 
 ## Retired workflows
 
-`Auto Deploy Preview` and the old direct `Deploy Preview` path are retired. Their retained stubs fail closed and point operators to `Preview Release`.
+`Auto Deploy Preview` and the old direct `Deploy Preview` path were removed from the repository.
 
-They must not:
+They are no longer visible as manual GitHub Actions entrypoints and they must not return as active deployment paths.
+
+The only preview deployment entrypoint is `Preview Release`.
+
+The only preview cleanup entrypoint is `Stop Preview`.
+
+Completed Fast CI runs must not trigger preview replacement automatically.
+
+These removed paths must not:
 
 - react to completed CI runs;
 - use the Windows runner;

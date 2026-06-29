@@ -346,13 +346,34 @@ test("Preview Release preserves one-image, immutable-digest and Windows no-build
   assert.match(deploy, /Log out of GitHub Container Registry/);
 });
 
-test("retired preview workflows fail closed", () => {
-  for (const file of [".github/workflows/auto-deploy-preview.yml", ".github/workflows/deploy-preview.yml"]) {
-    const workflow = read(file);
-    assert.match(workflow, /workflow_dispatch:/);
-    assert.match(workflow, /exit 1/);
-    assert.match(workflow, /Preview Release/);
-    assert.doesNotMatch(workflow, /workflow_run:/);
-    assert.doesNotMatch(workflow, /self-hosted/);
-  }
+test("workflow inventory keeps exactly four authoritative workflow files and the preview tombstones stay blocked", () => {
+  const workflowDir = path.join(repoRoot, ".github", "workflows");
+  const files = fs
+    .readdirSync(workflowDir)
+    .filter((file) => /\.(ya?ml)$/i.test(file))
+    .sort();
+
+  assert.deepEqual(files, ["ci.yml", "full-integration.yml", "preview-release.yml", "stop-preview.yml"]);
+  assert.equal(fs.existsSync(path.join(workflowDir, "auto-deploy-preview.yml")), false);
+  assert.equal(fs.existsSync(path.join(workflowDir, "deploy-preview.yml")), false);
+
+  const previewRelease = read(".github/workflows/preview-release.yml");
+  assert.match(previewRelease, /protectedExactPaths = new Set\(\[/);
+  assert.match(previewRelease, /\.github\/workflows\/auto-deploy-preview\.yml/);
+  assert.match(previewRelease, /\.github\/workflows\/deploy-preview\.yml/);
+  assert.match(previewRelease, /security tombstones/i);
+
+  assert.doesNotMatch(previewRelease, /workflow_run:/);
+  assert.doesNotMatch(previewRelease, /pull_request_target/);
+
+  const ci = read(".github/workflows/ci.yml");
+  assert.doesNotMatch(ci, /workflow_run:/);
+  assert.doesNotMatch(ci, /pull_request_target/);
+  const fullIntegration = read(".github/workflows/full-integration.yml");
+  assert.doesNotMatch(fullIntegration, /self-hosted.*clariobase-preview|clariobase-preview.*self-hosted/);
+
+  const stopPreview = read(".github/workflows/stop-preview.yml");
+  assert.match(stopPreview, /clariobase-preview-slot/);
+  assert.match(stopPreview, /self-hosted/);
+  assert.match(stopPreview, /clariobase-preview/);
 });
