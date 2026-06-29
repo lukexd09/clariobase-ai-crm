@@ -14,9 +14,12 @@ Date: 2026-06-29
 
 ## Licensing Evidence
 
-The pinned Shadboard ref is MIT licensed. The current proof includes one genuinely adapted source boundary:
+The pinned Shadboard ref is MIT licensed. The current proof includes genuinely adapted source boundaries:
 
 - `starter-kit/src/components/ui/card.tsx` -> `src/components/clariobase-ui/proof-card.tsx`
+- `starter-kit/src/components/ui/button.tsx` -> `src/components/clariobase-ui/button.tsx`
+- `starter-kit/src/components/ui/input.tsx` -> `src/components/clariobase-ui/field.tsx` (`Input` export only)
+- `starter-kit/src/components/ui/card.tsx` -> `src/components/clariobase-ui/surface.tsx`
 
 That adapted boundary requires MIT copyright and permission notice retention, which is recorded in [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md).
 
@@ -27,6 +30,10 @@ The shell/navigation proof remains reference-only:
 - `starter-kit/src/app/globals.css` -> `src/app/globals.css`
 
 No Shadboard demo route or placeholder path was copied.
+
+Project-owned primitives created for the new foundation and aligned with the approved direction include `Badge`, `Select`, `TableSurface` and the other non-copied primitives documented in `docs/design/clariobase-ui-v1.md`.
+
+Legacy routes retain their current presentation until their approved migration task.
 
 ## Exact Inventory
 
@@ -40,6 +47,9 @@ Legend:
 | Upstream path | Kit | ClarioBase target | Classification | Notice required | Dependency requirement | Reason |
 | --- | --- | --- | --- | --- | --- | --- |
 | `starter-kit/src/components/ui/card.tsx` | starter-kit | `src/components/clariobase-ui/proof-card.tsx` | substantially adapted | yes | none for the proof slice | Smallest useful primitive for the proof boundary. |
+| `starter-kit/src/components/ui/button.tsx` | starter-kit | `src/components/clariobase-ui/button.tsx` | substantially adapted | yes | none for the proof slice | Dependency-free button adaptation. |
+| `starter-kit/src/components/ui/input.tsx` | starter-kit | `src/components/clariobase-ui/field.tsx` (`Input` export only) | substantially adapted | yes | none for the proof slice | Dependency-free input adaptation. |
+| `starter-kit/src/components/ui/card.tsx` | starter-kit | `src/components/clariobase-ui/surface.tsx` | substantially adapted | yes | none for the proof slice | Surface abstraction for the new foundation. |
 | `starter-kit/src/app/layout.tsx` | starter-kit | `src/components/app-shell.tsx` | pattern/reference only | no | none | Informs current shell composition and route isolation. |
 | `starter-kit/src/components/ui/sidebar.tsx` | starter-kit | `src/components/app-shell.tsx` | pattern/reference only | no | none | Informs sidebar/navigation semantics only. |
 | `starter-kit/src/app/globals.css` | starter-kit | `src/app/globals.css` | pattern/reference only | no | none | Informs token/layout direction only. |

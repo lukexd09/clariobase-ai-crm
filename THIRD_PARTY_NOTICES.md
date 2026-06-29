@@ -2,13 +2,29 @@
 
 ## Shadboard
 
-This project includes an adapted source-derived boundary from:
+This project includes adapted source-derived boundaries from:
 
 - Repository: `https://github.com/Qualiora/shadboard`
+- Pinned release: `v1.5.1`
 - Pinned commit: `ece0dab7282175002f5103afbac6f86306169a4e`
-- Source file: `starter-kit/src/components/ui/card.tsx`
-- ClarioBase file: `src/components/clariobase-ui/proof-card.tsx`
 - License: MIT
+
+### Source-boundary inventory
+
+- `starter-kit/src/components/ui/card.tsx`
+  -> `src/components/clariobase-ui/proof-card.tsx`
+  -> `src/components/clariobase-ui/surface.tsx`
+  -> classification: substantially adapted
+
+- `starter-kit/src/components/ui/button.tsx`
+  -> `src/components/clariobase-ui/button.tsx`
+  -> classification: substantially adapted
+
+- `starter-kit/src/components/ui/input.tsx`
+  -> `src/components/clariobase-ui/field.tsx` (`Input` export only)
+  -> classification: substantially adapted
+
+### Copyright and license text
 
 Copyright (c) 2025 Qualiora
 

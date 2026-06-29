@@ -1,67 +1,147 @@
 # ClarioBase UI v1
 
-Canonical design tokens and production shell guidance for the light CRM workspace.
+Canonical design tokens and project-owned UI boundary guidance for the light CRM workspace.
 
-## Source of truth
+## Product Direction
 
-This document overrides conflicting values in the Stitch export.
+Creator-first, not admin-first.
+Warm and elegant, not stereotypically pink.
+Clear and efficient, not decorative at the cost of usability.
 
-## Tokens
+## Theme Policy
+
+Light mode only for the current product scope.
+Dark mode deferred and unsupported until separately approved.
+
+## Canonical Token Inventory
 
 ```yaml
-primary: '#006194'
-on-primary: '#FFFFFF'
-background: '#F8FAFC'
-surface: '#FFFFFF'
-surface-subtle: '#F1F5F9'
-text-primary: '#0F172A'
-text-secondary: '#475569'
-border: '#CBD5E1'
-success: '#047857'
-warning: '#B45309'
-error: '#B91C1C'
+background: '#F7F4EF'
+surface: '#FFFDFB'
+elevatedSurface: '#FFFFFF'
+primaryText: '#171717'
+mutedText: '#6B5F5A'
+border: '#E5DCD6'
+accent: '#AA5E7B'
+accentForeground: '#FFFFFF'
+accentHover: '#9E5270'
+accentActive: '#87445D'
+focusRing: '#8F5770'
+success: '#2F7D5B'
+successInk: '#22553E'
+warning: '#B7791F'
+warningInk: '#845915'
+danger: '#B44A4A'
+dangerInk: '#8E3636'
+information: '#5A7EA6'
+informationInk: '#35577A'
+neutral: '#7A6F68'
+neutralInk: '#594F49'
+fontFamily: '"Geist", "Geist Sans", sans-serif'
+headingScale:
+  h1: '2rem'
+  h2: '1.5rem'
+  h3: '1.25rem'
+  h4: '1.125rem'
+bodyScale:
+  base: '1rem'
+  small: '0.875rem'
+  xsmall: '0.75rem'
+spacing:
+  xxs: '0.25rem'
+  xs: '0.5rem'
+  sm: '0.75rem'
+  md: '1rem'
+  lg: '1.5rem'
+  xl: '2rem'
+density: 'comfortable'
+radii:
+  sm: '0.5rem'
+  md: '0.75rem'
+  lg: '1rem'
+  xl: '1.25rem'
+elevation:
+  surface: '0 1px 2px rgba(23, 23, 23, 0.04)'
+  raised: '0 10px 30px rgba(23, 23, 23, 0.08)'
+disabledOpacity: '0.56'
 ```
 
-## Foundations
+## Legacy-Route Isolation Policy
 
-- Font family: Geist only.
-- Spacing scale: 4 px base.
-- Radius: 8 px standard, 12 px for grouped containers.
-- Pills: statuses only.
-- Borders: subtle, light-weight, always readable.
-- Shadows: almost none.
-- Focus: visible and accessible.
-- Primary controls: minimum 44 px height.
-- Gutters: `clamp(16px, 2vw, 32px)`.
-- Sidebar width: `clamp(212px, 14vw, 236px)`.
+Legacy --clariobase-* presentation variables remain unchanged for unmigrated routes.
 
-## Application shell
+The separate --clariobase-ui-* variables mirror the canonical UI v1 token inventory.
 
-- Dashboard is the production landing page.
-- At 1100 px and wider, the global top header is removed and the sidebar is the only shell navigation surface.
-- Below 1100 px, a compact app bar shows only `ClarioBase` and the `Menu` disclosure.
-- The shell must not rely on viewport JavaScript detection for the responsive switch.
-- Operator section shows a lightweight static account chip with `Łukasz Chmiel` and `Operator`.
-- The operator identity is visible, but the account menu is intentionally not interactive before account functionality exists.
-- Do not show notification controls before notifications exist.
-- Do not show calendar controls before calendar functionality exists.
-- Do not expose working logout actions before authentication exists.
-- Primary nav: Dashboard, Daily work, Leads, Sales.
-- Data quality nav: Imports, Possible duplicates.
-- System status stays available but secondary and must not use a placeholder description.
-- Support, Settings, add-lead affordances, team members, and employee analytics are excluded.
+Project-owned components consume the UI v1 values through the --cb-* aliases.
 
-## Dashboard density
+## Import Convention
 
-- Page title is compact and prominent, roughly 30 to 32 px on desktop and 27 to 29 px on mobile.
-- Subtitle is compact, roughly 14 to 16 px.
-- Standard section gaps stay around 16 to 20 px.
-- Main workspace padding stays around 20 to 24 px on desktop and 16 px on mobile.
-- Standard cards stay around 14 to 16 px of padding.
-- KPI cards are lightweight, short, border-only surfaces without shadows or decorative icons.
-- Today&apos;s priorities uses one grouped list with divider-separated rows rather than nested cards.
-- Pipeline snapshot is secondary and compact.
-- The data-quality warning is placed after the main priorities/pipeline area as a restrained warning row.
-- Use warning semantics for duplicate review messaging, but do not rely on color alone.
-- Do not show fake account menus or placeholder logout actions before authentication exists.
+- Import project-owned primitives from `src/components/clariobase-ui/`.
+- Import shared tokens from `src/lib/design-tokens.ts`.
+- Do not import route UI from Shadboard demo paths.
+- Keep route components free of starter-kit or demo-application structure.
 
+## Source Boundary Inventory
+
+- `starter-kit/src/components/ui/card.tsx`
+  -> `src/components/clariobase-ui/proof-card.tsx`
+  -> `src/components/clariobase-ui/surface.tsx`
+  -> substantially adapted
+
+- `starter-kit/src/components/ui/button.tsx`
+  -> `src/components/clariobase-ui/button.tsx`
+  -> substantially adapted
+
+- `starter-kit/src/components/ui/input.tsx`
+  -> `src/components/clariobase-ui/field.tsx` (`Input` export only)
+  -> substantially adapted
+
+## Project-Owned Primitive Inventory
+
+Created for known ClarioBase consumers and aligned with the approved Shadboard composition/token direction, but no upstream source code was copied for these:
+
+- `Badge`
+- `StatusMessage`
+- `Select`
+- `Label`
+- `FormMessage`
+- `TableSurface`
+- `Table`
+- `TableHead`
+- `TableHeadCell`
+- `TableBody`
+- `TableRow`
+- `TableCell`
+- `PaginationControls`
+- `EmptyState`
+- `Skeleton`
+
+## Known Future Consumers
+
+- `T003`: shell and responsive navigation
+- `T004`: Dashboard
+- `T005`: Leads, Daily work and Sales
+- `T006`: Imports and duplicate review
+- `T007`: dense lead operator workspace
+
+## Rejected Dependencies
+
+No current T002 consumer requires them; the existing stack supports the selected foundation without additional packages.
+
+- `class-variance-authority`
+- `clsx`
+- `tailwind-merge`
+- `lucide-react`
+- all Radix packages
+- TanStack Table
+- Shadboard auth and demo dependencies
+
+These packages can be reconsidered later with a new exact need and license review.
+
+## Migration Rules For T003-T007
+
+- Keep T002 as the boundary and token foundation task.
+- Do not migrate routes in T002.
+- Consume only the approved project-owned primitives from the new boundary.
+- Preserve legacy route presentation until the approved route task replaces it.
+- Do not add new dependency families unless the later task has a direct consumer and license review.
