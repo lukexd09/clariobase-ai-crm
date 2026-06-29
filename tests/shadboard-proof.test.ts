@@ -19,15 +19,17 @@ test("shadboard adoption decision documents the pinned upstream ref and licensin
   assert.match(doc, /`starter-kit\/src\/components\/ui\/card\.tsx` -> `src\/components\/clariobase-ui\/proof-card\.tsx`/);
   assert.match(doc, /`starter-kit\/src\/app\/layout\.tsx` -> `src\/components\/app-shell\.tsx`/);
   assert.match(doc, /`starter-kit\/src\/components\/ui\/sidebar\.tsx` -> `src\/components\/app-shell\.tsx`/);
-  assert.match(doc, /Nonexistent placeholder paths removed from the inventory:/);
-  assert.match(doc, /- `app\/leads\/page\.tsx`/);
-  assert.match(doc, /- `components\/navigation\.tsx`/);
+  assert.doesNotMatch(doc, /Nonexistent placeholder paths removed from the inventory:/);
+  assert.doesNotMatch(doc, /app\/leads\/page\.tsx/);
+  assert.doesNotMatch(doc, /components\/navigation\.tsx/);
   assert.match(doc, /`class-variance-authority` \| `0\.7\.1`/);
+  assert.match(doc, /npm metadata license: `Apache-2\.0`/);
   assert.match(doc, /`@radix-ui\/react-dialog` \| `1\.1\.3`/);
   assert.match(doc, /`@auth\/prisma-adapter` \| `2\.6\.0`/);
   assert.match(doc, /`@fullcalendar\/\*` \| `6\.1\.15`/);
   assert.match(doc, /`@hello-pangea\/dnd` \| `18\.0\.1`/);
   assert.match(doc, /THIRD_PARTY_NOTICES\.md/);
+  assert.match(doc, /\.\.\/\.\.\/THIRD_PARTY_NOTICES\.md/);
 });
 
 test("proof boundary stays project-owned and avoids prohibited dependencies", () => {
@@ -50,6 +52,21 @@ test("proof boundary stays project-owned and avoids prohibited dependencies", ()
   assert.match(proofCard, /ProofCardContent/);
   assert.match(proofCard, /ProofCardFooter/);
   assert.match(notice, /Shadboard/);
+  assert.match(notice, /Copyright \(c\) 2025 Qualiora/);
+  assert.match(
+    notice,
+    /Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files \(the "Software"\), to deal in the Software without restriction/,
+  );
+  assert.match(
+    notice,
+    /The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software\./,
+  );
+  assert.match(
+    notice,
+    /THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\./,
+  );
+  assert.match(notice, /Repository: `https:\/\/github\.com\/Qualiora\/shadboard`/);
+  assert.match(notice, /Pinned commit: `ece0dab7282175002f5103afbac6f86306169a4e`/);
   assert.match(notice, /starter-kit\/src\/components\/ui\/card\.tsx/);
   assert.match(notice, /src\/components\/clariobase-ui\/proof-card\.tsx/);
 });

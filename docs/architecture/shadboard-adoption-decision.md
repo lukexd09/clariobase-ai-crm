@@ -8,7 +8,6 @@ Date: 2026-06-29
 - Current `main` incorporated: `77d888947276ac079650a9eec58d0a84e4690bc6`
 - Epic synchronization commit: `2363f540f0ef1a6d49e6eda1c0939d3d7b28eece`
 - PR base SHA: `2363f540f0ef1a6d49e6eda1c0939d3d7b28eece`
-- Draft PR head SHA: `f9ea3659272cbfb30fdac15f523092b75705223a`
 - Repository: `https://github.com/Qualiora/shadboard`
 - Pinned release: `v1.5.1`
 - Pinned commit: `ece0dab7282175002f5103afbac6f86306169a4e`
@@ -19,7 +18,7 @@ The pinned Shadboard ref is MIT licensed. The current proof includes one genuine
 
 - `starter-kit/src/components/ui/card.tsx` -> `src/components/clariobase-ui/proof-card.tsx`
 
-That adapted boundary requires MIT copyright and permission notice retention, which is recorded in [`THIRD_PARTY_NOTICES.md`](/C:/Serwer/Projekty/Clariobase/clariobase-ai-crm/THIRD_PARTY_NOTICES.md).
+That adapted boundary requires MIT copyright and permission notice retention, which is recorded in [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md).
 
 The shell/navigation proof remains reference-only:
 
@@ -50,39 +49,36 @@ Legend:
 | `starter-kit/src/components/ui/dropdown-menu.tsx` | starter-kit | not adopted | rejected | no | `@radix-ui/react-dropdown-menu` | Not required for the proof slice. |
 | `starter-kit/src/components/ui/tooltip.tsx` | starter-kit | not adopted | rejected | no | `@radix-ui/react-tooltip` | Not required for the proof slice. |
 
-Nonexistent placeholder paths removed from the inventory:
-
-- `app/leads/page.tsx`
-- `components/navigation.tsx`
-
 ## Dependency Inventory
 
 The exact upstream starter-kit dependency versions are:
 
-| Package | Upstream version | Authoritative license source | Commercial-use conclusion | Adopted now / candidate / rejected | Reason |
+### T001 candidate evidence
+
+| Package | Upstream version evidence | Authoritative package-license evidence | Commercial-use conclusion | Adoption decision | Reason |
 | --- | --- | --- | --- | --- | --- |
-| `pnpm` | `10.8.1` | upstream `starter-kit/package.json` | allowed | rejected | repo remains on pnpm 9 for T001 |
-| `next` | `15.2.4` | upstream `starter-kit/package.json` | allowed | candidate | upstream app baseline only |
-| `react` | `19.1.0` | upstream `starter-kit/package.json` | allowed | candidate | upstream app baseline only |
-| `react-dom` | `19.1.0` | upstream `starter-kit/package.json` | allowed | candidate | upstream app baseline only |
-| `tailwindcss` | `4.1.3` | upstream `starter-kit/package.json` | allowed | rejected | T001 must not migrate Tailwind 4 |
-| `zod` | `3.23.8` | upstream `starter-kit/package.json` | allowed | candidate | validation baseline only |
-| `class-variance-authority` | `0.7.1` | upstream `starter-kit/package.json` | MIT | candidate | useful for T002 UI primitives |
-| `clsx` | `2.1.1` | upstream `starter-kit/package.json` | MIT | candidate | utility only |
-| `tailwind-merge` | `2.5.2` | upstream `starter-kit/package.json` | MIT | candidate | utility only |
-| `lucide-react` | `0.446.0` | upstream `starter-kit/package.json` | ISC | candidate | icon layer candidate |
-| `@radix-ui/react-slot` | `1.1.1` | upstream `starter-kit/package.json` | MIT | candidate | button/card convenience only |
-| `@radix-ui/react-dialog` | `1.1.3` | upstream `starter-kit/package.json` | MIT | candidate | T002-only if dialog UI is adopted |
-| `@radix-ui/react-dropdown-menu` | `2.1.1` | upstream `starter-kit/package.json` | MIT | candidate | T002-only if menu UI is adopted |
-| `@radix-ui/react-tooltip` | `1.1.5` | upstream `starter-kit/package.json` | MIT | candidate | T002-only if tooltip UI is adopted |
-| `@auth/prisma-adapter` | `2.6.0` | upstream `full-kit/package.json` | ISC | rejected | auth boundary is out of scope |
-| `next-auth` | `4.24.11` | upstream `full-kit/package.json` | MIT | rejected | auth boundary is out of scope |
-| `@prisma/client` | `5.20.0` | upstream `full-kit/package.json` | Apache-2.0 / Prisma terms | rejected | current app stays on Prisma 7 |
-| `prisma` | `5.20.0` | upstream `full-kit/package.json` | Apache-2.0 / Prisma terms | rejected | current app stays on Prisma 7 |
-| `@fullcalendar/*` | `6.1.15` | upstream `full-kit/package.json` | MIT | rejected | calendar module not needed |
-| `@hello-pangea/dnd` | `18.0.1` | upstream `full-kit/package.json` | MIT | rejected | drag-and-drop module not needed |
-| `@tanstack/react-table` | `8.20.5` | upstream `full-kit/package.json` | MIT | rejected | current proof does not require table framework migration |
-| `@tiptap/react` | `2.11.7` | upstream `full-kit/package.json` | MIT | rejected | editor module not needed |
+| `pnpm` | `10.8.1` from `starter-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | repo remains on pnpm 9 for T001 |
+| `next` | `15.2.4` from `starter-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | candidate | upstream app baseline only |
+| `react` | `19.1.0` from `starter-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | candidate | upstream app baseline only |
+| `react-dom` | `19.1.0` from `starter-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | candidate | upstream app baseline only |
+| `tailwindcss` | `4.1.3` from `starter-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | T001 must not migrate Tailwind 4 |
+| `zod` | `3.23.8` from `starter-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | candidate | validation baseline only |
+| `class-variance-authority` | `0.7.1` from `starter-kit/package.json` | npm metadata license: `Apache-2.0` | allowed | candidate | useful for T002 UI primitives |
+| `clsx` | `2.1.1` from `starter-kit/package.json` | npm metadata license: `MIT` | allowed | candidate | utility only |
+| `tailwind-merge` | `2.5.2` from `starter-kit/package.json` | npm metadata license: `MIT` | allowed | candidate | utility only |
+| `lucide-react` | `0.446.0` from `starter-kit/package.json` | npm metadata license: `ISC` | allowed | candidate | icon layer candidate |
+| `@radix-ui/react-slot` | `1.1.1` from `starter-kit/package.json` | npm metadata license: `MIT` | allowed | candidate | button/card convenience only |
+| `@radix-ui/react-dialog` | `1.1.3` from `starter-kit/package.json` | npm metadata license: `MIT` | allowed | candidate | T002-only if dialog UI is adopted |
+| `@radix-ui/react-dropdown-menu` | `2.1.1` from `starter-kit/package.json` | npm metadata license: `MIT` | allowed | candidate | T002-only if menu UI is adopted |
+| `@radix-ui/react-tooltip` | `1.1.5` from `starter-kit/package.json` | npm metadata license: `MIT` | allowed | candidate | T002-only if tooltip UI is adopted |
+| `@auth/prisma-adapter` | `2.6.0` from `full-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | auth boundary is out of scope |
+| `next-auth` | `4.24.11` from `full-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | auth boundary is out of scope |
+| `@prisma/client` | `5.20.0` from `full-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | current app stays on Prisma 7 |
+| `prisma` | `5.20.0` from `full-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | current app stays on Prisma 7 |
+| `@fullcalendar/*` | `6.1.15` from `full-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | calendar module not needed |
+| `@hello-pangea/dnd` | `18.0.1` from `full-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | drag-and-drop module not needed |
+| `@tanstack/react-table` | `8.20.5` from `full-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | current proof does not require table framework migration |
+| `@tiptap/react` | `2.11.7` from `full-kit/package.json` | package license not verified for adoption - BLOCKED for T002 | not verified | rejected | editor module not needed |
 
 ## Compatibility Matrix
 
@@ -142,7 +138,7 @@ The exact `/leads` route renders `ProofShell` once, while `AppShell` returns chi
 
 ## Notice Handling
 
-The adapted boundary is covered by [`THIRD_PARTY_NOTICES.md`](/C:/Serwer/Projekty/Clariobase/clariobase-ai-crm/THIRD_PARTY_NOTICES.md).
+The adapted boundary is covered by [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md).
 
 ## PR #130 Overlap Assessment
 
