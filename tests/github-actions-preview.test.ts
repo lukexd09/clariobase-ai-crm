@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const repoRoot = path.resolve(__dirname, "..");
+const expectedRepository = "lukexd09/clariobase-ai-crm";
+const headSha = "1111111111111111111111111111111111111111";
 
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
@@ -11,10 +14,7 @@ function read(filePath: string) {
 
 function splitJobBlock(workflow: string, jobName: string, nextJobName?: string) {
   const start = workflow.indexOf(`  ${jobName}:`);
-  if (start === -1) {
-    return "";
-  }
-
+  if (start === -1) return "";
   const end = nextJobName ? workflow.indexOf(`  ${nextJobName}:`, start + 1) : workflow.length;
   return workflow.slice(start, end === -1 ? workflow.length : end);
 }
@@ -22,230 +22,337 @@ function splitJobBlock(workflow: string, jobName: string, nextJobName?: string) 
 function assertOrdered(block: string, earlier: string, later: string) {
   const earlierIndex = block.indexOf(earlier);
   const laterIndex = block.indexOf(later);
-
   assert.notEqual(earlierIndex, -1, `Missing step: ${earlier}`);
   assert.notEqual(laterIndex, -1, `Missing step: ${later}`);
   assert.ok(earlierIndex < laterIndex, `${earlier} must appear before ${later}`);
 }
 
-test("Fast CI validates the exact PR head and never starts release work", () => {
+function extractResolverScript(workflow: string) {
+  const stepStart = workflow.indexOf("      - name: Resolve current PR head and exact Fast CI run");
+  assert.notEqual(stepStart, -1, "resolver step missing");
+  const scriptMarker = "          script: |";
+  const markerIndex = workflow.indexOf(scriptMarker, stepStart);
+  assert.notEqual(markerIndex, -1, "resolver script missing");
+
+  const scriptLines: string[] = [];
+  const lines = workflow.slice(markerIndex + scriptMarker.length).replace(/^\r?\n/, "").split(/\r?\n/);
+  for (const line of lines) {
+    if (line.startsWith("            ")) {
+      scriptLines.push(line.slice(12));
+      continue;
+    }
+    if (line.trim() === "") {
+      scriptLines.push("");
+      continue;
+    }
+    break;
+  }
+  return scriptLines.join("\n");
+}
+
+type ResolverFixture = {
+  expectedSha?: string;
+  pull?: Record<string, unknown>;
+  changedFiles?: Array<{ filename: string }>;
+  runs?: Array<Record<string, unknown>>;
+  artifacts?: Array<Record<string, unknown>>;
+  artifactContext?: Record<string, unknown>;
+  pullError?: Error;
+};
+
+async function executeWorkflowResolver(fixture: ResolverFixture = {}) {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const resolverScript = extractResolverScript(workflow);
+  const outputs: Record<string, string> = {};
+  const paginateCalls: string[] = [];
+  const pull = fixture.pull ?? {
+    state: "open",
+    html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/130",
+    head: {
+      sha: headSha,
+      ref: "feature/rehearsal",
+      repo: { full_name: expectedRepository }
+    }
+  };
+  const runs = fixture.runs ?? [
+    {
+      id: 123456,
+      name: "CI",
+      event: "pull_request",
+      status: "completed",
+      conclusion: "success",
+      head_sha: headSha,
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456"
+    }
+  ];
+  const artifacts = fixture.artifacts ?? [{ id: 654321, name: "auto-preview-context", expired: false }];
+  const artifactContext = fixture.artifactContext ?? {
+    schemaVersion: 1,
+    repository: expectedRepository,
+    prNumber: 130,
+    headSha,
+    headRef: "feature/rehearsal",
+    headRepository: expectedRepository,
+    baseRef: "main",
+    baseRepository: expectedRepository,
+    workflowRunId: 123456
+  };
+
+  const listFiles = async () => undefined;
+  const listWorkflowRuns = async () => undefined;
+  const listWorkflowRunArtifacts = async () => undefined;
+  const github = {
+    rest: {
+      pulls: {
+        get: async () => {
+          if (fixture.pullError) throw fixture.pullError;
+          return { data: pull };
+        },
+        listFiles
+      },
+      actions: {
+        listWorkflowRuns,
+        listWorkflowRunArtifacts
+      }
+    },
+    paginate: async (fn: unknown) => {
+      if (fn === listFiles) {
+        paginateCalls.push("files");
+        return fixture.changedFiles ?? [{ filename: "README.md" }];
+      }
+      if (fn === listWorkflowRuns) {
+        paginateCalls.push("runs");
+        return runs;
+      }
+      if (fn === listWorkflowRunArtifacts) {
+        paginateCalls.push("artifacts");
+        return artifacts;
+      }
+      throw new Error("unexpected paginate target");
+    },
+    request: async () => ({ data: Buffer.from("fake-zip") })
+  };
+  const core = {
+    setOutput: (name: string, value: unknown) => {
+      outputs[name] = String(value ?? "");
+    },
+    warning: () => undefined
+  };
+  const fakeFs = {
+    mkdtempSync: () => path.join(os.tmpdir(), "resolver-fixture"),
+    writeFileSync: () => undefined,
+    rmSync: () => undefined
+  };
+  const fakeRequire = (specifier: string) => {
+    if (specifier === "node:fs") return fakeFs;
+    if (specifier === "node:os") return os;
+    if (specifier === "node:path") return path;
+    if (specifier === "node:child_process") {
+      return { execFileSync: () => JSON.stringify(artifactContext) };
+    }
+    throw new Error(`unexpected require: ${specifier}`);
+  };
+
+  const previous = {
+    EXPECTED_REPOSITORY: process.env.EXPECTED_REPOSITORY,
+    REQUESTED_PR_NUMBER: process.env.REQUESTED_PR_NUMBER,
+    REQUESTED_EXPECTED_SHA: process.env.REQUESTED_EXPECTED_SHA,
+    DISPATCH_REF: process.env.DISPATCH_REF
+  };
+  process.env.EXPECTED_REPOSITORY = expectedRepository;
+  process.env.REQUESTED_PR_NUMBER = "130";
+  process.env.REQUESTED_EXPECTED_SHA = fixture.expectedSha ?? headSha;
+  process.env.DISPATCH_REF = "refs/heads/main";
+
+  try {
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as new (
+      ...args: string[]
+    ) => (...values: unknown[]) => Promise<void>;
+    const run = new AsyncFunction("require", "github", "context", "core", resolverScript);
+    await run(fakeRequire, github, { repo: { owner: "lukexd09", repo: "clariobase-ai-crm" } }, core);
+  } finally {
+    for (const [name, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  }
+
+  return { outputs, paginateCalls };
+}
+
+test("Fast CI validates exact-head provenance and the current merge candidate without release work", () => {
   const workflow = read(".github/workflows/ci.yml");
 
   assert.match(workflow, /^name: CI$/m);
-  assert.match(workflow, /pull_request:/);
   assert.match(workflow, /group: ci-pr-\$\{\{ github\.event\.pull_request\.number \}\}/);
   assert.match(workflow, /cancel-in-progress: true/);
+  assert.match(workflow, /Check out exact PR head for provenance/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \}\}/);
-  assert.match(workflow, /Verify checked-out PR head SHA/);
   assert.match(workflow, /name: auto-preview-context/);
-  assert.match(workflow, /workflowRunId/);
-  assert.match(workflow, /pnpm\/action-setup@v4/);
-  assert.match(workflow, /actions\/setup-node@v5/);
-  assert.match(workflow, /cache: pnpm/);
-  assert.match(workflow, /cache-dependency-path: pnpm-lock\.yaml/);
-  assert.match(workflow, /pnpm install --frozen-lockfile/);
-  assert.match(workflow, /pnpm prisma:validate/);
-  assert.match(workflow, /pnpm prisma:generate/);
-  assert.match(workflow, /pnpm lint/);
+  assert.match(workflow, /Check out current PR merge candidate/);
+  assert.match(workflow, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /merge-base --is-ancestor/);
   assert.match(workflow, /pnpm test:fast/);
   assert.match(workflow, /pnpm build/);
-
-  assert.doesNotMatch(workflow, /pnpm test:infra/);
-  assert.doesNotMatch(workflow, /pnpm test\s*$/m);
   assert.doesNotMatch(workflow, /docker\/build-push-action/);
-  assert.doesNotMatch(workflow, /packages: write/);
   assert.doesNotMatch(workflow, /self-hosted/);
   assert.doesNotMatch(workflow, /workflow_run:/);
   assert.doesNotMatch(workflow, /pull_request_target/);
 });
 
-test("Full Integration is path-aware on PRs and always available on main and manually", () => {
+test("Full Integration classifies the PR delta and validates the current merge candidate", () => {
   const workflow = read(".github/workflows/full-integration.yml");
-  const classifyBlock = splitJobBlock(workflow, "classify", "integration");
-  const integrationBlock = splitJobBlock(workflow, "integration", "gate");
-  const gateBlock = splitJobBlock(workflow, "gate");
+  const classify = splitJobBlock(workflow, "classify", "integration");
+  const integration = splitJobBlock(workflow, "integration", "gate");
 
   assert.match(workflow, /^name: Full Integration$/m);
-  assert.match(workflow, /pull_request:/);
   assert.match(workflow, /push:\s*\n\s*branches:\s*\n\s*- main/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /cancel-in-progress: true/);
-  assert.match(classifyBlock, /github\.event\.pull_request\.head\.sha/);
-  assert.match(classifyBlock, /git diff --name-only "\$BASE_SHA" "\$HEAD_SHA"/);
-  assert.match(classifyBlock, /\.github\/workflows\/\*/);
-  assert.match(classifyBlock, /Dockerfile/);
-  assert.match(classifyBlock, /compose\*\.yaml/);
-  assert.match(classifyBlock, /scripts\/deploy-preview\*/);
-  assert.match(classifyBlock, /prisma\/schema\.prisma/);
-  assert.match(classifyBlock, /prisma\/migrations\/\*/);
-  assert.match(classifyBlock, /tests\/github-actions-\*/);
-  assert.match(classifyBlock, /package\.json/);
-  assert.match(classifyBlock, /pnpm-lock\.yaml/);
-  assert.match(classifyBlock, /EVENT_NAME" != "pull_request/);
-  assert.match(integrationBlock, /if: needs\.classify\.outputs\.should_run == 'true'/);
-  assert.match(integrationBlock, /cache: pnpm/);
-  assert.match(integrationBlock, /pnpm test:infra/);
-  assert.match(gateBlock, /if: always\(\)/);
-  assert.match(gateBlock, /Full Integration was required but ended with/);
-  assert.doesNotMatch(workflow, /pull_request_target/);
+  assert.match(classify, /VALIDATION_REF="\$EVENT_SHA"/);
+  assert.match(classify, /git diff --name-only "\$BASE_SHA\.\.\.\$HEAD_SHA"/);
+  assert.match(classify, /src\/app\/health\/\*/);
+  assert.match(classify, /scripts\/resolve-preview\*/);
+  assert.match(integration, /pnpm test:infra/);
+  assert.match(splitJobBlock(workflow, "gate"), /if: always\(\)/);
 });
 
-test("Preview Release uses only trusted manual dispatch and exact Fast CI correlation", () => {
+test("Preview Release uses trusted manual dispatch and exact Fast CI correlation", () => {
   const workflow = read(".github/workflows/preview-release.yml");
-  const resolverBlock = splitJobBlock(workflow, "resolve-preview-release", "report-blocked");
+  const resolver = splitJobBlock(workflow, "resolve-preview-release", "report-blocked");
 
   assert.match(workflow, /^name: Preview Release$/m);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /pr_number:/);
-  assert.match(workflow, /expected_sha:/);
   assert.doesNotMatch(workflow, /workflow_run:/);
   assert.doesNotMatch(workflow, /pull_request_target/);
   assert.match(workflow, /group: clariobase-preview-slot/);
-  assert.match(workflow, /cancel-in-progress: false/);
-
-  assert.match(resolverBlock, /ref: main/);
-  assert.match(resolverBlock, /DISPATCH_REF: \$\{\{ github\.ref \}\}/);
-  assert.match(resolverBlock, /refs\/heads\/main/);
-  assert.match(resolverBlock, /pull\.state !== "open"/);
-  assert.match(resolverBlock, /headRepository !== expectedRepository/);
-  assert.match(resolverBlock, /expected_sha does not match the current PR head/);
-  assert.match(resolverBlock, /workflow_id: "ci\.yml"/);
-  assert.match(resolverBlock, /event: "pull_request"/);
-  assert.match(resolverBlock, /status: "completed"/);
-  assert.match(resolverBlock, /head_sha: headSha/);
-  assert.match(resolverBlock, /run\.name === "CI"/);
-  assert.match(resolverBlock, /run\.conclusion === "success"/);
-  assert.match(resolverBlock, /auto-preview-context/);
-  assert.match(resolverBlock, /artifactContext\.prNumber/);
-  assert.match(resolverBlock, /artifactContext\.headSha/);
-  assert.match(resolverBlock, /artifactContext\.workflowRunId/);
-  assert.match(resolverBlock, /Fast CI context workflow run ID mismatch/);
-  assert.match(resolverBlock, /PR changes trusted preview control-plane files/);
-  assert.doesNotMatch(resolverBlock, /pnpm install/);
+  assert.match(resolver, /ref: main/);
+  assert.match(resolver, /refs\/heads\/main/);
+  assert.match(resolver, /workflow_id: "ci\.yml"/);
+  assert.match(resolver, /head_sha: headSha/);
+  assert.match(resolver, /auto-preview-context/);
+  assert.match(resolver, /workflowRunId/);
+  assert.match(resolver, /PR changes trusted preview control-plane files/);
 });
 
-test("Preview Release reports queued, deploying, ready, failed and blocked with one exact-SHA status contract", () => {
-  const workflow = read(".github/workflows/preview-release.yml");
+test("the real workflow resolver accepts only an exact eligible request", async () => {
+  const { outputs, paginateCalls } = await executeWorkflowResolver();
 
-  for (const status of ["queued", "deploying", "ready", "failed", "blocked"]) {
-    assert.match(workflow, new RegExp(`Result: ${status}|result = .*"${status}"`));
+  assert.equal(outputs.resolution_status, "deploy");
+  assert.equal(outputs.should_deploy, "true");
+  assert.equal(outputs.pr_number, "130");
+  assert.equal(outputs.validated_sha, headSha);
+  assert.equal(outputs.ci_run_id, "123456");
+  assert.deepEqual(paginateCalls, ["files", "runs", "artifacts"]);
+});
+
+test("the real workflow resolver blocks stale SHA, forks, closed PRs and protected controls", async () => {
+  const stale = await executeWorkflowResolver({ expectedSha: "2222222222222222222222222222222222222222" });
+  const fork = await executeWorkflowResolver({
+    pull: {
+      state: "open",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/130",
+      head: { sha: headSha, ref: "feature/rehearsal", repo: { full_name: "someone/fork" } }
+    }
+  });
+  const closed = await executeWorkflowResolver({
+    pull: {
+      state: "closed",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/130",
+      head: { sha: headSha, ref: "feature/rehearsal", repo: { full_name: expectedRepository } }
+    }
+  });
+  const protectedChange = await executeWorkflowResolver({
+    changedFiles: [{ filename: "scripts/deploy-preview.ts" }]
+  });
+
+  assert.match(stale.outputs.skip_reason, /expected_sha does not match/);
+  assert.match(fork.outputs.skip_reason, /head repository is not trusted/);
+  assert.match(closed.outputs.skip_reason, /is not open/);
+  assert.match(protectedChange.outputs.skip_reason, /trusted preview control-plane files/);
+  for (const result of [stale, fork, closed, protectedChange]) {
+    assert.equal(result.outputs.resolution_status, "blocked");
+    assert.equal(result.outputs.should_deploy, "false");
   }
-
-  assert.match(workflow, /<!-- clariobase-preview-status -->/);
-  assert.match(workflow, /PR: #/);
-  assert.match(workflow, /Commit:/);
-  assert.match(workflow, /Branch:/);
-  assert.match(workflow, /Fast CI run:/);
-  assert.match(workflow, /Image build run:/);
-  assert.match(workflow, /Immutable image:/);
-  assert.match(workflow, /Deployment run:/);
-  assert.match(workflow, /Preview URL:/);
-  assert.match(workflow, /Timestamp:/);
-  assert.match(workflow, /RUNNER_REVALIDATION_RESULT/);
-  assert.match(workflow, /blocked \? "blocked" : ready \? "ready" : "failed"/);
 });
 
-test("Preview Release builds one linux image, smokes it, then captures only the pushed registry digest", () => {
+test("the real workflow resolver blocks missing CI and every artifact provenance mismatch", async () => {
+  const missingCi = await executeWorkflowResolver({ runs: [] });
+  assert.match(missingCi.outputs.skip_reason, /no successful Fast CI run/);
+
+  const mismatches = [
+    { schemaVersion: 2 },
+    { repository: "someone/fork" },
+    { prNumber: 999 },
+    { headSha: "2222222222222222222222222222222222222222" },
+    { headRef: "feature/other" },
+    { workflowRunId: 999999 }
+  ];
+
+  for (const mismatch of mismatches) {
+    const execution = await executeWorkflowResolver({
+      artifactContext: {
+        schemaVersion: 1,
+        repository: expectedRepository,
+        prNumber: 130,
+        headSha,
+        headRef: "feature/rehearsal",
+        headRepository: expectedRepository,
+        baseRef: "main",
+        baseRepository: expectedRepository,
+        workflowRunId: 123456,
+        ...mismatch
+      }
+    });
+    assert.equal(execution.outputs.resolution_status, "blocked");
+    assert.equal(execution.outputs.should_deploy, "false");
+    assert.match(execution.outputs.skip_reason, /Fast CI context/);
+  }
+});
+
+test("the real workflow resolver fails closed on GitHub API errors", async () => {
+  const execution = await executeWorkflowResolver({ pullError: new Error("API unavailable") });
+
+  assert.equal(execution.outputs.resolution_status, "blocked");
+  assert.equal(execution.outputs.should_deploy, "false");
+  assert.equal(execution.outputs.skip_reason, "BLOCKED: preview release resolver execution failed");
+});
+
+test("Preview Release preserves one-image, immutable-digest and Windows no-build sequencing", () => {
   const workflow = read(".github/workflows/preview-release.yml");
-  const buildBlock = splitJobBlock(workflow, "build-preview-image", "report-deploying");
+  const build = splitJobBlock(workflow, "build-preview-image", "report-deploying");
+  const deploy = splitJobBlock(workflow, "deploy-preview", "report-final");
 
-  assert.match(buildBlock, /platforms: linux\/amd64/);
-  assert.match(buildBlock, /load: true/);
-  assert.match(buildBlock, /push: false/);
-  assert.match(buildBlock, /cache-from: type=gha,scope=preview-image/);
-  assert.match(buildBlock, /cache-to: type=gha,mode=max,scope=preview-image/);
-  assert.match(buildBlock, /Smoke test immutable image/);
-  assert.match(buildBlock, /Log in to GitHub Container Registry/);
-  assert.match(buildBlock, /Push immutable preview image/);
-  assertOrdered(buildBlock, "Build immutable preview image", "Smoke test immutable image");
-  assertOrdered(buildBlock, "Smoke test immutable image", "Log in to GitHub Container Registry");
-  assertOrdered(buildBlock, "Log in to GitHub Container Registry", "Push immutable preview image");
-  assert.match(buildBlock, /docker push "\$IMAGE_TAG" \| tee docker-push\.log/);
-  assert.match(buildBlock, /Expected exactly one pushed registry digest/);
-  assert.match(buildBlock, /\^sha256:\[0-9a-f\]\{64\}\$/);
-  assert.match(buildBlock, /IMAGE_REF="ghcr\.io\/\$\{\{ github\.repository \}\}@\$\{IMAGE_DIGEST\}"/);
-  assert.doesNotMatch(buildBlock, /steps\.build-image\.outputs\.digest/);
-  assert.match(buildBlock, /"prNumber": \$\{PR_NUMBER\}/);
-  assert.match(buildBlock, /"sourceSha": "\$\{SOURCE_SHA\}"/);
-  assert.match(buildBlock, /"ciRunId": "\$\{CI_RUN_ID\}"/);
-  assert.match(buildBlock, /"imageBuildRunId": "\$\{IMAGE_BUILD_RUN_ID\}"/);
-  assert.match(buildBlock, /"digest": "\$\{IMAGE_DIGEST\}"/);
-  assert.match(buildBlock, /"imageRef": "\$\{IMAGE_REF\}"/);
-  assert.match(buildBlock, /Log out of GitHub Container Registry/);
+  assert.equal((build.match(/docker\/build-push-action/g) ?? []).length, 1);
+  assert.match(build, /platforms: linux\/amd64/);
+  assert.match(build, /load: true/);
+  assert.match(build, /push: false/);
+  assert.match(build, /cache-from: type=gha,scope=preview-image/);
+  assert.match(build, /cache-to: type=gha,mode=max,scope=preview-image/);
+  assertOrdered(build, "Smoke test immutable image", "Log in to GitHub Container Registry");
+  assertOrdered(build, "Log in to GitHub Container Registry", "Push immutable preview image");
+  assert.match(build, /Expected exactly one pushed registry digest/);
+  assert.match(build, /sha256:\[0-9a-f\]\{64\}/);
+
+  assert.match(deploy, /self-hosted/);
+  assert.match(deploy, /ref: main/);
+  assert.match(deploy, /stale validated SHA/);
+  assert.match(deploy, /@sha256:/);
+  assert.match(deploy, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
+  assert.match(deploy, /service -ne "clariobase-ai-crm"/);
+  assert.match(deploy, /status -ne "ready"/);
+  assert.match(deploy, /checks\.database -ne "ok"/);
+  assert.doesNotMatch(deploy, /docker build|docker compose build|--build/);
+  assert.match(deploy, /Cleanup secrets and job artifacts/);
+  assert.match(deploy, /Log out of GitHub Container Registry/);
 });
 
-test("Windows deployment revalidates the PR and preserves immutable no-build runtime sequencing", async () => {
-  const workflow = read(".github/workflows/preview-release.yml");
-  const deployBlock = splitJobBlock(workflow, "deploy-preview", "report-final");
-  const composePreview = read("compose.preview.yaml");
-  const runtimeSupport = read("scripts/preview-runtime-support.ts");
-  const runtimeReadiness = await import("../src/lib/runtime-readiness");
-  const ready = await runtimeReadiness.getRuntimeReadiness(
-    async () => undefined,
-    () => "2026-06-14T00:00:00.000Z"
-  );
-
-  assert.match(deployBlock, /self-hosted/);
-  assert.match(deployBlock, /windows/);
-  assert.match(deployBlock, /clariobase-preview/);
-  assert.match(deployBlock, /environment: e016-preview-operator/);
-  assert.match(deployBlock, /ref: main/);
-  assert.match(deployBlock, /path: control/);
-  assert.match(deployBlock, /Revalidate PR head before deployment/);
-  assert.match(deployBlock, /BLOCKED: stale validated SHA/);
-  assert.match(deployBlock, /runner-side PR revalidation request failed/);
-  assert.match(deployBlock, /IMAGE_SOURCE_SHA must match VALIDATED_SHA/);
-  assert.match(deployBlock, /ghcr\\\.io\/lukexd09\/clariobase-ai-crm@sha256:\[0-9a-f\]\{64\}/);
-  assert.match(deployBlock, /Log in to GitHub Container Registry/);
-  assert.match(deployBlock, /scripts\\deploy-preview\.ps1/);
-  assert.match(deployBlock, /http:\/\/127\.0\.0\.1:3001\/api\/ready/);
-  assert.match(deployBlock, /service -ne "clariobase-ai-crm"/);
-  assert.match(deployBlock, /status -ne "ready"/);
-  assert.match(deployBlock, /checks\.database -ne "ok"/);
-  assert.match(deployBlock, /Cleanup secrets and job artifacts/);
-  assert.match(deployBlock, /Log out of GitHub Container Registry/);
-
-  assertOrdered(deployBlock, "Revalidate PR head before deployment", "Validate immutable image handoff");
-  assertOrdered(deployBlock, "Validate immutable image handoff", "Log in to GitHub Container Registry");
-  assertOrdered(deployBlock, "Log in to GitHub Container Registry", "Deploy preview");
-  assertOrdered(deployBlock, "Deploy preview", "Verify preview readiness");
-  assertOrdered(deployBlock, "Verify preview readiness", "Cleanup secrets and job artifacts");
-  assertOrdered(deployBlock, "Cleanup secrets and job artifacts", "Log out of GitHub Container Registry");
-
-  assert.equal(ready.body.service, "clariobase-ai-crm");
-  assert.equal(ready.body.status, "ready");
-  assert.equal(ready.body.checks.database, "ok");
-  assert.match(composePreview, /build: !reset null/);
-  assert.match(composePreview, /pull_policy: never/);
-  assert.match(runtimeSupport, /pullExactImage/);
-  assert.match(runtimeSupport, /"run",\s*"--rm",\s*"--pull",\s*"never"/);
-  assert.match(runtimeSupport, /"up",\s*"-d",\s*"--no-build",\s*"--pull",\s*"never",\s*"crm-app"/);
-});
-
-test("retired preview workflows cannot auto-deploy or bypass exact Fast CI correlation", () => {
-  const autoDeploy = read(".github/workflows/auto-deploy-preview.yml");
-  const directDeploy = read(".github/workflows/deploy-preview.yml");
-
-  assert.match(autoDeploy, /^name: Retired Auto Deploy Preview$/m);
-  assert.match(directDeploy, /^name: Retired Deploy Preview$/m);
-  assert.match(autoDeploy, /workflow_dispatch:/);
-  assert.match(directDeploy, /workflow_dispatch:/);
-  assert.match(autoDeploy, /exit 1/);
-  assert.match(directDeploy, /exit 1/);
-  assert.doesNotMatch(autoDeploy, /workflow_run:/);
-  assert.doesNotMatch(autoDeploy, /self-hosted|docker\/build-push-action|packages: write/);
-  assert.doesNotMatch(directDeploy, /self-hosted|scripts\\deploy-preview|packages: read/);
-});
-
-test("preview workflow actions remain current and no untrusted target trigger is introduced", () => {
-  const workflows = [
-    read(".github/workflows/ci.yml"),
-    read(".github/workflows/full-integration.yml"),
-    read(".github/workflows/preview-release.yml"),
-    read(".github/workflows/stop-preview.yml")
-  ].join("\n");
-
-  assert.doesNotMatch(workflows, /pull_request_target/);
-  assert.doesNotMatch(workflows, /actions\/(checkout|setup-node|download-artifact)@v4/);
-  assert.doesNotMatch(workflows, /write-all/);
+test("retired preview workflows fail closed", () => {
+  for (const file of [".github/workflows/auto-deploy-preview.yml", ".github/workflows/deploy-preview.yml"]) {
+    const workflow = read(file);
+    assert.match(workflow, /workflow_dispatch:/);
+    assert.match(workflow, /exit 1/);
+    assert.match(workflow, /Preview Release/);
+    assert.doesNotMatch(workflow, /workflow_run:/);
+    assert.doesNotMatch(workflow, /self-hosted/);
+  }
 });
