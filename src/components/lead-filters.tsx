@@ -68,16 +68,16 @@ export function LeadFilters({
   return (
     <section
       aria-busy={isPending}
-      className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
+      className="rounded-[var(--cb-ui-radius-lg)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-card)] p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700">
-          <span className="tabular-nums text-slate-900">{resultSummary}</span>
+        <div className="inline-flex min-h-9 items-center gap-1.5 rounded-[var(--cb-ui-radius-md)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-surface)] px-3 text-sm font-medium text-[color:var(--cb-ui-muted-foreground)]">
+          <span className="tabular-nums text-[color:var(--cb-ui-foreground)]">{resultSummary}</span>
         </div>
 
         <div className="flex items-center gap-2">
           {isPending ? (
-            <span className="text-xs font-medium text-slate-500" aria-live="polite">
+            <span className="text-xs font-medium text-[color:var(--cb-ui-muted-foreground)]" aria-live="polite">
               Updating...
             </span>
           ) : null}
@@ -85,7 +85,7 @@ export function LeadFilters({
             <button
               type="button"
               onClick={clearFilters}
-              className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-[var(--cb-ui-radius-md)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-card)] px-4 text-sm font-medium text-[color:var(--cb-ui-foreground)] transition hover:border-[color:var(--cb-ui-primary)]/30 hover:bg-[color:var(--cb-ui-surface)] hover:text-[color:var(--cb-ui-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-ui-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-ui-background)]"
             >
               Clear filters
             </button>
@@ -141,10 +141,10 @@ export function LeadFilters({
             value ? (
               <li
                 key={key}
-                className="inline-flex min-h-9 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700"
+                className="inline-flex min-h-9 items-center rounded-full border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-surface)] px-3 text-sm font-medium text-[color:var(--cb-ui-foreground)]"
               >
-                <span className="text-slate-500">{filterLabels[key]}:</span>
-                <span className="ml-1 text-slate-900">{formatFilterValue(value)}</span>
+                <span className="text-[color:var(--cb-ui-muted-foreground)]">{filterLabels[key]}:</span>
+                <span className="ml-1 text-[color:var(--cb-ui-foreground)]">{formatFilterValue(value)}</span>
               </li>
             ) : null
           )}
@@ -169,12 +169,12 @@ function FilterSelect({
 }) {
   return (
     <label className="space-y-1.5">
-      <span className="block text-sm font-medium text-slate-700">{label}</span>
+      <span className="block text-sm font-medium text-[color:var(--cb-ui-foreground)]">{label}</span>
       <select
         name={name}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+        className="h-10 w-full rounded-[var(--cb-ui-radius-md)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-background)] px-3 text-sm text-[color:var(--cb-ui-foreground)] outline-none transition focus:border-[color:var(--cb-ui-ring)] focus:ring-2 focus:ring-[color:var(--cb-ui-ring)]/20"
       >
         {options.map((option) => (
           <option key={option || "all"} value={option}>

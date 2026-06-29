@@ -24,10 +24,13 @@ test("core CRM work screens use the light shell baseline", () => {
   assert.match(appShell, /nav aria-label="Compact navigation"/);
   assert.match(appShell, /aria-current=\{active \? "page" : undefined\}/);
 
-  for (const source of [workPage, leadsPage, salesReportPage]) {
+  for (const source of [workPage, salesReportPage]) {
     assert.match(source, /bg-slate-50/);
     assert.doesNotMatch(source, /max-w-7xl/);
   }
+  assert.match(leadsPage, /ProofShell pathname="\/leads"/);
+  assert.match(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /--cb-ui-background/);
 });
 
 test("core CRM work screens keep semantic light status pills and accessible tables", () => {
@@ -59,7 +62,7 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(leadFilters, /fieldset/);
   assert.match(leadFilters, /legend className="sr-only">Filter leads<\/legend>/);
   assert.match(leadFilters, /h-10/);
-  assert.match(leadFilters, /text-sm font-medium text-slate-700/);
+  assert.match(leadFilters, /text-sm font-medium text-\[color:var\(--cb-ui-foreground\)\]/);
   assert.match(leadFilters, /xl:grid-cols-\[repeat\(4,minmax\(150px,1fr\)\)\]/);
   assert.match(leadFilters, /focus-visible:ring-2/);
   assert.match(leadFilters, /resultSummary/);
@@ -69,7 +72,10 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(leadTable, /scope="col"/);
   assert.match(leadTable, /caption className="sr-only"/);
   assert.match(leadTable, /focus-visible:ring-2/);
-  assert.match(leadTable, /font-semibold text-slate-900 transition hover:text-sky-700 hover:underline/);
+  assert.match(
+    leadTable,
+    /font-semibold text-\[color:var\(--cb-ui-foreground\)\] transition hover:text-\[color:var\(--cb-ui-primary\)\] hover:underline/
+  );
   assert.match(leadTable, /tabular-nums/);
 
   assert.match(workPage, /grid-cols-2/);
@@ -106,7 +112,10 @@ test("leads screen keeps a compact operational header and active filter chips", 
   assert.doesNotMatch(leadsPage, /Visible rows/);
   assert.doesNotMatch(leadsPage, /leads\.length === 1 \? "lead" : "leads"/);
   assert.match(leadFilters, /aria-label="Active filters"/);
-  assert.match(leadFilters, /min-h-9 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700/);
+  assert.match(
+    leadFilters,
+    /min-h-9 items-center rounded-full border border-\[color:var\(--cb-ui-border\)\] bg-\[color:var\(--cb-ui-surface\)\] px-3 text-sm font-medium text-\[color:var\(--cb-ui-foreground\)\]/
+  );
   assert.match(leadFilters, /filterLabels: Record<keyof FilterOptions, string>/);
   assert.match(leadFilters, /formatFilterValue\(value: string\)/);
   assert.match(leadFilters, /router\.replace\(/);
