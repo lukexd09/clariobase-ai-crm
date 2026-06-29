@@ -1,50 +1,49 @@
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
-import process from "node:process";
+import os from "node:os";
 import path from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 export const EXPECTED_REPOSITORY = "lukexd09/clariobase-ai-crm";
-export const PREVIEW_STATUS_COMMENT_MARKER = "<!-- clariobase-preview-status -->";
-export const PREVIEW_URL = "http://Serwer:3001";
 export const AUTO_PREVIEW_CONTEXT_SCHEMA_VERSION = 1;
 
-type PullRequestRef = {
-  ref?: string;
-  sha?: string;
-  repo?: {
-    full_name?: string;
-  } | null;
-};
+export const PROTECTED_PREVIEW_PATHS = new Set([
+  ".github/workflows/ci.yml",
+  ".github/workflows/full-integration.yml",
+  ".github/workflows/preview-release.yml",
+  ".github/workflows/auto-deploy-preview.yml",
+  ".github/workflows/deploy-preview.yml",
+  "scripts/resolve-auto-preview.ts",
+  "scripts/deploy-preview.ts",
+  "scripts/deploy-preview.ps1",
+  "scripts/preview-runtime-support.ts",
+  "scripts/stop-preview.ts",
+  "scripts/stop-preview.ps1",
+  "compose.yaml",
+  "compose.preview.yaml",
+  ".env.compose.preview.example"
+]);
 
-type WorkflowRunPullRequest = {
-  number?: number;
-  html_url?: string;
-  url?: string;
+type PullRequest = {
   state?: string;
-  head?: PullRequestRef;
-  base?: PullRequestRef;
+  html_url?: string;
+  head?: { sha?: string; ref?: string; repo?: { full_name?: string } | null } | null;
 };
 
-type WorkflowRunEvent = {
-  action?: string;
-  repository?: {
-    full_name?: string;
-    default_branch?: string;
-  };
-  workflow_run?: {
-    name?: string;
-    event?: string;
-    status?: string;
-    conclusion?: string | null;
-    id?: number;
-    head_branch?: string;
-    head_sha?: string;
-    html_url?: string;
-    pull_requests?: WorkflowRunPullRequest[];
-  };
+type WorkflowRun = {
+  id?: number;
+  name?: string;
+  event?: string;
+  status?: string;
+  conclusion?: string | null;
+  head_sha?: string;
+  html_url?: string;
 };
 
-type AutoPreviewContext = {
+type WorkflowArtifact = { id?: number; name?: string; expired?: boolean };
+
+export type AutoPreviewContext = {
   schemaVersion?: number;
   repository?: string;
   prNumber?: number;
@@ -56,514 +55,301 @@ type AutoPreviewContext = {
   workflowRunId?: number;
 };
 
-type PullRequestApiResponse = {
-  number?: number;
-  state?: string;
-  html_url?: string;
-  head?: PullRequestRef;
+export type PreviewReleaseRequest = {
+  repository: string;
+  dispatchRef: string;
+  prNumber: string;
+  expectedSha?: string;
 };
 
-type PullRequestFileResponse = {
-  filename?: string;
-};
-
-export type ResolutionStatus = "deploy" | "skipped" | "blocked";
-export type CommentResult = "deploying" | "ready" | "failed" | "blocked";
-
-export type ResolutionResult = {
-  resolutionStatus: ResolutionStatus;
+export type PreviewReleaseResult = {
+  resolutionStatus: "deploy" | "blocked";
   shouldDeploy: boolean;
-  skipReason: string;
   prNumber: string;
   prUrl: string;
   headRef: string;
   validatedSha: string;
+  skipReason: string;
+  ciRunId: string;
   ciRunUrl: string;
 };
 
-export type PreviewCommentInputs = {
-  result: CommentResult;
-  attemptedSha: string;
-  headRef: string;
-  ciRunUrl: string;
-  deploymentRunUrl: string;
-  timestamp: string;
+export type PreviewReleaseApi = {
+  getPullRequest(prNumber: number): Promise<PullRequest>;
+  listChangedFiles(prNumber: number): Promise<string[]>;
+  listWorkflowRuns(headSha: string): Promise<WorkflowRun[]>;
+  listWorkflowRunArtifacts(runId: number): Promise<WorkflowArtifact[]>;
+  readArtifactContext(artifactId: number): Promise<AutoPreviewContext>;
 };
 
-type ResolverOptions = {
-  event: WorkflowRunEvent;
-  repository: string;
-  context: AutoPreviewContext;
-  fetchPullRequest: (prNumber: number) => Promise<PullRequestApiResponse>;
-};
-
-type CliOptions = {
-  eventPath: string;
-  repository: string;
-  contextPath: string;
-};
+type FetchLike = typeof fetch;
 
 function isFullSha(value: string | undefined): value is string {
   return Boolean(value && /^[0-9a-f]{40}$/i.test(value));
-}
-
-function createResult(partial?: Partial<ResolutionResult>): ResolutionResult {
-  return {
-    resolutionStatus: "blocked",
-    shouldDeploy: false,
-    skipReason: "BLOCKED: ambiguous event payload",
-    prNumber: "",
-    prUrl: "",
-    headRef: "",
-    validatedSha: "",
-    ciRunUrl: "",
-    ...partial
-  };
 }
 
 function isPositiveInteger(value: unknown): value is number {
   return Number.isInteger(value) && Number(value) > 0;
 }
 
-export function parseWorkflowRunEvent(raw: string): WorkflowRunEvent {
-  return JSON.parse(raw) as WorkflowRunEvent;
+function result(partial: Partial<PreviewReleaseResult> = {}): PreviewReleaseResult {
+  return {
+    resolutionStatus: "blocked",
+    shouldDeploy: false,
+    prNumber: "",
+    prUrl: "",
+    headRef: "",
+    validatedSha: "",
+    skipReason: "BLOCKED: ambiguous preview release request",
+    ciRunId: "",
+    ciRunUrl: "",
+    ...partial
+  };
 }
 
-export function parseAutoPreviewContext(raw: string): AutoPreviewContext {
-  return JSON.parse(raw) as AutoPreviewContext;
+function changesProtectedControlPlane(files: string[]) {
+  return files.some(
+    (filename) => PROTECTED_PREVIEW_PATHS.has(filename) || filename.startsWith("scripts/resolve-preview")
+  );
 }
 
-export async function resolveAutoPreview(options: ResolverOptions): Promise<ResolutionResult> {
-  const event = options.event;
-  const workflowRun = event.workflow_run;
-  const context = options.context;
+export async function resolvePreviewRelease(
+  request: PreviewReleaseRequest,
+  api: PreviewReleaseApi
+): Promise<PreviewReleaseResult> {
+  const prNumber = Number(request.prNumber);
+  const expectedSha = (request.expectedSha ?? "").trim().toLowerCase();
+  const requestResult = result({ prNumber: isPositiveInteger(prNumber) ? String(prNumber) : "" });
 
-  if (options.repository !== EXPECTED_REPOSITORY) {
-    return createResult({ skipReason: `BLOCKED: repository must be ${EXPECTED_REPOSITORY}` });
-  }
+  try {
+    if (request.repository !== EXPECTED_REPOSITORY) {
+      return result({ skipReason: `BLOCKED: repository must be ${EXPECTED_REPOSITORY}` });
+    }
+    if (request.dispatchRef !== "refs/heads/main") {
+      return result({ skipReason: "BLOCKED: Preview Release must be dispatched from main" });
+    }
+    if (!isPositiveInteger(prNumber)) {
+      return result({ skipReason: "BLOCKED: pr_number must be a positive integer" });
+    }
+    if (expectedSha && !isFullSha(expectedSha)) {
+      return result({ ...requestResult, skipReason: "BLOCKED: expected_sha must be a full 40-character hexadecimal SHA" });
+    }
 
-  if (event.action !== "completed") {
-    return createResult({ skipReason: "BLOCKED: workflow_run action must be completed" });
-  }
-
-  if (!workflowRun) {
-    return createResult();
-  }
-
-  const ciRunUrl = workflowRun.html_url ?? "";
-  const validatedSha = workflowRun.head_sha?.toLowerCase() ?? "";
-  const artifactHeadSha = context.headSha?.toLowerCase() ?? "";
-  const artifactHeadRef = context.headRef ?? "";
-  const prNumber = context.prNumber as number;
-
-  if (workflowRun.name !== "CI") {
-    return createResult({ resolutionStatus: "skipped", skipReason: "SKIPPED: triggering workflow is not CI", ciRunUrl });
-  }
-
-  if (workflowRun.status !== "completed") {
-    return createResult({ resolutionStatus: "blocked", skipReason: "BLOCKED: workflow_run status must be completed", ciRunUrl });
-  }
-
-  if (workflowRun.conclusion !== "success") {
-    return createResult({
-      resolutionStatus: "skipped",
-      skipReason: `SKIPPED: CI conclusion is ${workflowRun.conclusion ?? "null"}`,
-      ciRunUrl,
-      validatedSha
+    const pull = await api.getPullRequest(prNumber);
+    const headSha = String(pull.head?.sha ?? "").toLowerCase();
+    const headRef = String(pull.head?.ref ?? "");
+    const headRepository = String(pull.head?.repo?.full_name ?? "");
+    const pullResult = result({
+      prNumber: String(prNumber),
+      prUrl: String(pull.html_url ?? ""),
+      headRef,
+      validatedSha: headSha
     });
-  }
 
-  if (workflowRun.event !== "pull_request") {
-    return createResult({
-      resolutionStatus: "skipped",
-      skipReason: `SKIPPED: CI event is ${workflowRun.event ?? "unknown"}`,
-      ciRunUrl,
-      validatedSha
-    });
-  }
+    if (pull.state !== "open") {
+      return result({ ...pullResult, skipReason: `BLOCKED: PR #${prNumber} is not open` });
+    }
+    if (headRepository !== EXPECTED_REPOSITORY) {
+      return result({ ...pullResult, skipReason: "BLOCKED: PR head repository is not trusted" });
+    }
+    if (!isFullSha(headSha)) {
+      return result({ ...pullResult, skipReason: "BLOCKED: current PR head SHA is missing or invalid" });
+    }
+    if (expectedSha && expectedSha !== headSha) {
+      return result({ ...pullResult, skipReason: "BLOCKED: expected_sha does not match the current PR head" });
+    }
 
-  if (!isFullSha(validatedSha)) {
-    return createResult({ skipReason: "BLOCKED: workflow_run.head_sha is missing or invalid", ciRunUrl, validatedSha });
-  }
-
-  if (context.schemaVersion !== AUTO_PREVIEW_CONTEXT_SCHEMA_VERSION) {
-    return createResult({ skipReason: "BLOCKED: unsupported auto-preview context schema", ciRunUrl, validatedSha });
-  }
-
-  if (context.repository !== EXPECTED_REPOSITORY) {
-    return createResult({ skipReason: "BLOCKED: artifact repository mismatch", ciRunUrl, validatedSha });
-  }
-
-  if (context.headRepository !== EXPECTED_REPOSITORY) {
-    return createResult({ skipReason: "BLOCKED: artifact head repository mismatch", ciRunUrl, validatedSha });
-  }
-
-  if (!isPositiveInteger(context.workflowRunId) || context.workflowRunId !== workflowRun.id) {
-    return createResult({ skipReason: "BLOCKED: artifact workflow run ID mismatch", ciRunUrl, validatedSha });
-  }
-
-  if (!isPositiveInteger(context.prNumber)) {
-    return createResult({ skipReason: "BLOCKED: artifact PR number is invalid", ciRunUrl, validatedSha });
-  }
-
-  if (!isFullSha(artifactHeadSha)) {
-    return createResult({ skipReason: "BLOCKED: artifact head SHA is invalid", ciRunUrl, validatedSha });
-  }
-
-  if (artifactHeadSha !== validatedSha) {
-    return createResult({ skipReason: "BLOCKED: artifact SHA mismatch", ciRunUrl, validatedSha });
-  }
-
-  const eventRepository = event.repository?.full_name;
-  const workflowPullRequests = workflowRun.pull_requests ?? [];
-
-  if (eventRepository !== EXPECTED_REPOSITORY) {
-    return createResult({
-      skipReason: `BLOCKED: event repository must be ${EXPECTED_REPOSITORY}`,
-      ciRunUrl,
-      validatedSha,
-      prNumber: String(prNumber)
-    });
-  }
-
-  if (workflowPullRequests.length > 1) {
-    return createResult({ skipReason: "BLOCKED: workflow run has multiple associated pull requests", ciRunUrl, validatedSha });
-  }
-
-  if (workflowPullRequests.length === 1) {
-    const workflowPullRequest = workflowPullRequests[0];
-    const workflowPrNumber = workflowPullRequest.number;
-    const workflowHeadRepository = workflowPullRequest.head?.repo?.full_name;
-    const workflowHeadRef = workflowPullRequest.head?.ref ?? "";
-    const workflowHeadSha = workflowPullRequest.head?.sha?.toLowerCase() ?? "";
-
-    if (workflowPrNumber && workflowPrNumber !== prNumber) {
-      return createResult({
-        skipReason: "BLOCKED: workflow run PR metadata conflicts with CI artifact",
-        ciRunUrl,
-        validatedSha,
-        prNumber: String(prNumber)
+    if (changesProtectedControlPlane(await api.listChangedFiles(prNumber))) {
+      return result({
+        ...pullResult,
+        skipReason:
+          "BLOCKED: PR changes trusted preview control-plane files. Merge the reviewed control-plane change to main before running the runtime rehearsal."
       });
     }
 
-    if (workflowHeadRepository && workflowHeadRepository !== EXPECTED_REPOSITORY) {
-      return createResult({
-        skipReason: "BLOCKED: workflow run PR metadata conflicts with CI artifact",
-        ciRunUrl,
-        validatedSha,
-        prNumber: String(prNumber)
-      });
+    const successfulRuns = (await api.listWorkflowRuns(headSha))
+      .filter(
+        (run) =>
+          run.name === "CI" &&
+          run.event === "pull_request" &&
+          run.status === "completed" &&
+          run.conclusion === "success" &&
+          String(run.head_sha ?? "").toLowerCase() === headSha &&
+          isPositiveInteger(run.id)
+      )
+      .sort((left, right) => Number(right.id) - Number(left.id));
+    const ciRun = successfulRuns[0];
+
+    if (!ciRun || !isPositiveInteger(ciRun.id)) {
+      return result({ ...pullResult, skipReason: "BLOCKED: no successful Fast CI run exists for the exact current PR head SHA" });
     }
 
-    if ((workflowHeadRef && workflowHeadRef !== artifactHeadRef) || (workflowHeadSha && workflowHeadSha !== validatedSha)) {
-      return createResult({
-        skipReason: "BLOCKED: workflow run PR metadata conflicts with CI artifact",
-        ciRunUrl,
-        validatedSha,
-        prNumber: String(prNumber)
-      });
+    const ciResult = result({
+      ...pullResult,
+      ciRunId: String(ciRun.id),
+      ciRunUrl: String(ciRun.html_url ?? "")
+    });
+    const artifacts = await api.listWorkflowRunArtifacts(ciRun.id);
+    const contextArtifact = artifacts.find(
+      (artifact) => artifact.name === "auto-preview-context" && artifact.expired !== true && isPositiveInteger(artifact.id)
+    );
+
+    if (!contextArtifact || !isPositiveInteger(contextArtifact.id)) {
+      return result({ ...ciResult, skipReason: "BLOCKED: exact Fast CI run does not contain a valid auto-preview-context artifact" });
     }
+
+    const context = await api.readArtifactContext(contextArtifact.id);
+    if (context.schemaVersion !== AUTO_PREVIEW_CONTEXT_SCHEMA_VERSION) {
+      return result({ ...ciResult, skipReason: "BLOCKED: unsupported Fast CI context artifact schema" });
+    }
+    if (context.repository !== EXPECTED_REPOSITORY || context.headRepository !== EXPECTED_REPOSITORY) {
+      return result({ ...ciResult, skipReason: "BLOCKED: Fast CI context repository mismatch" });
+    }
+    if (Number(context.prNumber) !== prNumber) {
+      return result({ ...ciResult, skipReason: "BLOCKED: Fast CI context PR number mismatch" });
+    }
+    if (String(context.headSha ?? "").toLowerCase() !== headSha) {
+      return result({ ...ciResult, skipReason: "BLOCKED: Fast CI context SHA mismatch" });
+    }
+    if (String(context.headRef ?? "") !== headRef) {
+      return result({ ...ciResult, skipReason: "BLOCKED: Fast CI context branch mismatch" });
+    }
+    if (Number(context.workflowRunId) !== Number(ciRun.id)) {
+      return result({ ...ciResult, skipReason: "BLOCKED: Fast CI context workflow run ID mismatch" });
+    }
+
+    return result({ ...ciResult, resolutionStatus: "deploy", shouldDeploy: true, skipReason: "" });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return result({ ...requestResult, skipReason: "BLOCKED: preview release resolver execution failed" });
   }
-
-  if (artifactHeadRef !== context.headRef) {
-    return createResult({ skipReason: "BLOCKED: artifact head ref mismatch", ciRunUrl, validatedSha, prNumber: String(prNumber) });
-  }
-
-  if (context.baseRepository !== EXPECTED_REPOSITORY) {
-    return createResult({
-      skipReason: "BLOCKED: artifact base repository mismatch",
-      ciRunUrl,
-      validatedSha,
-      prNumber: String(prNumber)
-    });
-  }
-
-  const currentPullRequest = await options.fetchPullRequest(prNumber);
-  const currentHeadRepository = currentPullRequest.head?.repo?.full_name ?? "";
-  const currentHeadSha = currentPullRequest.head?.sha?.toLowerCase() ?? "";
-  const currentHeadRef = currentPullRequest.head?.ref ?? "";
-  const headRef = currentHeadRef || artifactHeadRef || workflowRun.head_branch || "";
-  const prUrl = currentPullRequest.html_url ?? "";
-
-  if (currentPullRequest.state !== "open") {
-    return createResult({
-      resolutionStatus: "skipped",
-      skipReason: `SKIPPED: PR #${prNumber} is ${currentPullRequest.state ?? "unknown"}`,
-      ciRunUrl,
-      validatedSha,
-      prNumber: String(prNumber),
-      prUrl,
-      headRef
-    });
-  }
-
-  if (currentHeadRepository !== EXPECTED_REPOSITORY) {
-    return createResult({
-      skipReason: `BLOCKED: current PR head repository is ${currentHeadRepository || "unknown"}`,
-      ciRunUrl,
-      validatedSha,
-      prNumber: String(prNumber),
-      prUrl,
-      headRef
-    });
-  }
-
-  if (!isFullSha(currentHeadSha)) {
-    return createResult({
-      skipReason: "BLOCKED: current PR head SHA is missing or invalid",
-      ciRunUrl,
-      validatedSha,
-      prNumber: String(prNumber),
-      prUrl,
-      headRef
-    });
-  }
-
-  if (currentHeadRef && currentHeadRef !== artifactHeadRef) {
-    return createResult({
-      skipReason: "BLOCKED: stale validated SHA",
-      ciRunUrl,
-      validatedSha,
-      prNumber: String(prNumber),
-      prUrl,
-      headRef
-    });
-  }
-
-  if (currentHeadSha !== validatedSha) {
-    return createResult({
-      resolutionStatus: "blocked",
-      skipReason: "BLOCKED: stale validated SHA",
-      ciRunUrl,
-      validatedSha,
-      prNumber: String(prNumber),
-      prUrl,
-      headRef
-    });
-  }
-
-  const controlPlaneGuard = await inspectTrustedControlPlaneChanges(options.repository, prNumber);
-
-  if (!controlPlaneGuard.allowed) {
-    return createResult({
-      resolutionStatus: "blocked",
-      shouldDeploy: false,
-      skipReason:
-        "BLOCKED: PR changes trusted preview control-plane files. Merge the reviewed control-plane change to main before running the runtime rehearsal.",
-      ciRunUrl,
-      validatedSha,
-      prNumber: String(prNumber),
-      prUrl,
-      headRef
-    });
-  }
-
-  return createResult({
-    resolutionStatus: "deploy",
-    shouldDeploy: true,
-    skipReason: "",
-    prNumber: String(prNumber),
-    prUrl,
-    headRef,
-    validatedSha,
-    ciRunUrl
-  });
 }
 
-async function inspectTrustedControlPlaneChanges(repository: string, prNumber: number) {
-  const token = process.env.GITHUB_TOKEN;
-
-  if (!token) {
-    throw new Error("Missing GITHUB_TOKEN for PR file inspection.");
-  }
-
-  const protectedPaths = new Set([
-    ".github/workflows/auto-deploy-preview.yml",
-    ".github/workflows/ci.yml",
-    "scripts/resolve-auto-preview.ts",
-    "scripts/deploy-preview.ts",
-    "scripts/deploy-preview.ps1",
-    "scripts/preview-runtime-support.ts",
-    "scripts/stop-preview.ts",
-    "scripts/stop-preview.ps1",
-    "compose.yaml",
-    "compose.preview.yaml",
-    ".env.compose.preview.example"
-  ]);
-
-  const [owner, repo] = repository.split("/");
-  const changedFiles = new Set<string>();
-
+export async function fetchAllPages<T>(url: string, token: string, fetchImpl: FetchLike = fetch): Promise<T[]> {
+  const items: T[] = [];
   for (let page = 1; ; page += 1) {
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=100&page=${page}`, {
+    const separator = url.includes("?") ? "&" : "?";
+    const response = await fetchImpl(`${url}${separator}per_page=100&page=${page}`, {
       headers: {
         Accept: "application/vnd.github+json",
         Authorization: `Bearer ${token}`,
         "X-GitHub-Api-Version": "2022-11-28"
       }
     });
-
     if (!response.ok) {
-      throw new Error(`GitHub API pull request files lookup failed with HTTP ${response.status}.`);
+      throw new Error(`GitHub API request failed with HTTP ${response.status}.`);
     }
-
-    const files = (await response.json()) as PullRequestFileResponse[];
-
-    for (const file of files) {
-      if (file.filename) {
-        changedFiles.add(file.filename);
-      }
-    }
-
-    if (files.length < 100) {
-      break;
+    const pageItems = (await response.json()) as T[];
+    items.push(...pageItems);
+    if (pageItems.length < 100) {
+      return items;
     }
   }
-
-  for (const filename of changedFiles) {
-    if (protectedPaths.has(filename)) {
-      return { allowed: false as const, filename };
-    }
-  }
-
-  return { allowed: true as const };
 }
 
-export function formatPreviewStatusComment(inputs: PreviewCommentInputs) {
-  const statusTitle = {
-    deploying: "Preview deploying",
-    ready: "Preview ready",
-    failed: "Preview failed",
-    blocked: "Preview blocked"
-  }[inputs.result];
-
-  return [
-    PREVIEW_STATUS_COMMENT_MARKER,
-    "",
-    statusTitle,
-    "",
-    `Result: ${inputs.result}`,
-    `URL: ${PREVIEW_URL}`,
-    `Commit: ${inputs.attemptedSha}`,
-    `Branch: ${inputs.headRef}`,
-    `CI: ${inputs.ciRunUrl}`,
-    `Deployment: ${inputs.deploymentRunUrl}`,
-    `Timestamp: ${inputs.timestamp}`
-  ].join("\n");
-}
-
-export function writeGithubOutput(result: ResolutionResult) {
-  const outputPath = process.env.GITHUB_OUTPUT;
-
-  if (!outputPath) {
-    return;
-  }
-
-  const lines = [
-    `resolution_status=${result.resolutionStatus}`,
-    `should_deploy=${result.shouldDeploy ? "true" : "false"}`,
-    `pr_number=${result.prNumber}`,
-    `pr_url=${result.prUrl}`,
-    `head_ref=${result.headRef}`,
-    `validated_sha=${result.validatedSha}`,
-    `skip_reason=${result.skipReason}`,
-    `ci_run_url=${result.ciRunUrl}`
-  ];
-
-  fs.appendFileSync(outputPath, `${lines.join("\n")}\n`, "utf8");
-}
-
-async function fetchPullRequestFromApi(repository: string, prNumber: number): Promise<PullRequestApiResponse> {
-  const token = process.env.GITHUB_TOKEN;
-
-  if (!token) {
-    throw new Error("Missing GITHUB_TOKEN for PR verification.");
-  }
-
-  const [owner, repo] = repository.split("/");
-  const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`, {
+async function requestJson<T>(url: string, token: string): Promise<T> {
+  const response = await fetch(url, {
     headers: {
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${token}`,
       "X-GitHub-Api-Version": "2022-11-28"
     }
   });
-
   if (!response.ok) {
-    throw new Error(`GitHub API pull request lookup failed with HTTP ${response.status}.`);
+    throw new Error(`GitHub API request failed with HTTP ${response.status}.`);
   }
-
-  return (await response.json()) as PullRequestApiResponse;
+  return (await response.json()) as T;
 }
 
-function parseArgs(argv: string[]): CliOptions {
-  const parsed: CliOptions = {
-    eventPath: process.env.GITHUB_EVENT_PATH ?? "",
-    repository: process.env.GITHUB_REPOSITORY ?? "",
-    contextPath: ""
+async function downloadContext(repository: string, artifactId: number, token: string) {
+  const response = await fetch(`https://api.github.com/repos/${repository}/actions/artifacts/${artifactId}/zip`, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28"
+    },
+    redirect: "follow"
+  });
+  if (!response.ok) {
+    throw new Error(`Artifact download failed with HTTP ${response.status}.`);
+  }
+
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "clariobase-preview-release-"));
+  const archive = path.join(directory, "auto-preview-context.zip");
+  try {
+    fs.writeFileSync(archive, Buffer.from(await response.arrayBuffer()));
+    return JSON.parse(execFileSync("unzip", ["-p", archive, "auto-preview-context.json"], { encoding: "utf8" })) as AutoPreviewContext;
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+function writeOutputs(output: PreviewReleaseResult) {
+  if (!process.env.GITHUB_OUTPUT) {
+    throw new Error("GITHUB_OUTPUT is required.");
+  }
+  const values: Record<string, string> = {
+    resolution_status: output.resolutionStatus,
+    should_deploy: String(output.shouldDeploy),
+    pr_number: output.prNumber,
+    pr_url: output.prUrl,
+    head_ref: output.headRef,
+    validated_sha: output.validatedSha,
+    skip_reason: output.skipReason,
+    ci_run_id: output.ciRunId,
+    ci_run_url: output.ciRunUrl
+  };
+  fs.appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    `${Object.entries(values).map(([name, value]) => `${name}=${value.replace(/\r?\n/g, " ")}`).join("\n")}\n`,
+    "utf8"
+  );
+}
+
+export async function runCli() {
+  const repository = process.env.REPOSITORY ?? "";
+  const token = process.env.GITHUB_TOKEN ?? "";
+  const [owner, repo] = repository.split("/");
+  if (!token || !owner || !repo) {
+    throw new Error("REPOSITORY and GITHUB_TOKEN are required.");
+  }
+
+  const api: PreviewReleaseApi = {
+    getPullRequest: (prNumber) => requestJson(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`, token),
+    listChangedFiles: async (prNumber) =>
+      (await fetchAllPages<{ filename?: string }>(`https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}/files`, token))
+        .map((file) => String(file.filename ?? ""))
+        .filter(Boolean),
+    listWorkflowRuns: async (headSha) =>
+      (await requestJson<{ workflow_runs?: WorkflowRun[] }>(
+        `https://api.github.com/repos/${owner}/${repo}/actions/workflows/ci.yml/runs?event=pull_request&status=completed&head_sha=${headSha}&per_page=100`,
+        token
+      )).workflow_runs ?? [],
+    listWorkflowRunArtifacts: async (runId) =>
+      (await requestJson<{ artifacts?: WorkflowArtifact[] }>(
+        `https://api.github.com/repos/${owner}/${repo}/actions/runs/${runId}/artifacts?per_page=100`,
+        token
+      )).artifacts ?? [],
+    readArtifactContext: (artifactId) => downloadContext(repository, artifactId, token)
   };
 
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-
-    if (token === "--event-path") {
-      parsed.eventPath = argv[index + 1] ?? parsed.eventPath;
-      index += 1;
-      continue;
-    }
-
-    if (token === "--repository") {
-      parsed.repository = argv[index + 1] ?? parsed.repository;
-      index += 1;
-      continue;
-    }
-
-    if (token === "--context-path") {
-      parsed.contextPath = argv[index + 1] ?? parsed.contextPath;
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`Unknown argument: ${token}`);
-  }
-
-  if (!parsed.eventPath) {
-    throw new Error("Missing required --event-path or GITHUB_EVENT_PATH.");
-  }
-
-  if (!parsed.repository) {
-    throw new Error("Missing required --repository or GITHUB_REPOSITORY.");
-  }
-
-  if (!parsed.contextPath) {
-    throw new Error("Missing required --context-path.");
-  }
-
-  return parsed;
+  const output = await resolvePreviewRelease(
+    {
+      repository,
+      dispatchRef: process.env.DISPATCH_REF ?? "",
+      prNumber: process.env.REQUESTED_PR_NUMBER ?? "",
+      expectedSha: process.env.REQUESTED_EXPECTED_SHA ?? ""
+    },
+    api
+  );
+  writeOutputs(output);
+  console.log(JSON.stringify(output, null, 2));
 }
 
-async function main() {
-  const options = parseArgs(process.argv.slice(2));
-  const event = parseWorkflowRunEvent(fs.readFileSync(options.eventPath, "utf8"));
-  const context = parseAutoPreviewContext(fs.readFileSync(options.contextPath, "utf8"));
-  const result = await resolveAutoPreview({
-    event,
-    repository: options.repository,
-    context,
-    fetchPullRequest: async (prNumber) => fetchPullRequestFromApi(options.repository, prNumber)
-  });
-
-  writeGithubOutput(result);
-  console.log(JSON.stringify(result, null, 2));
-
-}
-
-const currentFilePath = fileURLToPath(import.meta.url);
-const invokedScriptPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
-
-if (currentFilePath === invokedScriptPath) {
-  main().catch((error) => {
-    console.error(error);
+const isMainModule = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+if (isMainModule) {
+  runCli().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   });
 }
