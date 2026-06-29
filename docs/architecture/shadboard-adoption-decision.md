@@ -1,6 +1,6 @@
 # Shadboard Adoption Decision
 
-Decision status: CHANGES REQUIRED
+Decision status: GO
 Date: 2026-06-29
 
 ## Base And Upstream
@@ -146,16 +146,50 @@ The adapted boundary is covered by [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_
 - no workflow/build config changes
 - `package.json` only updates the current test classification and proof test inclusion
 
+## Manual Validation Evidence
+
+- Validation date: `2026-06-29`
+- Environment: approved Preview Release
+- Preview URL: `http://Serwer:3001`
+- Validated runtime head: `e775723053da914fc3bfe532c82b9fa83f1ec692`
+- Browser and exact version: `unknown`
+
+Observed results:
+
+- `/leads` rendered with exactly one proof shell
+- no nested or duplicate AppShell was visible
+- widths checked: `368 px`, `768 px`, `834 px`, `1024 px`, desktop
+- no visible whole-page horizontal overflow
+- no clipped controls or overlapping layout regions
+- `368 px`, `768 px` and `834 px` used the stacked responsive layout
+- `1024 px` used the sidebar/content layout correctly
+- keyboard Tab navigation worked
+- focus indicators were visible and not clipped
+- browser console was clean
+- 200% browser zoom remained usable without clipped or overlapping controls
+- at least one non-exact `/leads` route retained the legacy E009 AppShell
+- no ProofShell appeared on the checked non-`/leads` route
+
+Not claimed:
+
+- data-populated lead rows, because the preview showed zero leads
+- refresh/back-navigation
+- filter-state persistence
+- lead-detail runtime validation
+
 ## Risks
 
 - additional upstream source boundaries may still need separate review in T002
-- manual browser verification is still outstanding
+- each new dependency and copied source boundary still requires its own exact license review
 
 ## Limitations
 
 - proof is still intentionally narrow
 - only one upstream source file was adapted
 - no upstream assets were adopted
+- T001 approves the architecture and bounded adoption mode only
+- T001 does not approve broad route migration inside T001
+- visual refinements for the UGC creator audience belong to T002, T003 and later route-migration tasks
 
 ## Required T002 Preconditions
 
@@ -165,4 +199,4 @@ The adapted boundary is covered by [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_
 
 ## Recommendation
 
-CHANGES REQUIRED
+GO - the selective Shadboard adoption strategy is approved for E020.T002.
