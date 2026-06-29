@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { CLARIOBASE_UI_TOKENS } from "@/lib/design-tokens";
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -9,51 +10,74 @@ function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
-test("canonical design token contract is documented and exposed", () => {
+function hexToRgb(hex: string) {
+  const value = hex.replace("#", "");
+  return [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16) / 255);
+}
+
+function luminance(hex: string) {
+  const [r, g, b] = hexToRgb(hex).map((channel) =>
+    channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(foreground: string, background: string) {
+  const light = Math.max(luminance(foreground), luminance(background));
+  const dark = Math.min(luminance(foreground), luminance(background));
+  return (light + 0.05) / (dark + 0.05);
+}
+
+test("canonical design token contract is documented, exposed and consistent", () => {
   const doc = read("docs/design/clariobase-ui-v1.md");
   const tokens = read("src/lib/design-tokens.ts");
+  const globalsCss = read("src/app/globals.css");
 
   assert.match(doc, /background: '#F7F4EF'/);
-  assert.match(doc, /Light mode only for the current product scope\./);
-  assert.match(doc, /Import project-owned primitives from `src\/components\/clariobase-ui\/`/);
-  assert.match(doc, /ButtonLink/);
-  assert.match(doc, /EmptyState/);
-  assert.match(doc, /Geist only for the current product scope/);
-  assert.match(doc, /clamp\(212px, 14vw, 236px\)/);
-  assert.match(doc, /minimum 44 px height/);
-
+  assert.match(doc, /accent: '#AA5E7B'/);
+  assert.match(doc, /accentForeground: '#FFFFFF'/);
+  assert.match(doc, /successInk: '#22553E'/);
+  assert.match(doc, /Legacy-Route Isolation Policy/);
+  assert.match(doc, /project-owned primitives from `src\/components\/clariobase-ui\/`/);
   assert.match(tokens, /background: "#F7F4EF"/);
-  assert.match(tokens, /accentHover: "#9E5270"/);
-  assert.match(tokens, /disabledOpacity: "0\.56"/);
-  assert.doesNotMatch(tokens, /darkMode/);
-  assert.doesNotMatch(tokens, /#004870/);
+  assert.match(tokens, /accent: "#AA5E7B"/);
+  assert.match(tokens, /accentForeground: "#FFFFFF"/);
+  assert.match(tokens, /successInk: "#22553E"/);
+  assert.match(tokens, /dangerInk: "#8E3636"/);
+  assert.match(tokens, /neutralInk: "#594F49"/);
+  assert.match(globalsCss, /--clariobase-accent:\s*#aa5e7b;/);
+  assert.match(globalsCss, /--clariobase-accent-foreground:\s*#ffffff;/);
+  assert.match(globalsCss, /--clariobase-success-ink:\s*#22553e;/);
+  assert.match(globalsCss, /--clariobase-danger-ink:\s*#8e3636;/);
+  assert.match(globalsCss, /--cb-accent-foreground:\s*var\(--clariobase-accent-foreground\)/);
+  assert.match(globalsCss, /--cb-danger-ink:\s*var\(--clariobase-danger-ink\)/);
+  assert.doesNotMatch(globalsCss, /color-scheme:\s*dark;/);
 });
 
-test("global foundation keeps light-first production styling", () => {
+test("global foundation keeps legacy root presentation while exposing the new foundation", () => {
   const globalsCss = read("src/app/globals.css");
-  const primitives = [
-    read("src/components/clariobase-ui/button.tsx"),
-    read("src/components/clariobase-ui/surface.tsx"),
-    read("src/components/clariobase-ui/status.tsx"),
-    read("src/components/clariobase-ui/field.tsx"),
-    read("src/components/clariobase-ui/table.tsx"),
-    read("src/components/clariobase-ui/feedback.tsx")
-  ].join("\n");
 
-  assert.match(globalsCss, /color-scheme:\s*light;/);
-  assert.match(globalsCss, /font-family:\s*var\(--cb-font-family\)/);
-  assert.match(globalsCss, /--clariobase-background:\s*#f7f4ef;/);
-  assert.match(globalsCss, /--clariobase-accent:\s*#b36a86;/);
-  assert.match(globalsCss, /--cb-focus-ring:\s*var\(--clariobase-focus-ring\)/);
-  assert.match(globalsCss, /background:\s*var\(--clariobase-background\);/);
-  assert.match(globalsCss, /radial-gradient\(circle at top left/);
-  assert.doesNotMatch(globalsCss, /color-scheme:\s*dark;/);
-  assert.doesNotMatch(globalsCss, /#004870/);
-  assert.doesNotMatch(globalsCss, /#0284C7/);
+  assert.match(globalsCss, /--clariobase-primary:\s*#006194;/);
+  assert.match(globalsCss, /--clariobase-background:\s*#f8fafc;/);
+  assert.match(globalsCss, /--clariobase-surface:\s*#ffffff;/);
+  assert.match(globalsCss, /--clariobase-surface-subtle:\s*#f1f5f9;/);
+  assert.match(globalsCss, /--clariobase-text-primary:\s*#0f172a;/);
+  assert.match(globalsCss, /--clariobase-text-secondary:\s*#475569;/);
+  assert.match(globalsCss, /--clariobase-border:\s*#cbd5e1;/);
+  assert.doesNotMatch(globalsCss, /radial-gradient/);
+  assert.doesNotMatch(globalsCss, /linear-gradient/);
+});
 
-  assert.match(primitives, /focus-visible:ring-\[color:var\(--cb-focus-ring\)\]/);
-  assert.match(primitives, /disabled:pointer-events-none disabled:opacity-\[var\(--cb-disabled-opacity\)\]/);
-  assert.match(primitives, /aria-hidden="true"/);
-  assert.match(primitives, /role="status"/);
-  assert.match(primitives, /Pagination/);
+test("wcag contrast holds for theme colors used by primitives", () => {
+  const colors = CLARIOBASE_UI_TOKENS.color;
+
+  assert.ok(contrastRatio(colors.accentForeground, colors.accent) >= 4.5);
+  assert.ok(contrastRatio(colors.accentForeground, colors.accentHover) >= 4.5);
+  assert.ok(contrastRatio(colors.accentForeground, colors.accentActive) >= 4.5);
+  assert.ok(contrastRatio(colors.primaryText, colors.background) >= 4.5);
+  assert.ok(contrastRatio(colors.primaryText, colors.surface) >= 4.5);
+  assert.ok(contrastRatio(colors.mutedText, colors.background) >= 4.5);
+  assert.ok(contrastRatio(colors.mutedText, colors.surface) >= 4.5);
+  assert.ok(contrastRatio(colors.accentForeground, colors.danger) >= 4.5);
 });

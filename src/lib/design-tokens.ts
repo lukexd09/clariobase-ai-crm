@@ -6,15 +6,21 @@ export const CLARIOBASE_UI_TOKENS = {
     primaryText: "#171717",
     mutedText: "#6B5F5A",
     border: "#E5DCD6",
-    accent: "#B36A86",
+    accent: "#AA5E7B",
+    accentForeground: "#FFFFFF",
     accentHover: "#9E5270",
     accentActive: "#87445D",
     focusRing: "#8F5770",
     success: "#2F7D5B",
+    successInk: "#22553E",
     warning: "#B7791F",
+    warningInk: "#845915",
     danger: "#B44A4A",
+    dangerInk: "#8E3636",
     information: "#5A7EA6",
-    neutral: "#7A6F68"
+    informationInk: "#35577A",
+    neutral: "#7A6F68",
+    neutralInk: "#594F49"
   },
   layout: {
     fontFamily: '"Geist", "Geist Sans", sans-serif',

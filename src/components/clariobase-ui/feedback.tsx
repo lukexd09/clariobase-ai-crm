@@ -1,3 +1,4 @@
+import React from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -37,4 +38,3 @@ export function Skeleton({ className = "", ...props }: ComponentProps<"div">) {
 export function PaginationControls({ className = "", ...props }: ComponentProps<"nav">) {
   return <nav aria-label="Pagination" className={cn("flex items-center justify-between gap-3 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-3", className)} {...props} />;
 }
-

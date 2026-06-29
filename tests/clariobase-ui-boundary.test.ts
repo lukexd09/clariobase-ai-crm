@@ -38,6 +38,9 @@ test("project-owned ui boundary exists and excludes starter-kit imports", () => 
     const content = read(file);
     assert.doesNotMatch(content, /starter-kit\//);
     assert.doesNotMatch(content, /shadboard\/starter-kit/);
+    assert.doesNotMatch(content, /@radix-ui\/react-/);
+    assert.doesNotMatch(content, /class-variance-authority/);
+    assert.doesNotMatch(content, /lucide-react/);
   }
 });
 
@@ -68,4 +71,21 @@ test("package inventory stays aligned with the dependency gate", () => {
     "tsx",
     "typescript"
   ]);
+});
+
+test("table surface uses a scrollable region contract and legacy theme remains intact", () => {
+  const table = read("src/components/clariobase-ui/table.tsx");
+  const globalsCss = read("src/app/globals.css");
+
+  assert.match(table, /overflow-x-auto/);
+  assert.match(table, /role=\{role\}/);
+  assert.match(table, /tabIndex=\{tabIndex\}/);
+  assert.match(table, /aria-label=\{ariaLabel\}/);
+  assert.match(table, /data-slot="table-surface"/);
+  assert.doesNotMatch(table, /overflow-hidden/);
+  assert.match(globalsCss, /--clariobase-primary:\s*#006194;/);
+  assert.match(globalsCss, /--clariobase-background:\s*#f8fafc;/);
+  assert.match(globalsCss, /--clariobase-surface:\s*#ffffff;/);
+  assert.doesNotMatch(globalsCss, /radial-gradient/);
+  assert.doesNotMatch(globalsCss, /linear-gradient/);
 });

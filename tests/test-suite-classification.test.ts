@@ -35,6 +35,7 @@ test("every test file belongs to exactly one fast or infrastructure suite", () =
   assert.ok(fastTests.includes("tests/dashboard-density.test.ts"));
   assert.ok(fastTests.includes("tests/shadboard-proof.test.ts"));
   assert.ok(fastTests.includes("tests/clariobase-ui-boundary.test.ts"));
+  assert.ok(fastTests.includes("tests/clariobase-ui-render.test.ts"));
   assert.ok(infraTests.includes("tests/docs-sanity.test.ts"));
   assert.ok(infraTests.includes("tests/runtime-docs-sanity.test.ts"));
   assert.ok(infraTests.includes("tests/health-endpoint.test.ts"));
