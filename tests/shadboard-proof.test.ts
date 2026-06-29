@@ -12,13 +12,13 @@ function read(filePath: string) {
 test("shadboard adoption decision documents the pinned upstream ref and licensing posture", () => {
   const doc = read("docs/architecture/shadboard-adoption-decision.md");
 
-  assert.match(doc, /ClarioBase base SHA: `578d949f0644f22a69656553260b7b2a8e29343f`/);
+  assert.match(doc, /ClarioBase base SHA: `77d888947276ac079650a9eec58d0a84e4690bc6`/);
   assert.match(doc, /Shadboard release: `v1.5.1`/);
   assert.match(doc, /Shadboard commit: `ece0dab7282175002f5103afbac6f86306169a4e`/);
   assert.match(doc, /MIT license/i);
-  assert.match(doc, /retain the copyright notice/i);
-  assert.match(doc, /retain the permission notice/i);
-  assert.match(doc, /treat assets separately from code/i);
+  assert.match(doc, /No Shadboard source file was copied or substantially adapted/i);
+  assert.match(doc, /No third-party notice file is needed yet/i);
+  assert.match(doc, /No new dependencies were added/i);
 });
 
 test("proof boundary stays project-owned and avoids prohibited dependencies", () => {
@@ -27,10 +27,9 @@ test("proof boundary stays project-owned and avoids prohibited dependencies", ()
   const proofCard = read("src/components/clariobase-ui/proof-card.tsx");
 
   assert.match(doc, /src\/components\/clariobase-ui\//);
-  assert.match(doc, /NextAuth \/ Auth\.js/);
-  assert.match(doc, /@auth\/prisma-adapter/);
-  assert.match(doc, /demo routes/);
-  assert.match(doc, /billing/);
+  assert.match(doc, /`next-auth` \/ Auth\.js/);
+  assert.match(doc, /`@auth\/prisma-adapter`/);
+  assert.match(doc, /chat\/editor\/dnd starter deps/);
   assert.match(proofShell, /data-ui-foundation="shadboard-proof"/);
   assert.match(proofShell, /aria-label="Primary navigation"/);
   assert.match(proofShell, /aria-current=\{active \? "page" : undefined\}/);
