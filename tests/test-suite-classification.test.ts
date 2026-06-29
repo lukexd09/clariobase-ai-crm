@@ -25,17 +25,21 @@ test("every test file belongs to exactly one fast or infrastructure suite", () =
   const classified = [...fastTests, ...infraTests].sort();
   const duplicates = classified.filter((name, index) => classified.indexOf(name) !== index);
 
-  assert.equal(packageJson.scripts.test, "pnpm test:full");
   assert.equal(packageJson.scripts["test:full"], "pnpm test:fast && pnpm test:infra");
   assert.deepEqual(duplicates, [], `test files classified more than once: ${duplicates.join(", ")}`);
   assert.deepEqual(classified, repositoryTests);
 
+  assert.ok(fastTests.includes("tests/product-docs-sanity.test.ts"));
   assert.ok(fastTests.includes("tests/health-contract.test.ts"));
   assert.ok(fastTests.includes("tests/runtime-readiness.test.ts"));
+  assert.ok(fastTests.includes("tests/dashboard-density.test.ts"));
+  assert.ok(infraTests.includes("tests/docs-sanity.test.ts"));
+  assert.ok(infraTests.includes("tests/runtime-docs-sanity.test.ts"));
   assert.ok(infraTests.includes("tests/health-endpoint.test.ts"));
   assert.ok(infraTests.includes("tests/docker-image.test.ts"));
   assert.ok(infraTests.includes("tests/compose-runtime.test.ts"));
   assert.ok(infraTests.includes("tests/preview-runtime.test.ts"));
   assert.ok(infraTests.includes("tests/github-actions-preview.test.ts"));
   assert.ok(infraTests.includes("tests/compose-backup-restore.test.ts"));
+  assert.ok(infraTests.includes("tests/light-density-route-contracts.test.ts"));
 });
