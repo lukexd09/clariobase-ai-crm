@@ -5,11 +5,12 @@ document_type: architecture
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-24
+last_updated: 2026-06-26
 related_epic: E016
 related_tasks:
   - E016.T001
   - E016.T009
+  - E016.T012
 related_components:
   - COMP-CRM-PREVIEW-APP
   - COMP-CRM-PREVIEW-POSTGRES
@@ -17,6 +18,7 @@ related_documents:
   - docs/decisions/adr-e016-manual-preview.md
   - docs/runtime/container-runtime.md
   - docs/operations/container-operations.md
+  - docs/operations/preview-operations.md
   - README.md
 tags:
   - preview
@@ -31,11 +33,9 @@ tags:
 ## Purpose
 
 This document is the canonical architecture contract for `E016 - Add manual branch preview environment and CI foundation`.
-It defines the approved preview topology, trust boundaries, production-protection rules, lifecycle, and operator-visible reporting rules for a single shared preview slot used by both manual and post-CI automatic deployments.
+It defines one shared preview slot, its trust boundaries, immutable image provenance, production-protection rules and the separation between Fast CI, Full Integration and on-demand Preview Release.
 
 ## Implemented and protected environments
-
-The current CRM environments are:
 
 ```text
 Production
@@ -51,16 +51,39 @@ Preview
   URL:             http://Serwer:3001
 ```
 
-Preview is one replaceable slot.
-E016 does not implement one preview per PR and does not change production release behavior.
+Preview is one replaceable slot. E016 does not implement one environment per PR and does not change production release behavior.
 
-## Boundary model
+## Validation and release boundaries
 
-The preview contract distinguishes three boundaries:
+The repository separates three concerns:
 
-- development checkout and local test resources inside this repository;
-- preview runtime deployed from a trusted repository ref into the dedicated preview slot;
-- protected production runtime on `clariobase-crm`, which may be local, remote, or not yet deployed.
+```text
+Fast CI
+  exact PR head validation and fast application feedback
+
+Full Integration
+  Docker, Compose, workflow, backup/restore and preview-runtime verification
+
+Preview Release
+  intentional build, publication and deployment of one exact successful Fast CI SHA
+```
+
+A successful Fast CI run is evidence that a source SHA passed the fast gate. It is not an instruction to deploy.
+
+Full Integration is conditional for pull requests, always available manually, and runs on `main`. Its result does not replace the exact successful Fast CI requirement for Preview Release.
+
+Preview Release is initiated only by `workflow_dispatch` with a PR number and optional expected SHA.
+
+## Environment boundary model
+
+The preview contract distinguishes:
+
+- development checkout and disposable local test resources;
+- trusted GitHub-hosted control and image-build jobs;
+- source from the exact validated same-repository PR head;
+- trusted control checkout from `main` on the Windows runner;
+- the dedicated preview runtime;
+- protected production runtime, which may be local, remote or not yet deployed.
 
 Preview must remain isolated from production by:
 
@@ -72,19 +95,19 @@ Preview must remain isolated from production by:
 - env-file contract and runtime secrets;
 - cleanup scope.
 
-Preview must never reuse production `.env.compose.local`, production AI exchange paths, production containers, or production database identifiers.
+Preview must never reuse production `.env.compose.local`, production AI exchange paths, production containers or production database identifiers.
 Preview deployment does not query production health and must not depend on production being reachable from the preview host.
 
 ## Approved preview topology
 
-Preview keeps the same application shape as the E014 runtime:
+Preview keeps the E014 runtime shape:
 
 ```text
 crm-app
 crm-postgres
 ```
 
-The approved preview-specific identity is:
+Approved preview identity:
 
 - project name: `clariobase-crm-preview`;
 - application URL: `http://Serwer:3001`;
@@ -93,33 +116,94 @@ The approved preview-specific identity is:
 - PostgreSQL host port: not published;
 - AI exchange host path: preview-specific and separate from production.
 
-Because Docker Compose namespaces containers, networks, and named volumes by project name, the preview stack must run with the explicit preview project identity instead of reusing the production project name.
+## Trust contract
 
-## Trust boundaries for refs and execution
+Only a trusted repository ref from `lukexd09/clariobase-ai-crm` may supply application source.
+Forked pull request code must never execute on the self-hosted runner.
 
-Preview deployment uses trusted control workflows only.
+The release control contract is:
 
-The trust contract is:
+1. Preview Release must be dispatched from workflow code on `main`;
+2. the input PR must be open and same-repository;
+3. the workflow resolves the live current PR head SHA;
+4. optional `expected_sha` must match that live head;
+5. the selected `CI` workflow run must be completed successfully for that exact SHA;
+6. its `auto-preview-context` artifact must match repository, PR, branch, SHA and CI run ID;
+7. a stale successful run for an older SHA must be rejected as `BLOCKED`;
+8. protected preview control-plane changes must first be reviewed and merged to `main`;
+9. the source SHA is revalidated against the live PR again on the Windows runner;
+10. preview deploy and stop operations serialize access through `clariobase-preview-slot`.
 
-- only refs from `lukexd09/clariobase-ai-crm` may be deployed;
-- forked pull request code must not execute on the self-hosted runner;
-- manual workflow inputs must resolve to an exact commit SHA before deployment begins;
-- automatic preview deployment must trigger only from the trusted `workflow_run` completion of `CI` after the workflow file exists on the default branch;
-- CI must check out and validate the exact pull-request head SHA rather than GitHub's synthetic pull-request merge ref so that `workflow_run.head_sha` is the validated preview source;
-- CI must publish a small trusted `auto-preview-context` artifact that records the validated PR number, head SHA, ref, base branch, and workflow run ID;
-- automatic preview deployment must download that artifact from the exact triggering CI run and validate it before any self-hosted runner work begins;
-- automatic preview deployment must treat the completed CI run `head_sha` as the validated commit and must separately confirm through the GitHub API that the current PR head still matches that SHA;
-- `workflow_run.pull_requests` is only corroborating evidence and must not be the sole source of PR identity;
-- stale CI results must stop with `BLOCKED: stale validated SHA`;
-- the resolved SHA must be reported back to the operator;
-- preview jobs run code on the server and therefore require explicit runner and workflow documentation;
-- preview deploy and stop operations must serialize access to the single preview slot.
+`pull_request_target` must not be used to execute untrusted code.
 
-`pull_request_target` is out of scope and must not be used to execute untrusted code.
+## Immutable image provenance
+
+The trusted Linux build job checks out the exact validated source SHA and builds exactly one `linux/amd64` image.
+
+The image is:
+
+1. built locally through Buildx;
+2. smoke-tested before registry authentication;
+3. pushed as the already-tested image;
+4. resolved to exactly one registry digest from the push output;
+5. represented for deployment only as:
+
+```text
+ghcr.io/lukexd09/clariobase-ai-crm@sha256:<64 lowercase hex>
+```
+
+The metadata artifact binds:
+
+- PR number;
+- source SHA;
+- exact Fast CI run ID;
+- image build run ID;
+- registry digest;
+- immutable image reference;
+- deployment run ID.
+
+Build cache may reuse layers but must never become the source of provenance or replace exact SHA and registry digest validation.
+
+## Windows deployment contract
+
+The Windows runner checks out only trusted control files from `main`.
+It does not check out PR application source and does not build the application image locally.
+
+Required order:
+
+1. revalidate open PR, same repository and exact current head SHA;
+2. validate the source-SHA-to-image handoff;
+3. authenticate to GHCR with the workflow token;
+4. validate the merged Compose model;
+5. pull the exact immutable digest before destructive replacement;
+6. remove the old preview stack only after pull succeeds;
+7. start preview PostgreSQL;
+8. run `prisma migrate deploy` with `--pull never`;
+9. start `crm-app` with `--no-build --pull never`;
+10. verify readiness;
+11. clean temporary secrets and artifacts;
+12. log out of GHCR.
+
+The application Compose override must retain:
+
+```yaml
+build: !reset null
+pull_policy: never
+```
+
+## Readiness contract
+
+Deployment succeeds only when `/api/ready` returns HTTP 200 and:
+
+```text
+service = clariobase-ai-crm
+status = ready
+checks.database = ok
+```
 
 ## Production-protection invariants
 
-Every preview script, workflow, and cleanup path must protect these exact production identifiers:
+Every preview script, workflow and cleanup path must protect:
 
 ```text
 clariobase-crm
@@ -140,66 +224,57 @@ docker volume prune
 docker network prune
 ```
 
-## Deployment lifecycle
+## Reporting contract
 
-The preview lifecycle is:
+One persistent PR comment identified by `<!-- clariobase-preview-status -->` must distinguish:
 
-1. a manual operator selects a trusted repository ref or a successful same-repository PR CI run triggers the trusted auto-deploy workflow from `main`;
-2. the workflow resolves the exact commit SHA that is allowed to deploy;
-3. automatic deployment revalidates the live PR state before using the self-hosted runner and again immediately before deployment after any queue wait;
-4. the deployment script validates all preview identifiers and guardrails;
-5. preview runtime is pulled as one immutable GHCR digest and replaced only inside the approved preview slot after pull succeeds;
-6. `prisma migrate deploy` runs only against the preview database from that exact digest and prohibits implicit pull;
-7. readiness waits for `/api/ready` on preview only;
-8. the workflow reports requested ref, resolved SHA, runtime identity, preview URL, and the current PR comment status;
-9. stop or cleanup acts only on the approved preview scope.
+- `queued`;
+- `deploying`;
+- `ready`;
+- `failed`;
+- `blocked`.
 
-## Failure-state contract
+Every state reports the PR, exact commit, branch, Fast CI run, image build run, deployment run, immutable image, preview URL and timestamp.
 
-Failure behavior must be explicit:
+A runner-side stale SHA is `blocked`, not a generic deployment failure.
 
-- preview deployment failure must return `FAIL` or `BLOCKED`, never a hidden success;
-- gate rejections must surface as explicit `SKIPPED` or `BLOCKED` summaries before the self-hosted runner is used;
-- failed preview startup must not be represented as healthy before `/api/ready` returns HTTP `200`;
-- cleanup after failure must stay within approved preview resources only;
-- a preview failure must not stop, recreate, mutate, or query the production runtime;
-- `SKIPPED` checks remain explicit and must not be reported as `PASS`.
+## Retired automatic and direct paths
 
-## Workflow and reporting contract
+Completed Fast CI runs must not trigger preview replacement automatically.
+The old automatic `workflow_run` deployment and the direct manually supplied image path are retired and fail closed.
 
-Manual preview control is implemented through `workflow_dispatch`.
-Automatic preview replacement is implemented through `workflow_run` for the `CI` workflow after merge to `main`.
+This prevents:
 
-The workflow contract must include:
+- unnecessary Windows execution for every commit;
+- image publication during ordinary iteration;
+- deployment of a manually supplied digest without exact Fast CI correlation.
 
-- trusted ref input;
-- exact resolved SHA reporting;
-- preview URL reporting as `http://Serwer:3001`;
-- shared preview concurrency group `clariobase-preview-slot` across manual deploy, auto deploy, and stop preview;
-- least-privilege permissions;
-- a single persistent PR status comment identified by `<!-- clariobase-preview-status -->`;
-- environment-derived and PR-derived values must be passed into shells through step-level environment variables rather than direct inline interpolation inside `run:` bodies;
-- the Windows runner authenticates to GHCR with the workflow token only after validating the immutable digest and before deployment begins;
-- the Windows runner must always attempt logout from GHCR after deployment;
-- job summaries that distinguish `PASS`, `FAIL`, `SKIPPED`, and `BLOCKED`.
+## Bootstrap and rehearsal limitation
 
-## Bootstrap limitation
+The trusted Preview Release workflow becomes authoritative only after its reviewed workflow and control changes exist on the default branch.
 
-The preview workflows normally become available in the GitHub UI after the workflow files exist on the default branch.
-This applies especially to the automatic `workflow_run` preview workflow, which cannot react to PR CI runs until its file is merged to `main`.
+Pre-merge evidence may prove:
 
-Pre-merge evidence may cover static workflow validation, scripts, tests, and documentation.
-The following operator actions remain a post-merge manual gate:
+- static workflow and permission contracts;
+- test-suite classification;
+- Fast CI cancellation and absence of automatic deployment;
+- Full Integration selection;
+- resolver and immutable handoff regression tests.
 
-1. register or confirm the repository-scoped runner;
-2. run `Deploy Preview` from GitHub Actions;
-3. verify `http://Serwer:3001` from another LAN device;
-4. run `Stop Preview`.
+The final end-to-end exercise is a post-merge manual gate:
 
-These steps must not be claimed as completed before they actually run.
+1. keep the implementation issue open;
+2. use a safe same-repository rehearsal PR that does not modify protected control-plane files;
+3. obtain successful Fast CI for its exact current head SHA;
+4. dispatch Preview Release from `main`;
+5. record CI run ID, source SHA, immutable digest, Windows deployment and readiness evidence;
+6. run Stop Preview if the slot should be cleared.
+
+These results must not be claimed before they actually run.
 
 ## Related canonical sources
 
+- [Preview operations runbook](../operations/preview-operations.md)
 - [ADR: E016 manual preview environment](../decisions/adr-e016-manual-preview.md)
 - [E014 runtime contract](../runtime/container-runtime.md)
 - [E014 operations runbook](../operations/container-operations.md)

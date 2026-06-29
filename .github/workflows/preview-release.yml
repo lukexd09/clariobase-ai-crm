@@ -1,0 +1,954 @@
+name: Preview Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Open same-repository pull request number to release
+        required: true
+        type: string
+      expected_sha:
+        description: Optional exact current PR head SHA
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: clariobase-preview-slot
+  cancel-in-progress: false
+
+jobs:
+  resolve-preview-release:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+    outputs:
+      resolution_status: ${{ steps.resolve.outputs.resolution_status }}
+      should_deploy: ${{ steps.resolve.outputs.should_deploy }}
+      pr_number: ${{ steps.resolve.outputs.pr_number }}
+      pr_url: ${{ steps.resolve.outputs.pr_url }}
+      head_ref: ${{ steps.resolve.outputs.head_ref }}
+      validated_sha: ${{ steps.resolve.outputs.validated_sha }}
+      skip_reason: ${{ steps.resolve.outputs.skip_reason }}
+      ci_run_id: ${{ steps.resolve.outputs.ci_run_id }}
+      ci_run_url: ${{ steps.resolve.outputs.ci_run_url }}
+
+    steps:
+      - name: Check out trusted workflow revision
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Resolve current PR head and exact Fast CI run
+        id: resolve
+        uses: actions/github-script@v8
+        env:
+          EXPECTED_REPOSITORY: lukexd09/clariobase-ai-crm
+          REQUESTED_PR_NUMBER: ${{ inputs.pr_number }}
+          REQUESTED_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          DISPATCH_REF: ${{ github.ref }}
+        with:
+          script: |
+            const fs = require("node:fs");
+            const os = require("node:os");
+            const path = require("node:path");
+            const { execFileSync } = require("node:child_process");
+
+            const expectedRepository = process.env.EXPECTED_REPOSITORY || "";
+            const requestedPrNumber = Number(process.env.REQUESTED_PR_NUMBER);
+            const requestedExpectedSha = (process.env.REQUESTED_EXPECTED_SHA || "").trim().toLowerCase();
+            const dispatchRef = process.env.DISPATCH_REF || "";
+            const repository = `${context.repo.owner}/${context.repo.repo}`;
+
+            const output = {
+              resolution_status: "blocked",
+              should_deploy: "false",
+              pr_number: Number.isInteger(requestedPrNumber) && requestedPrNumber > 0 ? String(requestedPrNumber) : "",
+              pr_url: "",
+              head_ref: "",
+              validated_sha: "",
+              skip_reason: "BLOCKED: ambiguous preview release request",
+              ci_run_id: "",
+              ci_run_url: ""
+            };
+
+            const finish = (overrides = {}) => {
+              Object.assign(output, overrides);
+              for (const [name, value] of Object.entries(output)) {
+                core.setOutput(name, String(value ?? ""));
+              }
+            };
+
+            const block = (reason, overrides = {}) => {
+              finish({
+                resolution_status: "blocked",
+                should_deploy: "false",
+                skip_reason: reason,
+                ...overrides
+              });
+            };
+
+            try {
+              if (repository !== expectedRepository) {
+                block(`BLOCKED: repository must be ${expectedRepository}`);
+                return;
+              }
+
+              if (dispatchRef !== "refs/heads/main") {
+                block("BLOCKED: Preview Release must be dispatched from main");
+                return;
+              }
+
+              if (!Number.isInteger(requestedPrNumber) || requestedPrNumber <= 0) {
+                block("BLOCKED: pr_number must be a positive integer");
+                return;
+              }
+
+              if (requestedExpectedSha && !/^[0-9a-f]{40}$/.test(requestedExpectedSha)) {
+                block("BLOCKED: expected_sha must be a full 40-character hexadecimal SHA");
+                return;
+              }
+
+              const pullResponse = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: requestedPrNumber
+              });
+              const pull = pullResponse.data;
+              const headSha = String(pull.head?.sha || "").toLowerCase();
+              const headRef = String(pull.head?.ref || "");
+              const headRepository = String(pull.head?.repo?.full_name || "");
+              const prUrl = String(pull.html_url || "");
+
+              const baseOutputs = {
+                pr_number: String(requestedPrNumber),
+                pr_url: prUrl,
+                head_ref: headRef,
+                validated_sha: headSha
+              };
+
+              if (pull.state !== "open") {
+                block(`BLOCKED: PR #${requestedPrNumber} is not open`, baseOutputs);
+                return;
+              }
+
+              if (headRepository !== expectedRepository) {
+                block("BLOCKED: PR head repository is not trusted", baseOutputs);
+                return;
+              }
+
+              if (!/^[0-9a-f]{40}$/.test(headSha)) {
+                block("BLOCKED: current PR head SHA is missing or invalid", baseOutputs);
+                return;
+              }
+
+              if (requestedExpectedSha && requestedExpectedSha !== headSha) {
+                block("BLOCKED: expected_sha does not match the current PR head", baseOutputs);
+                return;
+              }
+
+              const protectedExactPaths = new Set([
+                ".github/workflows/ci.yml",
+                ".github/workflows/full-integration.yml",
+                ".github/workflows/preview-release.yml",
+                ".github/workflows/auto-deploy-preview.yml",
+                ".github/workflows/deploy-preview.yml",
+                "scripts/deploy-preview.ts",
+                "scripts/deploy-preview.ps1",
+                "scripts/preview-runtime-support.ts",
+                "scripts/stop-preview.ts",
+                "scripts/stop-preview.ps1",
+                "compose.yaml",
+                "compose.preview.yaml",
+                ".env.compose.preview.example"
+              ]);
+              const changedFiles = await github.paginate(github.rest.pulls.listFiles, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: requestedPrNumber,
+                per_page: 100
+              });
+              const changesTrustedControlPlane = changedFiles.some((file) => {
+                const filename = String(file.filename || "");
+                return protectedExactPaths.has(filename) || filename.startsWith("scripts/resolve-preview");
+              });
+
+              if (changesTrustedControlPlane) {
+                block(
+                  "BLOCKED: PR changes trusted preview control-plane files. Merge the reviewed control-plane change to main before running the runtime rehearsal.",
+                  baseOutputs
+                );
+                return;
+              }
+
+              const workflowRuns = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: "ci.yml",
+                event: "pull_request",
+                status: "completed",
+                head_sha: headSha,
+                per_page: 100
+              });
+              const successfulRuns = workflowRuns
+                .filter((run) => run.name === "CI" && run.conclusion === "success" && String(run.head_sha || "").toLowerCase() === headSha)
+                .sort((left, right) => Number(right.id) - Number(left.id));
+              const ciRun = successfulRuns[0];
+
+              if (!ciRun) {
+                block("BLOCKED: no successful Fast CI run exists for the exact current PR head SHA", baseOutputs);
+                return;
+              }
+
+              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: ciRun.id,
+                per_page: 100
+              });
+              const contextArtifact = artifacts.find((artifact) => artifact.name === "auto-preview-context" && !artifact.expired);
+              const ciOutputs = {
+                ...baseOutputs,
+                ci_run_id: String(ciRun.id),
+                ci_run_url: String(ciRun.html_url || "")
+              };
+
+              if (!contextArtifact) {
+                block("BLOCKED: exact Fast CI run does not contain a valid auto-preview-context artifact", ciOutputs);
+                return;
+              }
+
+              const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "clariobase-preview-release-"));
+              const archivePath = path.join(temporaryDirectory, "auto-preview-context.zip");
+
+              try {
+                const archiveResponse = await github.request(
+                  "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
+                  {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: contextArtifact.id,
+                    archive_format: "zip"
+                  }
+                );
+                fs.writeFileSync(archivePath, Buffer.from(archiveResponse.data));
+                const contextJson = execFileSync("unzip", ["-p", archivePath, "auto-preview-context.json"], {
+                  encoding: "utf8"
+                });
+                const artifactContext = JSON.parse(contextJson);
+
+                if (artifactContext.schemaVersion !== 1) {
+                  block("BLOCKED: unsupported Fast CI context artifact schema", ciOutputs);
+                  return;
+                }
+                if (artifactContext.repository !== expectedRepository || artifactContext.headRepository !== expectedRepository) {
+                  block("BLOCKED: Fast CI context repository mismatch", ciOutputs);
+                  return;
+                }
+                if (Number(artifactContext.prNumber) !== requestedPrNumber) {
+                  block("BLOCKED: Fast CI context PR number mismatch", ciOutputs);
+                  return;
+                }
+                if (String(artifactContext.headSha || "").toLowerCase() !== headSha) {
+                  block("BLOCKED: Fast CI context SHA mismatch", ciOutputs);
+                  return;
+                }
+                if (String(artifactContext.headRef || "") !== headRef) {
+                  block("BLOCKED: Fast CI context branch mismatch", ciOutputs);
+                  return;
+                }
+                if (Number(artifactContext.workflowRunId) !== Number(ciRun.id)) {
+                  block("BLOCKED: Fast CI context workflow run ID mismatch", ciOutputs);
+                  return;
+                }
+              } finally {
+                fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+              }
+
+              finish({
+                resolution_status: "deploy",
+                should_deploy: "true",
+                skip_reason: "",
+                ...ciOutputs
+              });
+            } catch (error) {
+              core.warning(error instanceof Error ? error.message : String(error));
+              block("BLOCKED: preview release resolver execution failed");
+            }
+
+      - name: Write resolution summary
+        if: always()
+        shell: bash
+        env:
+          RESOLUTION_STATUS: ${{ steps.resolve.outputs.resolution_status }}
+          PR_URL: ${{ steps.resolve.outputs.pr_url }}
+          HEAD_REF: ${{ steps.resolve.outputs.head_ref }}
+          VALIDATED_SHA: ${{ steps.resolve.outputs.validated_sha }}
+          CI_RUN_URL: ${{ steps.resolve.outputs.ci_run_url }}
+          REASON: ${{ steps.resolve.outputs.skip_reason }}
+        run: |
+          {
+            echo "Result: ${RESOLUTION_STATUS:-blocked}"
+            echo
+            echo "PR: ${PR_URL:-n/a}"
+            echo "Branch: ${HEAD_REF:-n/a}"
+            echo "Validated SHA: ${VALIDATED_SHA:-n/a}"
+            echo "Fast CI run: ${CI_RUN_URL:-n/a}"
+            echo "Reason: ${REASON:-eligible}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  report-blocked:
+    needs: resolve-preview-release
+    if: always() && needs.resolve-preview-release.outputs.resolution_status == 'blocked'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Upsert blocked preview comment
+        if: needs.resolve-preview-release.outputs.pr_number != ''
+        uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
+          CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
+          BLOCK_REASON: ${{ needs.resolve-preview-release.outputs.skip_reason }}
+        with:
+          script: |
+            const marker = "<!-- clariobase-preview-status -->";
+            const issue_number = Number(process.env.PR_NUMBER);
+            const body = [
+              marker,
+              "",
+              "Preview blocked",
+              "",
+              "Result: blocked",
+              `Reason: ${process.env.BLOCK_REASON || "BLOCKED: preview release resolver execution failed"}`,
+              `PR: #${issue_number}`,
+              `Commit: ${process.env.VALIDATED_SHA || "n/a"}`,
+              `Branch: ${process.env.HEAD_REF || "n/a"}`,
+              `Fast CI run: ${process.env.CI_RUN_URL || "n/a"}`,
+              "Image build run: n/a",
+              "Immutable image: n/a",
+              `Deployment run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              "Preview URL: http://Serwer:3001",
+              `Timestamp: ${new Date().toISOString()}`
+            ].join("\n");
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100
+            });
+            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
+            }
+
+      - name: Fail blocked preview gate
+        shell: bash
+        env:
+          BLOCK_REASON: ${{ needs.resolve-preview-release.outputs.skip_reason }}
+        run: |
+          echo "${BLOCK_REASON:-BLOCKED: preview release request rejected}" >&2
+          exit 1
+
+  report-queued:
+    needs: resolve-preview-release
+    if: needs.resolve-preview-release.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Upsert queued preview comment
+        uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
+          CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
+        with:
+          script: |
+            const marker = "<!-- clariobase-preview-status -->";
+            const issue_number = Number(process.env.PR_NUMBER);
+            const body = [
+              marker,
+              "",
+              "Preview queued",
+              "",
+              "Result: queued",
+              `PR: #${issue_number}`,
+              `Commit: ${process.env.VALIDATED_SHA}`,
+              `Branch: ${process.env.HEAD_REF}`,
+              `Fast CI run: ${process.env.CI_RUN_URL}`,
+              `Image build run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              "Immutable image: pending",
+              `Deployment run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              "Preview URL: http://Serwer:3001",
+              `Timestamp: ${new Date().toISOString()}`
+            ].join("\n");
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100
+            });
+            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
+            }
+
+  build-preview-image:
+    needs:
+      - resolve-preview-release
+      - report-queued
+    if: needs.resolve-preview-release.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_ref: ${{ steps.publish.outputs.image_ref }}
+      image_digest: ${{ steps.publish.outputs.image_digest }}
+      source_sha: ${{ steps.publish.outputs.source_sha }}
+      ci_run_id: ${{ steps.publish.outputs.ci_run_id }}
+      image_build_run_id: ${{ steps.publish.outputs.image_build_run_id }}
+
+    steps:
+      - name: Check out validated source SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify checked-out source SHA
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+            echo "Expected source SHA $EXPECTED_SHA but checked out $ACTUAL_SHA" >&2
+            exit 1
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ needs.resolve-preview-release.outputs.validated_sha }}
+
+      - name: Build immutable preview image
+        id: build-image
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6.15.0
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=preview-image
+          cache-to: type=gha,mode=max,scope=preview-image
+
+      - name: Smoke test immutable image
+        shell: pwsh
+        run: |
+          $imageRef = "ghcr.io/${{ github.repository }}:${{ needs.resolve-preview-release.outputs.validated_sha }}"
+          $env:CRM_PREVIEW_IMAGE_REF = $imageRef
+          $env:CRM_POSTGRES_PASSWORD = "preview-password"
+          pnpm exec tsx tests/fixtures/health-container-smoke.ts $imageRef 3001
+
+      - name: Log in to GitHub Container Registry
+        id: ghcr-login
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Push immutable preview image
+        id: push
+        shell: bash
+        env:
+          IMAGE_TAG: ghcr.io/${{ github.repository }}:${{ needs.resolve-preview-release.outputs.validated_sha }}
+        run: |
+          docker push "$IMAGE_TAG" | tee docker-push.log
+
+          mapfile -t DIGESTS < <(
+            sed -nE 's/^.*digest: (sha256:[0-9a-f]{64})( size:.*)?$/\1/p' docker-push.log |
+              sort -u
+          )
+
+          if [ "${#DIGESTS[@]}" -ne 1 ]; then
+            echo "Expected exactly one pushed registry digest, found ${#DIGESTS[@]}." >&2
+            exit 1
+          fi
+
+          IMAGE_DIGEST="${DIGESTS[0]}"
+
+          if [[ ! "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Invalid registry digest: $IMAGE_DIGEST" >&2
+            exit 1
+          fi
+
+          IMAGE_REF="ghcr.io/${{ github.repository }}@${IMAGE_DIGEST}"
+          {
+            echo "image_digest=${IMAGE_DIGEST}"
+            echo "image_ref=${IMAGE_REF}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish immutable image metadata
+        id: publish
+        shell: bash
+        env:
+          PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
+          SOURCE_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          IMAGE_DIGEST: ${{ steps.push.outputs.image_digest }}
+          CI_RUN_ID: ${{ needs.resolve-preview-release.outputs.ci_run_id }}
+          IMAGE_BUILD_RUN_ID: ${{ github.run_id }}
+        run: |
+          IMAGE_REF="ghcr.io/${{ github.repository }}@${IMAGE_DIGEST}"
+
+          cat > immutable-preview-image.json <<JSON
+          {
+            "repository": "${{ github.repository }}",
+            "prNumber": ${PR_NUMBER},
+            "sourceSha": "${SOURCE_SHA}",
+            "image": "ghcr.io/${{ github.repository }}",
+            "digest": "${IMAGE_DIGEST}",
+            "imageRef": "${IMAGE_REF}",
+            "ciRunId": "${CI_RUN_ID}",
+            "imageBuildRunId": "${IMAGE_BUILD_RUN_ID}",
+            "deploymentRunId": "${{ github.run_id }}"
+          }
+          JSON
+
+          {
+            echo "image_ref=${IMAGE_REF}"
+            echo "image_digest=${IMAGE_DIGEST}"
+            echo "source_sha=${SOURCE_SHA}"
+            echo "ci_run_id=${CI_RUN_ID}"
+            echo "image_build_run_id=${IMAGE_BUILD_RUN_ID}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable preview image metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: immutable-preview-image
+          path: immutable-preview-image.json
+          retention-days: 7
+
+      - name: Log out of GitHub Container Registry
+        if: always() && steps.ghcr-login.conclusion == 'success'
+        shell: bash
+        run: docker logout ghcr.io
+
+  report-deploying:
+    needs:
+      - resolve-preview-release
+      - build-preview-image
+    if: needs.resolve-preview-release.outputs.should_deploy == 'true' && needs.build-preview-image.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Upsert deploying preview comment
+        uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
+          CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
+          IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+        with:
+          script: |
+            const marker = "<!-- clariobase-preview-status -->";
+            const issue_number = Number(process.env.PR_NUMBER);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              marker,
+              "",
+              "Preview deploying",
+              "",
+              "Result: deploying",
+              `PR: #${issue_number}`,
+              `Commit: ${process.env.VALIDATED_SHA}`,
+              `Branch: ${process.env.HEAD_REF}`,
+              `Fast CI run: ${process.env.CI_RUN_URL}`,
+              `Image build run: ${runUrl}`,
+              `Immutable image: ${process.env.IMAGE_REF}`,
+              `Deployment run: ${runUrl}`,
+              "Preview URL: http://Serwer:3001",
+              `Timestamp: ${new Date().toISOString()}`
+            ].join("\n");
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100
+            });
+            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
+            }
+
+  deploy-preview:
+    needs:
+      - resolve-preview-release
+      - build-preview-image
+      - report-deploying
+    if: needs.resolve-preview-release.outputs.should_deploy == 'true' && needs.build-preview-image.result == 'success'
+    runs-on:
+      - self-hosted
+      - windows
+      - x64
+      - clariobase-preview
+    environment: e016-preview-operator
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: read
+    outputs:
+      runner_revalidation_result: ${{ steps.revalidate.outputs.runner_revalidation_result }}
+      runner_revalidation_reason: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
+
+    steps:
+      - name: Check out trusted control checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          path: control
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: control/pnpm-lock.yaml
+
+      - name: Install trusted control dependencies
+        shell: pwsh
+        working-directory: control
+        run: pnpm install --frozen-lockfile
+
+      - name: Revalidate PR head before deployment
+        id: revalidate
+        shell: pwsh
+        working-directory: control
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+        run: |
+          $headers = @{
+            Accept = "application/vnd.github+json"
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          $result = "PASS"
+          $reason = ""
+
+          try {
+            $pr = Invoke-RestMethod -Method Get -Headers $headers -Uri "https://api.github.com/repos/$env:REPOSITORY/pulls/$env:PR_NUMBER"
+
+            if ($pr.state -ne "open") {
+              $result = "BLOCKED"
+              $reason = "BLOCKED: PR is no longer open"
+            } elseif ($pr.head.repo.full_name -ne $env:REPOSITORY) {
+              $result = "BLOCKED"
+              $reason = "BLOCKED: PR head repository is no longer trusted"
+            } elseif ($pr.head.sha.ToLowerInvariant() -ne $env:VALIDATED_SHA.ToLowerInvariant()) {
+              $result = "BLOCKED"
+              $reason = "BLOCKED: stale validated SHA"
+            }
+          } catch {
+            $result = "BLOCKED"
+            $reason = "BLOCKED: runner-side PR revalidation request failed"
+          }
+
+          "runner_revalidation_result=$result" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "runner_revalidation_reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Stop on blocked runner revalidation
+        if: steps.revalidate.outputs.runner_revalidation_result == 'BLOCKED'
+        shell: pwsh
+        env:
+          BLOCK_REASON: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
+        run: |
+          @"
+          Result: BLOCKED
+
+          Reason: $env:BLOCK_REASON
+          Preview URL: http://Serwer:3001
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Validate immutable image handoff
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        shell: pwsh
+        env:
+          VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          IMAGE_SOURCE_SHA: ${{ needs.build-preview-image.outputs.source_sha }}
+          IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+        run: |
+          if ($env:VALIDATED_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "VALIDATED_SHA must be a full 40-character hexadecimal SHA."
+          }
+
+          if ($env:IMAGE_SOURCE_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+            throw "IMAGE_SOURCE_SHA must be a full 40-character hexadecimal SHA."
+          }
+
+          if ($env:IMAGE_SOURCE_SHA.ToLowerInvariant() -ne $env:VALIDATED_SHA.ToLowerInvariant()) {
+            throw "IMAGE_SOURCE_SHA must match VALIDATED_SHA."
+          }
+
+          if ($env:IMAGE_REF -notmatch '^ghcr\.io/lukexd09/clariobase-ai-crm@sha256:[0-9a-f]{64}$') {
+            throw "IMAGE_REF must be an immutable GHCR digest reference."
+          }
+
+      - name: Log in to GitHub Container Registry
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        id: ghcr-login
+        shell: pwsh
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          $env:GHCR_TOKEN | docker login ghcr.io --username $env:GHCR_USERNAME --password-stdin
+
+      - name: Materialize preview env file
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        shell: pwsh
+        working-directory: control
+        env:
+          CRM_PREVIEW_POSTGRES_PASSWORD: ${{ secrets.CRM_PREVIEW_POSTGRES_PASSWORD }}
+        run: |
+          if (-not $env:CRM_PREVIEW_POSTGRES_PASSWORD) {
+            throw "Missing required secret CRM_PREVIEW_POSTGRES_PASSWORD."
+          }
+
+          Copy-Item .env.compose.preview.example .env.compose.preview.local -Force
+          $content = Get-Content .env.compose.preview.local
+          $updated = $content -replace '^CRM_POSTGRES_PASSWORD=$', "CRM_POSTGRES_PASSWORD=$env:CRM_PREVIEW_POSTGRES_PASSWORD"
+          Set-Content .env.compose.preview.local $updated
+
+      - name: Deploy preview
+        id: deploy
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        shell: pwsh
+        working-directory: control
+        env:
+          REQUESTED_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
+          VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          CRM_PREVIEW_IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
+            -RequestedRef $env:REQUESTED_REF `
+            -ResolvedSha $env:VALIDATED_SHA `
+            -ControlCheckoutPath $PWD `
+            -PreviewEnvFile .\.env.compose.preview.local
+
+          $deployExitCode = $LASTEXITCODE
+          if ($deployExitCode -ne 0) {
+            throw "Deploy preview script failed with exit code $deployExitCode."
+          }
+
+          "preview_url=http://Serwer:3001" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Verify preview readiness
+        if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        shell: pwsh
+        run: |
+          $response = Invoke-WebRequest -Method Get -Uri "http://127.0.0.1:3001/api/ready"
+          if ($response.StatusCode -ne 200) {
+            throw "Preview readiness HTTP status was $($response.StatusCode)."
+          }
+
+          $preview = $response.Content | ConvertFrom-Json
+          if ($preview.service -ne "clariobase-ai-crm" -or $preview.status -ne "ready" -or $preview.checks.database -ne "ok") {
+            $service = if ($null -ne $preview.service) { $preview.service } else { "null" }
+            $status = if ($null -ne $preview.status) { $preview.status } else { "null" }
+            $database = if ($preview.checks -and $null -ne $preview.checks.database) { $preview.checks.database } else { "null" }
+            throw "Preview readiness failed: service=$service, status=$status, database=$database."
+          }
+
+      - name: Write deployment summary
+        if: success() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'
+        shell: pwsh
+        env:
+          PR_URL: ${{ needs.resolve-preview-release.outputs.pr_url }}
+          HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
+          VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
+          IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+        run: |
+          @"
+          Result: PASS
+
+          PR: $env:PR_URL
+          Branch: $env:HEAD_REF
+          Validated SHA: $env:VALIDATED_SHA
+          Preview URL: http://Serwer:3001
+          Preview readiness: PASS
+          Fast CI run: $env:CI_RUN_URL
+          Image build run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          Immutable image: $env:IMAGE_REF
+          Deployment run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Cleanup secrets and job artifacts
+        if: always()
+        shell: pwsh
+        working-directory: control
+        run: |
+          Remove-Item .env.compose.preview.local, deploy-preview-result.json, stop-preview-result.json -Force -ErrorAction SilentlyContinue
+
+      - name: Log out of GitHub Container Registry
+        if: always() && steps.ghcr-login.conclusion == 'success'
+        shell: pwsh
+        run: |
+          docker logout ghcr.io | Out-Host
+
+      - name: Fail on blocked runner revalidation
+        if: always() && steps.revalidate.outputs.runner_revalidation_result == 'BLOCKED'
+        shell: pwsh
+        env:
+          BLOCK_REASON: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
+        run: |
+          throw $env:BLOCK_REASON
+
+  report-final:
+    needs:
+      - resolve-preview-release
+      - build-preview-image
+      - deploy-preview
+    if: always() && needs.resolve-preview-release.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Upsert final preview comment
+        uses: actions/github-script@v8
+        env:
+          PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
+          VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
+          CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
+          IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+          BUILD_RESULT: ${{ needs.build-preview-image.result }}
+          DEPLOYMENT_RESULT: ${{ needs.deploy-preview.result }}
+          RUNNER_REVALIDATION_RESULT: ${{ needs.deploy-preview.outputs.runner_revalidation_result }}
+          RUNNER_REVALIDATION_REASON: ${{ needs.deploy-preview.outputs.runner_revalidation_reason }}
+        with:
+          script: |
+            const marker = "<!-- clariobase-preview-status -->";
+            const issue_number = Number(process.env.PR_NUMBER);
+            const blocked = process.env.RUNNER_REVALIDATION_RESULT === "BLOCKED";
+            const ready = process.env.BUILD_RESULT === "success" && process.env.DEPLOYMENT_RESULT === "success";
+            const result = blocked ? "blocked" : ready ? "ready" : "failed";
+            const title = blocked ? "Preview blocked" : ready ? "Preview ready" : "Preview failed";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const lines = [
+              marker,
+              "",
+              title,
+              "",
+              `Result: ${result}`
+            ];
+            if (blocked) {
+              lines.push(`Reason: ${process.env.RUNNER_REVALIDATION_REASON || "BLOCKED: stale validated SHA"}`);
+            }
+            lines.push(
+              `PR: #${issue_number}`,
+              `Commit: ${process.env.VALIDATED_SHA}`,
+              `Branch: ${process.env.HEAD_REF}`,
+              `Fast CI run: ${process.env.CI_RUN_URL}`,
+              `Image build run: ${runUrl}`,
+              `Immutable image: ${process.env.IMAGE_REF || "n/a"}`,
+              `Deployment run: ${runUrl}`,
+              "Preview URL: http://Serwer:3001",
+              `Timestamp: ${new Date().toISOString()}`
+            );
+            const body = lines.join("\n");
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100
+            });
+            const existing = comments.find((comment) => comment.body && comment.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
+            }
+
+      - name: Enforce final Preview Release result
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build-preview-image.result }}
+          DEPLOYMENT_RESULT: ${{ needs.deploy-preview.result }}
+        run: |
+          if [ "$BUILD_RESULT" != "success" ] || [ "$DEPLOYMENT_RESULT" != "success" ]; then
+            echo "Preview Release did not complete successfully." >&2
+            exit 1
+          fi
