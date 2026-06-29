@@ -5,7 +5,7 @@ document_type: operations-runbook
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-26
+last_updated: 2026-06-29
 related_epic: E016
 related_tasks:
   - E016.T003
@@ -30,26 +30,85 @@ tags:
 
 ## Purpose
 
-This is the canonical runbook for the E016 Windows preview runner. The runner executes only trusted on-demand Preview Release and Stop Preview jobs. Fast CI and Full Integration remain on GitHub-hosted Linux runners.
+This document is the canonical runbook for the E016 preview self-hosted runner.
+It defines the dedicated install path, work path, labels, Windows service identity, startup behavior, bootstrap procedure, diagnostics and recovery rules for trusted Preview Release and Stop Preview workflows that execute on the server.
+Fast CI and Full Integration remain on GitHub-hosted Linux runners.
 
-## Approved identity
+## Required runner identity
+
+Approved repository:
 
 ```text
-Repository:          lukexd09/clariobase-ai-crm
-Labels:              self-hosted, windows, x64, clariobase-preview
-Runner root:         C:\actions-runners\clariobase-preview
-Runner work:         C:\actions-work\clariobase-preview
-Production checkout: C:\Serwer\Projekty\Clariobase\clariobase-ai-crm
-Startup mode:        Automatic with delayed startup behavior
+https://github.com/lukexd09/clariobase-ai-crm
 ```
 
-The runner root and work directories must stay outside the production checkout. Do not run an interactive listener while the Windows service is active.
+Approved labels:
 
-## Registration and preflight
+```text
+self-hosted
+windows
+x64
+clariobase-preview
+```
 
-Use only a short-lived repository-scoped registration token obtained through the GitHub repository runner settings. Never store registration credentials in repository files, scripts, shell history or documentation.
+Approved directories:
 
-Before registration and after runner upgrades, execute:
+```text
+Runner root:        C:\actions-runners\clariobase-preview
+Runner work:        C:\actions-work\clariobase-preview
+Production checkout: C:\Serwer\Projekty\Clariobase\clariobase-ai-crm
+```
+
+Approved Windows service:
+
+```text
+Service name: actions.runner.lukexd09-clariobase-ai-crm.Preview
+Service binary: C:\actions-runners\clariobase-preview\bin\RunnerService.exe
+Service account: .\user
+Startup mode: Automatic with delayed startup behavior
+```
+
+The runner root and work directories must stay outside the protected production checkout.
+Normal operation must not require an interactive `run.cmd` listener window.
+Preview Release and Stop Preview serialize through the same GitHub Actions concurrency group: `clariobase-preview-slot`.
+Preview automation must not depend on any production runtime endpoint being reachable from this host.
+
+## When the Windows runner may execute
+
+A normal PR push, Fast CI completion or Full Integration result must not queue the Windows runner.
+The runner is eligible only after a Preview Release dispatched from trusted `main` has:
+
+1. resolved an open same-repository PR;
+2. found successful Fast CI for the exact current PR head SHA;
+3. validated the matching `auto-preview-context` artifact;
+4. built and smoke-tested exactly one `linux/amd64` image on a GitHub-hosted runner;
+5. pushed the image to GHCR and captured its immutable registry digest.
+
+Immediately before deployment, the Windows job revalidates that the PR remains open, same-repository and still points to the validated SHA.
+
+## Deployment contract
+
+The Windows job must:
+
+1. check out trusted control files from `main` only;
+2. verify that the image source SHA equals the validated Fast CI SHA;
+3. accept only `ghcr.io/lukexd09/clariobase-ai-crm@sha256:<64 lowercase hex>`;
+4. authenticate to GHCR with the workflow token;
+5. pull the exact digest before deleting the previous preview stack;
+6. validate the merged Compose model;
+7. run migration with `--pull never`;
+8. start the application with `--no-build --pull never`;
+9. require HTTP 200 with `service=clariobase-ai-crm`, `status=ready` and `checks.database=ok`;
+10. clean temporary secrets and workflow artifacts;
+11. always attempt GHCR logout after successful login.
+
+The runner must never build the CRM application locally or fall back to a Compose build.
+
+## Preflight
+
+Minimum supported version for the Node.js 24-compatible `actions/checkout@v5` and `actions/setup-node@v5` releases is `v2.327.1` or newer.
+
+Before registration or after a runner update, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\runner-preflight.ps1 `
@@ -58,62 +117,157 @@ powershell -ExecutionPolicy Bypass -File .\scripts\runner-preflight.ps1 `
   -ProductionCheckout C:\Serwer\Projekty\Clariobase\clariobase-ai-crm
 ```
 
-Preflight verifies directory isolation, Docker, Git, Node.js and the minimum supported runner version. The runner must support `actions/checkout@v5` and `actions/setup-node@v5`.
+Preflight checks:
 
-## When Windows may run
+- runner root and work directories are distinct from production;
+- `docker`, `git` and `node` are callable;
+- Docker engine responds locally;
+- the runner version is at least the supported minimum;
+- the workspace separation is explicit and reviewable.
 
-The runner is eligible only after Preview Release has:
+To inspect the installed runner version on Windows, read the `FileVersion` or `ProductVersion` metadata from:
 
-1. been dispatched from `main`;
-2. resolved an open same-repository PR;
-3. found successful Fast CI for the exact current PR head SHA;
-4. validated the matching `auto-preview-context` artifact;
-5. built and smoke-tested exactly one `linux/amd64` image;
-6. pushed the image and captured its immutable registry digest.
+```text
+C:\actions-runners\clariobase-preview\bin\Runner.Listener.exe
+```
 
-A normal PR push, Fast CI completion or Full Integration result must not queue this runner.
+## Registration
 
-## Deployment contract
+Download the current Windows x64 GitHub Actions runner package manually from the official GitHub runner releases page into:
 
-The Windows job must:
+```text
+C:\actions-runners\clariobase-preview
+```
 
-1. check out trusted control files from `main` only;
-2. revalidate that the PR is open, same-repository and still points to the selected SHA;
-3. verify that the image source SHA equals the Fast CI SHA;
-4. accept only `ghcr.io/lukexd09/clariobase-ai-crm@sha256:<64 lowercase hex>`;
-5. authenticate to GHCR with the workflow token;
-6. pull the exact digest before deleting the previous preview stack;
-7. validate the merged Compose model;
-8. run migration with `--pull never`;
-9. start the application with `--no-build --pull never`;
-10. require HTTP 200 with `service=clariobase-ai-crm`, `status=ready` and `checks.database=ok`;
-11. clean temporary secrets and artifacts;
-12. always attempt GHCR logout after successful login.
+Configure it from the extracted runner directory:
 
-The runner must never build the CRM application locally or fall back to a Compose build.
+```powershell
+.\config.cmd `
+  --url https://github.com/lukexd09/clariobase-ai-crm `
+  --token <PASTE_SHORT_LIVED_TOKEN_HERE> `
+  --labels self-hosted,windows,x64,clariobase-preview `
+  --work C:\actions-work\clariobase-preview `
+  --unattended `
+  --replace
+```
 
-## Shared slot and recovery
+Rules:
 
-Preview Release and Stop Preview serialize through `clariobase-preview-slot`. If a job is active, inspect it in GitHub Actions before restarting the runner service. Stop only the isolated preview stack through `scripts/stop-preview.ps1`; never use broad Docker cleanup.
+- use a short-lived repository-scoped registration token;
+- never commit, echo or screenshot the token;
+- do not save the token in repository files, runner scripts, shell history or Markdown docs;
+- repository-scoped registration is preferred over broader organization scope for this single preview slot.
 
-For runner diagnostics:
+## Windows service installation
 
-- check the Windows service state;
+Install the official runner service from the runner root:
+
+```powershell
+Set-Location C:\actions-runners\clariobase-preview
+.\svc.cmd install
+.\svc.cmd start
+```
+
+The accepted runtime uses the local Windows account `serwer\user` / `.\user` because that account can access the local Docker engine used by preview workflows.
+Do not store or document the account password.
+
+Verify the service:
+
+```powershell
+Get-CimInstance Win32_Service `
+  -Filter "Name='actions.runner.lukexd09-clariobase-ai-crm.Preview'" |
+  Select-Object Name, State, StartMode, StartName, ExitCode, ServiceSpecificExitCode, PathName
+```
+
+Expected steady state:
+
+```text
+State:     Running
+StartMode: Auto
+StartName: .\user
+ExitCode:  0
+```
+
+The service may remain `Stopped` briefly immediately after Windows login while delayed startup and host dependencies settle. Recheck before declaring failure.
+
+## Restart proof
+
+The E016 restart rehearsal completed successfully on `2026-06-16`:
+
+- Windows was restarted;
+- `run.cmd` was not started manually;
+- the service reached `Running` with automatic startup and exit code `0`;
+- a new runner diagnostic log appeared in `_diag`;
+- preview deployment succeeded after restart;
+- preview readiness on port `3001` returned `database: ok`;
+- any separate production verification remained out of band and was not part of preview workflow gating;
+- the preview slot was switched from `main` to `epic/e009-light-crm-closeout`;
+- Stop Preview completed successfully after restart;
+- post-stop Docker inspection showed no `clariobase-crm-preview` containers or Compose project.
+
+The final post-restart Stop Preview workflow run was:
+
+```text
+27631243500
+```
+
+This historical proof validates runner startup and isolation but does not replace the required post-merge Preview Release rehearsal for E016.T012.
+
+## Daily operator checklist
+
+- confirm the service `actions.runner.lukexd09-clariobase-ai-crm.Preview` is running;
+- confirm the runner is online in repository Actions settings;
+- confirm labels include `clariobase-preview`;
+- confirm Docker Desktop and the Docker engine are healthy;
+- confirm the runner work directory remains outside the production checkout;
+- confirm preview workflows still target `clariobase-crm-preview` and never `clariobase-crm`;
+- do not start `run.cmd` while the service is active.
+
+## Diagnostics and recovery
+
+Runner appears offline:
+
+- check the Windows service status;
+- wait for delayed startup when the host has just restarted;
 - inspect `C:\actions-runners\clariobase-preview\_diag`;
-- confirm Docker access for the service account;
-- rerun `scripts/runner-preflight.ps1`;
-- confirm the runner labels still include `clariobase-preview`.
+- confirm outbound connectivity to GitHub;
+- confirm Docker engine access from the service account;
+- rerun `scripts/runner-preflight.ps1`.
 
-## Historical restart proof
+Runner is busy or stuck:
 
-The E016 restart rehearsal on `2026-06-16` proved that the service returned to `Running`, preview deployment and readiness succeeded, and Stop Preview removed the isolated preview resources. That historical result validates runner startup and isolation but does not replace the required post-merge Preview Release rehearsal for E016.T012.
+- let the current preview-control job finish when possible because concurrency protects one shared preview slot;
+- inspect the active job in GitHub Actions;
+- if a process is orphaned, stop only the preview stack with `scripts/stop-preview.ps1`;
+- restart only the runner service when necessary.
+
+Workspace cleanup warning:
+
+```text
+Unable to clean or reset the repository. The repository will be recreated instead.
+```
+
+This warning can occur when Windows path-length handling prevents full cleanup of an old `node_modules` tree. The checkout action recreates the workspace and the job may still pass. Treat it as housekeeping noise unless checkout or installation actually fails.
+
+Runner must be removed or re-registered:
+
+```powershell
+.\config.cmd remove --token <PASTE_SHORT_LIVED_TOKEN_HERE>
+.\svc.cmd uninstall
+```
+
+Then clean only the dedicated runner root and work directories, never the production checkout.
 
 ## Security reminders
 
-- only trusted on-demand Preview Release may execute on this runner;
-- exact live PR head validation occurs again immediately before deployment;
-- `pull_request_target` must not execute untrusted code;
-- production health is not queried by preview gating;
-- production `.env.compose.local`, containers, database and paths must remain untouched;
+- self-hosted preview jobs execute trusted same-repository code on the server;
+- only intentional Preview Release requests from trusted `main` may queue deployment;
+- preview may succeed while production is remote, stopped, or not yet deployed because safety is enforced through exact identities and isolation;
+- only trusted repository refs may be deployed;
+- `pull_request_target` must not be used for untrusted code execution;
+- preview deployment must authenticate to GHCR with the workflow token, pull the exact immutable digest and never build the CRM application locally;
+- the preview runner must not fall back to a local Compose build if the registry pull fails;
+- the runner must not be installed inside the production checkout;
+- preview workflows must not read or mutate production `.env.compose.local` or production runtime paths;
 - interactive and service listeners must not run simultaneously;
-- no registration or service credential may be committed or printed.
+- no service or registration credential may be committed or printed.
