@@ -17,15 +17,17 @@ jobs:
       DATABASE_URL: postgresql://clariobase_crm_user:change-me@localhost:5432/clariobase_crm?schema=public
 
     steps:
-      - name: Check out repository
+      - name: Check out exact PR head for provenance
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          path: head
           fetch-depth: 1
           persist-credentials: false
 
       - name: Verify checked-out PR head SHA
         shell: bash
+        working-directory: head
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
@@ -36,12 +38,11 @@ jobs:
             exit 1
           fi
 
-          {
-            echo "Validated SHA: $ACTUAL_SHA"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Validated exact PR head SHA: $ACTUAL_SHA" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Write auto-preview context
         shell: bash
+        working-directory: head
         env:
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -80,15 +81,12 @@ jobs:
           if (!/^[0-9a-f]{40}$/i.test(headSha)) {
             throw new Error('headSha must be exactly 40 hexadecimal characters.');
           }
-
           if (repository !== headRepository) {
             throw new Error('repository must equal headRepository for trusted same-repository PRs.');
           }
-
           if (!Number.isInteger(prNumber) || prNumber <= 0) {
             throw new Error('prNumber must be a positive integer.');
           }
-
           if (!Number.isInteger(workflowRunId) || workflowRunId <= 0) {
             throw new Error('workflowRunId must be a positive integer.');
           }
@@ -112,8 +110,45 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: auto-preview-context
-          path: auto-preview-context.json
+          path: head/auto-preview-context.json
           retention-days: 7
+
+      - name: Check out current PR merge candidate
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify merge candidate contains the exact PR head
+        shell: bash
+        env:
+          EXPECTED_MERGE_SHA: ${{ github.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+
+          if [ "$ACTUAL_SHA" != "$EXPECTED_MERGE_SHA" ]; then
+            echo "Expected merge candidate $EXPECTED_MERGE_SHA but checked out $ACTUAL_SHA" >&2
+            exit 1
+          fi
+
+          git merge-base --is-ancestor "$EXPECTED_HEAD_SHA" HEAD || {
+            echo "Merge candidate does not contain exact PR head $EXPECTED_HEAD_SHA" >&2
+            exit 1
+          }
+
+          git merge-base --is-ancestor "$EXPECTED_BASE_SHA" HEAD || {
+            echo "Merge candidate does not contain current PR base $EXPECTED_BASE_SHA" >&2
+            exit 1
+          }
+
+          {
+            echo "Validated merge candidate: $ACTUAL_SHA"
+            echo "Exact PR head included: $EXPECTED_HEAD_SHA"
+            echo "Current PR base included: $EXPECTED_BASE_SHA"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
