@@ -26,6 +26,21 @@ body {
   box-sizing: border-box;
 }
 
+[data-ui-foundation="shadboard-proof"] {
+  --cb-ui-background: #f7f9fc;
+  --cb-ui-foreground: #0f172a;
+  --cb-ui-surface: #eef3f9;
+  --cb-ui-card: #ffffff;
+  --cb-ui-border: #d6dee8;
+  --cb-ui-primary: #0f6ea8;
+  --cb-ui-primary-foreground: #ffffff;
+  --cb-ui-ring: #0f6ea8;
+  --cb-ui-radius-sm: 0.5rem;
+  --cb-ui-radius-md: 0.75rem;
+  --cb-ui-radius-lg: 1.125rem;
+  --cb-ui-muted-foreground: #516072;
+}
+
 body {
   text-rendering: optimizeLegibility;
 }
