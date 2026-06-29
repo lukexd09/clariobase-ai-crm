@@ -50,6 +50,10 @@ function NavigationLinks({ pathname, compact = false }: { pathname: string; comp
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
 
+  if (pathname === "/leads") {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] min-[1100px]:grid min-[1100px]:grid-cols-[clamp(212px,14vw,236px)_minmax(0,1fr)]">
       <aside className="hidden border-r border-[#CBD5E1] bg-white min-[1100px]:sticky min-[1100px]:top-0 min-[1100px]:flex min-[1100px]:h-screen min-[1100px]:flex-col">
