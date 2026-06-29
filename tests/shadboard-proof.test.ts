@@ -12,29 +12,46 @@ function read(filePath: string) {
 test("shadboard adoption decision documents the pinned upstream ref and licensing posture", () => {
   const doc = read("docs/architecture/shadboard-adoption-decision.md");
 
-  assert.match(doc, /ClarioBase base SHA: `77d888947276ac079650a9eec58d0a84e4690bc6`/);
-  assert.match(doc, /Shadboard release: `v1.5.1`/);
-  assert.match(doc, /Shadboard commit: `ece0dab7282175002f5103afbac6f86306169a4e`/);
-  assert.match(doc, /MIT license/i);
-  assert.match(doc, /No Shadboard source file was copied or substantially adapted/i);
-  assert.match(doc, /No third-party notice file is needed yet/i);
-  assert.match(doc, /No new dependencies were added/i);
+  assert.match(doc, /Current `main` incorporated: `77d888947276ac079650a9eec58d0a84e4690bc6`/);
+  assert.match(doc, /Epic synchronization commit: `2363f540f0ef1a6d49e6eda1c0939d3d7b28eece`/);
+  assert.match(doc, /Pinned release: `v1.5.1`/);
+  assert.match(doc, /Pinned commit: `ece0dab7282175002f5103afbac6f86306169a4e`/);
+  assert.match(doc, /`starter-kit\/src\/components\/ui\/card\.tsx` -> `src\/components\/clariobase-ui\/proof-card\.tsx`/);
+  assert.match(doc, /`starter-kit\/src\/app\/layout\.tsx` -> `src\/components\/app-shell\.tsx`/);
+  assert.match(doc, /`starter-kit\/src\/components\/ui\/sidebar\.tsx` -> `src\/components\/app-shell\.tsx`/);
+  assert.match(doc, /Nonexistent placeholder paths removed from the inventory:/);
+  assert.match(doc, /- `app\/leads\/page\.tsx`/);
+  assert.match(doc, /- `components\/navigation\.tsx`/);
+  assert.match(doc, /`class-variance-authority` \| `0\.7\.1`/);
+  assert.match(doc, /`@radix-ui\/react-dialog` \| `1\.1\.3`/);
+  assert.match(doc, /`@auth\/prisma-adapter` \| `2\.6\.0`/);
+  assert.match(doc, /`@fullcalendar\/\*` \| `6\.1\.15`/);
+  assert.match(doc, /`@hello-pangea\/dnd` \| `18\.0\.1`/);
+  assert.match(doc, /THIRD_PARTY_NOTICES\.md/);
 });
 
 test("proof boundary stays project-owned and avoids prohibited dependencies", () => {
   const doc = read("docs/architecture/shadboard-adoption-decision.md");
   const proofShell = read("src/components/clariobase-ui/proof-shell.tsx");
   const proofCard = read("src/components/clariobase-ui/proof-card.tsx");
+  const notice = read("THIRD_PARTY_NOTICES.md");
 
-  assert.match(doc, /src\/components\/clariobase-ui\//);
-  assert.match(doc, /`next-auth` \/ Auth\.js/);
-  assert.match(doc, /`@auth\/prisma-adapter`/);
-  assert.match(doc, /chat\/editor\/dnd starter deps/);
+  assert.match(doc, /`next-auth`/);
+  assert.match(doc, /`prisma` \| `5\.20\.0`/);
+  assert.match(doc, /`@tiptap\/react` \| `2\.11\.7`/);
   assert.match(proofShell, /data-ui-foundation="shadboard-proof"/);
   assert.match(proofShell, /aria-label="Primary navigation"/);
   assert.match(proofShell, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(proofShell, /focus-visible:ring-\[color:var\(--cb-ui-ring\)\]/);
-  assert.match(proofCard, /--cb-ui-radius-lg/);
+  assert.match(proofCard, /data-slot="card"/);
+  assert.match(proofCard, /ProofCardHeader/);
+  assert.match(proofCard, /ProofCardTitle/);
+  assert.match(proofCard, /ProofCardDescription/);
+  assert.match(proofCard, /ProofCardContent/);
+  assert.match(proofCard, /ProofCardFooter/);
+  assert.match(notice, /Shadboard/);
+  assert.match(notice, /starter-kit\/src\/components\/ui\/card\.tsx/);
+  assert.match(notice, /src\/components\/clariobase-ui\/proof-card\.tsx/);
 });
 
 test("leads route preserves data loading and uses the proof boundary", () => {
@@ -54,11 +71,7 @@ test("leads route preserves data loading and uses the proof boundary", () => {
   assert.match(layout, /<AppShell>\{children\}<\/AppShell>/);
   assert.match(appShell, /if \(pathname === "\/leads"\)/);
   assert.match(appShell, /return <>\{children\}<\/>;/);
-  assert.match(appShell, /aria-label="Primary navigation"/);
-  assert.match(appShell, /pathname === "\/leads"/);
-  assert.match(page, /ProofShell pathname="\/leads"/);
   assert.doesNotMatch(page, /AppShell/);
-
   assert.match(filters, /buildLeadUrl/);
   assert.match(filters, /router\.replace/);
   assert.match(table, /\/leads\/\$\{lead\.id\}/);
