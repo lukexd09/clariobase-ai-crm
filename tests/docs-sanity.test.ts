@@ -21,6 +21,8 @@ test("README documents the current post-UI CRM state and scripts", () => {
   assert.match(readme, /Open `\/reports\/sales`/);
   assert.match(readme, /Open a lead in `\/leads\/\[id\]`/);
   assert.match(readme, /corepack pnpm ai:validate-import-file/);
+  assert.doesNotMatch(readme, /Local setup for the Next\.js skeleton/);
+  assert.doesNotMatch(readme, /verify the skeleton is running/);
 
   for (const scriptName of [
     "dev",
@@ -76,4 +78,16 @@ test("light CRM visual direction covers shell navigation guidance", () => {
   assert.match(doc, /minimum important text size/i);
   assert.match(doc, /manual keyboard and contrast checks/i);
   assert.match(doc, /active navigation state is visible without color alone/i);
+  assert.match(doc, /Primary CTA buttons should keep accessible white-on-blue contrast/i);
+  assert.match(doc, /bg-sky-700 text-white/);
+  assert.match(doc, /hover:bg-sky-800/);
+  assert.match(doc, /Do not use lighter primary CTA blues/i);
+});
+
+test("E009 audit docs distinguish task-level proof from final whole-epic evidence", () => {
+  const t006Proof = read("docs/verification/e009-t006-light-screen-proof.md");
+
+  assert.match(t006Proof, /task-level proof record for `E009\.T006` only/i);
+  assert.match(t006Proof, /Final whole-epic closure evidence must live in `docs\/verification\/e009-epic-quality-audit\.md`/);
+  assert.match(t006Proof, /historical execution evidence, not canonical rerun instructions/i);
 });
