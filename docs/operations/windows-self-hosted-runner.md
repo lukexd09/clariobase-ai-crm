@@ -5,18 +5,18 @@ document_type: operations-runbook
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-24
+last_updated: 2026-06-29
 related_epic: E016
 related_tasks:
   - E016.T003
   - E016.T008
   - E016.T009
+  - E016.T012
 related_documents:
   - docs/architecture/preview-environment.md
   - docs/operations/preview-operations.md
   - docs/verification/e016-integrated-assurance.md
-  - .github/workflows/auto-deploy-preview.yml
-  - .github/workflows/deploy-preview.yml
+  - .github/workflows/preview-release.yml
   - .github/workflows/stop-preview.yml
   - scripts/runner-preflight.ps1
 tags:
@@ -31,7 +31,8 @@ tags:
 ## Purpose
 
 This document is the canonical runbook for the E016 preview self-hosted runner.
-It defines the dedicated install path, work path, labels, Windows service identity, startup behavior, bootstrap procedure, diagnostics and recovery rules for preview workflows that execute code on the server.
+It defines the dedicated install path, work path, labels, Windows service identity, startup behavior, bootstrap procedure, diagnostics and recovery rules for trusted Preview Release and Stop Preview workflows that execute on the server.
+Fast CI and Full Integration remain on GitHub-hosted Linux runners.
 
 ## Required runner identity
 
@@ -69,8 +70,39 @@ Startup mode: Automatic with delayed startup behavior
 
 The runner root and work directories must stay outside the protected production checkout.
 Normal operation must not require an interactive `run.cmd` listener window.
-The runner services one shared preview slot, so manual deploy, automatic deploy, and stop preview workflows must serialize through the same GitHub Actions concurrency group: `clariobase-preview-slot`.
+Preview Release and Stop Preview serialize through the same GitHub Actions concurrency group: `clariobase-preview-slot`.
 Preview automation must not depend on any production runtime endpoint being reachable from this host.
+
+## When the Windows runner may execute
+
+A normal PR push, Fast CI completion or Full Integration result must not queue the Windows runner.
+The runner is eligible only after a Preview Release dispatched from trusted `main` has:
+
+1. resolved an open same-repository PR;
+2. found successful Fast CI for the exact current PR head SHA;
+3. validated the matching `auto-preview-context` artifact;
+4. built and smoke-tested exactly one `linux/amd64` image on a GitHub-hosted runner;
+5. pushed the image to GHCR and captured its immutable registry digest.
+
+Immediately before deployment, the Windows job revalidates that the PR remains open, same-repository and still points to the validated SHA.
+
+## Deployment contract
+
+The Windows job must:
+
+1. check out trusted control files from `main` only;
+2. verify that the image source SHA equals the validated Fast CI SHA;
+3. accept only `ghcr.io/lukexd09/clariobase-ai-crm@sha256:<64 lowercase hex>`;
+4. authenticate to GHCR with the workflow token;
+5. pull the exact digest before deleting the previous preview stack;
+6. validate the merged Compose model;
+7. run migration with `--pull never`;
+8. start the application with `--no-build --pull never`;
+9. require HTTP 200 with `service=clariobase-ai-crm`, `status=ready` and `checks.database=ok`;
+10. clean temporary secrets and workflow artifacts;
+11. always attempt GHCR logout after successful login.
+
+The runner must never build the CRM application locally or fall back to a Compose build.
 
 ## Preflight
 
@@ -166,7 +198,7 @@ The E016 restart rehearsal completed successfully on `2026-06-16`:
 - `run.cmd` was not started manually;
 - the service reached `Running` with automatic startup and exit code `0`;
 - a new runner diagnostic log appeared in `_diag`;
-- Deploy Preview succeeded after restart;
+- preview deployment succeeded after restart;
 - preview readiness on port `3001` returned `database: ok`;
 - any separate production verification remained out of band and was not part of preview workflow gating;
 - the preview slot was switched from `main` to `epic/e009-light-crm-closeout`;
@@ -178,6 +210,8 @@ The final post-restart Stop Preview workflow run was:
 ```text
 27631243500
 ```
+
+This historical proof validates runner startup and isolation but does not replace the required post-merge Preview Release rehearsal for E016.T012.
 
 ## Daily operator checklist
 
@@ -227,11 +261,11 @@ Then clean only the dedicated runner root and work directories, never the produc
 ## Security reminders
 
 - self-hosted preview jobs execute trusted same-repository code on the server;
-- automatic preview deploys are allowed only after trusted `CI` success for an open same-repository PR whose live head still matches the validated SHA;
-- preview may succeed while production is remote, stopped, or not yet deployed because production safety is enforced through identifier guards and isolation rather than runtime health checks;
+- only intentional Preview Release requests from trusted `main` may queue deployment;
+- preview may succeed while production is remote, stopped, or not yet deployed because safety is enforced through exact identities and isolation;
 - only trusted repository refs may be deployed;
 - `pull_request_target` must not be used for untrusted code execution;
-- preview deployment on Windows must authenticate to GHCR with the workflow token, pull the exact immutable digest, and never build the CRM application locally;
+- preview deployment must authenticate to GHCR with the workflow token, pull the exact immutable digest and never build the CRM application locally;
 - the preview runner must not fall back to a local Compose build if the registry pull fails;
 - the runner must not be installed inside the production checkout;
 - preview workflows must not read or mutate production `.env.compose.local` or production runtime paths;
