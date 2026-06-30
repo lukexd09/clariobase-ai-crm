@@ -370,7 +370,14 @@ test("workflow inventory keeps exactly four authoritative workflow files and the
   assert.doesNotMatch(ci, /workflow_run:/);
   assert.doesNotMatch(ci, /pull_request_target/);
   const fullIntegration = read(".github/workflows/full-integration.yml");
-  assert.doesNotMatch(fullIntegration, /self-hosted.*clariobase-preview|clariobase-preview.*self-hosted/);
+  assert.doesNotMatch(
+    fullIntegration,
+    /^\s*(?:runs-on:\s*|-\s*)["']?self-hosted["']?\s*$/m
+  );
+  assert.doesNotMatch(
+    fullIntegration,
+    /^\s*(?:runs-on:\s*|-\s*)["']?clariobase-preview["']?\s*$/m
+  );
 
   const stopPreview = read(".github/workflows/stop-preview.yml");
   assert.match(stopPreview, /clariobase-preview-slot/);
