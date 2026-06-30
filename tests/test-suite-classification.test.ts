@@ -6,7 +6,7 @@ import path from "node:path";
 const repoRoot = path.resolve(__dirname, "..");
 
 function extractTestFiles(command: string) {
-  return [...command.matchAll(/tests\/[A-Za-z0-9._/-]+\.test\.ts/g)].map((match) => match[0]);
+  return [...command.matchAll(/tests\/[A-Za-z0-9._/-]+\.test\.(?:tsx|ts)/g)].map((match) => match[0]);
 }
 
 test("every test file belongs to exactly one fast or infrastructure suite", () => {
@@ -16,7 +16,7 @@ test("every test file belongs to exactly one fast or infrastructure suite", () =
   const testDirectory = path.join(repoRoot, "tests");
   const repositoryTests = fs
     .readdirSync(testDirectory)
-    .filter((name) => name.endsWith(".test.ts"))
+    .filter((name) => name.endsWith(".test.ts") || name.endsWith(".test.tsx"))
     .map((name) => `tests/${name}`)
     .sort();
 

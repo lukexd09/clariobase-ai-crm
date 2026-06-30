@@ -24,6 +24,22 @@ This project includes adapted source-derived boundaries from:
   -> `src/components/clariobase-ui/field.tsx` (`Input` export only)
   -> classification: substantially adapted
 
+- `starter-kit/src/components/ui/sheet.tsx`
+  -> `src/components/clariobase-ui/sheet.tsx`
+  -> classification: substantially adapted
+
+## Direct Dependencies
+
+- `@radix-ui/react-dialog` `1.1.3`
+  - license: MIT
+  - commercial use: allowed
+  - current consumer: `src/components/clariobase-ui/sheet.tsx` / `src/components/app-shell.tsx`
+
+- `lucide-react` `0.446.0`
+  - license: ISC
+  - commercial use: allowed
+  - current consumer: `src/components/app-shell.tsx`
+
 ### Copyright and license text
 
 Copyright (c) 2025 Qualiora

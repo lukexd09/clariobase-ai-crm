@@ -21,16 +21,23 @@ test("core CRM work screens use the light shell baseline", () => {
   assert.match(homepage, /PipelineSnapshot items=\{pipeline\}/);
   assert.doesNotMatch(homepage, /text-\[0\.68rem\]/);
   assert.match(appShell, /nav aria-label="Primary navigation"/);
-  assert.match(appShell, /nav aria-label="Compact navigation"/);
+  assert.match(appShell, /SheetTrigger/);
+  assert.match(appShell, /SheetContent/);
+  assert.match(appShell, /Menu/);
   assert.match(appShell, /aria-current=\{active \? "page" : undefined\}/);
+  assert.match(appShell, /min-h-0.*overflow-y-auto/);
+  assert.doesNotMatch(appShell, /--cb-ui-/);
 
   for (const source of [workPage, salesReportPage]) {
     assert.match(source, /bg-slate-50/);
     assert.doesNotMatch(source, /max-w-7xl/);
   }
-  assert.match(leadsPage, /ProofShell pathname="\/leads"/);
+  assert.doesNotMatch(leadsPage, /ProofShell/);
+  assert.match(leadsPage, /data-ui-foundation="shadboard-proof"/);
   assert.match(leadsPage, /ProofCard/);
-  assert.match(leadsPage, /--cb-ui-background/);
+  assert.match(leadsPage, /Lead CRM/);
+  assert.doesNotMatch(leadsPage, /<main className=/);
+  assert.match(leadsPage, /LeadTable/);
 });
 
 test("core CRM work screens keep semantic light status pills and accessible tables", () => {
