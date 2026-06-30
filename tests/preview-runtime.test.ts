@@ -84,6 +84,8 @@ function runDeployDryRun(options: {
   previewEnvFile: string;
   sourceCheckoutPath?: string;
   resolvedSha?: string;
+  databaseMode?: string;
+  resetConfirmation?: string;
 }) {
   const args = [
     tsxCli,
@@ -100,6 +102,12 @@ function runDeployDryRun(options: {
   }
   if (options.resolvedSha) {
     args.push("--resolved-sha", options.resolvedSha);
+  }
+  if (options.databaseMode) {
+    args.push("--database-mode", options.databaseMode);
+  }
+  if (options.resetConfirmation !== undefined) {
+    args.push("--reset-confirmation", options.resetConfirmation);
   }
   args.push("--preview-env-file", options.previewEnvFile);
 
@@ -217,7 +225,9 @@ test("preview runtime support rejects production collisions", () => {
 
 test("preview deploy and stop plans stay scoped to the approved preview stack", () => {
   const deployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), previewImageRef);
+  const resetDeployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), previewImageRef, "reset");
   const stopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
+  const resetStopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), "reset");
   const summary = createPreviewSummary("epic/e016-manual-preview", "0123456789abcdef0123456789abcdef01234567");
 
   assert.match(deployPlan.validateComposeModel.join(" "), /config --format json/);
@@ -227,10 +237,16 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   assert.match(deployPlan.migrate.join(" "), /run --rm --pull never crm-app/);
   assert.match(deployPlan.startApplication.join(" "), /up -d --no-build --pull never crm-app/);
   assert.match(stopPlan.down.join(" "), /down --remove-orphans/);
+  assert.match(resetDeployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
+  assert.match(resetStopPlan.down.join(" "), /down -v --remove-orphans/);
   assert.equal(deployPlan.databaseLifecycleMode, "preserve");
   assert.equal(deployPlan.databaseVolumeAction, "preserve");
+  assert.equal(resetDeployPlan.databaseLifecycleMode, "reset");
+  assert.equal(resetDeployPlan.databaseVolumeAction, "reset");
   assert.equal(stopPlan.databaseLifecycleMode, "preserve");
   assert.equal(stopPlan.databaseVolumeAction, "preserve");
+  assert.equal(resetStopPlan.databaseLifecycleMode, "reset");
+  assert.equal(resetStopPlan.databaseVolumeAction, "reset");
   assert.equal(summary.previewUrl, PREVIEW_URL);
   assert.equal(summary.projectName, PREVIEW_PROJECT_NAME);
   assert.equal(summary.volumeName, PREVIEW_VOLUME_NAME);
@@ -415,6 +431,40 @@ test("deploy preview propagates the immutable image ref to the preview commands"
   assert.match(observed[3].description, /up -d crm-postgres/);
   assert.match(observed[4].description, /migrate deploy/);
   assert.match(observed[5].description, /up -d --no-build --pull never crm-app/);
+});
+
+test("deploy preview dry-run propagates reset confirmation only through validated inputs", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "deploy-preview-dry-run-reset-confirmation-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+  const previewEnvFile = writePreviewEnv(tmpRoot);
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+    const preserveResult = runDeployDryRun({ controlCheckoutPath, previewEnvFile, databaseMode: "preserve" });
+    assert.equal(preserveResult.status, 0, preserveResult.stderr);
+    assert.doesNotMatch(preserveResult.stdout, /RESET PREVIEW DATABASE/);
+
+    const resetResult = runDeployDryRun({
+      controlCheckoutPath,
+      previewEnvFile,
+      resolvedSha: controlHeadSha,
+      databaseMode: "reset",
+      resetConfirmation: "RESET PREVIEW DATABASE"
+    });
+    assert.equal(resetResult.status, 0, resetResult.stderr);
+    assert.doesNotMatch(resetResult.stdout, /RESET PREVIEW DATABASE/);
+
+    const blockedReset = runDeployDryRun({
+      controlCheckoutPath,
+      previewEnvFile,
+      resolvedSha: controlHeadSha,
+      databaseMode: "reset"
+    });
+    assert.notEqual(blockedReset.status, 0);
+    assert.match(blockedReset.stderr || blockedReset.stdout, /reset_confirmation must exactly equal RESET PREVIEW DATABASE/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
 });
 
 test("preview database lifecycle parsing accepts only preserve or reset", () => {

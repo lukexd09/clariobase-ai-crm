@@ -62,6 +62,7 @@ jobs:
       - name: Stop preview
         shell: pwsh
         working-directory: control
+        id: stop
         env:
           DATABASE_MODE: ${{ inputs.database_mode }}
           RESET_CONFIRMATION: ${{ inputs.reset_confirmation }}
@@ -79,18 +80,41 @@ jobs:
           }
 
       - name: Write job summary
+        if: always()
         shell: pwsh
         working-directory: control
+        env:
+          DATABASE_MODE: ${{ inputs.database_mode }}
+          STOP_RESULT: ${{ steps.stop.conclusion }}
+          STOP_EXIT_CODE: ${{ steps.stop.outcome }}
         run: |
-          $databaseVolume = if ("${{ inputs.database_mode }}" -eq "reset") { "reset" } else { "preserved" }
+          if ($env:DATABASE_MODE -eq "reset" -and $env:STOP_RESULT -eq "failure") {
+            $databaseVolume = "unchanged"
+          } elseif ($env:DATABASE_MODE -eq "reset") {
+            $databaseVolume = "reset"
+          } else {
+            $databaseVolume = "preserved"
+          }
+
+          $result = if ($env:STOP_RESULT -eq "failure") { "BLOCKED" } else { "PASS" }
           @"
-          Result: PASS
+          Result: $result
 
           Requested ref: `stop-preview`
           Database mode: `${{ inputs.database_mode }}`
           Database volume: `$databaseVolume`
           Preview URL: `http://Serwer:3001`
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Fail workflow if stop failed
+        if: always()
+        shell: pwsh
+        env:
+          STOP_RESULT: ${{ steps.stop.conclusion }}
+        run: |
+          if ($env:STOP_RESULT -eq "failure") {
+            throw "Stop preview failed."
+          }
 
       - name: Cleanup secrets and job artifacts
         if: always()

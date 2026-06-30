@@ -186,7 +186,6 @@ async function main() {
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
           databaseMode,
-          resetConfirmation: options.resetConfirmation,
           deployPlan
         },
         null,
