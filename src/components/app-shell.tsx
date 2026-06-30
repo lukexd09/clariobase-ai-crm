@@ -103,7 +103,14 @@ function NavigationLinks({
 }
 
 function BrandMark() {
-  return <span className="flex h-9 w-9 items-center justify-center rounded-[var(--cb-radius-md)] bg-[color:var(--cb-accent)] text-sm font-semibold text-[color:var(--cb-accentForeground)]">C</span>;
+  return (
+    <span
+      className="flex h-9 w-9 items-center justify-center rounded-[var(--cb-radius-md)] bg-[color:var(--cb-accent)] text-sm font-semibold text-[color:var(--cb-accent-foreground)]"
+      aria-hidden="true"
+    >
+      C
+    </span>
+  );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {

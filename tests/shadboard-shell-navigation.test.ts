@@ -19,6 +19,14 @@ function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
+function extractCbReferences(source: string) {
+  return Array.from(source.matchAll(/var\((--cb-[a-z0-9-]+)\)/g), (match) => match[1]);
+}
+
+function extractDeclaredTokens(source: string) {
+  return Array.from(source.matchAll(/^\s*(--cb-[a-z0-9-]+)\s*:/gm), (match) => match[1]);
+}
+
 test("sheet primitive exposes the project-owned dialog boundary and accessible render contract", () => {
   const sheetSource = read("src/components/clariobase-ui/sheet.tsx");
 
@@ -89,15 +97,25 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.doesNotMatch(shellSource, /ProofShell/);
   assert.doesNotMatch(shellSource, /Support|Settings|notifications|calendar|logout|account menu/i);
   assert.doesNotMatch(shellSource, /--cb-ui-/);
-  assert.match(shellSource, /--cb-background/);
-  assert.match(shellSource, /--cb-foreground/);
-  assert.match(shellSource, /--cb-surface/);
-  assert.match(shellSource, /--cb-elevated-surface/);
-  assert.match(shellSource, /--cb-border/);
-  assert.match(shellSource, /--cb-accent/);
-  assert.match(shellSource, /--cb-focus-ring/);
-  assert.match(shellSource, /--cb-radius-md/);
+  assert.doesNotMatch(shellSource, /--cb-accentForeground/);
+  assert.match(shellSource, /--cb-accent-foreground/);
   assert.equal((shellSource.match(/<main\b/g) ?? []).length, 1);
+
+  const globalsSource = read("src/app/globals.css");
+  const referencedTokens = new Set([
+    ...extractCbReferences(shellSource),
+    ...extractCbReferences(read("src/components/clariobase-ui/sheet.tsx"))
+  ]);
+  const declaredTokens = new Set(extractDeclaredTokens(globalsSource));
+  const missingTokens = [...referencedTokens].filter((token) => !declaredTokens.has(token)).sort();
+
+  assert.equal(
+    missingTokens.length,
+    0,
+    `Missing declared CSS custom properties: ${missingTokens.length > 0 ? missingTokens.join(", ") : "(none)"}`
+  );
+
+  assert.match(shellSource, /aria-hidden="true"/);
 
   assert.match(leadsPage, /getLeadPage/);
   assert.match(leadsPage, /getLeadFilterOptions/);

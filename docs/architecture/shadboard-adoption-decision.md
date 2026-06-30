@@ -3,7 +3,7 @@
 Decision status: GO
 Date: 2026-06-29
 
-## Base And Upstream
+## Historical T001 Base And Upstream
 
 - Current `main` incorporated: `77d888947276ac079650a9eec58d0a84e4690bc6`
 - Epic synchronization commit: `2363f540f0ef1a6d49e6eda1c0939d3d7b28eece`
@@ -123,15 +123,15 @@ The exact upstream starter-kit dependency versions are:
 - imports too much foreign architecture
 - conflicts with T001 constraints
 
-## Architecture Boundary
+## Historical T001 Architecture Boundary
 
-Current proof boundary:
+T001 proof boundary at the time of validation:
 
 `src/components/clariobase-ui/`
 
 The exact `/leads` route renders `ProofShell` once, while `AppShell` returns children unchanged for exact pathname `/leads`.
 
-## Early Proof Results
+## Historical T001 Early Proof Results
 
 - exact `/leads` route uses one shell only
 - `/leads/[id]` and all other routes keep `AppShell`
@@ -139,7 +139,7 @@ The exact `/leads` route renders `ProofShell` once, while `AppShell` returns chi
 - filtering, pagination and URL state are preserved
 - no Prisma/auth/demo module changes were introduced
 
-## Bundle And Dependency Impact
+## Historical T001 Bundle And Dependency Impact
 
 - direct dependencies added: `0`
 - lockfile change: `no`
@@ -156,7 +156,7 @@ The adapted boundary is covered by [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_
 - no workflow/build config changes
 - `package.json` only updates the current test classification and proof test inclusion
 
-## Manual Validation Evidence
+## Historical T001 Manual Validation Evidence
 
 - Validation date: `2026-06-29`
 - Environment: approved Preview Release
@@ -207,18 +207,28 @@ Not claimed:
 - review any new upstream file boundary separately
 - re-audit assets if any are imported later
 
-## Recommendation
+## Historical T001 Recommendation
 
 GO - the selective Shadboard adoption strategy is approved for E020.T002.
 
 ## T003 Addendum
 
+T003 PR base:
+`c800ca5e8cebc83a0fc71087e0c6bdc457640725`
+
+Current implementation state:
+- all active routes render inside the shared AppShell
+- the exact `/leads` AppShell bypass has been removed
+- ProofShell has been retired
+- `/leads` retains the temporary scoped proof compatibility wrapper until T005
+- direct dependencies added: 2
+- pnpm-lock.yaml changed for the approved dependency graph
+- `@radix-ui/react-dialog` `1.1.3` is approved
+- `lucide-react` `0.446.0` is approved
+- no Prisma, auth, workflow, preview or deployment changes
+- manual responsive shell QA remains pending
+
 - `starter-kit/src/components/ui/sheet.tsx` -> `src/components/clariobase-ui/sheet.tsx`
 - classification: substantially adapted
-- `@radix-ui/react-dialog` `1.1.3` / MIT / commercial use allowed
-- `lucide-react` `0.446.0` / ISC / commercial use allowed
-- current AppShell consumes the shared navigation and mobile Sheet boundary
-- the old `ProofShell` route boundary has been retired
-- direct dependencies added for T003: 2
 - bundle evidence: `/leads` remains `1.97 kB` in the build output
 - residual manual QA remains required for the responsive shell
