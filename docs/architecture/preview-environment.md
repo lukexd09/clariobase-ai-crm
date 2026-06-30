@@ -241,7 +241,7 @@ A runner-side stale SHA is `blocked`, not a generic deployment failure.
 ## Retired automatic and direct paths
 
 Completed Fast CI runs must not trigger preview replacement automatically.
-The old automatic `workflow_run` deployment and the direct manually supplied image path are retired and fail closed.
+The old automatic `workflow_run` deployment and the direct manually supplied image path were removed from the repository and must stay removed.
 
 This prevents:
 

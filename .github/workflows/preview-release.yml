@@ -157,6 +157,8 @@ jobs:
               }
 
               const protectedExactPaths = new Set([
+                // Removed workflow files stay as security tombstones so a future PR cannot
+                // reintroduce the old preview deploy paths and bypass the trusted control plane.
                 ".github/workflows/ci.yml",
                 ".github/workflows/full-integration.yml",
                 ".github/workflows/preview-release.yml",
