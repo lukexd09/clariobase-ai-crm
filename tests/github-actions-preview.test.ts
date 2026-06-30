@@ -50,6 +50,14 @@ function extractResolverScript(workflow: string) {
   return scriptLines.join("\n");
 }
 
+function extractWorkflowStepBlock(workflow: string, stepName: string) {
+  const start = workflow.indexOf(`      - name: ${stepName}`);
+  if (start === -1) return "";
+  const tail = workflow.slice(start);
+  const nextStep = tail.indexOf("\n      - name:");
+  return tail.slice(0, nextStep === -1 ? tail.length : nextStep);
+}
+
 type ResolverFixture = {
   expectedSha?: string;
   databaseMode?: string;
@@ -240,7 +248,7 @@ test("Preview Release uses trusted manual dispatch and exact Fast CI correlation
   assert.match(resolver, /auto-preview-context/);
   assert.match(resolver, /workflowRunId/);
   assert.match(resolver, /PR changes trusted preview control-plane files/);
-  assert.match(resolver, /database_mode: "preserve"/);
+  assert.match(resolver, /database_mode: \$\{\{ steps\.resolve\.outputs\.database_mode \}\}/);
 });
 
 test("the real workflow resolver accepts only an exact eligible request", async () => {
@@ -351,8 +359,34 @@ test("the real workflow resolver validates lifecycle inputs before deployment", 
   assert.equal(caseReset.outputs.database_mode, "reset");
   assert.match(caseReset.outputs.skip_reason, /reset_confirmation must exactly equal/);
   assert.equal(invalidMode.outputs.resolution_status, "blocked");
-  assert.equal(invalidMode.outputs.database_mode, "preserve");
+  assert.equal(invalidMode.outputs.database_mode, "unknown");
   assert.match(invalidMode.outputs.skip_reason, /database_mode must be preserve or reset/);
+});
+
+test("Preview Release write resolution summary stays Bash-only and reports blocked volume correctly", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const step = extractWorkflowStepBlock(workflow, "Write resolution summary");
+
+  assert.match(step, /shell: bash/);
+  assert.doesNotMatch(step, /\$env:/);
+  assert.doesNotMatch(step, /-eq/);
+  assert.doesNotMatch(step, /} else {/);
+  assert.match(step, /\[ "\$\{RESOLUTION_STATUS:-blocked\}" = "blocked" \]/);
+  assert.match(step, /\[ "\$\{DATABASE_MODE:-preserve\}" = "reset" \]/);
+  assert.match(step, /DATABASE_VOLUME=/);
+  assert.match(step, /Database volume: \$\{DATABASE_VOLUME\}/);
+});
+
+test("Preview Release blocked comment reports unchanged volume and unknown invalid mode", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const block = extractWorkflowStepBlock(workflow, "Upsert blocked preview comment");
+
+  assert.match(block, /Result: blocked/);
+  assert.match(block, /const databaseVolume = "unchanged";/);
+  assert.match(block, /const databaseMode = process\.env\.DATABASE_MODE \|\| "unknown";/);
+  assert.match(block, /`Database mode: \$\{databaseMode\}`/);
+  assert.doesNotMatch(block, /Database volume: reset/);
+  assert.doesNotMatch(block, /RESET_CONFIRMATION/);
 });
 
 test("the real workflow resolver fails closed on GitHub API errors", async () => {
@@ -443,6 +477,8 @@ test("Stop Preview exposes the preserve/reset lifecycle inputs", () => {
   assert.match(workflow, /-DatabaseMode \$env:DATABASE_MODE/);
   assert.match(workflow, /-ResetConfirmation \$env:RESET_CONFIRMATION/);
   assert.match(workflow, /if: always\(\)/);
-  assert.match(workflow, /Result: \$result/);
-  assert.match(workflow, /Database volume: `\$databaseVolume`/);
+  assert.match(workflow, /Result: \$summaryResult/);
+  assert.match(workflow, /Database volume: \$databaseVolume/);
+  assert.match(workflow, /failureStage/);
+  assert.match(workflow, /stop-preview-result\.json/);
 });

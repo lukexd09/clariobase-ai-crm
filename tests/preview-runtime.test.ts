@@ -121,6 +121,74 @@ function runDeployDryRun(options: {
   });
 }
 
+function runStopDryRun(options: {
+  controlCheckoutPath: string;
+  databaseMode?: string;
+  resetConfirmation?: string;
+  resolvedSha?: string;
+}) {
+  const args = [
+    tsxCli,
+    "scripts/stop-preview.ts",
+    "--dry-run",
+    "--requested-ref",
+    "stop-preview",
+    "--control-checkout-path",
+    options.controlCheckoutPath
+  ];
+
+  if (options.databaseMode) {
+    args.push("--database-mode", options.databaseMode);
+  }
+  if (options.resetConfirmation !== undefined) {
+    args.push("--reset-confirmation", options.resetConfirmation);
+  }
+  if (options.resolvedSha) {
+    args.push("--resolved-sha", options.resolvedSha);
+  }
+
+  return spawnSync(process.execPath, args, {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+}
+
+function runStopPreview(options: {
+  controlCheckoutPath: string;
+  databaseMode?: string;
+  resetConfirmation?: string;
+  resolvedSha?: string;
+  dockerExitCode?: number;
+}) {
+  const args = [
+    tsxCli,
+    "scripts/stop-preview.ts",
+    "--requested-ref",
+    "stop-preview",
+    "--control-checkout-path",
+    options.controlCheckoutPath
+  ];
+
+  if (options.databaseMode) {
+    args.push("--database-mode", options.databaseMode);
+  }
+  if (options.resetConfirmation !== undefined) {
+    args.push("--reset-confirmation", options.resetConfirmation);
+  }
+  if (options.resolvedSha) {
+    args.push("--resolved-sha", options.resolvedSha);
+  }
+
+  return spawnSync(process.execPath, args, {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      ...(options.dockerExitCode === undefined ? {} : { DOCKER_EXIT_CODE: String(options.dockerExitCode) })
+    }
+  });
+}
+
 function runPreviewComposeConfig(previewEnvFilePath: string, formatJson = false) {
   return spawnSync(
     "docker",
@@ -462,6 +530,80 @@ test("deploy preview dry-run propagates reset confirmation only through validate
     });
     assert.notEqual(blockedReset.status, 0);
     assert.match(blockedReset.stderr || blockedReset.stdout, /reset_confirmation must exactly equal RESET PREVIEW DATABASE/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("stop preview dry-run classifies validation and docker failure states", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "stop-preview-dry-run-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+    const preserve = runStopDryRun({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "preserve" });
+    assert.equal(preserve.status, 0, preserve.stderr);
+    const preservePayload = JSON.parse(preserve.stdout) as { result: string; databaseMode: string; databaseVolume: string; failureStage?: string };
+    assert.equal(preservePayload.result, "PASS");
+    assert.equal(preservePayload.databaseMode, "preserve");
+    assert.equal(preservePayload.databaseVolume, "preserved");
+
+    const blockedReset = runStopDryRun({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "reset", resetConfirmation: "" });
+    assert.notEqual(blockedReset.status, 0);
+    const blockedPayload = JSON.parse(blockedReset.stdout) as { result: string; databaseMode: string; databaseVolume: string; failureStage?: string };
+    assert.equal(blockedPayload.result, "BLOCKED");
+    assert.equal(blockedPayload.databaseMode, "reset");
+    assert.equal(blockedPayload.databaseVolume, "unchanged");
+    assert.equal(blockedPayload.failureStage, "validation");
+    assert.match(blockedReset.stderr || blockedReset.stdout, /RESET PREVIEW DATABASE/);
+
+    const invalidMode = runStopDryRun({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "wipe" });
+    assert.notEqual(invalidMode.status, 0);
+    const invalidPayload = JSON.parse(invalidMode.stdout) as { result: string; databaseMode: string; databaseVolume: string; failureStage?: string };
+    assert.equal(invalidPayload.result, "BLOCKED");
+    assert.equal(invalidPayload.databaseMode, "unknown");
+    assert.equal(invalidPayload.databaseVolume, "unchanged");
+    assert.equal(invalidPayload.failureStage, "validation");
+    assert.match(invalidMode.stderr || invalidMode.stdout, /database_mode must be one of: preserve, reset/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("stop preview classifies docker failure and success states", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "stop-preview-run-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+
+    const preservePass = runStopPreview({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "preserve", dockerExitCode: 0 });
+    assert.equal(preservePass.status, 0, preservePass.stderr);
+    const preservePayload = JSON.parse(preservePass.stdout) as { status: string; databaseVolume: string; databaseMode: string };
+    assert.equal(preservePayload.status, "PASS");
+    assert.equal(preservePayload.databaseMode, "preserve");
+    assert.equal(preservePayload.databaseVolume, "preserved");
+
+    const resetPass = runStopPreview({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE", dockerExitCode: 0 });
+    assert.equal(resetPass.status, 0, resetPass.stderr);
+    const resetPayload = JSON.parse(resetPass.stdout) as { status: string; databaseVolume: string; databaseMode: string };
+    assert.equal(resetPayload.status, "PASS");
+    assert.equal(resetPayload.databaseMode, "reset");
+    assert.equal(resetPayload.databaseVolume, "reset");
+
+    const preserveFail = runStopPreview({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "preserve", dockerExitCode: 1 });
+    assert.notEqual(preserveFail.status, 0);
+    const preserveFailPayload = JSON.parse(preserveFail.stdout) as { result: string; failureStage?: string; databaseVolume: string };
+    assert.equal(preserveFailPayload.result, "FAILED");
+    assert.equal(preserveFailPayload.failureStage, "docker");
+    assert.equal(preserveFailPayload.databaseVolume, "unknown");
+
+    const resetFail = runStopPreview({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE", dockerExitCode: 1 });
+    assert.notEqual(resetFail.status, 0);
+    const resetFailPayload = JSON.parse(resetFail.stdout) as { result: string; failureStage?: string; databaseVolume: string };
+    assert.equal(resetFailPayload.result, "FAILED");
+    assert.equal(resetFailPayload.failureStage, "docker");
+    assert.equal(resetFailPayload.databaseVolume, "unknown");
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
