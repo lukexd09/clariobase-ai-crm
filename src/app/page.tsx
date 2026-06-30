@@ -1,5 +1,5 @@
 import React from "react";
-import { Alert, MetricCard, PageHeader, PipelineSnapshot, PriorityItem } from "@/components/dashboard-primitives";
+import { DashboardDataQualityAlert, MetricCard, PipelineSnapshot, PriorityItem } from "@/components/dashboard-primitives";
 import { Surface, SurfaceContent, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
 
 const priorities = [
@@ -44,13 +44,13 @@ const pipeline = [
 export default function DashboardPage() {
   return (
     <div className="space-y-5">
-      <PageHeader title="Dashboard" subtitle="Your priorities for 21 June 2026" />
+      <header className="space-y-1">
+        <h1 className="text-[2rem] font-semibold tracking-tight text-[color:var(--cb-foreground)]">Dashboard</h1>
+        <p className="text-sm leading-6 text-[color:var(--cb-muted-foreground)]">Your priorities for 21 June 2026</p>
+      </header>
 
-      <section aria-labelledby="dashboard-kpis" className="space-y-3">
-        <h2 id="dashboard-kpis" className="text-lg font-semibold text-[color:var(--cb-foreground)]">
-          Operational snapshot
-        </h2>
-        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="space-y-3">
+        <dl aria-label="Dashboard metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Overdue" value="2" tone="danger" />
           <MetricCard label="Due today" value="4" tone="warning" />
           <MetricCard label="Upcoming" value="11" tone="information" />
@@ -59,25 +59,23 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
-        <Surface>
+        <Surface aria-labelledby="dashboard-priorities-heading">
           <SurfaceHeader>
-            <SurfaceTitle>Today&apos;s priorities</SurfaceTitle>
+            <SurfaceTitle id="dashboard-priorities-heading">Today&apos;s priorities</SurfaceTitle>
           </SurfaceHeader>
           <SurfaceContent className="divide-y divide-[color:var(--cb-border)]">
-            {priorities.map((item) => (
-              <PriorityItem key={item.company} {...item} />
-            ))}
+            <ol className="list-none">
+              {priorities.map((item) => (
+                <li key={item.company}>
+                  <PriorityItem {...item} />
+                </li>
+              ))}
+            </ol>
           </SurfaceContent>
         </Surface>
 
         <div className="space-y-5">
-          <Alert
-            title="Data quality warning"
-            body="3 possible duplicates need review"
-            actionHref="/duplicates"
-            actionLabel="Review"
-            tone="warning"
-          />
+          <DashboardDataQualityAlert />
           <PipelineSnapshot items={pipeline} />
         </div>
       </section>

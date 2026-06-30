@@ -174,13 +174,18 @@ These packages can be reconsidered later with a new exact need and license revie
 - Preserve legacy route presentation until the approved route task replaces it.
 - Do not add new dependency families unless the later task has a direct consumer and license review.
 
-## T004 Dashboard Migration Notes
+## Dashboard Composition Contract
 
-- The Dashboard now consumes the shared shell and the UI v1 foundation through project-owned primitives.
-- KPI tone mapping uses semantic meaning only: overdue is danger, due today is warning, upcoming is information, and no next action is neutral.
-- Priority content is action-first, with company context remaining visible and links preserved to the existing lead route.
-- Pipeline values remain text-equivalent and authoritative; bars are supporting cues only.
-- The data-quality warning stays static and uses the existing `/duplicates` review path.
-- Responsive density should keep priorities primary, allow the secondary stack to drop below when space is tight, and avoid whole-page horizontal overflow.
-- Fixed business values remain unchanged: title, subtitle, KPI values, priorities, pipeline numbers, and warning text.
-- No new KPI, scheduling logic, query semantics, or persistence behavior is introduced by this migration.
+- Dashboard consumes the project-owned UI boundary.
+- KPI information uses one semantic `<dl>` with direct item wrappers containing `<dt>` and `<dd>`.
+- KPI labels use `Badge` semantic tones.
+- Priorities use `<ol>`, `<li>` and `<article>`.
+- Action is primary and company remains a link.
+- Priorities are the primary operational region.
+- Pipeline and data-quality warning are secondary.
+- Pipeline bars are decorative and `aria-hidden`.
+- Static data-quality content uses `DashboardDataQualityAlert`, not `StatusMessage`.
+- Dashboard-specific compositions remain in `src/components/dashboard-primitives.tsx`.
+- No upstream demo route or module was copied.
+- No dependencies were added.
+- The lockfile is unchanged.

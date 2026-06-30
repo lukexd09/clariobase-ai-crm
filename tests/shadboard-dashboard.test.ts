@@ -23,10 +23,12 @@ test("dashboard renders the exact business contract", () => {
   assert.equal(count(markup, "h1"), 1);
   assert.match(markup, /Dashboard/);
   assert.match(markup, /Your priorities for 21 June 2026/);
-  assert.match(markup, /Overdue<\/dt><dd[^>]*>2<\/dd>/);
-  assert.match(markup, /Due today<\/dt><dd[^>]*>4<\/dd>/);
-  assert.match(markup, /Upcoming<\/dt><dd[^>]*>11<\/dd>/);
-  assert.match(markup, /No next action<\/dt><dd[^>]*>6<\/dd>/);
+  assert.doesNotMatch(markup, /Operational snapshot/);
+  assert.match(markup, /aria-label="Dashboard metrics"/);
+  assert.match(markup, /<dt><span[^>]*>.*Overdue.*<\/span><\/dt><dd[^>]*>2<\/dd>/s);
+  assert.match(markup, /<dt><span[^>]*>.*Due today.*<\/span><\/dt><dd[^>]*>4<\/dd>/s);
+  assert.match(markup, /<dt><span[^>]*>.*Upcoming.*<\/span><\/dt><dd[^>]*>11<\/dd>/s);
+  assert.match(markup, /<dt><span[^>]*>.*No next action.*<\/span><\/dt><dd[^>]*>6<\/dd>/s);
   assert.match(markup, /Today(?:&#x27;|&apos;|')s priorities/);
   assert.match(markup, /Lumina PMU Studio/);
   assert.match(markup, /Aurora Nail Studio/);
@@ -58,6 +60,13 @@ test("dashboard source only uses approved primitives and canonical tokens", () =
   assert.match(page, /from "@\/components\/dashboard-primitives"/);
   assert.match(page, /from "@\/components\/clariobase-ui"/);
   assert.match(primitives, /from "@\/components\/clariobase-ui"/);
+  assert.match(primitives, /DashboardDataQualityAlert/);
+  assert.doesNotMatch(primitives, /export function PageHeader|export function Alert|export function StatusBadge/);
+  assert.match(primitives, /Badge/);
+  assert.match(primitives, /ButtonLink/);
+  assert.match(primitives, /SurfaceHeader/);
+  assert.match(primitives, /SurfaceTitle/);
+  assert.match(primitives, /SurfaceContent/);
   assert.doesNotMatch(page, /shadboard|starter-kit|demo/i);
   assert.doesNotMatch(primitives, /shadboard|starter-kit|demo/i);
   assert.doesNotMatch(page, /#[0-9A-Fa-f]{3,6}/);
@@ -66,6 +75,7 @@ test("dashboard source only uses approved primitives and canonical tokens", () =
   assert.doesNotMatch(primitives, /--cb-ui-/);
   assert.doesNotMatch(page, /bg-slate-|text-slate-|border-slate-|focus-visible:ring-\[#/);
   assert.doesNotMatch(primitives, /bg-slate-|text-slate-|border-slate-|focus-visible:ring-\[#/);
+  assert.doesNotMatch(primitives, /@radix-ui|lucide-react|class-variance-authority|tailwind-merge|from "clsx"|from 'clsx'/);
   assert.equal(packageJson.dependencies["@radix-ui/react-dialog"], "1.1.3");
   assert.equal(packageJson.dependencies["lucide-react"], "0.446.0");
 

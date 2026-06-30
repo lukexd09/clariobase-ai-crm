@@ -20,19 +20,20 @@ test("dashboard density contracts keep business values and link-based priorities
   assert.match(page, /sm:grid-cols-2/);
   assert.match(page, /xl:grid-cols-4/);
   assert.match(page, /xl:grid-cols-\[minmax\(0,1\.7fr\)_minmax\(280px,1fr\)\]/);
-  assert.match(page, /Today&apos;s priorities/);
+  assert.match(page, /DashboardDataQualityAlert/);
+  assert.match(page, /Today's priorities|Today&apos;s priorities|Today&#x27;s priorities/);
   assert.match(page, /PipelineSnapshot items=\{pipeline\}/);
-  assert.match(page, /Alert/);
-  assert.match(page, /body="3 possible duplicates need review"/);
+  assert.doesNotMatch(page, /Operational snapshot/);
 
   assert.match(primitives, /ButtonLink/);
-  assert.match(primitives, /action/);
+  assert.match(primitives, /Badge/);
   assert.match(primitives, /Open/);
   assert.match(primitives, /Deadline:/);
   assert.match(primitives, /Pipeline snapshot/);
   assert.match(primitives, /stage: string; value: number/);
   assert.match(primitives, /tabular-nums/);
   assert.match(primitives, /focus-visible:ring-\[color:var\(--cb-focus-ring\)\]/);
+  assert.match(primitives, /aria-hidden="true"/);
   assert.doesNotMatch(primitives, /4 active tasks/);
   assert.doesNotMatch(primitives, /Current tasks/);
   assert.doesNotMatch(primitives, /border-t border-\[#E2E8F0\]/);
