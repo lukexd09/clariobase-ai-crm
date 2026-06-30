@@ -17,7 +17,7 @@ test("core CRM work screens use the light shell baseline", () => {
   const salesReportPage = read("src/app/reports/sales/page.tsx");
 
   assert.doesNotMatch(homepage, /radial-gradient/);
-  assert.match(homepage, /PageHeader title="Dashboard"/);
+  assert.match(homepage, /PageHeader title="Dashboard" subtitle="Your priorities for 21 June 2026"/);
   assert.match(homepage, /PipelineSnapshot items=\{pipeline\}/);
   assert.doesNotMatch(homepage, /text-\[0\.68rem\]/);
   assert.match(appShell, /nav aria-label="Primary navigation"/);

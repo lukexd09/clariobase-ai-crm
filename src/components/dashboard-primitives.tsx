@@ -1,36 +1,67 @@
+import React from "react";
 import Link from "next/link";
+import { ButtonLink, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
+
+type KPITone = "danger" | "warning" | "information" | "neutral";
+
+const toneClasses: Record<KPITone, { badge: string; value: string; border: string; bar: string }> = {
+  danger: {
+    badge: "border-[color:var(--cb-danger)]/25 bg-[color:var(--cb-danger)]/10 text-[color:var(--cb-danger-ink)]",
+    value: "text-[color:var(--cb-danger-ink)]",
+    border: "border-[color:var(--cb-danger)]/25",
+    bar: "bg-[color:var(--cb-danger)]"
+  },
+  warning: {
+    badge: "border-[color:var(--cb-warning)]/25 bg-[color:var(--cb-warning)]/10 text-[color:var(--cb-warning-ink)]",
+    value: "text-[color:var(--cb-warning-ink)]",
+    border: "border-[color:var(--cb-warning)]/25",
+    bar: "bg-[color:var(--cb-warning)]"
+  },
+  information: {
+    badge: "border-[color:var(--cb-information)]/25 bg-[color:var(--cb-information)]/10 text-[color:var(--cb-information-ink)]",
+    value: "text-[color:var(--cb-information-ink)]",
+    border: "border-[color:var(--cb-information)]/25",
+    bar: "bg-[color:var(--cb-information)]"
+  },
+  neutral: {
+    badge: "border-[color:var(--cb-neutral)]/25 bg-[color:var(--cb-neutral)]/10 text-[color:var(--cb-neutral-ink)]",
+    value: "text-[color:var(--cb-neutral-ink)]",
+    border: "border-[color:var(--cb-neutral)]/25",
+    bar: "bg-[color:var(--cb-neutral)]"
+  }
+};
 
 export function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <header className="space-y-1">
-      <h1 className="text-[1.7rem] font-semibold tracking-tight text-[#0F172A] min-[760px]:text-[1.8rem] min-[1100px]:text-[2rem]">
+      <h1 className="text-[2rem] font-semibold tracking-tight text-[color:var(--cb-foreground)]">
         {title}
       </h1>
-      <p className="text-sm text-[#475569] min-[760px]:text-base">{subtitle}</p>
+      <p className="text-sm leading-6 text-[color:var(--cb-muted-foreground)]">{subtitle}</p>
     </header>
   );
 }
 
-export function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-[#CBD5E1] bg-white px-4 py-3.5 max-[359px]:rounded-none max-[359px]:border-0 max-[359px]:bg-transparent max-[359px]:px-0 max-[359px]:py-0 min-[360px]:rounded-none min-[360px]:border-0 min-[360px]:bg-transparent min-[360px]:px-0 min-[360px]:py-0 min-[760px]:rounded-xl min-[760px]:border min-[760px]:bg-white min-[760px]:px-4 min-[760px]:py-3.5">
-      <div className="max-[359px]:flex max-[359px]:min-h-[50px] max-[359px]:items-center max-[359px]:justify-between max-[359px]:gap-4 max-[359px]:px-4 max-[359px]:py-0 min-[360px]:flex min-[360px]:min-h-[70px] min-[360px]:items-center min-[360px]:justify-between min-[360px]:gap-4 min-[360px]:px-4 min-[360px]:py-0 min-[760px]:block">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569] max-[359px]:text-[11px] max-[359px]:tracking-[0.14em] min-[360px]:text-[11px] min-[360px]:tracking-[0.14em] min-[760px]:text-xs min-[760px]:tracking-[0.16em]">
-          {label}
-        </p>
-        <p className="text-[1.95rem] font-semibold tracking-tight text-[#0F172A] tabular-nums max-[359px]:text-[1.25rem] min-[360px]:text-[1.25rem] min-[760px]:mt-2 min-[760px]:text-[1.95rem]">
-          {value}
-        </p>
-      </div>
-    </div>
-  );
-}
+export function MetricCard({
+  label,
+  value,
+  tone
+}: {
+  label: string;
+  value: string;
+  tone: KPITone;
+}) {
+  const styles = toneClasses[tone];
 
-export function StatusBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex min-h-7 items-center rounded-full border border-[#CBD5E1] bg-[#F1F5F9] px-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#475569]">
-      {children}
-    </span>
+    <div className={`rounded-[var(--cb-radius-md)] border bg-[color:var(--cb-surface)] px-4 py-3 shadow-[var(--cb-shadow-surface)] ${styles.border}`}>
+      <dl className="space-y-2">
+        <dt className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${styles.badge}`}>
+          {label}
+        </dt>
+        <dd className={`text-[1.6rem] font-semibold tabular-nums leading-none ${styles.value}`}>{value}</dd>
+      </dl>
+    </div>
   );
 }
 
@@ -49,57 +80,52 @@ export function PriorityItem({
 }) {
   return (
     <article className="py-4 first:pt-0 last:pb-0">
-      <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between max-[759px]:gap-2 max-[759px]:pt-3">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0 space-y-1.5">
-          <h3 className="text-base font-semibold text-[#0F172A]">
+          <h3 className="text-base font-semibold text-[color:var(--cb-foreground)]">
             <Link
               href={href}
-              prefetch={false}
-              className="rounded-sm text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="rounded-sm text-inherit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-surface)]"
             >
-              {company}
+              {action}
             </Link>
           </h3>
-          <p className="text-sm font-medium text-[#0F172A]">{action}</p>
-          <p className="text-sm leading-6 text-[#475569]">{context}</p>
+          <p className="text-sm font-medium text-[color:var(--cb-foreground)]">{company}</p>
+          <p className="text-sm leading-6 text-[color:var(--cb-muted-foreground)]">{context}</p>
         </div>
-        <div className="flex shrink-0 flex-col gap-2 sm:items-end max-[759px]:items-start">
-          <p className="text-sm text-[#475569]">
-            <span className="font-medium text-[#0F172A]">Deadline:</span> {deadline}
+        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+          <p className="text-sm text-[color:var(--cb-muted-foreground)]">
+            <span className="font-medium text-[color:var(--cb-foreground)]">Deadline:</span> {deadline}
           </p>
-          <Link
+          <ButtonLink
             href={href}
-            prefetch={false}
-            className="inline-flex min-h-11 items-center rounded-lg border border-[#CBD5E1] bg-white px-3 text-sm font-medium text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:px-0 max-[759px]:font-semibold"
+            className="min-h-11 rounded-[var(--cb-radius-md)] px-3 focus-visible:ring-offset-[color:var(--cb-surface)]"
           >
-            Open →
-          </Link>
+            Open
+          </ButtonLink>
         </div>
       </div>
     </article>
   );
 }
 
-type AlertTone = "warning" | "error" | "info";
+type AlertTone = "warning" | "error" | "information";
 
-const alertToneStyles: Record<AlertTone, { wrapper: string; title: string; body: string; button: string }> = {
+const alertToneClasses: Record<AlertTone, { surface: string; title: string; body: string }> = {
   warning: {
-    wrapper: "border-[#B45309] bg-[#FFFBEB]",
-    title: "text-[#B45309]",
-    body: "text-[#0F172A]",
-    button: "bg-[#B45309] text-white"
+    surface: "border-[color:var(--cb-warning)]/35 bg-[color:var(--cb-warning)]/10",
+    title: "text-[color:var(--cb-warning-ink)]",
+    body: "text-[color:var(--cb-foreground)]"
   },
   error: {
-    wrapper: "border-[#B91C1C] bg-[#FEF2F2]",
-    title: "text-[#B91C1C]",
-    body: "text-[#0F172A]",
-    button: "bg-[#B91C1C] text-white"
+    surface: "border-[color:var(--cb-danger)]/35 bg-[color:var(--cb-danger)]/10",
+    title: "text-[color:var(--cb-danger-ink)]",
+    body: "text-[color:var(--cb-foreground)]"
   },
-  info: {
-    wrapper: "border-[#CBD5E1] bg-white",
-    title: "text-[#0F172A]",
-    body: "text-[#475569]",
-    button: "bg-[#006194] text-white"
+  information: {
+    surface: "border-[color:var(--cb-information)]/35 bg-[color:var(--cb-information)]/10",
+    title: "text-[color:var(--cb-information-ink)]",
+    body: "text-[color:var(--cb-foreground)]"
   }
 };
 
@@ -108,7 +134,7 @@ export function Alert({
   body,
   actionHref,
   actionLabel,
-  tone = "info"
+  tone = "information"
 }: {
   title: string;
   body: string;
@@ -116,52 +142,49 @@ export function Alert({
   actionLabel: string;
   tone?: AlertTone;
 }) {
-  const styles = alertToneStyles[tone];
+  const styles = alertToneClasses[tone];
 
   return (
-    <div className={`rounded-xl border px-4 py-3 ${styles.wrapper}`}>
+    <Surface className={`border px-4 py-3 shadow-none ${styles.surface}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-1">
           <p className={`text-sm font-semibold ${styles.title}`}>{title}</p>
-          <p className={`mt-1 text-sm ${styles.body}`}>{body}</p>
+          <p className={`text-sm leading-6 ${styles.body}`}>{body}</p>
         </div>
-        <Link
-          href={actionHref}
-          prefetch={false}
-          className={`inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${styles.button}`}
-        >
+        <ButtonLink href={actionHref} variant="secondary">
           {actionLabel}
-        </Link>
+        </ButtonLink>
       </div>
-    </div>
+    </Surface>
   );
 }
 
 export function PipelineSnapshot({ items }: { items: readonly { stage: string; value: number }[] }) {
   return (
-    <section className="rounded-xl border border-[#CBD5E1] bg-white p-4">
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-base font-semibold text-[#0F172A]">Pipeline snapshot</h2>
-      </div>
-      <div className="mt-4 space-y-3">
+    <Surface>
+      <SurfaceHeader>
+        <SurfaceTitle>Pipeline snapshot</SurfaceTitle>
+        <SurfaceDescription>Current stage mix for the active lead queue.</SurfaceDescription>
+      </SurfaceHeader>
+      <SurfaceContent className="space-y-3">
         {items.map((item) => (
           <div key={item.stage} className="space-y-1.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#475569]">
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--cb-muted-foreground)]">
                 {item.stage}
               </span>
-              <span className="font-semibold text-[#0F172A] tabular-nums">{item.value}</span>
+              <span className="font-semibold tabular-nums text-[color:var(--cb-foreground)]">{item.value}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-[#F1F5F9]">
+            <div className="h-1.5 rounded-full bg-[color:var(--cb-surface)]">
               <div
-                className="h-1.5 rounded-full bg-[#006194]"
+                aria-hidden="true"
+                className={`h-1.5 rounded-full ${toneClasses.neutral.bar}`}
                 style={{ width: `${Math.max(8, Math.min(100, item.value * 5))}%` }}
               />
             </div>
           </div>
         ))}
-      </div>
-    </section>
+      </SurfaceContent>
+    </Surface>
   );
 }
-

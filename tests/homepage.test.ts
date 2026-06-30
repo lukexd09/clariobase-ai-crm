@@ -8,7 +8,7 @@ const repoRoot = path.resolve(__dirname, "..");
 test("dashboard page exposes the production priorities and pipeline snapshot", () => {
   const pageSource = fs.readFileSync(path.join(repoRoot, "src", "app", "page.tsx"), "utf8");
 
-  assert.match(pageSource, /PageHeader title="Dashboard"/);
+  assert.match(pageSource, /PageHeader title="Dashboard" subtitle="Your priorities for 21 June 2026"/);
   assert.match(pageSource, /Your priorities for 21 June 2026/);
   assert.match(pageSource, /Lumina PMU Studio/);
   assert.match(pageSource, /Aurora Nail Studio/);
@@ -17,6 +17,8 @@ test("dashboard page exposes the production priorities and pipeline snapshot", (
   assert.match(pageSource, /3 possible duplicates need review/);
   assert.match(pageSource, /actionLabel="Review"/);
   assert.match(pageSource, /tone="warning"/);
+  assert.match(pageSource, /Operational snapshot/);
+  assert.match(pageSource, /MetricCard label="Overdue" value="2" tone="danger"/);
   assert.doesNotMatch(pageSource, /Focus on Conversion/);
   assert.doesNotMatch(pageSource, /motivational quote/i);
   assert.doesNotMatch(pageSource, /stock image/i);
