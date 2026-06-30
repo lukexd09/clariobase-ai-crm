@@ -18,7 +18,7 @@ test("project-owned ui boundary exists and excludes starter-kit imports", () => 
     "src/components/clariobase-ui/table.tsx",
     "src/components/clariobase-ui/feedback.tsx",
     "src/components/clariobase-ui/proof-card.tsx",
-    "src/components/clariobase-ui/proof-shell.tsx"
+    "src/components/clariobase-ui/sheet.tsx"
   ];
 
   for (const file of componentFiles) {
@@ -53,6 +53,8 @@ test("package inventory stays aligned with the dependency gate", () => {
   assert.deepEqual(Object.keys(packageJson.dependencies).sort(), [
     "@prisma/adapter-pg",
     "@prisma/client",
+    "@radix-ui/react-dialog",
+    "lucide-react",
     "next",
     "react",
     "react-dom",

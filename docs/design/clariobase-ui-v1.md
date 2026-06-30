@@ -7,11 +7,13 @@ Canonical design tokens and project-owned UI boundary guidance for the light CRM
 Creator-first, not admin-first.
 Warm and elegant, not stereotypically pink.
 Clear and efficient, not decorative at the cost of usability.
+Warm off-white background, soft white surfaces, graphite text, muted warm-grey secondary text, and muted berry/mauve accent.
 
 ## Theme Policy
 
 Light mode only for the current product scope.
 Dark mode deferred and unsupported until separately approved.
+The shell should feel elegant, warm, light, calm, modern, and creator-oriented rather than enterprise-admin-oriented.
 
 ## Canonical Token Inventory
 
@@ -74,6 +76,17 @@ The separate --clariobase-ui-* variables mirror the canonical UI v1 token invent
 
 Project-owned components consume the UI v1 values through the --cb-* aliases.
 
+## Shared Shell Contract
+
+- mobile horizontal padding: 16px
+- tablet horizontal padding: 24px
+- desktop horizontal padding: 32px
+- desktop maximum content width: approximately 1600px
+- standard vertical page padding: approximately 20-24px
+- visible accessible focus is required on every interactive element
+- the desktop shell uses a persistent left sidebar at 1024 px and wider
+- the mobile shell uses a compact sticky app bar with a labeled `Menu` trigger
+
 ## Import Convention
 
 - Import project-owned primitives from `src/components/clariobase-ui/`.
@@ -86,6 +99,10 @@ Project-owned components consume the UI v1 values through the --cb-* aliases.
 - `starter-kit/src/components/ui/card.tsx`
   -> `src/components/clariobase-ui/proof-card.tsx`
   -> `src/components/clariobase-ui/surface.tsx`
+  -> substantially adapted
+
+- `starter-kit/src/components/ui/sheet.tsx`
+  -> `src/components/clariobase-ui/sheet.tsx`
   -> substantially adapted
 
 - `starter-kit/src/components/ui/button.tsx`
@@ -126,13 +143,12 @@ Created for known ClarioBase consumers and aligned with the approved Shadboard c
 
 ## Rejected Dependencies
 
-No current T002 consumer requires them; the existing stack supports the selected foundation without additional packages.
+No current route needs the broader UI helper stack; only the exact dialog primitive and icon package were approved for T003.
 
 - `class-variance-authority`
 - `clsx`
 - `tailwind-merge`
-- `lucide-react`
-- all Radix packages
+- direct Radix packages other than `@radix-ui/react-dialog`
 - TanStack Table
 - Shadboard auth and demo dependencies
 

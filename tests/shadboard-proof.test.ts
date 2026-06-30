@@ -12,8 +12,8 @@ function read(filePath: string) {
 test("shadboard adoption decision documents the provenance split", () => {
   const doc = read("docs/architecture/shadboard-adoption-decision.md");
 
-  assert.match(doc, /Current `main` incorporated: `77d888947276ac079650a9eec58d0a84e4690bc6`/);
-  assert.match(doc, /Epic synchronization commit: `2363f540f0ef1a6d49e6eda1c0939d3d7b28eece`/);
+  assert.match(doc, /Epic synchronization commit: `c800ca5e8cebc83a0fc71087e0c6bdc457640725`/);
+  assert.match(doc, /PR base SHA: `c800ca5e8cebc83a0fc71087e0c6bdc457640725`/);
   assert.match(doc, /Current proof boundary:/);
   assert.match(doc, /`src\/components\/clariobase-ui\/`/);
   assert.match(doc, /Pinned release: `v1.5.1`/);
@@ -21,15 +21,15 @@ test("shadboard adoption decision documents the provenance split", () => {
   assert.match(doc, /button\.tsx/);
   assert.match(doc, /input\.tsx/);
   assert.match(doc, /card\.tsx/);
+  assert.match(doc, /sheet\.tsx/);
   assert.match(doc, /src\/components\/clariobase-ui\/button\.tsx/);
   assert.match(doc, /src\/components\/clariobase-ui\/field\.tsx/);
   assert.match(doc, /src\/components\/clariobase-ui\/surface\.tsx/);
   assert.match(doc, /src\/components\/clariobase-ui\/proof-card\.tsx/);
+  assert.match(doc, /src\/components\/clariobase-ui\/sheet\.tsx/);
   assert.match(doc, /Project-owned primitives created/);
-  assert.match(doc, /`Badge`/);
-  assert.match(doc, /`Select`/);
-  assert.match(doc, /`TableSurface`/);
-  assert.match(doc, /Legacy routes retain their current presentation until their approved migration task/);
+  assert.match(doc, /button, field, surface, proof-card, and sheet components/);
+  assert.match(doc, /The exact `\/leads` route now renders inside the shared `AppShell`/);
 });
 
 test("source-derived boundaries are documented and project-owned primitives are not copied", () => {
@@ -46,6 +46,7 @@ test("source-derived boundaries are documented and project-owned primitives are 
   assert.match(notice, /starter-kit\/src\/components\/ui\/button\.tsx/);
   assert.match(notice, /starter-kit\/src\/components\/ui\/input\.tsx/);
   assert.match(notice, /starter-kit\/src\/components\/ui\/card\.tsx/);
+  assert.match(notice, /starter-kit\/src\/components\/ui\/sheet\.tsx/);
   assert.match(notice, /Copyright \(c\) 2025 Qualiora/);
   assert.match(doc, /no upstream source code was copied for these/);
 });
