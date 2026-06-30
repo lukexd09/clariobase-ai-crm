@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Badge, ButtonLink, Surface, SurfaceContent, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
+import { Badge, ButtonLink, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
 
 export function MetricCard({
   label,
@@ -37,7 +37,7 @@ export function PriorityItem({
   href: string;
 }) {
   return (
-    <article className="py-4 first:pt-0 last:pb-0">
+    <article>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0 space-y-1.5">
           <h3 className="text-base font-semibold text-[color:var(--cb-foreground)]">{action}</h3>
@@ -73,14 +73,14 @@ export function PipelineSnapshot({ items }: { items: readonly { stage: string; v
         <SurfaceTitle>Pipeline snapshot</SurfaceTitle>
       </SurfaceHeader>
       <SurfaceContent className="space-y-3">
-        <dl>
+        <dl className="space-y-3">
           {items.map((item) => (
             <div key={item.stage} className="space-y-1.5">
               <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--cb-muted-foreground)]">
+                <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--cb-muted-foreground)]">
                   {item.stage}
-                </span>
-                <span className="font-semibold tabular-nums text-[color:var(--cb-foreground)]">{item.value}</span>
+                </dt>
+                <dd className="font-semibold tabular-nums text-[color:var(--cb-foreground)]">{item.value}</dd>
               </div>
               <div aria-hidden="true" className="h-1.5 rounded-full bg-[color:var(--cb-surface)]">
                 <div
@@ -107,9 +107,9 @@ export function DashboardDataQualityAlert() {
       </SurfaceHeader>
       <SurfaceContent className="p-0 pt-1">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm leading-6 text-[color:var(--cb-foreground)]">
+          <SurfaceDescription className="text-[color:var(--cb-foreground)]">
             3 possible duplicates need review
-          </p>
+          </SurfaceDescription>
           <ButtonLink href="/duplicates" variant="secondary">
             Review
           </ButtonLink>

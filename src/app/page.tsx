@@ -63,10 +63,10 @@ export default function DashboardPage() {
           <SurfaceHeader>
             <SurfaceTitle id="dashboard-priorities-heading">Today&apos;s priorities</SurfaceTitle>
           </SurfaceHeader>
-          <SurfaceContent className="divide-y divide-[color:var(--cb-border)]">
-            <ol className="list-none">
+          <SurfaceContent>
+            <ol className="list-none divide-y divide-[color:var(--cb-border)]">
               {priorities.map((item) => (
-                <li key={item.company}>
+                <li key={item.company} className="py-4 first:pt-0 last:pb-0">
                   <PriorityItem {...item} />
                 </li>
               ))}
