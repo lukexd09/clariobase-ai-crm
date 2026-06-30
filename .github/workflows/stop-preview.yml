@@ -2,6 +2,20 @@ name: Stop Preview
 
 on:
   workflow_dispatch:
+    inputs:
+      database_mode:
+        description: Preview database lifecycle mode
+        required: false
+        default: preserve
+        type: choice
+        options:
+          - preserve
+          - reset
+      reset_confirmation:
+        description: Exact confirmation phrase required for reset mode
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -48,9 +62,14 @@ jobs:
       - name: Stop preview
         shell: pwsh
         working-directory: control
+        env:
+          DATABASE_MODE: ${{ inputs.database_mode }}
+          RESET_CONFIRMATION: ${{ inputs.reset_confirmation }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-preview.ps1 `
             -RequestedRef stop-preview `
+            -DatabaseMode $env:DATABASE_MODE `
+            -ResetConfirmation $env:RESET_CONFIRMATION `
             -ControlCheckoutPath $PWD
 
           $stopExitCode = $LASTEXITCODE
@@ -63,10 +82,13 @@ jobs:
         shell: pwsh
         working-directory: control
         run: |
+          $databaseVolume = if ("${{ inputs.database_mode }}" -eq "reset") { "reset" } else { "preserved" }
           @"
           Result: PASS
 
           Requested ref: `stop-preview`
+          Database mode: `${{ inputs.database_mode }}`
+          Database volume: `$databaseVolume`
           Preview URL: `http://Serwer:3001`
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 

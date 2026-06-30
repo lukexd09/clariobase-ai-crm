@@ -22,9 +22,11 @@ import {
   getRepoRoot,
   loadPreviewEnv,
   parseEnvFileContent,
+  parsePreviewDatabaseLifecycleMode,
   validatePreviewComposeModel,
   validateFullCommitSha,
-  validateResolvedSha
+  validateResolvedSha,
+  validateResetConfirmation
 } from "../scripts/preview-runtime-support";
 import { createRepoTmpDir } from "./test-helpers";
 
@@ -220,11 +222,15 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
 
   assert.match(deployPlan.validateComposeModel.join(" "), /config --format json/);
   assert.deepEqual(deployPlan.pullExactImage, ["pull", previewImageRef]);
-  assert.match(deployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
+  assert.match(deployPlan.replaceExistingPreview.join(" "), /down --remove-orphans/);
   assert.match(deployPlan.startDatabase.join(" "), /up -d crm-postgres/);
   assert.match(deployPlan.migrate.join(" "), /run --rm --pull never crm-app/);
   assert.match(deployPlan.startApplication.join(" "), /up -d --no-build --pull never crm-app/);
-  assert.match(stopPlan.down.join(" "), /down -v --remove-orphans/);
+  assert.match(stopPlan.down.join(" "), /down --remove-orphans/);
+  assert.equal(deployPlan.databaseLifecycleMode, "preserve");
+  assert.equal(deployPlan.databaseVolumeAction, "preserve");
+  assert.equal(stopPlan.databaseLifecycleMode, "preserve");
+  assert.equal(stopPlan.databaseVolumeAction, "preserve");
   assert.equal(summary.previewUrl, PREVIEW_URL);
   assert.equal(summary.projectName, PREVIEW_PROJECT_NAME);
   assert.equal(summary.volumeName, PREVIEW_VOLUME_NAME);
@@ -405,10 +411,23 @@ test("deploy preview propagates the immutable image ref to the preview commands"
   assert.deepEqual(observed.map((entry) => entry.previewImageRef), Array(6).fill(previewImageRef));
   assert.match(observed[0].description, /config --format json/);
   assert.match(observed[1].description, /pull ghcr\.io/);
-  assert.match(observed[2].description, /down -v --remove-orphans/);
+  assert.match(observed[2].description, /down --remove-orphans/);
   assert.match(observed[3].description, /up -d crm-postgres/);
   assert.match(observed[4].description, /migrate deploy/);
   assert.match(observed[5].description, /up -d --no-build --pull never crm-app/);
+});
+
+test("preview database lifecycle parsing accepts only preserve or reset", () => {
+  assert.equal(parsePreviewDatabaseLifecycleMode("preserve"), "preserve");
+  assert.equal(parsePreviewDatabaseLifecycleMode("reset"), "reset");
+  assert.throws(() => parsePreviewDatabaseLifecycleMode("wipe"), /database_mode must be one of: preserve, reset/);
+});
+
+test("preview reset confirmation requires the exact phrase", () => {
+  assert.doesNotThrow(() => validateResetConfirmation("preserve", ""));
+  assert.doesNotThrow(() => validateResetConfirmation("reset", "RESET PREVIEW DATABASE"));
+  assert.throws(() => validateResetConfirmation("reset", ""), /RESET PREVIEW DATABASE/);
+  assert.throws(() => validateResetConfirmation("reset", "reset preview database"), /RESET PREVIEW DATABASE/);
 });
 
 test("preview compose config removes app build and keeps the immutable digest contract", { skip: !dockerAvailable }, () => {

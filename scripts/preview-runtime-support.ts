@@ -19,6 +19,8 @@ export const PREVIEW_STOP_ENV_EXAMPLE_FILE = ".env.compose.preview.stop.example"
 export const PROTECTED_AI_EXCHANGE_PATH = "./data/ai-exchange";
 export const PREVIEW_AI_EXCHANGE_PATH = "./data/ai-exchange-preview";
 export const PREVIEW_DATABASE_URL = "postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public";
+export const PREVIEW_DATABASE_LIFECYCLE_MODES = ["preserve", "reset"] as const;
+export type PreviewDatabaseLifecycleMode = (typeof PREVIEW_DATABASE_LIFECYCLE_MODES)[number];
 
 const repoRoot = path.resolve(__dirname, "..");
 const defaultPreviewEnvFilePath = path.join(repoRoot, PREVIEW_ENV_FILE_NAME);
@@ -47,10 +49,16 @@ export type PreviewRuntimeConfig = {
 export type PreviewSummary = {
   requestedRef: string;
   resolvedSha: string;
+  databaseMode: PreviewDatabaseLifecycleMode;
   previewUrl: string;
   projectName: string;
   volumeName: string;
   networkName: string;
+};
+
+export type PreviewLifecycleDecision = {
+  mode: PreviewDatabaseLifecycleMode;
+  removeVolume: boolean;
 };
 
 export function getRepoRoot() {
@@ -143,6 +151,31 @@ function assertPreviewDatabaseUrl(databaseUrl: string) {
   if (databaseName !== PREVIEW_DB_NAME) {
     throw new Error(`CRM_DATABASE_URL must target the preview database ${PREVIEW_DB_NAME}.`);
   }
+}
+
+export function parsePreviewDatabaseLifecycleMode(value: string | undefined | null): PreviewDatabaseLifecycleMode {
+  if (value === "preserve" || value === "reset") {
+    return value;
+  }
+
+  throw new Error(`database_mode must be one of: ${PREVIEW_DATABASE_LIFECYCLE_MODES.join(", ")}`);
+}
+
+export function validateResetConfirmation(mode: PreviewDatabaseLifecycleMode, confirmation: string | undefined | null) {
+  if (mode === "preserve") {
+    return;
+  }
+
+  if (confirmation !== "RESET PREVIEW DATABASE") {
+    throw new Error("reset_confirmation must exactly equal RESET PREVIEW DATABASE when database_mode=reset.");
+  }
+}
+
+export function resolvePreviewDatabaseLifecycle(mode: PreviewDatabaseLifecycleMode): PreviewLifecycleDecision {
+  return {
+    mode,
+    removeVolume: mode === "reset"
+  };
 }
 
 export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): PreviewRuntimeConfig {
@@ -267,12 +300,13 @@ export function buildComposeArgs(previewEnvFilePath: string, composeArgs: string
   ];
 }
 
-export function buildDeployPlan(previewEnvFilePath: string, previewImageRef: string) {
+export function buildDeployPlan(previewEnvFilePath: string, previewImageRef: string, lifecycleMode: PreviewDatabaseLifecycleMode = "preserve") {
+  const lifecycle = resolvePreviewDatabaseLifecycle(lifecycleMode);
   const pullExactImage = ["pull", previewImageRef];
   return {
     validateComposeModel: buildComposeArgs(previewEnvFilePath, ["config", "--format", "json"]),
     pullExactImage,
-    replaceExistingPreview: buildComposeArgs(previewEnvFilePath, ["down", "-v", "--remove-orphans"]),
+    replaceExistingPreview: buildComposeArgs(previewEnvFilePath, lifecycle.removeVolume ? ["down", "-v", "--remove-orphans"] : ["down", "--remove-orphans"]),
     startDatabase: buildComposeArgs(previewEnvFilePath, ["up", "-d", "crm-postgres"]),
     migrate: buildComposeArgs(previewEnvFilePath, [
       "run",
@@ -284,13 +318,18 @@ export function buildDeployPlan(previewEnvFilePath: string, previewImageRef: str
       "-lc",
       "node ./node_modules/prisma/build/index.js migrate deploy"
     ]),
-    startApplication: buildComposeArgs(previewEnvFilePath, ["up", "-d", "--no-build", "--pull", "never", "crm-app"])
+    startApplication: buildComposeArgs(previewEnvFilePath, ["up", "-d", "--no-build", "--pull", "never", "crm-app"]),
+    databaseLifecycleMode: lifecycle.mode,
+    databaseVolumeAction: lifecycle.removeVolume ? "reset" : "preserve"
   };
 }
 
-export function buildStopPlan(previewEnvFilePath: string) {
+export function buildStopPlan(previewEnvFilePath: string, lifecycleMode: PreviewDatabaseLifecycleMode = "preserve") {
+  const lifecycle = resolvePreviewDatabaseLifecycle(lifecycleMode);
   return {
-    down: buildComposeArgs(previewEnvFilePath, ["down", "-v", "--remove-orphans"])
+    down: buildComposeArgs(previewEnvFilePath, lifecycle.removeVolume ? ["down", "-v", "--remove-orphans"] : ["down", "--remove-orphans"]),
+    databaseLifecycleMode: lifecycle.mode,
+    databaseVolumeAction: lifecycle.removeVolume ? "reset" : "preserve"
   };
 }
 
@@ -298,6 +337,7 @@ export function createPreviewSummary(requestedRef: string, resolvedSha: string):
   return {
     requestedRef,
     resolvedSha,
+    databaseMode: "preserve",
     previewUrl: PREVIEW_URL,
     projectName: PREVIEW_PROJECT_NAME,
     volumeName: PREVIEW_VOLUME_NAME,

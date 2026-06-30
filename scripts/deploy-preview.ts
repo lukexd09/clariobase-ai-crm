@@ -13,9 +13,11 @@ import {
   loadPreviewEnv,
   PREVIEW_NETWORK_NAME,
   PREVIEW_VOLUME_NAME,
+  parsePreviewDatabaseLifecycleMode,
   validatePreviewComposeModel,
   validateFullCommitSha,
-  validateResolvedSha
+  validateResolvedSha,
+  validateResetConfirmation
 } from "./preview-runtime-support";
 
 type Options = {
@@ -25,6 +27,8 @@ type Options = {
   previewEnvFile: string | undefined;
   requestedRef: string;
   resolvedSha: string | undefined;
+  databaseMode: string;
+  resetConfirmation: string;
   timeoutSeconds: number;
 };
 
@@ -36,6 +40,8 @@ function parseArgs(argv: string[]): Options {
     previewEnvFile: undefined,
     requestedRef: "",
     resolvedSha: undefined,
+    databaseMode: "preserve",
+    resetConfirmation: "",
     timeoutSeconds: 180
   };
 
@@ -73,6 +79,18 @@ function parseArgs(argv: string[]): Options {
 
     if (token === "--resolved-sha") {
       parsed.resolvedSha = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (token === "--database-mode") {
+      parsed.databaseMode = argv[index + 1] ?? "preserve";
+      index += 1;
+      continue;
+    }
+
+    if (token === "--reset-confirmation") {
+      parsed.resetConfirmation = argv[index + 1] ?? "";
       index += 1;
       continue;
     }
@@ -127,6 +145,8 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
 
   assertRequestedRef(options.requestedRef);
+  const databaseMode = parsePreviewDatabaseLifecycleMode(options.databaseMode);
+  validateResetConfirmation(databaseMode, options.resetConfirmation);
 
   const runtimeConfig = loadPreviewEnv(options.previewEnvFile);
   const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : path.dirname(runtimeConfig.previewEnvFilePath);
@@ -143,8 +163,8 @@ async function main() {
     resolvedSha = validateFullCommitSha(controlHeadSha, "Control checkout HEAD");
   }
 
-  const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath, runtimeConfig.previewImageRef);
-  const summary = createPreviewSummary(options.requestedRef, resolvedSha);
+  const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath, runtimeConfig.previewImageRef, databaseMode);
+  const summary = { ...createPreviewSummary(options.requestedRef, resolvedSha), databaseMode };
 
   fs.mkdirSync(runtimeConfig.previewAiExchangeAbsolutePath, { recursive: true });
 
@@ -165,6 +185,8 @@ async function main() {
           resolvedSha,
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
+          databaseMode,
+          resetConfirmation: options.resetConfirmation,
           deployPlan
         },
         null,
@@ -200,7 +222,8 @@ async function main() {
     JSON.stringify(
       {
         status: "PASS",
-        ...summary
+        ...summary,
+        databaseVolume: deployPlan.databaseVolumeAction
       },
       null,
       2

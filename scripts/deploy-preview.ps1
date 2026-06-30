@@ -4,6 +4,10 @@ param(
 
   [string]$ResolvedSha,
 
+  [string]$DatabaseMode = "preserve",
+
+  [string]$ResetConfirmation,
+
   [string]$ControlCheckoutPath = ".",
 
   [string]$SourceCheckoutPath,
@@ -20,6 +24,8 @@ $args = @(
   "scripts/deploy-preview.ts",
   "--requested-ref",
   $RequestedRef,
+  "--database-mode",
+  $DatabaseMode,
   "--control-checkout-path",
   $ControlCheckoutPath,
   "--preview-env-file",
@@ -30,6 +36,10 @@ $args = @(
 
 if ($SourceCheckoutPath) {
   $args += @("--source-checkout-path", $SourceCheckoutPath)
+}
+
+if ($ResetConfirmation) {
+  $args += @("--reset-confirmation", $ResetConfirmation)
 }
 
 if ($ResolvedSha) {

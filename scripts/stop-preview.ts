@@ -11,6 +11,8 @@ import {
   getHeadSha,
   getRepoRoot,
   runCommandWithEnv,
+  parsePreviewDatabaseLifecycleMode,
+  validateResetConfirmation,
   validateResolvedSha
 } from "./preview-runtime-support";
 
@@ -19,6 +21,8 @@ type Options = {
   controlCheckoutPath: string | undefined;
   requestedRef: string;
   resolvedSha: string | undefined;
+  databaseMode: string;
+  resetConfirmation: string;
 };
 
 function parseArgs(argv: string[]): Options {
@@ -26,7 +30,9 @@ function parseArgs(argv: string[]): Options {
     dryRun: false,
     controlCheckoutPath: undefined,
     requestedRef: "stop-preview",
-    resolvedSha: undefined
+    resolvedSha: undefined,
+    databaseMode: "preserve",
+    resetConfirmation: ""
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -61,6 +67,18 @@ function parseArgs(argv: string[]): Options {
       continue;
     }
 
+    if (token === "--database-mode") {
+      parsed.databaseMode = argv[index + 1] ?? "preserve";
+      index += 1;
+      continue;
+    }
+
+    if (token === "--reset-confirmation") {
+      parsed.resetConfirmation = argv[index + 1] ?? "";
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${token}`);
   }
 
@@ -71,12 +89,14 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
 
   assertRequestedRef(options.requestedRef);
+  const databaseMode = parsePreviewDatabaseLifecycleMode(options.databaseMode);
+  validateResetConfirmation(databaseMode, options.resetConfirmation);
 
   const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : ".";
   const resolvedSha = validateResolvedSha(getHeadSha(controlCheckoutPath), options.resolvedSha);
   const repoRoot = getRepoRoot();
-  const stopPlan = buildStopPlan(path.join(repoRoot, ".env.compose.preview.stop.example"));
-  const summary = createPreviewSummary(options.requestedRef, resolvedSha);
+  const stopPlan = buildStopPlan(path.join(repoRoot, ".env.compose.preview.stop.example"), databaseMode);
+  const summary = { ...createPreviewSummary(options.requestedRef, resolvedSha), databaseMode };
 
   if (options.dryRun) {
     console.log(
@@ -87,6 +107,8 @@ async function main() {
           controlCheckoutPath,
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
+          databaseMode,
+          resetConfirmation: options.resetConfirmation,
           stopPlan
         },
         null,
@@ -97,13 +119,14 @@ async function main() {
   }
 
   const result = runCommandWithEnv("docker", stopPlan.down, {});
-  assertSuccessfulCommand(result, "docker compose down -v --remove-orphans");
+  assertSuccessfulCommand(result, `docker compose down ${databaseMode === "reset" ? "-v " : ""}--remove-orphans`);
 
   console.log(
     JSON.stringify(
       {
         status: "PASS",
         ...summary,
+        databaseVolume: stopPlan.databaseVolumeAction,
         cleanupTarget: "preview-only"
       },
       null,

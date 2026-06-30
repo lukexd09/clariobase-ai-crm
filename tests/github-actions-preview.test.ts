@@ -222,6 +222,8 @@ test("Preview Release uses trusted manual dispatch and exact Fast CI correlation
 
   assert.match(workflow, /^name: Preview Release$/m);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /database_mode:/);
+  assert.match(workflow, /reset_confirmation:/);
   assert.doesNotMatch(workflow, /workflow_run:/);
   assert.doesNotMatch(workflow, /pull_request_target/);
   assert.match(workflow, /group: clariobase-preview-slot/);
@@ -232,6 +234,7 @@ test("Preview Release uses trusted manual dispatch and exact Fast CI correlation
   assert.match(resolver, /auto-preview-context/);
   assert.match(resolver, /workflowRunId/);
   assert.match(resolver, /PR changes trusted preview control-plane files/);
+  assert.match(resolver, /database_mode: "preserve"/);
 });
 
 test("the real workflow resolver accepts only an exact eligible request", async () => {
@@ -383,4 +386,13 @@ test("workflow inventory keeps exactly four authoritative workflow files and the
   assert.match(stopPreview, /clariobase-preview-slot/);
   assert.match(stopPreview, /self-hosted/);
   assert.match(stopPreview, /clariobase-preview/);
+});
+
+test("Stop Preview exposes the preserve/reset lifecycle inputs", () => {
+  const workflow = read(".github/workflows/stop-preview.yml");
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /database_mode:/);
+  assert.match(workflow, /reset_confirmation:/);
+  assert.match(workflow, /-DatabaseMode \$env:DATABASE_MODE/);
+  assert.match(workflow, /-ResetConfirmation \$env:RESET_CONFIRMATION/);
 });

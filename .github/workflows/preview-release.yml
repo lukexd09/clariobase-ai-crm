@@ -12,6 +12,19 @@ on:
         required: false
         default: ""
         type: string
+      database_mode:
+        description: Preview database lifecycle mode
+        required: false
+        default: preserve
+        type: choice
+        options:
+          - preserve
+          - reset
+      reset_confirmation:
+        description: Exact confirmation phrase required for reset mode
+        required: false
+        default: ""
+        type: string
 
 permissions:
   actions: read
@@ -36,6 +49,7 @@ jobs:
       pr_url: ${{ steps.resolve.outputs.pr_url }}
       head_ref: ${{ steps.resolve.outputs.head_ref }}
       validated_sha: ${{ steps.resolve.outputs.validated_sha }}
+      database_mode: ${{ steps.resolve.outputs.database_mode }}
       skip_reason: ${{ steps.resolve.outputs.skip_reason }}
       ci_run_id: ${{ steps.resolve.outputs.ci_run_id }}
       ci_run_url: ${{ steps.resolve.outputs.ci_run_url }}
@@ -55,6 +69,8 @@ jobs:
           EXPECTED_REPOSITORY: lukexd09/clariobase-ai-crm
           REQUESTED_PR_NUMBER: ${{ inputs.pr_number }}
           REQUESTED_EXPECTED_SHA: ${{ inputs.expected_sha }}
+          REQUESTED_DATABASE_MODE: ${{ inputs.database_mode }}
+          REQUESTED_RESET_CONFIRMATION: ${{ inputs.reset_confirmation }}
           DISPATCH_REF: ${{ github.ref }}
         with:
           script: |
@@ -66,6 +82,8 @@ jobs:
             const expectedRepository = process.env.EXPECTED_REPOSITORY || "";
             const requestedPrNumber = Number(process.env.REQUESTED_PR_NUMBER);
             const requestedExpectedSha = (process.env.REQUESTED_EXPECTED_SHA || "").trim().toLowerCase();
+            const requestedDatabaseMode = (process.env.REQUESTED_DATABASE_MODE || "preserve").trim();
+            const requestedResetConfirmation = process.env.REQUESTED_RESET_CONFIRMATION || "";
             const dispatchRef = process.env.DISPATCH_REF || "";
             const repository = `${context.repo.owner}/${context.repo.repo}`;
 
@@ -76,6 +94,7 @@ jobs:
               pr_url: "",
               head_ref: "",
               validated_sha: "",
+              database_mode: "preserve",
               skip_reason: "BLOCKED: ambiguous preview release request",
               ci_run_id: "",
               ci_run_url: ""
@@ -133,7 +152,8 @@ jobs:
                 pr_number: String(requestedPrNumber),
                 pr_url: prUrl,
                 head_ref: headRef,
-                validated_sha: headSha
+                validated_sha: headSha,
+                database_mode: "preserve"
               };
 
               if (pull.state !== "open") {
@@ -148,6 +168,16 @@ jobs:
 
               if (!/^[0-9a-f]{40}$/.test(headSha)) {
                 block("BLOCKED: current PR head SHA is missing or invalid", baseOutputs);
+                return;
+              }
+
+              if (!["preserve", "reset"].includes(requestedDatabaseMode)) {
+                block("BLOCKED: database_mode must be preserve or reset", baseOutputs);
+                return;
+              }
+
+              if (requestedDatabaseMode === "reset" && requestedResetConfirmation !== "RESET PREVIEW DATABASE") {
+                block("BLOCKED: reset_confirmation must exactly equal RESET PREVIEW DATABASE", baseOutputs);
                 return;
               }
 
@@ -280,7 +310,8 @@ jobs:
                 resolution_status: "deploy",
                 should_deploy: "true",
                 skip_reason: "",
-                ...ciOutputs
+                ...ciOutputs,
+                database_mode: requestedDatabaseMode
               });
             } catch (error) {
               core.warning(error instanceof Error ? error.message : String(error));
@@ -296,14 +327,18 @@ jobs:
           HEAD_REF: ${{ steps.resolve.outputs.head_ref }}
           VALIDATED_SHA: ${{ steps.resolve.outputs.validated_sha }}
           CI_RUN_URL: ${{ steps.resolve.outputs.ci_run_url }}
+          DATABASE_MODE: ${{ steps.resolve.outputs.database_mode }}
           REASON: ${{ steps.resolve.outputs.skip_reason }}
         run: |
+          DATABASE_VOLUME="$(if [ "${DATABASE_MODE:-preserve}" = "reset" ]; then echo reset; else echo preserved; fi)"
           {
             echo "Result: ${RESOLUTION_STATUS:-blocked}"
             echo
             echo "PR: ${PR_URL:-n/a}"
             echo "Branch: ${HEAD_REF:-n/a}"
             echo "Validated SHA: ${VALIDATED_SHA:-n/a}"
+            echo "Database mode: ${DATABASE_MODE:-preserve}"
+            echo "Database volume: ${DATABASE_VOLUME}"
             echo "Fast CI run: ${CI_RUN_URL:-n/a}"
             echo "Reason: ${REASON:-eligible}"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -325,17 +360,21 @@ jobs:
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
+          DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
           BLOCK_REASON: ${{ needs.resolve-preview-release.outputs.skip_reason }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
             const issue_number = Number(process.env.PR_NUMBER);
+            const databaseVolume = process.env.DATABASE_MODE === "reset" ? "reset" : "preserved";
             const body = [
               marker,
               "",
               "Preview blocked",
               "",
               "Result: blocked",
+              `Database mode: ${process.env.DATABASE_MODE || "preserve"}`,
+              `Database volume: ${databaseVolume}`,
               `Reason: ${process.env.BLOCK_REASON || "BLOCKED: preview release resolver execution failed"}`,
               `PR: #${issue_number}`,
               `Commit: ${process.env.VALIDATED_SHA || "n/a"}`,
@@ -384,16 +423,20 @@ jobs:
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
+          DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
             const issue_number = Number(process.env.PR_NUMBER);
+            const databaseVolume = process.env.DATABASE_MODE === "reset" ? "reset" : "preserved";
             const body = [
               marker,
               "",
               "Preview queued",
               "",
               "Result: queued",
+              `Database mode: ${process.env.DATABASE_MODE || "preserve"}`,
+              `Database volume: ${databaseVolume}`,
               `PR: #${issue_number}`,
               `Commit: ${process.env.VALIDATED_SHA}`,
               `Branch: ${process.env.HEAD_REF}`,
@@ -607,17 +650,21 @@ jobs:
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
           IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+          DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
             const issue_number = Number(process.env.PR_NUMBER);
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const databaseVolume = process.env.DATABASE_MODE === "reset" ? "reset" : "preserved";
             const body = [
               marker,
               "",
               "Preview deploying",
               "",
               "Result: deploying",
+              `Database mode: ${process.env.DATABASE_MODE || "preserve"}`,
+              `Database volume: ${databaseVolume}`,
               `PR: #${issue_number}`,
               `Commit: ${process.env.VALIDATED_SHA}`,
               `Branch: ${process.env.HEAD_REF}`,
@@ -800,10 +847,12 @@ jobs:
           REQUESTED_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           CRM_PREVIEW_IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+          DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
             -RequestedRef $env:REQUESTED_REF `
             -ResolvedSha $env:VALIDATED_SHA `
+            -DatabaseMode $env:DATABASE_MODE `
             -ControlCheckoutPath $PWD `
             -PreviewEnvFile .\.env.compose.preview.local
 
@@ -838,15 +887,19 @@ jobs:
           PR_URL: ${{ needs.resolve-preview-release.outputs.pr_url }}
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
           IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
         run: |
+          DATABASE_VOLUME="$(if [ "${DATABASE_MODE:-preserve}" = "reset" ]; then echo reset; else echo preserved; fi)"
           @"
           Result: PASS
 
           PR: $env:PR_URL
           Branch: $env:HEAD_REF
           Validated SHA: $env:VALIDATED_SHA
+          Database mode: $env:DATABASE_MODE
+          Database volume: $DATABASE_VOLUME
           Preview URL: http://Serwer:3001
           Preview readiness: PASS
           Fast CI run: $env:CI_RUN_URL
