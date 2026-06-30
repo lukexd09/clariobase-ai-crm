@@ -4,6 +4,12 @@ import { LeadFilters } from "@/components/lead-filters";
 import { LeadPagination } from "@/components/lead-pagination";
 import { formatLeadResultSummary, normalizeLeadFilters } from "@/lib/lead-query";
 import { parseLeadPage } from "@/lib/lead-pagination";
+import {
+  ProofCard,
+  ProofCardDescription,
+  ProofCardHeader,
+  ProofCardTitle
+} from "@/components/clariobase-ui/proof-card";
 
 export const dynamic = "force-dynamic";
 
@@ -26,18 +32,18 @@ export default async function LeadsPage({
   );
 
   return (
-    <div className="space-y-4">
-      <header className="rounded-[var(--cb-ui-radius-lg)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-card)] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] min-[768px]:p-5">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-[color:var(--cb-ui-primary)]">Creator workspace</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--cb-ui-foreground)] sm:text-3xl">
+    <div data-ui-foundation="shadboard-proof" className="space-y-4">
+      <ProofCard className="mb-4 p-4 lg:p-5">
+        <ProofCardHeader className="p-0">
+          <p className="text-sm font-medium text-[color:var(--cb-accent)]">Lead CRM</p>
+          <ProofCardTitle className="text-2xl text-[color:var(--cb-foreground)] sm:text-3xl">
             Leads
-          </h1>
-          <p className="max-w-3xl text-sm leading-6 text-[color:var(--cb-ui-muted-foreground)]">
+          </ProofCardTitle>
+          <ProofCardDescription className="text-sm leading-6">
             Filter the queue, confirm the current result window, and open any lead for deeper operator work.
-          </p>
-        </div>
-      </header>
+          </ProofCardDescription>
+        </ProofCardHeader>
+      </ProofCard>
 
       <LeadTable
         leads={leadPage.leads}
@@ -55,7 +61,7 @@ export default async function LeadsPage({
         }
       />
 
-      <div>
+      <div className="mt-4">
         <LeadPagination
           pathname="/leads"
           searchParams={params}

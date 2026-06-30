@@ -52,8 +52,9 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.match(shellSource, /aria-label="Close navigation"/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(shellSource, /aria-hidden="true"/);
-  assert.match(shellSource, /bg-\[color:var\(--cb-ui-primary\)\]/);
-  assert.match(shellSource, /focus-visible:ring-\[color:var\(--cb-ui-ring\)\]/);
+  assert.match(shellSource, /bg-\[color:var\(--cb-accent\)\]/);
+  assert.match(shellSource, /focus-visible:ring-\[color:var\(--cb-focus-ring\)\]/);
+  assert.doesNotMatch(shellSource, /--cb-ui-/);
   assert.match(shellSource, /Łukasz Chmiel/);
   assert.match(shellSource, /Operator/);
   assert.doesNotMatch(shellSource, /Support/);
@@ -71,6 +72,8 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.match(leadsPage, /LeadFilters/);
   assert.match(leadsPage, /LeadPagination/);
   assert.doesNotMatch(leadsPage, /ProofShell/);
-  assert.doesNotMatch(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /data-ui-foundation="shadboard-proof"/);
+  assert.match(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /Lead CRM/);
   assert.doesNotMatch(leadsPage, /<main className=/);
 });

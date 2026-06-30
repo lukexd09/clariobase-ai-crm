@@ -143,7 +143,7 @@ Created for known ClarioBase consumers and aligned with the approved Shadboard c
 
 ## Rejected Dependencies
 
-No current route needs the broader UI helper stack; only the exact dialog primitive and icon package were approved for T003.
+No current route needs the broader UI helper stack. The current shared shell only approves the exact dialog primitive and icon package for T003.
 
 - `class-variance-authority`
 - `clsx`
@@ -153,6 +153,18 @@ No current route needs the broader UI helper stack; only the exact dialog primit
 - Shadboard auth and demo dependencies
 
 These packages can be reconsidered later with a new exact need and license review.
+
+## T003 Dependency Inventory
+
+- `@radix-ui/react-dialog` `1.1.3`
+  - license: MIT
+  - commercial use: allowed
+  - current consumer: `src/components/clariobase-ui/sheet.tsx` and `src/components/app-shell.tsx`
+
+- `lucide-react` `0.446.0`
+  - license: ISC
+  - commercial use: allowed
+  - current consumer: `src/components/app-shell.tsx`
 
 ## Migration Rules For T003-T007
 

@@ -1,16 +1,21 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import React from "react";
-import { forwardRef } from "react";
-import { cn } from "../../lib/utils";
+import React, { forwardRef } from "react";
+import { cn } from "@/lib/utils";
 
 const Sheet = Dialog.Root;
-const SheetTrigger = Dialog.Trigger;
 const SheetPortal = Dialog.Portal;
-const SheetClose = Dialog.Close;
-const SheetTitle = Dialog.Title;
-const SheetDescription = Dialog.Description;
+
+const SheetTrigger = forwardRef<
+  React.ElementRef<typeof Dialog.Trigger>,
+  React.ComponentPropsWithoutRef<typeof Dialog.Trigger>
+>(({ children, ...props }, ref) => (
+  <Dialog.Trigger ref={ref} data-slot="sheet-trigger" {...props}>
+    {children}
+  </Dialog.Trigger>
+));
+SheetTrigger.displayName = Dialog.Trigger.displayName;
 
 const SheetOverlay = forwardRef<
   React.ElementRef<typeof Dialog.Overlay>,
@@ -20,7 +25,7 @@ const SheetOverlay = forwardRef<
     ref={ref}
     data-slot="sheet-overlay"
     className={cn(
-      "fixed inset-0 z-50 bg-[color:var(--cb-ui-foreground)]/25 backdrop-blur-[1px] transition data-[state=closed]:animate-out data-[state=open]:animate-in",
+      "fixed inset-0 z-50 bg-[color:var(--cb-foreground)]/25 opacity-0 transition-opacity duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0",
       className
     )}
     {...props}
@@ -38,7 +43,7 @@ const SheetContent = forwardRef<
       ref={ref}
       data-slot="sheet-content"
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex h-full w-[min(88vw,320px)] max-w-[calc(100vw-1rem)] flex-col border-r border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-card)] shadow-[0_18px_48px_rgba(15,23,42,0.16)] outline-none data-[state=open]:animate-in data-[state=closed]:animate-out",
+        "fixed inset-y-0 left-0 z-50 flex h-full w-[min(88vw,320px)] max-w-[calc(100vw-1rem)] -translate-x-full transform-gpu flex-col border-r border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] shadow-[0_18px_48px_rgba(15,23,42,0.16)] outline-none transition-transform duration-200 data-[state=open]:translate-x-0 data-[state=closed]:-translate-x-full",
         className
       )}
       {...props}
@@ -49,7 +54,7 @@ const SheetContent = forwardRef<
 ));
 SheetContent.displayName = Dialog.Content.displayName;
 
-const SheetCloseButton = forwardRef<
+const SheetClose = forwardRef<
   React.ElementRef<typeof Dialog.Close>,
   React.ComponentPropsWithoutRef<typeof Dialog.Close>
 >(({ className, children, ...props }, ref) => (
@@ -57,7 +62,7 @@ const SheetCloseButton = forwardRef<
     ref={ref}
     data-slot="sheet-close"
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-[var(--cb-ui-radius-md)] border border-transparent px-3 text-sm font-semibold text-[color:var(--cb-ui-muted-foreground)] transition hover:bg-[color:var(--cb-ui-surface)] hover:text-[color:var(--cb-ui-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-ui-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-ui-card)]",
+      "inline-flex h-10 items-center justify-center rounded-[var(--cb-radius-md)] border border-transparent px-3 text-sm font-semibold text-[color:var(--cb-muted-foreground)] transition hover:bg-[color:var(--cb-surface)] hover:text-[color:var(--cb-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-elevated-surface)]",
       className
     )}
     {...props}
@@ -65,15 +70,32 @@ const SheetCloseButton = forwardRef<
     {children}
   </Dialog.Close>
 ));
-SheetCloseButton.displayName = Dialog.Close.displayName;
+SheetClose.displayName = Dialog.Close.displayName;
 
-export {
-  Sheet,
-  SheetTrigger,
-  SheetPortal,
-  SheetOverlay,
-  SheetContent,
-  SheetCloseButton as SheetClose,
-  SheetTitle,
-  SheetDescription
-};
+const SheetTitle = forwardRef<
+  React.ElementRef<typeof Dialog.Title>,
+  React.ComponentPropsWithoutRef<typeof Dialog.Title>
+>(({ className, ...props }, ref) => (
+  <Dialog.Title
+    ref={ref}
+    data-slot="sheet-title"
+    className={cn("text-base font-semibold text-[color:var(--cb-foreground)]", className)}
+    {...props}
+  />
+));
+SheetTitle.displayName = Dialog.Title.displayName;
+
+const SheetDescription = forwardRef<
+  React.ElementRef<typeof Dialog.Description>,
+  React.ComponentPropsWithoutRef<typeof Dialog.Description>
+>(({ className, ...props }, ref) => (
+  <Dialog.Description
+    ref={ref}
+    data-slot="sheet-description"
+    className={cn("mt-1 text-sm text-[color:var(--cb-muted-foreground)]", className)}
+    {...props}
+  />
+));
+SheetDescription.displayName = Dialog.Description.displayName;
+
+export { Sheet, SheetPortal, SheetTrigger, SheetOverlay, SheetContent, SheetClose, SheetTitle, SheetDescription };

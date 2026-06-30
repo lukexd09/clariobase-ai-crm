@@ -26,6 +26,12 @@ test("sheet primitive exposes the project-owned dialog boundary and accessible r
   assert.match(sheetSource, /data-slot="sheet-overlay"/);
   assert.match(sheetSource, /data-slot="sheet-content"/);
   assert.match(sheetSource, /data-slot="sheet-close"/);
+  assert.match(sheetSource, /data-slot="sheet-trigger"/);
+  assert.match(sheetSource, /data-slot="sheet-title"/);
+  assert.match(sheetSource, /data-slot="sheet-description"/);
+  assert.doesNotMatch(sheetSource, /animate-in/);
+  assert.doesNotMatch(sheetSource, /animate-out/);
+  assert.doesNotMatch(sheetSource, /--cb-ui-/);
   assert.doesNotMatch(sheetSource, /class-variance-authority/);
   assert.doesNotMatch(sheetSource, /tailwind-merge/);
   assert.doesNotMatch(sheetSource, /clsx/);
@@ -69,6 +75,7 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   };
 
   assert.match(shellSource, /min-\[1024px\]:grid-cols-\[240px_minmax\(0,1fr\)\]/);
+  assert.match(shellSource, /min-h-0.*overflow-y-auto/);
   assert.match(shellSource, /SheetTrigger/);
   assert.match(shellSource, /SheetContent/);
   assert.match(shellSource, /SheetClose/);
@@ -81,6 +88,16 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.doesNotMatch(shellSource, /<summary>/);
   assert.doesNotMatch(shellSource, /ProofShell/);
   assert.doesNotMatch(shellSource, /Support|Settings|notifications|calendar|logout|account menu/i);
+  assert.doesNotMatch(shellSource, /--cb-ui-/);
+  assert.match(shellSource, /--cb-background/);
+  assert.match(shellSource, /--cb-foreground/);
+  assert.match(shellSource, /--cb-surface/);
+  assert.match(shellSource, /--cb-elevated-surface/);
+  assert.match(shellSource, /--cb-border/);
+  assert.match(shellSource, /--cb-accent/);
+  assert.match(shellSource, /--cb-focus-ring/);
+  assert.match(shellSource, /--cb-radius-md/);
+  assert.equal((shellSource.match(/<main\b/g) ?? []).length, 1);
 
   assert.match(leadsPage, /getLeadPage/);
   assert.match(leadsPage, /getLeadFilterOptions/);
@@ -90,7 +107,10 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.match(leadsPage, /LeadPagination/);
   assert.doesNotMatch(leadsPage, /ProofShell/);
   assert.doesNotMatch(leadsPage, /<main className=/);
-  assert.doesNotMatch(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /data-ui-foundation="shadboard-proof"/);
+  assert.match(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /Lead CRM/);
+  assert.doesNotMatch(leadsPage, /<main className=/);
 
   assert.match(packageJson.dependencies["@radix-ui/react-dialog"], /1\.1\.3/);
   assert.match(packageJson.dependencies["lucide-react"], /0\.446\.0/);

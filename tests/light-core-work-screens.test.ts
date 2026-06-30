@@ -25,15 +25,18 @@ test("core CRM work screens use the light shell baseline", () => {
   assert.match(appShell, /SheetContent/);
   assert.match(appShell, /Menu/);
   assert.match(appShell, /aria-current=\{active \? "page" : undefined\}/);
+  assert.match(appShell, /min-h-0.*overflow-y-auto/);
+  assert.doesNotMatch(appShell, /--cb-ui-/);
 
   for (const source of [workPage, salesReportPage]) {
     assert.match(source, /bg-slate-50/);
     assert.doesNotMatch(source, /max-w-7xl/);
   }
   assert.doesNotMatch(leadsPage, /ProofShell/);
-  assert.doesNotMatch(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /data-ui-foundation="shadboard-proof"/);
+  assert.match(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /Lead CRM/);
   assert.doesNotMatch(leadsPage, /<main className=/);
-  assert.match(leadsPage, /Creator workspace/);
   assert.match(leadsPage, /LeadTable/);
 });
 
