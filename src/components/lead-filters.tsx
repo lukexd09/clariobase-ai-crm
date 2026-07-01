@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { Badge, Button, Label, Select } from "@/components/clariobase-ui";
 import { buildLeadUrl, type LeadFilters as LeadFilterState } from "@/lib/lead-query";
 
 type FilterOptions = {
@@ -66,70 +67,34 @@ export function LeadFilters({
   }
 
   return (
-    <section
-      aria-busy={isPending}
-      className="rounded-[var(--cb-ui-radius-lg)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-card)] p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
-    >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex min-h-9 items-center gap-1.5 rounded-[var(--cb-ui-radius-md)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-surface)] px-3 text-sm font-medium text-[color:var(--cb-ui-muted-foreground)]">
-          <span className="tabular-nums text-[color:var(--cb-ui-foreground)]">{resultSummary}</span>
+    <section aria-busy={isPending} className="space-y-4 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex min-h-10 items-center gap-2 rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3">
+          <span className="text-sm font-medium text-[color:var(--cb-muted-foreground)]">Result summary</span>
+          <span className="text-sm font-semibold tabular-nums text-[color:var(--cb-foreground)]">{resultSummary}</span>
         </div>
-
         <div className="flex items-center gap-2">
-          {isPending ? (
-            <span className="text-xs font-medium text-[color:var(--cb-ui-muted-foreground)]" aria-live="polite">
-              Updating...
-            </span>
-          ) : null}
+          {isPending ? <span className="text-xs font-medium text-[color:var(--cb-muted-foreground)]" aria-live="polite">Updating...</span> : null}
           {hasActiveFilters ? (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-[var(--cb-ui-radius-md)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-card)] px-4 text-sm font-medium text-[color:var(--cb-ui-foreground)] transition hover:border-[color:var(--cb-ui-primary)]/30 hover:bg-[color:var(--cb-ui-surface)] hover:text-[color:var(--cb-ui-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-ui-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-ui-background)]"
-            >
+            <Button type="button" variant="secondary" onClick={clearFilters}>
               Clear filters
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
 
       <fieldset>
         <legend className="sr-only">Filter leads</legend>
-
-        <div className="grid items-end gap-3 md:grid-cols-2 xl:grid-cols-[repeat(4,minmax(150px,1fr))]">
-          <FilterSelect
-            label="Status"
-            name="status"
-            value={filters.status ?? ""}
-            options={options.status}
-            onChange={(value) => updateFilter("status", value)}
-          />
-          <FilterSelect
-            label="Priority"
-            name="priority"
-            value={filters.priority ?? ""}
-            options={options.priority}
-            onChange={(value) => updateFilter("priority", value)}
-          />
-          <FilterSelect
-            label="City"
-            name="city"
-            value={filters.city ?? ""}
-            options={options.city}
-            onChange={(value) => updateFilter("city", value)}
-          />
-          <FilterSelect
-            label="Package fit"
-            name="packageFit"
-            value={filters.packageFit ?? ""}
-            options={options.packageFit}
-            onChange={(value) => updateFilter("packageFit", value)}
-          />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <FilterSelect label="Status" name="status" value={filters.status ?? ""} options={options.status} onChange={(value) => updateFilter("status", value)} />
+          <FilterSelect label="Priority" name="priority" value={filters.priority ?? ""} options={options.priority} onChange={(value) => updateFilter("priority", value)} />
+          <FilterSelect label="City" name="city" value={filters.city ?? ""} options={options.city} onChange={(value) => updateFilter("city", value)} />
+          <FilterSelect label="Package fit" name="packageFit" value={filters.packageFit ?? ""} options={options.packageFit} onChange={(value) => updateFilter("packageFit", value)} />
         </div>
       </fieldset>
 
       {hasActiveFilters ? (
-        <ul aria-label="Active filters" className="mt-3 flex flex-wrap gap-2">
+        <ul aria-label="Active filters" className="flex flex-wrap gap-2">
           {(
             [
               ["status", filters.status],
@@ -139,12 +104,8 @@ export function LeadFilters({
             ] as const
           ).map(([key, value]) =>
             value ? (
-              <li
-                key={key}
-                className="inline-flex min-h-9 items-center rounded-full border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-surface)] px-3 text-sm font-medium text-[color:var(--cb-ui-foreground)]"
-              >
-                <span className="text-[color:var(--cb-ui-muted-foreground)]">{filterLabels[key]}:</span>
-                <span className="ml-1 text-[color:var(--cb-ui-foreground)]">{formatFilterValue(value)}</span>
+              <li key={key}>
+                <Badge tone="neutral">{filterLabels[key]}: {formatFilterValue(value)}</Badge>
               </li>
             ) : null
           )}
@@ -169,19 +130,14 @@ function FilterSelect({
 }) {
   return (
     <label className="space-y-1.5">
-      <span className="block text-sm font-medium text-[color:var(--cb-ui-foreground)]">{label}</span>
-      <select
-        name={name}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-[var(--cb-ui-radius-md)] border border-[color:var(--cb-ui-border)] bg-[color:var(--cb-ui-background)] px-3 text-sm text-[color:var(--cb-ui-foreground)] outline-none transition focus:border-[color:var(--cb-ui-ring)] focus:ring-2 focus:ring-[color:var(--cb-ui-ring)]/20"
-      >
+      <Label className="block text-sm font-medium text-[color:var(--cb-foreground)]">{label}</Label>
+      <Select name={name} value={value} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => (
           <option key={option || "all"} value={option}>
             {option ? option.replaceAll("_", " ") : "All"}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 }

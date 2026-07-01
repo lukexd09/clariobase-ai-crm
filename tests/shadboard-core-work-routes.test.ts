@@ -1,0 +1,81 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+
+const repoRoot = path.resolve(__dirname, "..");
+
+function read(filePath: string) {
+  return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
+}
+
+test("t005 sources stay inside the project-owned ui boundary and avoid ui token drift", () => {
+  const files = [
+    "src/app/leads/page.tsx",
+    "src/app/work/page.tsx",
+    "src/app/reports/sales/page.tsx",
+    "src/components/lead-filters.tsx",
+    "src/components/lead-pagination.tsx",
+    "src/components/lead-table.tsx",
+    "src/components/core-work-primitives.tsx"
+  ];
+
+  for (const file of files) {
+    const source = read(file);
+    assert.doesNotMatch(source, /--cb-ui-/);
+    assert.doesNotMatch(source, /bg-(slate|rose|amber|sky|violet)-/);
+    assert.doesNotMatch(source, /text-(slate|rose|amber|sky|violet)-/);
+    assert.doesNotMatch(source, /border-(slate|rose|amber|sky|violet)-/);
+  }
+
+  assert.match(read("src/app/leads/page.tsx"), /PageSurface/);
+  assert.match(read("src/app/work/page.tsx"), /SurfaceHeader/);
+  assert.match(read("src/app/reports/sales/page.tsx"), /TableSurface/);
+  assert.match(read("src/components/lead-filters.tsx"), /Select/);
+  assert.match(read("src/components/lead-pagination.tsx"), /ButtonLink/);
+  assert.match(read("src/components/lead-table.tsx"), /TableSurface/);
+});
+
+test("t005 routes keep the required operational behaviors", () => {
+  const leadsPage = read("src/app/leads/page.tsx");
+  const leadFilters = read("src/components/lead-filters.tsx");
+  const leadPagination = read("src/components/lead-pagination.tsx");
+  const workPage = read("src/app/work/page.tsx");
+  const salesReportPage = read("src/app/reports/sales/page.tsx");
+
+  assert.match(leadsPage, /status: \["", \.\.\.filterOptions\.status\]/);
+  assert.match(leadsPage, /priority: \["", \.\.\.filterOptions\.priority\]/);
+  assert.match(leadsPage, /city: \["", \.\.\.filterOptions\.city\]/);
+  assert.match(leadsPage, /packageFit: \["", \.\.\.filterOptions\.packageFit\]/);
+
+  assert.match(leadFilters, /router\.replace\(/);
+  assert.match(leadFilters, /Updating\.\.\./);
+  assert.match(leadFilters, /Clear filters/);
+  assert.match(leadFilters, /resultSummary/);
+  assert.match(leadFilters, /filterLabels/);
+
+  assert.match(leadPagination, /aria-label="Lead pagination"/);
+  assert.match(leadPagination, /aria-current="page"/);
+  assert.match(leadPagination, /aria-disabled="true"/);
+  assert.match(leadPagination, /Previous/);
+  assert.match(leadPagination, /Next/);
+
+  assert.match(workPage, /overdue/);
+  assert.match(workPage, /dueToday/);
+  assert.match(workPage, /upcoming/);
+  assert.match(workPage, /noAction/);
+  assert.match(workPage, /Quick update/);
+  assert.match(workPage, /\/leads\/\$\{lead\.id\}#quick-update/);
+  assert.match(workPage, /scope="col"/);
+  assert.match(workPage, /caption className="sr-only"/);
+
+  assert.match(salesReportPage, /getSalesReport\(\)/);
+  assert.match(salesReportPage, /getSalesStatusEntries\(\)/);
+  assert.match(salesReportPage, /Lead status summary/);
+  assert.match(salesReportPage, /Priority summary/);
+  assert.match(salesReportPage, /Package fit summary/);
+  assert.match(salesReportPage, /Workbench health/);
+  assert.match(salesReportPage, /Draft readiness/);
+  assert.match(salesReportPage, /Activity summary/);
+  assert.match(salesReportPage, /activities in the last 7 days/i);
+});

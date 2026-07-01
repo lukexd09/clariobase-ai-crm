@@ -72,8 +72,7 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.match(leadsPage, /LeadFilters/);
   assert.match(leadsPage, /LeadPagination/);
   assert.doesNotMatch(leadsPage, /ProofShell/);
-  assert.match(leadsPage, /data-ui-foundation="shadboard-proof"/);
-  assert.match(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /PageSurface/);
   assert.match(leadsPage, /Lead CRM/);
   assert.doesNotMatch(leadsPage, /<main className=/);
 });

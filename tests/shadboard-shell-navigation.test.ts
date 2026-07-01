@@ -125,8 +125,7 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.match(leadsPage, /LeadPagination/);
   assert.doesNotMatch(leadsPage, /ProofShell/);
   assert.doesNotMatch(leadsPage, /<main className=/);
-  assert.match(leadsPage, /data-ui-foundation="shadboard-proof"/);
-  assert.match(leadsPage, /ProofCard/);
+  assert.match(leadsPage, /PageSurface/);
   assert.match(leadsPage, /Lead CRM/);
   assert.doesNotMatch(leadsPage, /<main className=/);
 
