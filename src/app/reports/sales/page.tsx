@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { StatusPill } from "@/components/lead-status-pill";
 import { ACTIVITY_TYPE_VALUES } from "@/lib/activity-values";
 import { getSalesReport } from "@/lib/sales-report";
@@ -9,6 +10,8 @@ import {
   PACKAGE_FIT_VALUES
 } from "@/lib/lead-values";
 import { getSalesStatusEntries } from "@/lib/sales-status";
+import { PageSurface } from "@/components/core-work-primitives";
+import { Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -17,18 +20,12 @@ export default async function SalesReportPage() {
   const statusEntries = getSalesStatusEntries();
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <header className="mb-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.9fr)] lg:p-5">
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-sky-700">Sales reporting</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-              Operational pipeline report
-            </h1>
-          </div>
-        </header>
-
-        <section className="mb-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-4">
+      <PageSurface
+        eyebrow="Sales reporting"
+        title="Operational pipeline report"
+      >
+        <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <Metric label="Total leads" value={report.totalLeads} />
           <Metric label="Active leads" value={report.activeLeads} />
           <Metric label="Overdue work items" value={report.workbenchBucketCounts.overdue} tone="overdue" />
@@ -39,128 +36,67 @@ export default async function SalesReportPage() {
           <Metric label="Leads with offer drafts" value={report.leadsWithOfferDrafts} />
           <Metric label="Activities in last 7 days" value={report.activityLast7DaysCount} />
         </section>
+      </PageSurface>
 
-        <div className="space-y-4">
-          <ReportSection
-            title="Lead status summary"
-            description="Archived leads are excluded from active totals, while WON, LOST and DO_NOT_CONTACT remain visible as separate operational states."
-          >
-            <div className="overflow-hidden rounded-2xl border border-slate-200">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <caption className="sr-only">Lead status summary table</caption>
-                  <thead className="bg-slate-50">
-                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      <th scope="col" className="px-4 py-3">Status</th>
-                      <th scope="col" className="px-4 py-3">Group</th>
-                      <th scope="col" className="px-4 py-3">Meaning</th>
-                      <th scope="col" className="px-4 py-3">Next action</th>
-                      <th scope="col" className="px-4 py-3">Count</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {statusEntries.map((entry) => (
-                      <tr key={entry.status} className="transition hover:bg-slate-50">
-                        <td className="px-4 py-4 align-top">
-                          <StatusPill value={entry.status} appearance="light" />
-                        </td>
-                        <td className="px-4 py-4 align-top text-slate-600">{entry.group}</td>
-                        <td className="px-4 py-4 align-top text-slate-600">{entry.description}</td>
-                        <td className="px-4 py-4 align-top text-slate-600">{entry.nextAction}</td>
-                        <td className="px-4 py-4 align-top font-medium tabular-nums text-slate-900">
-                          {report.leadStatusCounts[entry.status]}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      <div className="space-y-4">
+        <ReportSection title="Lead status summary" description="Archived leads are excluded from active totals, while WON, LOST and DO_NOT_CONTACT remain visible as separate operational states.">
+          <TableSurface aria-label="Lead status summary table">
+            <Table>
+              <caption className="sr-only">Lead status summary table</caption>
+              <TableHead>
+                <tr>
+                  <TableHeadCell scope="col">Status</TableHeadCell>
+                  <TableHeadCell scope="col">Group</TableHeadCell>
+                  <TableHeadCell scope="col">Meaning</TableHeadCell>
+                  <TableHeadCell scope="col">Next action</TableHeadCell>
+                  <TableHeadCell scope="col">Count</TableHeadCell>
+                </tr>
+              </TableHead>
+              <TableBody>
+                {statusEntries.map((entry) => (
+                  <TableRow key={entry.status}>
+                    <TableCell><StatusPill value={entry.status} appearance="foundation" /></TableCell>
+                    <TableCell className="text-[color:var(--cb-muted-foreground)]">{entry.group}</TableCell>
+                    <TableCell className="text-[color:var(--cb-muted-foreground)]">{entry.description}</TableCell>
+                    <TableCell className="text-[color:var(--cb-muted-foreground)]">{entry.nextAction}</TableCell>
+                    <TableCell className="font-medium tabular-nums text-[color:var(--cb-foreground)]">{report.leadStatusCounts[entry.status]}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableSurface>
+        </ReportSection>
+
+        <div className="space-y-4 xl:columns-2 xl:gap-4 xl:[column-fill:balance]">
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Priority summary" description="Count of leads by operational priority.">
+            <SimpleCountTable rows={LEAD_PRIORITY_VALUES.map((value) => ({ label: value, value: report.priorityCounts[value] }))} />
+          </ReportSection>
+
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Package fit summary" description="Count of leads by recommended package fit.">
+            <SimpleCountTable rows={PACKAGE_FIT_VALUES.map((value) => ({ label: value, value: report.packageFitCounts[value] }))} />
+          </ReportSection>
+
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Workbench health" description="The same actionable-bucket logic used by /work.">
+            <SimpleCountTable rows={[{ label: "Overdue next actions", value: report.workbenchBucketCounts.overdue }, { label: "Due today", value: report.workbenchBucketCounts.dueToday }, { label: "Upcoming", value: report.workbenchBucketCounts.upcoming }, { label: "No next action", value: report.workbenchBucketCounts.noAction }]} />
+          </ReportSection>
+
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Draft readiness" description="How many drafts exist and how many leads already have at least one draft artifact.">
+            <div className="space-y-5">
+              <SimpleCountTable heading="Mini-audit draft statuses" rows={MINI_AUDIT_STATUS_VALUES.map((value) => ({ label: value, value: report.miniAuditDraftStatusCounts[value] }))} />
+              <SimpleCountTable heading="Outreach draft statuses" rows={OUTREACH_DRAFT_STATUS_VALUES.map((value) => ({ label: value, value: report.outreachDraftStatusCounts[value] }))} />
+              <SimpleCountTable heading="Offer draft statuses" rows={OFFER_DRAFT_STATUS_VALUES.map((value) => ({ label: value, value: report.offerDraftStatusCounts[value] }))} />
             </div>
           </ReportSection>
 
-          <div className="grid gap-4 xl:grid-cols-2">
-            <ReportSection title="Priority summary" description="Count of leads by operational priority.">
-              <SimpleCountTable
-                rows={LEAD_PRIORITY_VALUES.map((value) => ({
-                  label: value,
-                  value: report.priorityCounts[value]
-                }))}
-              />
-            </ReportSection>
-
-            <ReportSection title="Package fit summary" description="Count of leads by recommended package fit.">
-              <SimpleCountTable
-                rows={PACKAGE_FIT_VALUES.map((value) => ({
-                  label: value,
-                  value: report.packageFitCounts[value]
-                }))}
-              />
-            </ReportSection>
-
-            <ReportSection
-              title="Workbench health"
-              description="The same actionable-bucket logic used by /work."
-            >
-              <SimpleCountTable
-                rows={[
-                  { label: "Overdue next actions", value: report.workbenchBucketCounts.overdue },
-                  { label: "Due today", value: report.workbenchBucketCounts.dueToday },
-                  { label: "Upcoming", value: report.workbenchBucketCounts.upcoming },
-                  { label: "No next action", value: report.workbenchBucketCounts.noAction }
-                ]}
-              />
-            </ReportSection>
-
-            <ReportSection
-              title="Draft readiness"
-              description="How many drafts exist and how many leads already have at least one draft artifact."
-            >
-              <div className="space-y-5">
-                <SimpleCountTable
-                  heading="Mini-audit draft statuses"
-                  rows={MINI_AUDIT_STATUS_VALUES.map((value) => ({
-                    label: value,
-                    value: report.miniAuditDraftStatusCounts[value]
-                  }))}
-                />
-                <SimpleCountTable
-                  heading="Outreach draft statuses"
-                  rows={OUTREACH_DRAFT_STATUS_VALUES.map((value) => ({
-                    label: value,
-                    value: report.outreachDraftStatusCounts[value]
-                  }))}
-                />
-                <SimpleCountTable
-                  heading="Offer draft statuses"
-                  rows={OFFER_DRAFT_STATUS_VALUES.map((value) => ({
-                    label: value,
-                    value: report.offerDraftStatusCounts[value]
-                  }))}
-                />
-              </div>
-            </ReportSection>
-
-            <ReportSection
-              title="Activity summary"
-              description="Manual activity logging still provides lightweight pipeline history."
-            >
-              <div className="space-y-5">
-                <SimpleCountTable
-                  heading="Activity types"
-                  rows={ACTIVITY_TYPE_VALUES.map((value) => ({
-                    label: value,
-                    value: report.activityTypeCounts[value]
-                  }))}
-                />
-                <p className="text-sm text-slate-600">
-                  Total activities in the last 7 days: {report.activityLast7DaysCount}
-                </p>
-              </div>
-            </ReportSection>
-          </div>
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Activity summary" description="Manual activity logging still provides lightweight pipeline history.">
+            <div className="space-y-5">
+              <SimpleCountTable heading="Activity types" rows={ACTIVITY_TYPE_VALUES.map((value) => ({ label: value, value: report.activityTypeCounts[value] }))} />
+              <p className="text-sm text-[color:var(--cb-muted-foreground)]">Total activities in the last 7 days: {report.activityLast7DaysCount}</p>
+            </div>
+          </ReportSection>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -176,24 +112,24 @@ function Metric({
   const classes =
     tone && value > 0
       ? tone === "overdue"
-        ? "border-rose-200 bg-rose-50"
-        : "border-amber-200 bg-amber-50"
-      : "border-slate-200 bg-white";
+        ? "border-[color:var(--cb-danger)]/25 bg-[color:var(--cb-danger)]/8"
+        : "border-[color:var(--cb-warning)]/25 bg-[color:var(--cb-warning)]/8"
+      : "border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)]";
 
   return (
-    <div className={`rounded-xl border p-4 shadow-sm ${classes}`}>
+    <div className={`rounded-[var(--cb-radius-lg)] border p-4 ${classes}`}>
       <p
-        className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${
+        className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
           tone && value > 0
             ? tone === "overdue"
-              ? "text-rose-700"
-              : "text-amber-700"
-            : "text-slate-500"
+              ? "text-[color:var(--cb-danger-ink)]"
+              : "text-[color:var(--cb-warning-ink)]"
+            : "text-[color:var(--cb-muted-foreground)]"
         }`}
       >
         {label}
       </p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums text-slate-950">{value}</p>
+      <p className="mt-2 text-3xl font-semibold tabular-nums text-[color:var(--cb-foreground)]">{value}</p>
     </div>
   );
 }
@@ -201,20 +137,22 @@ function Metric({
 function ReportSection({
   title,
   description,
+  className,
   children
 }: {
   title: string;
   description: string;
-  children: React.ReactNode;
+  className?: string;
+  children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
-      </div>
-      {children}
-    </section>
+    <Surface className={className}>
+      <SurfaceHeader className="pb-0">
+        <SurfaceTitle>{title}</SurfaceTitle>
+        <SurfaceDescription>{description}</SurfaceDescription>
+      </SurfaceHeader>
+      <SurfaceContent className="pt-4">{children}</SurfaceContent>
+    </Surface>
   );
 }
 
@@ -227,24 +165,20 @@ function SimpleCountTable({
 }) {
   return (
     <div className="space-y-3">
-      {heading ? (
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-          {heading}
-        </h3>
-      ) : null}
-      <div className="overflow-hidden rounded-2xl border border-slate-200">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
+      {heading ? <h3 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--cb-muted-foreground)]">{heading}</h3> : null}
+      <TableSurface aria-label={heading ?? "Sales summary table"}>
+        <Table>
           <caption className="sr-only">{heading ?? "Sales summary table"}</caption>
-          <tbody className="divide-y divide-slate-200">
+          <TableBody>
             {rows.map((row) => (
-              <tr key={row.label} className="transition hover:bg-slate-50">
-                <td className="px-4 py-3 text-slate-600">{row.label}</td>
-                <td className="px-4 py-3 text-right font-medium tabular-nums text-slate-950">{row.value}</td>
-              </tr>
+              <TableRow key={row.label}>
+                <TableCell className="text-[color:var(--cb-muted-foreground)]">{row.label}</TableCell>
+                <TableCell className="text-right font-medium tabular-nums text-[color:var(--cb-foreground)]">{row.value}</TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableSurface>
     </div>
   );
 }

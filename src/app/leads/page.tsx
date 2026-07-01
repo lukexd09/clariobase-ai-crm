@@ -4,12 +4,7 @@ import { LeadFilters } from "@/components/lead-filters";
 import { LeadPagination } from "@/components/lead-pagination";
 import { formatLeadResultSummary, normalizeLeadFilters } from "@/lib/lead-query";
 import { parseLeadPage } from "@/lib/lead-pagination";
-import {
-  ProofCard,
-  ProofCardDescription,
-  ProofCardHeader,
-  ProofCardTitle
-} from "@/components/clariobase-ui/proof-card";
+import { PageSurface } from "@/components/core-work-primitives";
 
 export const dynamic = "force-dynamic";
 
@@ -32,34 +27,28 @@ export default async function LeadsPage({
   );
 
   return (
-    <div data-ui-foundation="shadboard-proof" className="space-y-4">
-      <ProofCard className="mb-4 p-4 lg:p-5">
-        <ProofCardHeader className="p-0">
-          <p className="text-sm font-medium text-[color:var(--cb-accent)]">Lead CRM</p>
-          <ProofCardTitle className="text-2xl text-[color:var(--cb-foreground)] sm:text-3xl">
-            Leads
-          </ProofCardTitle>
-          <ProofCardDescription className="text-sm leading-6">
-            Filter the queue, confirm the current result window, and open any lead for deeper operator work.
-          </ProofCardDescription>
-        </ProofCardHeader>
-      </ProofCard>
-
-      <LeadTable
-        leads={leadPage.leads}
-        filterControls={
-          <LeadFilters
-            filters={filters}
-            options={{
-              status: ["", ...filterOptions.status],
-              priority: ["", ...filterOptions.priority],
-              city: ["", ...filterOptions.city],
-              packageFit: ["", ...filterOptions.packageFit]
-            }}
-            resultSummary={resultSummary}
-          />
-        }
-      />
+    <div className="space-y-4">
+      <PageSurface
+        eyebrow="Lead CRM"
+        title="Leads"
+        description="Filter the queue, confirm the current result window, and open any lead for deeper operator work."
+      >
+        <LeadTable
+          leads={leadPage.leads}
+          filterControls={
+            <LeadFilters
+              filters={filters}
+              options={{
+                status: ["", ...filterOptions.status],
+                priority: ["", ...filterOptions.priority],
+                city: ["", ...filterOptions.city],
+                packageFit: ["", ...filterOptions.packageFit]
+              }}
+              resultSummary={resultSummary}
+            />
+          }
+        />
+      </PageSurface>
 
       <div className="mt-4">
         <LeadPagination

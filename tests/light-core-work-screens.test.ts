@@ -15,6 +15,7 @@ test("core CRM work screens use the light shell baseline", () => {
   const workPage = read("src/app/work/page.tsx");
   const leadsPage = read("src/app/leads/page.tsx");
   const salesReportPage = read("src/app/reports/sales/page.tsx");
+  const corePrimitives = read("src/components/core-work-primitives.tsx");
 
   assert.doesNotMatch(homepage, /radial-gradient/);
   assert.match(homepage, /DashboardDataQualityAlert/);
@@ -28,16 +29,17 @@ test("core CRM work screens use the light shell baseline", () => {
   assert.match(appShell, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(appShell, /min-h-0.*overflow-y-auto/);
   assert.doesNotMatch(appShell, /--cb-ui-/);
+  assert.match(corePrimitives, /PageSurface/);
+  assert.match(corePrimitives, /WorkIndicator/);
+  assert.doesNotMatch(corePrimitives, /--cb-ui-/);
 
-  for (const source of [workPage, salesReportPage]) {
-    assert.match(source, /bg-slate-50/);
+  for (const source of [workPage, salesReportPage, leadsPage]) {
+    assert.doesNotMatch(source, /<main className="min-h-screen/);
+    assert.doesNotMatch(source, /bg-slate-50/);
     assert.doesNotMatch(source, /max-w-7xl/);
   }
-  assert.doesNotMatch(leadsPage, /ProofShell/);
-  assert.match(leadsPage, /data-ui-foundation="shadboard-proof"/);
-  assert.match(leadsPage, /ProofCard/);
   assert.match(leadsPage, /Lead CRM/);
-  assert.doesNotMatch(leadsPage, /<main className=/);
+  assert.match(leadsPage, /PageSurface/);
   assert.match(leadsPage, /LeadTable/);
 });
 
@@ -66,35 +68,33 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(salesReportPage, /tabular-nums/);
   assert.match(salesReportPage, /scope="col"/);
   assert.match(salesReportPage, /caption className="sr-only"/);
+  assert.match(salesReportPage, /SurfaceTitle/);
+  assert.match(salesReportPage, /TableSurface/);
 
   assert.match(leadFilters, /fieldset/);
   assert.match(leadFilters, /legend className="sr-only">Filter leads<\/legend>/);
-  assert.match(leadFilters, /h-10/);
-  assert.match(leadFilters, /text-sm font-medium text-\[color:var\(--cb-ui-foreground\)\]/);
-  assert.match(leadFilters, /xl:grid-cols-\[repeat\(4,minmax\(150px,1fr\)\)\]/);
-  assert.match(leadFilters, /focus-visible:ring-2/);
+  assert.match(leadFilters, /Result summary/);
+  assert.match(leadFilters, /Select/);
+  assert.match(leadFilters, /xl:grid-cols-4/);
   assert.match(leadFilters, /resultSummary/);
   assert.match(leadFilters, /Clear filters/);
   assert.doesNotMatch(leadFilters, /Apply filters/);
+  assert.match(leadFilters, /<Badge tone="neutral">/);
 
   assert.match(leadTable, /scope="col"/);
   assert.match(leadTable, /caption className="sr-only"/);
   assert.match(leadTable, /focus-visible:ring-2/);
-  assert.match(
-    leadTable,
-    /font-semibold text-\[color:var\(--cb-ui-foreground\)\] transition hover:text-\[color:var\(--cb-ui-primary\)\] hover:underline/
-  );
+  assert.match(leadTable, /TableSurface/);
+  assert.match(leadTable, /appearance="foundation"/);
   assert.match(leadTable, /tabular-nums/);
+  assert.match(leadTable, /text-left sm:text-center/);
+  assert.match(leadTable, /No leads match the current filters\./);
 
-  assert.match(workPage, /grid-cols-2/);
+  assert.match(workPage, /dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"/);
   assert.match(workPage, /xl:grid-cols-4/);
-  assert.match(workPage, /getWorkIndicatorStyles\(key: WorkBucketKey, count: number\)/);
-  assert.match(workPage, /if \(count === 0\) \{/);
-  assert.match(workPage, /return workIndicatorToneMap\[key\];/);
-  assert.match(workPage, /border-rose-200 bg-rose-50/);
-  assert.match(workPage, /border-amber-200 bg-amber-50/);
-  assert.match(workPage, /border-sky-200 bg-sky-50/);
-  assert.match(workPage, /border-violet-200 bg-violet-50/);
+  assert.match(workPage, /WorkIndicator/);
+  assert.match(workPage, /SurfaceTitle/);
+  assert.match(workPage, /ButtonLink/);
   assert.match(workPage, /tabular-nums/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
@@ -103,6 +103,8 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
     workPage,
     /Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead\./
   );
+  assert.match(workPage, /text-left sm:text-center/);
+  assert.match(workPage, /No leads in this bucket\./);
 
   assert.match(homepage, /Today's priorities|Today&apos;s priorities|Today&#x27;s priorities/);
   assert.match(homepage, /DashboardDataQualityAlert/);
@@ -122,7 +124,7 @@ test("leads screen keeps a compact operational header and active filter chips", 
   assert.match(leadFilters, /aria-label="Active filters"/);
   assert.match(
     leadFilters,
-    /min-h-9 items-center rounded-full border border-\[color:var\(--cb-ui-border\)\] bg-\[color:var\(--cb-ui-surface\)\] px-3 text-sm font-medium text-\[color:var\(--cb-ui-foreground\)\]/
+    /<Badge tone="neutral">/
   );
   assert.match(leadFilters, /filterLabels: Record<keyof FilterOptions, string>/);
   assert.match(leadFilters, /formatFilterValue\(value: string\)/);
@@ -140,9 +142,13 @@ test("sales report header stays compact and KPI emphasis is conditional", () => 
   assert.match(salesReportPage, /tone="overdue"/);
   assert.match(salesReportPage, /tone="dueToday"/);
   assert.match(salesReportPage, /value > 0/);
-  assert.match(salesReportPage, /border-rose-200 bg-rose-50/);
-  assert.match(salesReportPage, /border-amber-200 bg-amber-50/);
-  assert.match(salesReportPage, /border-slate-200 bg-white/);
+  assert.match(salesReportPage, /border-\[color:var\(--cb-danger\)\]\/25/);
+  assert.match(salesReportPage, /border-\[color:var\(--cb-warning\)\]\/25/);
+  assert.match(salesReportPage, /border-\[color:var\(--cb-border\)\]/);
   assert.match(salesReportPage, /tabular-nums/);
+  assert.doesNotMatch(
+    salesReportPage,
+    /Track the same operational counts, draft states and workbench health used elsewhere in the CRM\./
+  );
   assert.doesNotMatch(salesReportPage, /Updated just now|freshness|new Date\(/);
 });

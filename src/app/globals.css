@@ -80,6 +80,10 @@ body {
   font-family: var(--cb-font-family);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 * {
   box-sizing: border-box;
 }

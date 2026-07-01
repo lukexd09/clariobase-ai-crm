@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getLeads } from "@/lib/leads";
 import { getWorkBuckets } from "@/lib/work-view";
 import { StatusPill } from "@/components/lead-status-pill";
+import { ButtonLink, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
+import { WorkIndicator } from "@/components/core-work-primitives";
 
 export const dynamic = "force-dynamic";
 
@@ -11,70 +13,6 @@ function formatDate(value: Date | null) {
         dateStyle: "medium"
       }).format(value)
     : "-";
-}
-
-const workIndicatorToneMap = {
-  overdue: {
-    card: "border-rose-200 bg-rose-50",
-    label: "text-rose-700",
-    marker: "bg-rose-500"
-  },
-  dueToday: {
-    card: "border-amber-200 bg-amber-50",
-    label: "text-amber-700",
-    marker: "bg-amber-500"
-  },
-  upcoming: {
-    card: "border-sky-200 bg-sky-50",
-    label: "text-sky-700",
-    marker: "bg-sky-500"
-  },
-  noAction: {
-    card: "border-violet-200 bg-violet-50",
-    label: "text-violet-700",
-    marker: "bg-violet-500"
-  },
-  neutral: {
-    card: "border-slate-200 bg-white",
-    label: "text-slate-600",
-    marker: "bg-slate-300"
-  }
-} as const;
-
-type WorkBucketKey = keyof typeof workIndicatorToneMap;
-
-function getWorkIndicatorStyles(key: WorkBucketKey, count: number) {
-  if (count === 0) {
-    return workIndicatorToneMap.neutral;
-  }
-
-  return workIndicatorToneMap[key];
-}
-
-function WorkIndicatorCard({
-  bucketKey,
-  label,
-  count
-}: {
-  bucketKey: WorkBucketKey;
-  label: string;
-  count: number;
-}) {
-  const styles = getWorkIndicatorStyles(bucketKey, count);
-
-  return (
-    <div className={`flex min-h-14 items-center justify-between gap-4 rounded-xl border px-4 py-3 ${styles.card}`}>
-      <div className="flex min-w-0 items-center gap-2">
-        <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${styles.marker}`} />
-        <p className={`min-w-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${styles.label}`}>
-          {label}
-        </p>
-      </div>
-      <p className="shrink-0 text-right text-2xl font-semibold leading-none tabular-nums text-slate-950">
-        {count}
-      </p>
-    </div>
-  );
 }
 
 export default async function WorkPage() {
@@ -93,114 +31,96 @@ export default async function WorkPage() {
   }));
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <header className="mb-4 grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(220px,0.75fr)_minmax(0,1.6fr)] lg:p-5">
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-sky-700">Sales workbench</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-              Work queue
-            </h1>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-4">
+      <Surface>
+        <SurfaceHeader>
+          <p className="text-sm font-medium text-[color:var(--cb-accent)]">Sales workbench</p>
+          <SurfaceTitle className="text-2xl sm:text-3xl">Work queue</SurfaceTitle>
+        </SurfaceHeader>
+        <SurfaceContent className="space-y-4">
+          <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {bucketCounts.map((bucket) => (
-              <WorkIndicatorCard
+              <WorkIndicator
                 key={bucket.key}
-                bucketKey={bucket.key as WorkBucketKey}
                 label={bucket.label}
                 count={bucket.count}
+                tone={bucket.count === 0 ? "neutral" : bucket.key === "overdue" ? "danger" : bucket.key === "dueToday" ? "warning" : bucket.key === "upcoming" ? "information" : "success"}
               />
             ))}
-          </div>
-        </header>
+          </dl>
+        </SurfaceContent>
+      </Surface>
 
-        <div className="space-y-4">
-          {buckets.map((bucket) => (
-            <section key={bucket.key} className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold tracking-tight text-slate-950">{bucket.title}</h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{bucket.description}</p>
+      <div className="space-y-4">
+        {buckets.map((bucket) => (
+          <Surface key={bucket.key}>
+            <SurfaceHeader className="pb-0">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <div className="space-y-1">
+                  <SurfaceTitle className="text-lg">{bucket.title}</SurfaceTitle>
+                  <SurfaceDescription>{bucket.description}</SurfaceDescription>
                 </div>
-                <p className="text-sm font-medium tabular-nums text-slate-500">{bucket.leads.length} leads</p>
+                <p className="text-sm font-medium tabular-nums text-[color:var(--cb-muted-foreground)]">{bucket.leads.length} leads</p>
               </div>
-
-              <div className="overflow-hidden rounded-2xl border border-slate-200">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200 text-sm">
-                    <caption className="sr-only">{bucket.title} work queue</caption>
-                    <thead className="bg-slate-50">
-                      <tr className="text-left text-[11px] font-semibold text-slate-500">
-                        <th scope="col" className="px-4 py-3">Business</th>
-                        <th scope="col" className="px-4 py-3">City</th>
-                        <th scope="col" className="px-4 py-3">Category</th>
-                        <th scope="col" className="px-4 py-3">Status</th>
-                        <th scope="col" className="px-4 py-3">Priority</th>
-                        <th scope="col" className="px-4 py-3">Package</th>
-                        <th scope="col" className="px-4 py-3">Score</th>
-                        <th scope="col" className="px-4 py-3">Next action</th>
-                        <th scope="col" className="px-4 py-3">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {bucket.leads.map((lead) => (
-                        <tr key={lead.id} className="transition hover:bg-slate-50">
-                          <td className="px-4 py-3 align-top">
-                            <Link
-                              href={`/leads/${lead.id}#quick-update`}
-                              className="font-semibold text-slate-900 transition hover:text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                            >
-                              {lead.businessName}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 align-top text-slate-600">{lead.city ?? "-"}</td>
-                          <td className="px-4 py-3 align-top text-slate-600">{lead.category ?? "-"}</td>
-                          <td className="px-4 py-3 align-top">
-                            <StatusPill value={lead.leadStatus} appearance="light" />
-                          </td>
-                          <td className="px-4 py-3 align-top">
-                            <StatusPill value={lead.priority} appearance="light" />
-                          </td>
-                          <td className="px-4 py-3 align-top">
-                            <StatusPill value={lead.packageFit} appearance="light" />
-                          </td>
-                          <td className="px-4 py-3 align-top tabular-nums text-slate-700">
-                            <div className="space-y-1">
-                              <p className="font-medium tabular-nums text-slate-900">{lead.scoreTotal}</p>
-                              {lead.scoreLabel ? (
-                                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">
-                                  {lead.scoreLabel}
-                                </p>
-                              ) : null}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 align-top tabular-nums text-slate-600">{formatDate(lead.nextActionAt)}</td>
-                          <td className="px-4 py-3 align-top">
-                            <Link
-                              href={`/leads/${lead.id}#quick-update`}
-                              className="inline-flex min-h-9 whitespace-nowrap items-center justify-center rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                            >
-                              Quick update
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                      {bucket.leads.length === 0 ? (
-                        <tr>
-                          <td className="px-4 py-8 text-center text-slate-500" colSpan={9}>
-                            No leads in this bucket.
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
-          ))}
-        </div>
+            </SurfaceHeader>
+            <SurfaceContent className="pt-4">
+              <TableSurface aria-label={`${bucket.title} table`}>
+                <Table>
+                  <caption className="sr-only">{bucket.title} work queue</caption>
+                  <TableHead>
+                    <tr>
+                      <TableHeadCell scope="col">Business</TableHeadCell>
+                      <TableHeadCell scope="col">City</TableHeadCell>
+                      <TableHeadCell scope="col">Category</TableHeadCell>
+                      <TableHeadCell scope="col">Status</TableHeadCell>
+                      <TableHeadCell scope="col">Priority</TableHeadCell>
+                      <TableHeadCell scope="col">Package</TableHeadCell>
+                      <TableHeadCell scope="col">Score</TableHeadCell>
+                      <TableHeadCell scope="col">Next action</TableHeadCell>
+                      <TableHeadCell scope="col">Action</TableHeadCell>
+                    </tr>
+                  </TableHead>
+                  <TableBody>
+                    {bucket.leads.map((lead) => (
+                      <TableRow key={lead.id}>
+                        <TableCell>
+                          <Link href={`/leads/${lead.id}#quick-update`} className="font-semibold text-[color:var(--cb-foreground)] transition hover:text-[color:var(--cb-accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]">
+                            {lead.businessName}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-[color:var(--cb-muted-foreground)]">{lead.city ?? "-"}</TableCell>
+                        <TableCell className="text-[color:var(--cb-muted-foreground)]">{lead.category ?? "-"}</TableCell>
+                        <TableCell><StatusPill value={lead.leadStatus} appearance="foundation" /></TableCell>
+                        <TableCell><StatusPill value={lead.priority} appearance="foundation" /></TableCell>
+                        <TableCell><StatusPill value={lead.packageFit} appearance="foundation" /></TableCell>
+                        <TableCell className="tabular-nums text-[color:var(--cb-foreground)]">
+                          <div className="space-y-1">
+                            <p className="font-medium tabular-nums">{lead.scoreTotal}</p>
+                            {lead.scoreLabel ? <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--cb-muted-foreground)]">{lead.scoreLabel}</p> : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="tabular-nums text-[color:var(--cb-muted-foreground)]">{formatDate(lead.nextActionAt)}</TableCell>
+                        <TableCell>
+                          <ButtonLink href={`/leads/${lead.id}#quick-update`} variant="secondary" className="min-h-9 px-3 py-1.5 whitespace-nowrap">
+                            Quick update
+                          </ButtonLink>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {bucket.leads.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="py-8 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
+                          No leads in this bucket.
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </TableBody>
+                </Table>
+              </TableSurface>
+            </SurfaceContent>
+          </Surface>
+        ))}
       </div>
-    </main>
+    </div>
   );
 }

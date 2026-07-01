@@ -141,6 +141,11 @@ Created for known ClarioBase consumers and aligned with the approved Shadboard c
 - `T006`: Imports and duplicate review
 - `T007`: dense lead operator workspace
 
+## T005 Migration Notes
+
+- `src/app/leads/page.tsx`, `src/app/work/page.tsx` and `src/app/reports/sales/page.tsx` consume the project-owned `Surface`, `Button`, `ButtonLink`, `Label`, `Select`, `TableSurface` and table primitives.
+- The temporary proof-style route presentation was replaced for T005 only; later routes remain unchanged until their own tasks land.
+
 ## Rejected Dependencies
 
 No current route needs the broader UI helper stack. The current shared shell only approves the exact dialog primitive and icon package for T003.
