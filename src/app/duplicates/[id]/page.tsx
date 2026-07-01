@@ -4,7 +4,6 @@ import { DuplicateCandidateStatus } from "@/generated/prisma/client";
 import { updateDuplicateCandidateAction } from "@/app/duplicates/actions";
 import { Button, ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
 import { ConfidenceBadge, DataQualityPageHeader, DataQualityStatusBadge, TechnicalDisclosure } from "@/components/data-quality-primitives";
-import { StatusPill } from "@/components/lead-status-pill";
 import { getDuplicateCandidateById } from "@/lib/duplicates";
 import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
 
@@ -217,7 +216,6 @@ export default async function DuplicateCandidateDetailPage({
         meta={
           <div className="flex flex-wrap items-center gap-2">
             <ConfidenceBadge label={confidence.label} score={candidate.score} tone={confidence.tone} detail={confidence.detail} />
-            <StatusPill value={candidate.status} appearance="foundation" />
             <DataQualityStatusBadge
               label={DUPLICATE_STATUS_LABELS[candidate.status]}
               tone={candidate.status === "OPEN" ? "information" : candidate.status === "NEEDS_REVIEW" ? "warning" : candidate.status === "DISMISSED" ? "neutral" : "success"}
@@ -309,10 +307,10 @@ export default async function DuplicateCandidateDetailPage({
           <Field
             label="Candidate status"
             value={
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusPill value={candidate.status} appearance="foundation" />
-                <span>{DUPLICATE_STATUS_LABELS[candidate.status]}</span>
-              </div>
+              <DataQualityStatusBadge
+                label={DUPLICATE_STATUS_LABELS[candidate.status]}
+                tone={candidate.status === "OPEN" ? "information" : candidate.status === "NEEDS_REVIEW" ? "warning" : candidate.status === "DISMISSED" ? "neutral" : "success"}
+              />
             }
           />
           <Field label="Reviewed at" value={candidate.reviewedAt ? formatDate(candidate.reviewedAt) : "Not reviewed yet"} />

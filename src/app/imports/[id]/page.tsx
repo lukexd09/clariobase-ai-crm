@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
 import { DataQualityMetric, DataQualityPageHeader, DataQualityStatusBadge, TechnicalDisclosure } from "@/components/data-quality-primitives";
-import { StatusPill } from "@/components/lead-status-pill";
 import { getImportBatchById } from "@/lib/imports";
 import {
   type ImportBatchStatusValue,
@@ -101,7 +100,6 @@ export default async function ImportBatchDetailPage({
               label={IMPORT_BATCH_STATUS_LABELS[batch.status]}
               tone={batch.status === "RUNNING" ? "information" : batch.status === "COMPLETED" ? "success" : batch.status === "COMPLETED_WITH_ERRORS" ? "warning" : "danger"}
             />
-            <StatusPill value={batch.status} appearance="foundation" />
             <span aria-hidden="true" className="text-[color:var(--cb-muted-foreground)]">|</span>
             <span>Started {formatDate(batch.startedAt)}</span>
             <span aria-hidden="true" className="text-[color:var(--cb-muted-foreground)]">|</span>
@@ -139,9 +137,8 @@ export default async function ImportBatchDetailPage({
           <TableBody>
             {batch.rows.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="text-left sm:text-center text-[color:var(--cb-muted-foreground)]">{row.rowNumber}</TableCell>
+                <TableCell className="text-[color:var(--cb-muted-foreground)]">{row.rowNumber}</TableCell>
                 <TableCell>
-                  <div className="font-medium text-[color:var(--cb-foreground)]">{IMPORT_ROW_STATUS_LABELS[row.status]}</div>
                   <DataQualityStatusBadge
                     label={IMPORT_ROW_STATUS_LABELS[row.status]}
                     tone={row.status === "CREATED" ? "success" : row.status === "UPDATED" ? "information" : row.status === "REJECTED" ? "danger" : "warning"}

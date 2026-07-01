@@ -26,9 +26,15 @@ test("T006 routes stay on the project-owned boundary and keep explicit semantic 
     assert.doesNotMatch(source, /shadboard\/src|starter-kit\/src/);
   }
 
-  assert.match(importsPage, /text-left sm:text-center/);
-  assert.match(importDetailPage, /text-left sm:text-center/);
-  assert.match(duplicatesPage, /text-left sm:text-center/);
+  for (const source of [importsPage, importDetailPage, duplicatesPage, duplicateDetailPage]) {
+    assert.doesNotMatch(source, /import {[^}]*StatusPill/);
+    assert.doesNotMatch(source, /<StatusPill/);
+  }
+
+  assert.doesNotMatch(importsPage, /IMPORT_BATCH_STATUS_LABELS\[batch\.status\]\}<\/div>\s*<DataQualityStatusBadge/);
+  assert.doesNotMatch(importDetailPage, /IMPORT_BATCH_STATUS_LABELS\[batch\.status\]\}<\/div>\s*<DataQualityStatusBadge/);
+  assert.doesNotMatch(importDetailPage, /IMPORT_ROW_STATUS_LABELS\[row\.status\]\}<\/div>\s*<DataQualityStatusBadge/);
+  assert.doesNotMatch(duplicateDetailPage, /DUPLICATE_STATUS_LABELS\[candidate\.status\]\}<\/span>\s*<DataQualityStatusBadge/);
 
   assert.match(importsPage, /No import batches yet\./);
   assert.match(importDetailPage, /No row results available for this batch\./);
@@ -67,6 +73,7 @@ test("T006 routes stay on the project-owned boundary and keep explicit semantic 
   assert.match(importsPage, /<TableCell colSpan=\{6\} className="py-10 text-left sm:text-center/);
   assert.match(importDetailPage, /<TableCell colSpan=\{5\} className="py-10 text-left sm:text-center/);
   assert.match(duplicatesPage, /<TableCell colSpan=\{6\} className="py-10 text-left sm:text-center/);
+  assert.doesNotMatch(importDetailPage, /<TableCell className="text-left sm:text-center text-\[color:var\(--cb-muted-foreground\)\]">\{row\.rowNumber\}<\/TableCell>/);
   assert.match(importsPage, /scope="col"/);
   assert.match(importDetailPage, /scope="col"/);
   assert.match(duplicatesPage, /scope="col"/);
@@ -87,12 +94,15 @@ test("T006 route contracts keep the exact business mappings and semantics", () =
   assert.match(importsPage, /COMPLETED: "Completed successfully"/);
   assert.match(importsPage, /COMPLETED_WITH_ERRORS: "Completed with issues"/);
   assert.match(importsPage, /FAILED: "Failed"/);
+  assert.match(importsPage, /DataQualityStatusBadge[\s\S]*IMPORT_BATCH_STATUS_LABELS\[batch\.status\][\s\S]*tone=\{batch\.status === "RUNNING" \? "information"/);
 
   assert.match(importDetailPage, /CREATED: "Lead created"/);
   assert.match(importDetailPage, /UPDATED: "Lead updated"/);
   assert.match(importDetailPage, /REJECTED: "Needs correction"/);
   assert.match(importDetailPage, /SKIPPED: "Skipped"/);
   assert.match(importDetailPage, /getRowOutcomeMessage/);
+  assert.match(importDetailPage, /DataQualityStatusBadge[\s\S]*IMPORT_BATCH_STATUS_LABELS\[batch\.status\][\s\S]*tone=\{batch\.status === "RUNNING" \? "information"/);
+  assert.match(importDetailPage, /DataQualityStatusBadge[\s\S]*IMPORT_ROW_STATUS_LABELS\[row\.status\][\s\S]*tone=\{row\.status === "CREATED" \? "success"/);
 
   assert.match(duplicatesPage, /OPEN: "Open review"/);
   assert.match(duplicatesPage, /NEEDS_REVIEW: "Needs closer review"/);
@@ -105,6 +115,7 @@ test("T006 route contracts keep the exact business mappings and semantics", () =
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.DISMISSED\)/);
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.NEEDS_REVIEW\)/);
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.RESOLVED\)/);
+  assert.match(duplicateDetailPage, /DataQualityStatusBadge[\s\S]*DUPLICATE_STATUS_LABELS\[candidate\.status\][\s\S]*tone=\{candidate\.status === "OPEN" \? "information"/);
   assert.match(duplicateDetailPage, /Customer ID/);
   assert.match(duplicateDetailPage, /Google Place ID/);
   assert.match(duplicateDetailPage, /Source record ID/);

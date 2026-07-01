@@ -108,8 +108,10 @@ export default async function ImportsPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium text-[color:var(--cb-foreground)]">{IMPORT_BATCH_STATUS_LABELS[batch.status]}</div>
-                    <DataQualityStatusBadge label={IMPORT_BATCH_STATUS_LABELS[batch.status]} tone={batch.status === "RUNNING" ? "information" : batch.status === "COMPLETED" ? "success" : batch.status === "COMPLETED_WITH_ERRORS" ? "warning" : "danger"} />
+                  <DataQualityStatusBadge
+                    label={IMPORT_BATCH_STATUS_LABELS[batch.status]}
+                    tone={batch.status === "RUNNING" ? "information" : batch.status === "COMPLETED" ? "success" : batch.status === "COMPLETED_WITH_ERRORS" ? "warning" : "danger"}
+                  />
                 </TableCell>
                 <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDate(batch.startedAt)}</TableCell>
                 <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDate(batch.finishedAt)}</TableCell>
