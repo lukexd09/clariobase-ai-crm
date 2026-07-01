@@ -22,9 +22,11 @@ import {
   getRepoRoot,
   loadPreviewEnv,
   parseEnvFileContent,
+  parsePreviewDatabaseLifecycleMode,
   validatePreviewComposeModel,
   validateFullCommitSha,
-  validateResolvedSha
+  validateResolvedSha,
+  validateResetConfirmation
 } from "../scripts/preview-runtime-support";
 import { createRepoTmpDir } from "./test-helpers";
 
@@ -82,6 +84,8 @@ function runDeployDryRun(options: {
   previewEnvFile: string;
   sourceCheckoutPath?: string;
   resolvedSha?: string;
+  databaseMode?: string;
+  resetConfirmation?: string;
 }) {
   const args = [
     tsxCli,
@@ -99,6 +103,12 @@ function runDeployDryRun(options: {
   if (options.resolvedSha) {
     args.push("--resolved-sha", options.resolvedSha);
   }
+  if (options.databaseMode) {
+    args.push("--database-mode", options.databaseMode);
+  }
+  if (options.resetConfirmation !== undefined) {
+    args.push("--reset-confirmation", options.resetConfirmation);
+  }
   args.push("--preview-env-file", options.previewEnvFile);
 
   return spawnSync(process.execPath, args, {
@@ -107,6 +117,74 @@ function runDeployDryRun(options: {
     env: {
       ...process.env,
       CRM_PREVIEW_IMAGE_REF: previewImageRef
+    }
+  });
+}
+
+function runStopDryRun(options: {
+  controlCheckoutPath: string;
+  databaseMode?: string;
+  resetConfirmation?: string;
+  resolvedSha?: string;
+}) {
+  const args = [
+    tsxCli,
+    "scripts/stop-preview.ts",
+    "--dry-run",
+    "--requested-ref",
+    "stop-preview",
+    "--control-checkout-path",
+    options.controlCheckoutPath
+  ];
+
+  if (options.databaseMode) {
+    args.push("--database-mode", options.databaseMode);
+  }
+  if (options.resetConfirmation !== undefined) {
+    args.push("--reset-confirmation", options.resetConfirmation);
+  }
+  if (options.resolvedSha) {
+    args.push("--resolved-sha", options.resolvedSha);
+  }
+
+  return spawnSync(process.execPath, args, {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+}
+
+function runStopPreview(options: {
+  controlCheckoutPath: string;
+  databaseMode?: string;
+  resetConfirmation?: string;
+  resolvedSha?: string;
+  dockerExitCode?: number;
+}) {
+  const args = [
+    tsxCli,
+    "scripts/stop-preview.ts",
+    "--requested-ref",
+    "stop-preview",
+    "--control-checkout-path",
+    options.controlCheckoutPath
+  ];
+
+  if (options.databaseMode) {
+    args.push("--database-mode", options.databaseMode);
+  }
+  if (options.resetConfirmation !== undefined) {
+    args.push("--reset-confirmation", options.resetConfirmation);
+  }
+  if (options.resolvedSha) {
+    args.push("--resolved-sha", options.resolvedSha);
+  }
+
+  return spawnSync(process.execPath, args, {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      ...(options.dockerExitCode === undefined ? {} : { DOCKER_EXIT_CODE: String(options.dockerExitCode) })
     }
   });
 }
@@ -215,16 +293,28 @@ test("preview runtime support rejects production collisions", () => {
 
 test("preview deploy and stop plans stay scoped to the approved preview stack", () => {
   const deployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), previewImageRef);
+  const resetDeployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), previewImageRef, "reset");
   const stopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
+  const resetStopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), "reset");
   const summary = createPreviewSummary("epic/e016-manual-preview", "0123456789abcdef0123456789abcdef01234567");
 
   assert.match(deployPlan.validateComposeModel.join(" "), /config --format json/);
   assert.deepEqual(deployPlan.pullExactImage, ["pull", previewImageRef]);
-  assert.match(deployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
+  assert.match(deployPlan.replaceExistingPreview.join(" "), /down --remove-orphans/);
   assert.match(deployPlan.startDatabase.join(" "), /up -d crm-postgres/);
   assert.match(deployPlan.migrate.join(" "), /run --rm --pull never crm-app/);
   assert.match(deployPlan.startApplication.join(" "), /up -d --no-build --pull never crm-app/);
-  assert.match(stopPlan.down.join(" "), /down -v --remove-orphans/);
+  assert.match(stopPlan.down.join(" "), /down --remove-orphans/);
+  assert.match(resetDeployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
+  assert.match(resetStopPlan.down.join(" "), /down -v --remove-orphans/);
+  assert.equal(deployPlan.databaseLifecycleMode, "preserve");
+  assert.equal(deployPlan.databaseVolumeAction, "preserve");
+  assert.equal(resetDeployPlan.databaseLifecycleMode, "reset");
+  assert.equal(resetDeployPlan.databaseVolumeAction, "reset");
+  assert.equal(stopPlan.databaseLifecycleMode, "preserve");
+  assert.equal(stopPlan.databaseVolumeAction, "preserve");
+  assert.equal(resetStopPlan.databaseLifecycleMode, "reset");
+  assert.equal(resetStopPlan.databaseVolumeAction, "reset");
   assert.equal(summary.previewUrl, PREVIEW_URL);
   assert.equal(summary.projectName, PREVIEW_PROJECT_NAME);
   assert.equal(summary.volumeName, PREVIEW_VOLUME_NAME);
@@ -405,10 +495,131 @@ test("deploy preview propagates the immutable image ref to the preview commands"
   assert.deepEqual(observed.map((entry) => entry.previewImageRef), Array(6).fill(previewImageRef));
   assert.match(observed[0].description, /config --format json/);
   assert.match(observed[1].description, /pull ghcr\.io/);
-  assert.match(observed[2].description, /down -v --remove-orphans/);
+  assert.match(observed[2].description, /down --remove-orphans/);
   assert.match(observed[3].description, /up -d crm-postgres/);
   assert.match(observed[4].description, /migrate deploy/);
   assert.match(observed[5].description, /up -d --no-build --pull never crm-app/);
+});
+
+test("deploy preview dry-run propagates reset confirmation only through validated inputs", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "deploy-preview-dry-run-reset-confirmation-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+  const previewEnvFile = writePreviewEnv(tmpRoot);
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+    const preserveResult = runDeployDryRun({ controlCheckoutPath, previewEnvFile, databaseMode: "preserve" });
+    assert.equal(preserveResult.status, 0, preserveResult.stderr);
+    assert.doesNotMatch(preserveResult.stdout, /RESET PREVIEW DATABASE/);
+
+    const resetResult = runDeployDryRun({
+      controlCheckoutPath,
+      previewEnvFile,
+      resolvedSha: controlHeadSha,
+      databaseMode: "reset",
+      resetConfirmation: "RESET PREVIEW DATABASE"
+    });
+    assert.equal(resetResult.status, 0, resetResult.stderr);
+    assert.doesNotMatch(resetResult.stdout, /RESET PREVIEW DATABASE/);
+
+    const blockedReset = runDeployDryRun({
+      controlCheckoutPath,
+      previewEnvFile,
+      resolvedSha: controlHeadSha,
+      databaseMode: "reset"
+    });
+    assert.notEqual(blockedReset.status, 0);
+    assert.match(blockedReset.stderr || blockedReset.stdout, /reset_confirmation must exactly equal RESET PREVIEW DATABASE/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("stop preview dry-run classifies validation and docker failure states", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "stop-preview-dry-run-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+    const preserve = runStopDryRun({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "preserve" });
+    assert.equal(preserve.status, 0, preserve.stderr);
+    const preservePayload = JSON.parse(preserve.stdout) as { result: string; databaseMode: string; databaseVolume: string; failureStage?: string };
+    assert.equal(preservePayload.result, "PASS");
+    assert.equal(preservePayload.databaseMode, "preserve");
+    assert.equal(preservePayload.databaseVolume, "preserved");
+
+    const blockedReset = runStopDryRun({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "reset", resetConfirmation: "" });
+    assert.notEqual(blockedReset.status, 0);
+    const blockedPayload = JSON.parse(blockedReset.stdout) as { result: string; databaseMode: string; databaseVolume: string; failureStage?: string };
+    assert.equal(blockedPayload.result, "BLOCKED");
+    assert.equal(blockedPayload.databaseMode, "reset");
+    assert.equal(blockedPayload.databaseVolume, "unchanged");
+    assert.equal(blockedPayload.failureStage, "validation");
+    assert.match(blockedReset.stderr || blockedReset.stdout, /RESET PREVIEW DATABASE/);
+
+    const invalidMode = runStopDryRun({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "wipe" });
+    assert.notEqual(invalidMode.status, 0);
+    const invalidPayload = JSON.parse(invalidMode.stdout) as { result: string; databaseMode: string; databaseVolume: string; failureStage?: string };
+    assert.equal(invalidPayload.result, "BLOCKED");
+    assert.equal(invalidPayload.databaseMode, "unknown");
+    assert.equal(invalidPayload.databaseVolume, "unchanged");
+    assert.equal(invalidPayload.failureStage, "validation");
+    assert.match(invalidMode.stderr || invalidMode.stdout, /database_mode must be one of: preserve, reset/);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("stop preview classifies docker failure and success states", () => {
+  const tmpRoot = createRepoTmpDir(repoRoot, "stop-preview-run-");
+  const controlCheckoutPath = path.join(tmpRoot, "control");
+
+  try {
+    const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
+
+    const preservePass = runStopPreview({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "preserve", dockerExitCode: 0 });
+    assert.equal(preservePass.status, 0, preservePass.stderr);
+    const preservePayload = JSON.parse(preservePass.stdout) as { status: string; databaseVolume: string; databaseMode: string };
+    assert.equal(preservePayload.status, "PASS");
+    assert.equal(preservePayload.databaseMode, "preserve");
+    assert.equal(preservePayload.databaseVolume, "preserved");
+
+    const resetPass = runStopPreview({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE", dockerExitCode: 0 });
+    assert.equal(resetPass.status, 0, resetPass.stderr);
+    const resetPayload = JSON.parse(resetPass.stdout) as { status: string; databaseVolume: string; databaseMode: string };
+    assert.equal(resetPayload.status, "PASS");
+    assert.equal(resetPayload.databaseMode, "reset");
+    assert.equal(resetPayload.databaseVolume, "reset");
+
+    const preserveFail = runStopPreview({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "preserve", dockerExitCode: 1 });
+    assert.notEqual(preserveFail.status, 0);
+    const preserveFailPayload = JSON.parse(preserveFail.stdout) as { result: string; failureStage?: string; databaseVolume: string };
+    assert.equal(preserveFailPayload.result, "FAILED");
+    assert.equal(preserveFailPayload.failureStage, "docker");
+    assert.equal(preserveFailPayload.databaseVolume, "unknown");
+
+    const resetFail = runStopPreview({ controlCheckoutPath, resolvedSha: controlHeadSha, databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE", dockerExitCode: 1 });
+    assert.notEqual(resetFail.status, 0);
+    const resetFailPayload = JSON.parse(resetFail.stdout) as { result: string; failureStage?: string; databaseVolume: string };
+    assert.equal(resetFailPayload.result, "FAILED");
+    assert.equal(resetFailPayload.failureStage, "docker");
+    assert.equal(resetFailPayload.databaseVolume, "unknown");
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("preview database lifecycle parsing accepts only preserve or reset", () => {
+  assert.equal(parsePreviewDatabaseLifecycleMode("preserve"), "preserve");
+  assert.equal(parsePreviewDatabaseLifecycleMode("reset"), "reset");
+  assert.throws(() => parsePreviewDatabaseLifecycleMode("wipe"), /database_mode must be one of: preserve, reset/);
+});
+
+test("preview reset confirmation requires the exact phrase", () => {
+  assert.doesNotThrow(() => validateResetConfirmation("preserve", ""));
+  assert.doesNotThrow(() => validateResetConfirmation("reset", "RESET PREVIEW DATABASE"));
+  assert.throws(() => validateResetConfirmation("reset", ""), /RESET PREVIEW DATABASE/);
+  assert.throws(() => validateResetConfirmation("reset", "reset preview database"), /RESET PREVIEW DATABASE/);
 });
 
 test("preview compose config removes app build and keeps the immutable digest contract", { skip: !dockerAvailable }, () => {

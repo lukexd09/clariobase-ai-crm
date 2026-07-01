@@ -3,6 +3,10 @@ param(
 
   [string]$ResolvedSha,
 
+  [string]$DatabaseMode = "preserve",
+
+  [string]$ResetConfirmation,
+
   [string]$ControlCheckoutPath = ".",
 
   [switch]$DryRun
@@ -13,9 +17,15 @@ $args = @(
   "scripts/stop-preview.ts",
   "--requested-ref",
   $RequestedRef,
+  "--database-mode",
+  $DatabaseMode,
   "--control-checkout-path",
   $ControlCheckoutPath
 )
+
+if ($ResetConfirmation) {
+  $args += @("--reset-confirmation", $ResetConfirmation)
+}
 
 if ($ResolvedSha) {
   $args += @("--resolved-sha", $ResolvedSha)

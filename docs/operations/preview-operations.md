@@ -207,12 +207,14 @@ Deployment behavior:
 1. validate the preview env file and protected identifiers;
 2. validate the merged Compose model and immutable image reference;
 3. pull the exact digest before destructive replacement;
-4. remove the previous `clariobase-crm-preview` stack only after the pull succeeds;
+4. remove the previous `clariobase-crm-preview` stack only after the pull succeeds, preserving the preview database by default;
 5. start a fresh preview PostgreSQL service;
 6. run `prisma migrate deploy` from the pulled image with `--pull never`;
 7. start the application from the same digest with `--no-build --pull never`;
 8. verify `http://127.0.0.1:3001/api/ready`;
 9. clean temporary secrets and log out of GHCR.
+
+Use `database_mode=reset` only when you intend to delete the preview database volume. The exact confirmation phrase is `RESET PREVIEW DATABASE`, and the reset is irreversible for preview data.
 
 ## Readiness contract
 
@@ -283,6 +285,8 @@ The safe preview stop entrypoint remains:
 powershell -ExecutionPolicy Bypass -File .\scripts\stop-preview.ps1 `
   -PreviewEnvFile .\.env.compose.preview.local
 ```
+
+By default, Stop Preview preserves the preview database volume. If reset support is enabled for a manual cleanup, it must use the same `database_mode` and exact `RESET PREVIEW DATABASE` confirmation as Preview Release.
 
 Stop behavior:
 

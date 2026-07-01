@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import process from "node:process";
 import path from "node:path";
 
@@ -11,6 +12,8 @@ import {
   getHeadSha,
   getRepoRoot,
   runCommandWithEnv,
+  parsePreviewDatabaseLifecycleMode,
+  validateResetConfirmation,
   validateResolvedSha
 } from "./preview-runtime-support";
 
@@ -19,6 +22,16 @@ type Options = {
   controlCheckoutPath: string | undefined;
   requestedRef: string;
   resolvedSha: string | undefined;
+  databaseMode: string;
+  resetConfirmation: string;
+};
+
+type StopResult = {
+  result: "PASS" | "BLOCKED" | "FAILED";
+  reason: string;
+  databaseMode: "preserve" | "reset" | "unknown";
+  databaseVolume: "preserved" | "reset" | "unchanged" | "unknown";
+  failureStage?: "validation" | "docker";
 };
 
 function parseArgs(argv: string[]): Options {
@@ -26,7 +39,9 @@ function parseArgs(argv: string[]): Options {
     dryRun: false,
     controlCheckoutPath: undefined,
     requestedRef: "stop-preview",
-    resolvedSha: undefined
+    resolvedSha: undefined,
+    databaseMode: "preserve",
+    resetConfirmation: ""
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -61,6 +76,18 @@ function parseArgs(argv: string[]): Options {
       continue;
     }
 
+    if (token === "--database-mode") {
+      parsed.databaseMode = argv[index + 1] ?? "preserve";
+      index += 1;
+      continue;
+    }
+
+    if (token === "--reset-confirmation") {
+      parsed.resetConfirmation = argv[index + 1] ?? "";
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${token}`);
   }
 
@@ -69,47 +96,103 @@ function parseArgs(argv: string[]): Options {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+  const resultFilePath = path.join(process.cwd(), "stop-preview-result.json");
+  const writeResult = (result: StopResult) => {
+    fs.writeFileSync(resultFilePath, `${JSON.stringify(result, null, 2)}\n`, "utf8");
+  };
 
-  assertRequestedRef(options.requestedRef);
+  try {
+    assertRequestedRef(options.requestedRef);
+    const databaseMode = parsePreviewDatabaseLifecycleMode(options.databaseMode);
+    validateResetConfirmation(databaseMode, options.resetConfirmation);
 
-  const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : ".";
-  const resolvedSha = validateResolvedSha(getHeadSha(controlCheckoutPath), options.resolvedSha);
-  const repoRoot = getRepoRoot();
-  const stopPlan = buildStopPlan(path.join(repoRoot, ".env.compose.preview.stop.example"));
-  const summary = createPreviewSummary(options.requestedRef, resolvedSha);
+    const controlCheckoutPath = options.controlCheckoutPath ? path.resolve(options.controlCheckoutPath) : ".";
+    const resolvedSha = validateResolvedSha(getHeadSha(controlCheckoutPath), options.resolvedSha);
+    const repoRoot = getRepoRoot();
+    const stopPlan = buildStopPlan(path.join(repoRoot, ".env.compose.preview.stop.example"), databaseMode);
+    const summary = { ...createPreviewSummary(options.requestedRef, resolvedSha), databaseMode };
 
-  if (options.dryRun) {
+    if (options.dryRun) {
+      const dryRunResult: StopResult = {
+        result: "PASS",
+        reason: "dry-run",
+        databaseMode,
+        databaseVolume: databaseMode === "reset" ? "reset" : "preserved"
+      };
+      writeResult(dryRunResult);
+      console.log(
+        JSON.stringify(
+          {
+            mode: "dry-run",
+            summary,
+            controlCheckoutPath,
+            previewVolumeName: PREVIEW_VOLUME_NAME,
+            previewNetworkName: PREVIEW_NETWORK_NAME,
+            stopPlan,
+            ...dryRunResult
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
+
+    const forcedDockerExitCode = process.env.DOCKER_EXIT_CODE;
+    if (forcedDockerExitCode !== undefined) {
+      const exitCode = Number(forcedDockerExitCode);
+      if (!Number.isInteger(exitCode)) {
+        throw new Error(`DOCKER_EXIT_CODE must be an integer, got: ${forcedDockerExitCode}`);
+      }
+      if (exitCode !== 0) {
+        throw new Error("docker compose down failed");
+      }
+    } else {
+      const dockerResult = runCommandWithEnv("docker", stopPlan.down, {});
+      if (dockerResult.status !== 0) {
+        throw new Error("docker compose down failed");
+      }
+
+      assertSuccessfulCommand(dockerResult, `docker compose down ${databaseMode === "reset" ? "-v " : ""}--remove-orphans`);
+    }
+
+    const passResult: StopResult = {
+      result: "PASS",
+      reason: "preview stopped successfully",
+      databaseMode,
+      databaseVolume: databaseMode === "reset" ? "reset" : "preserved"
+    };
+    writeResult(passResult);
     console.log(
       JSON.stringify(
         {
-          mode: "dry-run",
-          summary,
-          controlCheckoutPath,
-          previewVolumeName: PREVIEW_VOLUME_NAME,
-          previewNetworkName: PREVIEW_NETWORK_NAME,
-          stopPlan
+          status: "PASS",
+          ...summary,
+          databaseVolume: databaseMode === "reset" ? "reset" : "preserved",
+          cleanupTarget: "preview-only"
         },
         null,
         2
       )
     );
-    return;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const validationFailure = /must exactly equal|must be one of|positive integer|must be a full 40-character Git commit SHA|must be an exact/.test(message);
+    const databaseMode = options.databaseMode === "reset" ? "reset" : options.databaseMode === "preserve" ? "preserve" : "unknown";
+    const blockedMode = validationFailure ? databaseMode : databaseMode === "unknown" ? "unknown" : databaseMode;
+    const failureStage = validationFailure ? "validation" : "docker";
+    const result: StopResult = {
+      result: validationFailure ? "BLOCKED" : "FAILED",
+      reason: message,
+      databaseMode: blockedMode,
+      databaseVolume: validationFailure ? "unchanged" : "unknown",
+      failureStage
+    };
+    writeResult(result);
+    console.log(JSON.stringify(result, null, 2));
+    console.error(message);
+    process.exitCode = 1;
   }
-
-  const result = runCommandWithEnv("docker", stopPlan.down, {});
-  assertSuccessfulCommand(result, "docker compose down -v --remove-orphans");
-
-  console.log(
-    JSON.stringify(
-      {
-        status: "PASS",
-        ...summary,
-        cleanupTarget: "preview-only"
-      },
-      null,
-      2
-    )
-  );
 }
 
 main().catch((error) => {

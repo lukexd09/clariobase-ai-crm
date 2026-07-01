@@ -50,8 +50,18 @@ function extractResolverScript(workflow: string) {
   return scriptLines.join("\n");
 }
 
+function extractWorkflowStepBlock(workflow: string, stepName: string) {
+  const start = workflow.indexOf(`      - name: ${stepName}`);
+  if (start === -1) return "";
+  const tail = workflow.slice(start);
+  const nextStep = tail.indexOf("\n      - name:");
+  return tail.slice(0, nextStep === -1 ? tail.length : nextStep);
+}
+
 type ResolverFixture = {
   expectedSha?: string;
+  databaseMode?: string;
+  resetConfirmation?: string;
   pull?: Record<string, unknown>;
   changedFiles?: Array<{ filename: string }>;
   runs?: Array<Record<string, unknown>>;
@@ -157,11 +167,15 @@ async function executeWorkflowResolver(fixture: ResolverFixture = {}) {
     EXPECTED_REPOSITORY: process.env.EXPECTED_REPOSITORY,
     REQUESTED_PR_NUMBER: process.env.REQUESTED_PR_NUMBER,
     REQUESTED_EXPECTED_SHA: process.env.REQUESTED_EXPECTED_SHA,
+    REQUESTED_DATABASE_MODE: process.env.REQUESTED_DATABASE_MODE,
+    REQUESTED_RESET_CONFIRMATION: process.env.REQUESTED_RESET_CONFIRMATION,
     DISPATCH_REF: process.env.DISPATCH_REF
   };
   process.env.EXPECTED_REPOSITORY = expectedRepository;
   process.env.REQUESTED_PR_NUMBER = "130";
   process.env.REQUESTED_EXPECTED_SHA = fixture.expectedSha ?? headSha;
+  process.env.REQUESTED_DATABASE_MODE = fixture.databaseMode ?? "preserve";
+  process.env.REQUESTED_RESET_CONFIRMATION = fixture.resetConfirmation ?? "";
   process.env.DISPATCH_REF = "refs/heads/main";
 
   try {
@@ -222,6 +236,8 @@ test("Preview Release uses trusted manual dispatch and exact Fast CI correlation
 
   assert.match(workflow, /^name: Preview Release$/m);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /database_mode:/);
+  assert.match(workflow, /reset_confirmation:/);
   assert.doesNotMatch(workflow, /workflow_run:/);
   assert.doesNotMatch(workflow, /pull_request_target/);
   assert.match(workflow, /group: clariobase-preview-slot/);
@@ -232,6 +248,7 @@ test("Preview Release uses trusted manual dispatch and exact Fast CI correlation
   assert.match(resolver, /auto-preview-context/);
   assert.match(resolver, /workflowRunId/);
   assert.match(resolver, /PR changes trusted preview control-plane files/);
+  assert.match(resolver, /database_mode: \$\{\{ steps\.resolve\.outputs\.database_mode \}\}/);
 });
 
 test("the real workflow resolver accepts only an exact eligible request", async () => {
@@ -241,13 +258,17 @@ test("the real workflow resolver accepts only an exact eligible request", async 
   assert.equal(outputs.should_deploy, "true");
   assert.equal(outputs.pr_number, "130");
   assert.equal(outputs.validated_sha, headSha);
+  assert.equal(outputs.database_mode, "preserve");
+  assert.equal(outputs.reset_confirmation, "");
   assert.equal(outputs.ci_run_id, "123456");
   assert.deepEqual(paginateCalls, ["files", "runs", "artifacts"]);
 });
 
 test("the real workflow resolver blocks stale SHA, forks, closed PRs and protected controls", async () => {
-  const stale = await executeWorkflowResolver({ expectedSha: "2222222222222222222222222222222222222222" });
+  const stale = await executeWorkflowResolver({ expectedSha: "2222222222222222222222222222222222222222", databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE" });
   const fork = await executeWorkflowResolver({
+    databaseMode: "reset",
+    resetConfirmation: "RESET PREVIEW DATABASE",
     pull: {
       state: "open",
       html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/130",
@@ -255,6 +276,8 @@ test("the real workflow resolver blocks stale SHA, forks, closed PRs and protect
     }
   });
   const closed = await executeWorkflowResolver({
+    databaseMode: "reset",
+    resetConfirmation: "RESET PREVIEW DATABASE",
     pull: {
       state: "closed",
       html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/130",
@@ -262,13 +285,20 @@ test("the real workflow resolver blocks stale SHA, forks, closed PRs and protect
     }
   });
   const protectedChange = await executeWorkflowResolver({
+    databaseMode: "reset",
+    resetConfirmation: "RESET PREVIEW DATABASE",
     changedFiles: [{ filename: "scripts/deploy-preview.ts" }]
   });
 
   assert.match(stale.outputs.skip_reason, /expected_sha does not match/);
+  assert.equal(stale.outputs.database_mode, "reset");
+  assert.equal(stale.outputs.reset_confirmation, "");
   assert.match(fork.outputs.skip_reason, /head repository is not trusted/);
+  assert.equal(fork.outputs.database_mode, "reset");
   assert.match(closed.outputs.skip_reason, /is not open/);
+  assert.equal(closed.outputs.database_mode, "reset");
   assert.match(protectedChange.outputs.skip_reason, /trusted preview control-plane files/);
+  assert.equal(protectedChange.outputs.database_mode, "reset");
   for (const result of [stale, fork, closed, protectedChange]) {
     assert.equal(result.outputs.resolution_status, "blocked");
     assert.equal(result.outputs.should_deploy, "false");
@@ -309,6 +339,72 @@ test("the real workflow resolver blocks missing CI and every artifact provenance
   }
 });
 
+test("the real workflow resolver validates lifecycle inputs before deployment", async () => {
+  const preserve = await executeWorkflowResolver({ databaseMode: "preserve", resetConfirmation: "" });
+  const reset = await executeWorkflowResolver({ databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE" });
+  const blankReset = await executeWorkflowResolver({ databaseMode: "reset", resetConfirmation: "" });
+  const caseReset = await executeWorkflowResolver({ databaseMode: "reset", resetConfirmation: "reset preview database" });
+  const invalidMode = await executeWorkflowResolver({ databaseMode: "wipe", resetConfirmation: "RESET PREVIEW DATABASE" });
+
+  assert.equal(preserve.outputs.resolution_status, "deploy");
+  assert.equal(preserve.outputs.database_mode, "preserve");
+  assert.equal(preserve.outputs.reset_confirmation, "");
+  assert.equal(reset.outputs.resolution_status, "deploy");
+  assert.equal(reset.outputs.database_mode, "reset");
+  assert.equal(reset.outputs.reset_confirmation, "RESET PREVIEW DATABASE");
+  assert.equal(blankReset.outputs.resolution_status, "blocked");
+  assert.equal(blankReset.outputs.database_mode, "reset");
+  assert.match(blankReset.outputs.skip_reason, /reset_confirmation must exactly equal/);
+  assert.equal(caseReset.outputs.resolution_status, "blocked");
+  assert.equal(caseReset.outputs.database_mode, "reset");
+  assert.match(caseReset.outputs.skip_reason, /reset_confirmation must exactly equal/);
+  assert.equal(invalidMode.outputs.resolution_status, "blocked");
+  assert.equal(invalidMode.outputs.database_mode, "unknown");
+  assert.match(invalidMode.outputs.skip_reason, /database_mode must be preserve or reset/);
+});
+
+test("Preview Release write resolution summary stays Bash-only and reports blocked volume correctly", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const step = extractWorkflowStepBlock(workflow, "Write resolution summary");
+
+  assert.match(step, /shell: bash/);
+  assert.doesNotMatch(step, /\$env:/);
+  assert.doesNotMatch(step, /-eq/);
+  assert.doesNotMatch(step, /} else {/);
+  assert.match(step, /\[ "\$\{RESOLUTION_STATUS:-blocked\}" = "blocked" \]/);
+  assert.match(step, /\[ "\$\{DATABASE_MODE:-preserve\}" = "reset" \]/);
+  assert.match(step, /DATABASE_VOLUME=/);
+  assert.match(step, /Database volume: \$\{DATABASE_VOLUME\}/);
+});
+
+test("Preview Release blocked comment reports unchanged volume and unknown invalid mode", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const block = extractWorkflowStepBlock(workflow, "Upsert blocked preview comment");
+
+  assert.match(block, /Result: blocked/);
+  assert.match(block, /const databaseVolume = "unchanged";/);
+  assert.match(block, /const databaseMode = process\.env\.DATABASE_MODE \|\| "unknown";/);
+  assert.match(block, /`Database mode: \$\{databaseMode\}`/);
+  assert.doesNotMatch(block, /Database volume: reset/);
+  assert.doesNotMatch(block, /RESET_CONFIRMATION/);
+});
+
+test("Preview Release queued and deploying comments keep execution state accurate", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const queued = extractWorkflowStepBlock(workflow, "Upsert queued preview comment");
+  const deploying = extractWorkflowStepBlock(workflow, "Upsert deploying preview comment");
+
+  assert.match(queued, /Result: queued/);
+  assert.match(queued, /const databaseVolume = "unchanged";/);
+  assert.match(queued, /Database volume: \$\{databaseVolume\}/);
+  assert.doesNotMatch(queued, /Database volume: reset/);
+
+  assert.match(deploying, /Result: deploying/);
+  assert.match(deploying, /const databaseVolume = `\$\{process\.env\.DATABASE_MODE \|\| "unknown"\} pending`;/);
+  assert.match(deploying, /pending/);
+  assert.doesNotMatch(deploying, /Database volume: reset/);
+});
+
 test("the real workflow resolver fails closed on GitHub API errors", async () => {
   const execution = await executeWorkflowResolver({ pullError: new Error("API unavailable") });
 
@@ -338,12 +434,16 @@ test("Preview Release preserves one-image, immutable-digest and Windows no-build
   assert.match(deploy, /stale validated SHA/);
   assert.match(deploy, /@sha256:/);
   assert.match(deploy, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
+  assert.match(deploy, /-ResetConfirmation \$env:RESET_CONFIRMATION/);
   assert.match(deploy, /service -ne "clariobase-ai-crm"/);
   assert.match(deploy, /status -ne "ready"/);
   assert.match(deploy, /checks\.database -ne "ok"/);
   assert.doesNotMatch(deploy, /docker build|docker compose build|--build/);
   assert.match(deploy, /Cleanup secrets and job artifacts/);
   assert.match(deploy, /Log out of GitHub Container Registry/);
+  assert.match(splitJobBlock(workflow, "report-final"), /DATABASE_MODE/);
+  assert.match(splitJobBlock(workflow, "report-final"), /Database mode:/);
+  assert.match(splitJobBlock(workflow, "report-final"), /Database volume:/);
 });
 
 test("workflow inventory keeps exactly four authoritative workflow files and the preview tombstones stay blocked", () => {
@@ -383,4 +483,27 @@ test("workflow inventory keeps exactly four authoritative workflow files and the
   assert.match(stopPreview, /clariobase-preview-slot/);
   assert.match(stopPreview, /self-hosted/);
   assert.match(stopPreview, /clariobase-preview/);
+});
+
+test("Stop Preview exposes the preserve/reset lifecycle inputs", () => {
+  const workflow = read(".github/workflows/stop-preview.yml");
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /database_mode:/);
+  assert.match(workflow, /reset_confirmation:/);
+  assert.match(workflow, /-DatabaseMode \$env:DATABASE_MODE/);
+  assert.match(workflow, /-ResetConfirmation \$env:RESET_CONFIRMATION/);
+  assert.match(workflow, /if: always\(\)/);
+  assert.match(workflow, /Result: \$summaryResult/);
+  assert.match(workflow, /Database volume: \$databaseVolume/);
+  assert.match(workflow, /failureStage/);
+  assert.match(workflow, /stop-preview-result\.json/);
+});
+
+test("Stop Preview fail step reads the control checkout result file", () => {
+  const workflow = read(".github/workflows/stop-preview.yml");
+  const failStep = extractWorkflowStepBlock(workflow, "Fail workflow if stop failed");
+
+  assert.match(failStep, /working-directory: control/);
+  assert.match(failStep, /Join-Path \$PWD "stop-preview-result\.json"/);
+  assert.doesNotMatch(failStep, /Join-Path \$env:GITHUB_WORKSPACE/);
 });

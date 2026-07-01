@@ -176,13 +176,15 @@ Required order:
 3. authenticate to GHCR with the workflow token;
 4. validate the merged Compose model;
 5. pull the exact immutable digest before destructive replacement;
-6. remove the old preview stack only after pull succeeds;
+6. remove the old preview stack only after pull succeeds, preserving the preview database by default;
 7. start preview PostgreSQL;
 8. run `prisma migrate deploy` with `--pull never`;
 9. start `crm-app` with `--no-build --pull never`;
 10. verify readiness;
 11. clean temporary secrets and artifacts;
 12. log out of GHCR.
+
+Routine Preview Release and routine Stop Preview both preserve the preview database volume unless the operator explicitly selects `database_mode=reset` and confirms `RESET PREVIEW DATABASE`.
 
 The application Compose override must retain:
 
