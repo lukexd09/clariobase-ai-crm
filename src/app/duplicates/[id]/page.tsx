@@ -2,8 +2,8 @@ import { type ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { DuplicateCandidateStatus } from "@/generated/prisma/client";
 import { updateDuplicateCandidateAction } from "@/app/duplicates/actions";
-import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
-import { ConfidenceBadge, DataQualityPageHeader, TechnicalDisclosure } from "@/components/data-quality-primitives";
+import { Button, ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
+import { ConfidenceBadge, DataQualityPageHeader, DataQualityStatusBadge, TechnicalDisclosure } from "@/components/data-quality-primitives";
 import { StatusPill } from "@/components/lead-status-pill";
 import { getDuplicateCandidateById } from "@/lib/duplicates";
 import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
@@ -194,28 +194,6 @@ function Field({
   );
 }
 
-function TechnicalDetails({
-  title,
-  lead
-}: {
-  title: string;
-  lead: NonNullable<Awaited<ReturnType<typeof getDuplicateCandidateById>>>["leadA"];
-}) {
-  return (
-    <details className="rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-4">
-      <summary className="cursor-pointer list-none text-sm font-medium text-[color:var(--cb-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-surface)]">
-        {title}
-      </summary>
-      <dl className="mt-4 grid gap-4 md:grid-cols-2">
-        <Field label="Customer ID" value={lead.customerId} />
-        <Field label="Google Place ID" value={lead.googlePlaceId ?? "Not provided"} />
-        <Field label="Source" value={lead.source ?? "Not provided"} />
-        <Field label="Source record ID" value={lead.sourceRecordId ?? "Not provided"} />
-      </dl>
-    </details>
-  );
-}
-
 export default async function DuplicateCandidateDetailPage({
   params
 }: {
@@ -240,7 +218,10 @@ export default async function DuplicateCandidateDetailPage({
           <div className="flex flex-wrap items-center gap-2">
             <ConfidenceBadge label={confidence.label} score={candidate.score} tone={confidence.tone} detail={confidence.detail} />
             <StatusPill value={candidate.status} appearance="foundation" />
-            <span className="font-medium text-[color:var(--cb-foreground)]">{DUPLICATE_STATUS_LABELS[candidate.status]}</span>
+            <DataQualityStatusBadge
+              label={DUPLICATE_STATUS_LABELS[candidate.status]}
+              tone={candidate.status === "OPEN" ? "information" : candidate.status === "NEEDS_REVIEW" ? "warning" : candidate.status === "DISMISSED" ? "neutral" : "success"}
+            />
           </div>
         }
       />
@@ -294,12 +275,12 @@ export default async function DuplicateCandidateDetailPage({
         </TableSurface>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <ButtonLink href={`/leads/${candidate.leadA.id}`} aria-label={`Open lead detail for ${candidate.leadA.businessName}`}>
-            Open lead detail for {candidate.leadA.businessName}
-          </ButtonLink>
-          <ButtonLink href={`/leads/${candidate.leadB.id}`} aria-label={`Open lead detail for ${candidate.leadB.businessName}`}>
-            Open lead detail for {candidate.leadB.businessName}
-          </ButtonLink>
+            <ButtonLink href={`/leads/${candidate.leadA.id}`} aria-label={`Open lead detail for ${candidate.leadA.businessName}`}>
+              Open lead detail for {candidate.leadA.businessName}
+            </ButtonLink>
+            <ButtonLink href={`/leads/${candidate.leadB.id}`} aria-label={`Open lead detail for ${candidate.leadB.businessName}`}>
+              Open lead detail for {candidate.leadB.businessName}
+            </ButtonLink>
         </div>
       </section>
 
@@ -345,19 +326,19 @@ export default async function DuplicateCandidateDetailPage({
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.DISMISSED)}>
-            <button type="submit" className="rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-2 text-sm font-medium text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)]/35 hover:bg-[color:var(--cb-elevated-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]">
+            <Button type="submit" variant="secondary">
               Keep both records separate
-            </button>
+            </Button>
           </form>
           <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.NEEDS_REVIEW)}>
-            <button type="submit" className="rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-2 text-sm font-medium text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)]/35 hover:bg-[color:var(--cb-elevated-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]">
+            <Button type="submit" variant="secondary">
               Flag for closer review
-            </button>
+            </Button>
           </form>
           <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.RESOLVED)}>
-            <button type="submit" className="rounded-[var(--cb-radius-md)] border border-transparent bg-[color:var(--cb-accent)] px-4 py-2 text-sm font-medium text-[color:var(--cb-accent-foreground)] transition hover:bg-[color:var(--cb-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]">
+            <Button type="submit" variant="primary">
               Mark review complete
-            </button>
+            </Button>
           </form>
         </div>
       </section>

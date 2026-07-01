@@ -10,10 +10,6 @@ function read(filePath: string) {
 }
 
 test("health and remaining light baseline screens keep the shell contract", () => {
-  const importsPage = read("src/app/imports/page.tsx");
-  const importDetailPage = read("src/app/imports/[id]/page.tsx");
-  const duplicatesPage = read("src/app/duplicates/page.tsx");
-  const duplicateDetailPage = read("src/app/duplicates/[id]/page.tsx");
   const healthPage = read("src/app/health/page.tsx");
 
   assert.match(healthPage, /System status/);

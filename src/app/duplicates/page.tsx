@@ -1,6 +1,5 @@
 import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
-import { ConfidenceBadge, DataQualityPageHeader } from "@/components/data-quality-primitives";
-import { StatusPill } from "@/components/lead-status-pill";
+import { ConfidenceBadge, DataQualityPageHeader, DataQualityStatusBadge } from "@/components/data-quality-primitives";
 import { getDuplicateCandidates, type DuplicateReason } from "@/lib/duplicates";
 import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
 
@@ -128,8 +127,10 @@ export default async function DuplicatesPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium text-[color:var(--cb-foreground)]">{DUPLICATE_STATUS_LABELS[candidate.status]}</div>
-                    <StatusPill value={candidate.status} appearance="foundation" className="mt-2" />
+                    <DataQualityStatusBadge
+                      label={DUPLICATE_STATUS_LABELS[candidate.status]}
+                      tone={candidate.status === "OPEN" ? "information" : candidate.status === "NEEDS_REVIEW" ? "warning" : candidate.status === "DISMISSED" ? "neutral" : "success"}
+                    />
                   </TableCell>
                   <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDate(candidate.updatedAt)}</TableCell>
                   <TableCell>
@@ -146,7 +147,7 @@ export default async function DuplicatesPage() {
             })}
             {candidates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-[color:var(--cb-muted-foreground)]">
+                <TableCell colSpan={6} className="py-10 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
                   No duplicate candidates yet.
                 </TableCell>
               </TableRow>

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
-import { DataQualityMetric, DataQualityPageHeader, TechnicalDisclosure } from "@/components/data-quality-primitives";
+import { DataQualityMetric, DataQualityPageHeader, DataQualityStatusBadge, TechnicalDisclosure } from "@/components/data-quality-primitives";
 import { StatusPill } from "@/components/lead-status-pill";
 import { getImportBatchById } from "@/lib/imports";
 import {
@@ -62,8 +62,16 @@ function getRowOutcomeMessage(status: ImportRowStatusValue) {
   }
 }
 
-function Metric({ label, value }: { label: string; value: number }) {
-  return <DataQualityMetric label={label} value={value} tone={label === "Created" ? "success" : label === "Updated" ? "information" : label === "Rejected" ? "danger" : label === "Skipped" ? "warning" : "neutral"} />;
+function Metric({
+  label,
+  value,
+  tone
+}: {
+  label: string;
+  value: number;
+  tone: "neutral" | "success" | "information" | "danger" | "warning";
+}) {
+  return <DataQualityMetric label={label} value={value} tone={tone} />;
 }
 
 export default async function ImportBatchDetailPage({
@@ -89,7 +97,10 @@ export default async function ImportBatchDetailPage({
             <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-2.5 py-1 text-xs font-medium text-[color:var(--cb-foreground)]">
               {IMPORT_SOURCE_LABELS[batch.sourceType]}
             </span>
-            <span className="font-medium text-[color:var(--cb-foreground)]">{IMPORT_BATCH_STATUS_LABELS[batch.status]}</span>
+            <DataQualityStatusBadge
+              label={IMPORT_BATCH_STATUS_LABELS[batch.status]}
+              tone={batch.status === "RUNNING" ? "information" : batch.status === "COMPLETED" ? "success" : batch.status === "COMPLETED_WITH_ERRORS" ? "warning" : "danger"}
+            />
             <StatusPill value={batch.status} appearance="foundation" />
             <span aria-hidden="true" className="text-[color:var(--cb-muted-foreground)]">|</span>
             <span>Started {formatDate(batch.startedAt)}</span>
@@ -105,13 +116,13 @@ export default async function ImportBatchDetailPage({
         }
       />
 
-      <section className="grid gap-4 md:grid-cols-5">
-        <Metric label="Total rows" value={batch.totalRows} />
-        <Metric label="Created" value={batch.createdRows} />
-        <Metric label="Updated" value={batch.updatedRows} />
-        <Metric label="Rejected" value={batch.rejectedRows} />
-        <Metric label="Skipped" value={batch.skippedRows} />
-      </section>
+      <dl className="grid gap-4 md:grid-cols-5">
+        <Metric label="Total rows" value={batch.totalRows} tone="neutral" />
+        <Metric label="Created" value={batch.createdRows} tone="success" />
+        <Metric label="Updated" value={batch.updatedRows} tone="information" />
+        <Metric label="Rejected" value={batch.rejectedRows} tone="danger" />
+        <Metric label="Skipped" value={batch.skippedRows} tone="warning" />
+      </dl>
 
       <TableSurface aria-label="Scrollable import batch rows table">
         <Table className="min-w-[1100px]">
@@ -128,10 +139,13 @@ export default async function ImportBatchDetailPage({
           <TableBody>
             {batch.rows.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="text-[color:var(--cb-muted-foreground)]">{row.rowNumber}</TableCell>
+                <TableCell className="text-left sm:text-center text-[color:var(--cb-muted-foreground)]">{row.rowNumber}</TableCell>
                 <TableCell>
                   <div className="font-medium text-[color:var(--cb-foreground)]">{IMPORT_ROW_STATUS_LABELS[row.status]}</div>
-                  <StatusPill value={row.status} appearance="foundation" className="mt-2" />
+                  <DataQualityStatusBadge
+                    label={IMPORT_ROW_STATUS_LABELS[row.status]}
+                    tone={row.status === "CREATED" ? "success" : row.status === "UPDATED" ? "information" : row.status === "REJECTED" ? "danger" : "warning"}
+                  />
                 </TableCell>
                 <TableCell className="text-[color:var(--cb-muted-foreground)]">
                   <div className="font-medium text-[color:var(--cb-foreground)]">{row.businessName ?? "-"}</div>
@@ -170,7 +184,7 @@ export default async function ImportBatchDetailPage({
             ))}
             {batch.rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-[color:var(--cb-muted-foreground)]">
+                <TableCell colSpan={5} className="py-10 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
                   No row results available for this batch.
                 </TableCell>
               </TableRow>

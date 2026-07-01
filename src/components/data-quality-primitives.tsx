@@ -28,21 +28,30 @@ export function DataQualityPageHeader({
 export function DataQualityMetric({
   label,
   value,
-  tone = "neutral"
+  tone
 }: {
   label: string;
   value: number;
-  tone?: "neutral" | "success" | "warning" | "danger" | "information";
+  tone: "neutral" | "success" | "warning" | "danger" | "information";
 }) {
   return (
     <div className="rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-[color:var(--cb-muted-foreground)]">{label}</p>
-      <div className="mt-2 flex items-center gap-2">
-        <span className="text-2xl font-semibold tabular-nums text-[color:var(--cb-foreground)]">{value}</span>
+      <dt className="text-xs font-medium uppercase tracking-[0.18em] text-[color:var(--cb-muted-foreground)]">
         <Badge tone={tone}>{label}</Badge>
-      </div>
+      </dt>
+      <dd className="mt-2 text-2xl font-semibold tabular-nums text-[color:var(--cb-foreground)]">{value}</dd>
     </div>
   );
+}
+
+export function DataQualityStatusBadge({
+  label,
+  tone
+}: {
+  label: string;
+  tone: "neutral" | "success" | "warning" | "danger" | "information";
+}) {
+  return <Badge tone={tone}>{label}</Badge>;
 }
 
 export function ConfidenceBadge({

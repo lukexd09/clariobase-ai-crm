@@ -1,6 +1,5 @@
 import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
-import { DataQualityPageHeader } from "@/components/data-quality-primitives";
-import { StatusPill } from "@/components/lead-status-pill";
+import { DataQualityPageHeader, DataQualityStatusBadge } from "@/components/data-quality-primitives";
 import { getImportBatches } from "@/lib/imports";
 import { type ImportBatchStatusValue, type ImportSourceTypeValue } from "@/lib/lead-values";
 
@@ -110,7 +109,7 @@ export default async function ImportsPage() {
                 </TableCell>
                 <TableCell>
                   <div className="font-medium text-[color:var(--cb-foreground)]">{IMPORT_BATCH_STATUS_LABELS[batch.status]}</div>
-                  <StatusPill value={batch.status} appearance="foundation" className="mt-2" />
+                    <DataQualityStatusBadge label={IMPORT_BATCH_STATUS_LABELS[batch.status]} tone={batch.status === "RUNNING" ? "information" : batch.status === "COMPLETED" ? "success" : batch.status === "COMPLETED_WITH_ERRORS" ? "warning" : "danger"} />
                 </TableCell>
                 <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDate(batch.startedAt)}</TableCell>
                 <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDate(batch.finishedAt)}</TableCell>
@@ -127,7 +126,7 @@ export default async function ImportsPage() {
             ))}
             {batches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-[color:var(--cb-muted-foreground)]">
+                <TableCell colSpan={6} className="py-10 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
                   No import batches yet.
                 </TableCell>
               </TableRow>
