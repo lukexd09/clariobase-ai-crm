@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Button, ButtonLink, Label, Select, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
+import { Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
 import { cn } from "@/lib/utils";
 
 export type WorkTone = "neutral" | "success" | "warning" | "danger" | "information";
@@ -11,7 +11,7 @@ export function PageSurface({
   children
 }: {
   title: string;
-  description: string;
+  description?: string;
   eyebrow?: string;
   children: React.ReactNode;
 }) {
@@ -21,16 +21,12 @@ export function PageSurface({
         <SurfaceHeader>
           {eyebrow ? <p className="text-sm font-medium text-[color:var(--cb-accent)]">{eyebrow}</p> : null}
           <SurfaceTitle className="text-2xl sm:text-3xl">{title}</SurfaceTitle>
-          <SurfaceDescription>{description}</SurfaceDescription>
+          {description ? <SurfaceDescription>{description}</SurfaceDescription> : null}
         </SurfaceHeader>
         <SurfaceContent>{children}</SurfaceContent>
       </Surface>
     </div>
   );
-}
-
-export function SummaryBadge({ children }: { children: React.ReactNode }) {
-  return <Badge tone="neutral">{children}</Badge>;
 }
 
 export function WorkIndicator({
@@ -55,30 +51,10 @@ export function WorkIndicator({
 
   return (
     <div className={cn("rounded-[var(--cb-radius-lg)] border p-4", toneClassName)}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--cb-muted-foreground)]">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--cb-muted-foreground)]">
         {label}
-      </p>
-      <p className="mt-2 text-3xl font-semibold tabular-nums text-[color:var(--cb-foreground)]">{count}</p>
+      </dt>
+      <dd className="mt-2 text-3xl font-semibold tabular-nums text-[color:var(--cb-foreground)]">{count}</dd>
     </div>
   );
 }
-
-export {
-  Badge,
-  Button,
-  ButtonLink,
-  Label,
-  Select,
-  Surface,
-  SurfaceContent,
-  SurfaceDescription,
-  SurfaceHeader,
-  SurfaceTitle,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeadCell,
-  TableRow,
-  TableSurface
-};

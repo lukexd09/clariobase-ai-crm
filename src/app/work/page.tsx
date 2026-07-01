@@ -36,14 +36,16 @@ export default async function WorkPage() {
         <SurfaceHeader>
           <p className="text-sm font-medium text-[color:var(--cb-accent)]">Sales workbench</p>
           <SurfaceTitle className="text-2xl sm:text-3xl">Work queue</SurfaceTitle>
-          <SurfaceDescription>Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead.</SurfaceDescription>
         </SurfaceHeader>
         <SurfaceContent className="space-y-4">
           <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {bucketCounts.map((bucket) => (
-              <div key={bucket.key}>
-                <WorkIndicator label={bucket.label} count={bucket.count} tone={bucket.count === 0 ? "neutral" : bucket.key === "overdue" ? "danger" : bucket.key === "dueToday" ? "warning" : bucket.key === "upcoming" ? "information" : "success"} />
-              </div>
+              <WorkIndicator
+                key={bucket.key}
+                label={bucket.label}
+                count={bucket.count}
+                tone={bucket.count === 0 ? "neutral" : bucket.key === "overdue" ? "danger" : bucket.key === "dueToday" ? "warning" : bucket.key === "upcoming" ? "information" : "success"}
+              />
             ))}
           </dl>
         </SurfaceContent>

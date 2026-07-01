@@ -10,7 +10,8 @@ import {
   PACKAGE_FIT_VALUES
 } from "@/lib/lead-values";
 import { getSalesStatusEntries } from "@/lib/sales-status";
-import { PageSurface, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/core-work-primitives";
+import { PageSurface } from "@/components/core-work-primitives";
+import { Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,6 @@ export default async function SalesReportPage() {
       <PageSurface
         eyebrow="Sales reporting"
         title="Operational pipeline report"
-        description="Track the same operational counts, draft states and workbench health used elsewhere in the CRM."
       >
         <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <Metric label="Total leads" value={report.totalLeads} />

@@ -128,16 +128,20 @@ function FilterSelect({
   options: string[];
   onChange: (value: string) => void;
 }) {
+  const selectId = `lead-filter-${name}`;
+
   return (
-    <label className="space-y-1.5">
-      <Label className="block text-sm font-medium text-[color:var(--cb-foreground)]">{label}</Label>
-      <Select name={name} value={value} onChange={(event) => onChange(event.target.value)}>
+    <div className="space-y-1.5">
+      <Label htmlFor={selectId} className="block text-sm font-medium text-[color:var(--cb-foreground)]">
+        {label}
+      </Label>
+      <Select id={selectId} name={name} value={value} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => (
           <option key={option || "all"} value={option}>
             {option ? option.replaceAll("_", " ") : "All"}
           </option>
         ))}
       </Select>
-    </label>
+    </div>
   );
 }

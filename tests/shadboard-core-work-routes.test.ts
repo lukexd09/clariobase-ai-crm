@@ -34,6 +34,8 @@ test("t005 sources stay inside the project-owned ui boundary and avoid ui token 
   assert.match(read("src/components/lead-filters.tsx"), /Select/);
   assert.match(read("src/components/lead-pagination.tsx"), /ButtonLink/);
   assert.match(read("src/components/lead-table.tsx"), /TableSurface/);
+  assert.doesNotMatch(read("src/components/core-work-primitives.tsx"), /export \{/);
+  assert.doesNotMatch(read("src/components/core-work-primitives.tsx"), /SummaryBadge/);
 });
 
 test("t005 routes keep the required operational behaviors", () => {
@@ -60,6 +62,12 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(leadPagination, /Previous/);
   assert.match(leadPagination, /Next/);
 
+  assert.match(leadFilters, /htmlFor=\{selectId\}/);
+  assert.match(leadFilters, /id=\{selectId\}/);
+  assert.match(leadFilters, /const selectId = `lead-filter-\$\{name\}`;/);
+  assert.match(leadFilters, /<div className="space-y-1\.5">[\s\S]*<Label htmlFor=\{selectId\}/);
+  assert.doesNotMatch(leadFilters, /<label className="space-y-1\.5">[\s\S]*<Label htmlFor=/);
+
   assert.match(workPage, /overdue/);
   assert.match(workPage, /dueToday/);
   assert.match(workPage, /upcoming/);
@@ -68,6 +76,11 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(workPage, /\/leads\/\$\{lead\.id\}#quick-update/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
+  assert.match(workPage, /<dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">[\s\S]*<div className=/);
+  assert.doesNotMatch(workPage, /<p className="text-\[11px\] font-semibold uppercase tracking-\[0\.18em\]/);
+  assert.doesNotMatch(workPage, /<dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">[\s\S]*<div key=/);
+  assert.match(read("src/components/core-work-primitives.tsx"), /<dt className="text-\[11px\] font-semibold uppercase tracking-\[0\.18em\]/);
+  assert.match(read("src/components/core-work-primitives.tsx"), /<dd className="mt-2 text-3xl font-semibold tabular-nums/);
 
   assert.match(salesReportPage, /getSalesReport\(\)/);
   assert.match(salesReportPage, /getSalesStatusEntries\(\)/);
@@ -78,4 +91,6 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(salesReportPage, /Draft readiness/);
   assert.match(salesReportPage, /Activity summary/);
   assert.match(salesReportPage, /activities in the last 7 days/i);
+  assert.doesNotMatch(salesReportPage, /Track the same operational counts, draft states and workbench health used elsewhere in the CRM\./);
+  assert.doesNotMatch(salesReportPage, /description="Track the same operational counts/);
 });

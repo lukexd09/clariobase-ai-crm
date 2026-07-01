@@ -30,7 +30,6 @@ test("core CRM work screens use the light shell baseline", () => {
   assert.match(appShell, /min-h-0.*overflow-y-auto/);
   assert.doesNotMatch(appShell, /--cb-ui-/);
   assert.match(corePrimitives, /PageSurface/);
-  assert.match(corePrimitives, /TableSurface/);
   assert.match(corePrimitives, /WorkIndicator/);
   assert.doesNotMatch(corePrimitives, /--cb-ui-/);
 
@@ -98,7 +97,10 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
   assert.match(workPage, /Quick update/);
-  assert.match(workPage, /Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead\./);
+  assert.doesNotMatch(
+    workPage,
+    /Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead\./
+  );
 
   assert.match(homepage, /Today's priorities|Today&apos;s priorities|Today&#x27;s priorities/);
   assert.match(homepage, /DashboardDataQualityAlert/);
@@ -140,5 +142,9 @@ test("sales report header stays compact and KPI emphasis is conditional", () => 
   assert.match(salesReportPage, /border-\[color:var\(--cb-warning\)\]\/25/);
   assert.match(salesReportPage, /border-\[color:var\(--cb-border\)\]/);
   assert.match(salesReportPage, /tabular-nums/);
+  assert.doesNotMatch(
+    salesReportPage,
+    /Track the same operational counts, draft states and workbench health used elsewhere in the CRM\./
+  );
   assert.doesNotMatch(salesReportPage, /Updated just now|freshness|new Date\(/);
 });
