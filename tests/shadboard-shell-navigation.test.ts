@@ -114,6 +114,7 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
     0,
     `Missing declared CSS custom properties: ${missingTokens.length > 0 ? missingTokens.join(", ") : "(none)"}`
   );
+  assert.match(globalsSource, /html\s*\{\s*scrollbar-gutter:\s*stable;\s*\}/s);
 
   assert.match(shellSource, /aria-hidden="true"/);
 

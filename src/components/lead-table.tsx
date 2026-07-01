@@ -66,7 +66,7 @@ export function LeadTable({
             ))}
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-[color:var(--cb-muted-foreground)]">
+                <TableCell colSpan={8} className="py-8 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
                   No leads match the current filters.
                 </TableCell>
               </TableRow>

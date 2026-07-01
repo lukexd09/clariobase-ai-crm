@@ -87,6 +87,8 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(leadTable, /TableSurface/);
   assert.match(leadTable, /appearance="foundation"/);
   assert.match(leadTable, /tabular-nums/);
+  assert.match(leadTable, /text-left sm:text-center/);
+  assert.match(leadTable, /No leads match the current filters\./);
 
   assert.match(workPage, /dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"/);
   assert.match(workPage, /xl:grid-cols-4/);
@@ -101,6 +103,8 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
     workPage,
     /Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead\./
   );
+  assert.match(workPage, /text-left sm:text-center/);
+  assert.match(workPage, /No leads in this bucket\./);
 
   assert.match(homepage, /Today's priorities|Today&apos;s priorities|Today&#x27;s priorities/);
   assert.match(homepage, /DashboardDataQualityAlert/);

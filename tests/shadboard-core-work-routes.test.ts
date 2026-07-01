@@ -42,8 +42,10 @@ test("t005 routes keep the required operational behaviors", () => {
   const leadsPage = read("src/app/leads/page.tsx");
   const leadFilters = read("src/components/lead-filters.tsx");
   const leadPagination = read("src/components/lead-pagination.tsx");
+  const leadTable = read("src/components/lead-table.tsx");
   const workPage = read("src/app/work/page.tsx");
   const salesReportPage = read("src/app/reports/sales/page.tsx");
+  const globalsCss = read("src/app/globals.css");
 
   assert.match(leadsPage, /status: \["", \.\.\.filterOptions\.status\]/);
   assert.match(leadsPage, /priority: \["", \.\.\.filterOptions\.priority\]/);
@@ -81,6 +83,12 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.doesNotMatch(workPage, /<dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">[\s\S]*<div key=/);
   assert.match(read("src/components/core-work-primitives.tsx"), /<dt className="text-\[11px\] font-semibold uppercase tracking-\[0\.18em\]/);
   assert.match(read("src/components/core-work-primitives.tsx"), /<dd className="mt-2 text-3xl font-semibold tabular-nums/);
+  assert.match(globalsCss, /html\s*\{\s*scrollbar-gutter:\s*stable;\s*\}/s);
+  assert.match(leadTable, /text-left sm:text-center/);
+  assert.match(workPage, /text-left sm:text-center/);
+  assert.match(leadTable, /No leads match the current filters\./);
+  assert.match(workPage, /No leads in this bucket\./);
+  assert.doesNotMatch(leadTable, /text-center[^\\S\r\n]*text-left/);
 
   assert.match(salesReportPage, /getSalesReport\(\)/);
   assert.match(salesReportPage, /getSalesStatusEntries\(\)/);
