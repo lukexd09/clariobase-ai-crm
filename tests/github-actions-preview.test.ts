@@ -389,6 +389,22 @@ test("Preview Release blocked comment reports unchanged volume and unknown inval
   assert.doesNotMatch(block, /RESET_CONFIRMATION/);
 });
 
+test("Preview Release queued and deploying comments keep execution state accurate", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const queued = extractWorkflowStepBlock(workflow, "Upsert queued preview comment");
+  const deploying = extractWorkflowStepBlock(workflow, "Upsert deploying preview comment");
+
+  assert.match(queued, /Result: queued/);
+  assert.match(queued, /const databaseVolume = "unchanged";/);
+  assert.match(queued, /Database volume: \$\{databaseVolume\}/);
+  assert.doesNotMatch(queued, /Database volume: reset/);
+
+  assert.match(deploying, /Result: deploying/);
+  assert.match(deploying, /const databaseVolume = `\$\{process\.env\.DATABASE_MODE \|\| "unknown"\} pending`;/);
+  assert.match(deploying, /pending/);
+  assert.doesNotMatch(deploying, /Database volume: reset/);
+});
+
 test("the real workflow resolver fails closed on GitHub API errors", async () => {
   const execution = await executeWorkflowResolver({ pullError: new Error("API unavailable") });
 
@@ -481,4 +497,13 @@ test("Stop Preview exposes the preserve/reset lifecycle inputs", () => {
   assert.match(workflow, /Database volume: \$databaseVolume/);
   assert.match(workflow, /failureStage/);
   assert.match(workflow, /stop-preview-result\.json/);
+});
+
+test("Stop Preview fail step reads the control checkout result file", () => {
+  const workflow = read(".github/workflows/stop-preview.yml");
+  const failStep = extractWorkflowStepBlock(workflow, "Fail workflow if stop failed");
+
+  assert.match(failStep, /working-directory: control/);
+  assert.match(failStep, /Join-Path \$PWD "stop-preview-result\.json"/);
+  assert.doesNotMatch(failStep, /Join-Path \$env:GITHUB_WORKSPACE/);
 });

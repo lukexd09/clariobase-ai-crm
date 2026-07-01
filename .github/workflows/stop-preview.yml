@@ -116,6 +116,7 @@ jobs:
       - name: Fail workflow if stop failed
         if: always()
         shell: pwsh
+        working-directory: control
         run: |
           $resultPath = Join-Path $PWD "stop-preview-result.json"
           if (Test-Path $resultPath) {

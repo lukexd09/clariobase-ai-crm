@@ -446,7 +446,7 @@ jobs:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
             const issue_number = Number(process.env.PR_NUMBER);
-            const databaseVolume = process.env.DATABASE_MODE === "reset" ? "reset" : "preserved";
+            const databaseVolume = "unchanged";
             const body = [
               marker,
               "",
@@ -675,7 +675,7 @@ jobs:
             const marker = "<!-- clariobase-preview-status -->";
             const issue_number = Number(process.env.PR_NUMBER);
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const databaseVolume = process.env.DATABASE_MODE === "reset" ? "reset" : "preserved";
+            const databaseVolume = `${process.env.DATABASE_MODE || "unknown"} pending`;
             const body = [
               marker,
               "",
