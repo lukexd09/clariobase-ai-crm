@@ -67,20 +67,20 @@ export default async function SalesReportPage() {
           </TableSurface>
         </ReportSection>
 
-        <div className="grid gap-4 xl:grid-cols-2">
-          <ReportSection title="Priority summary" description="Count of leads by operational priority.">
+        <div className="space-y-4 xl:columns-2 xl:gap-4 xl:[column-fill:balance]">
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Priority summary" description="Count of leads by operational priority.">
             <SimpleCountTable rows={LEAD_PRIORITY_VALUES.map((value) => ({ label: value, value: report.priorityCounts[value] }))} />
           </ReportSection>
 
-          <ReportSection title="Package fit summary" description="Count of leads by recommended package fit.">
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Package fit summary" description="Count of leads by recommended package fit.">
             <SimpleCountTable rows={PACKAGE_FIT_VALUES.map((value) => ({ label: value, value: report.packageFitCounts[value] }))} />
           </ReportSection>
 
-          <ReportSection title="Workbench health" description="The same actionable-bucket logic used by /work.">
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Workbench health" description="The same actionable-bucket logic used by /work.">
             <SimpleCountTable rows={[{ label: "Overdue next actions", value: report.workbenchBucketCounts.overdue }, { label: "Due today", value: report.workbenchBucketCounts.dueToday }, { label: "Upcoming", value: report.workbenchBucketCounts.upcoming }, { label: "No next action", value: report.workbenchBucketCounts.noAction }]} />
           </ReportSection>
 
-          <ReportSection title="Draft readiness" description="How many drafts exist and how many leads already have at least one draft artifact.">
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Draft readiness" description="How many drafts exist and how many leads already have at least one draft artifact.">
             <div className="space-y-5">
               <SimpleCountTable heading="Mini-audit draft statuses" rows={MINI_AUDIT_STATUS_VALUES.map((value) => ({ label: value, value: report.miniAuditDraftStatusCounts[value] }))} />
               <SimpleCountTable heading="Outreach draft statuses" rows={OUTREACH_DRAFT_STATUS_VALUES.map((value) => ({ label: value, value: report.outreachDraftStatusCounts[value] }))} />
@@ -88,7 +88,7 @@ export default async function SalesReportPage() {
             </div>
           </ReportSection>
 
-          <ReportSection title="Activity summary" description="Manual activity logging still provides lightweight pipeline history.">
+          <ReportSection className="xl:break-inside-avoid xl:mb-4" title="Activity summary" description="Manual activity logging still provides lightweight pipeline history.">
             <div className="space-y-5">
               <SimpleCountTable heading="Activity types" rows={ACTIVITY_TYPE_VALUES.map((value) => ({ label: value, value: report.activityTypeCounts[value] }))} />
               <p className="text-sm text-[color:var(--cb-muted-foreground)]">Total activities in the last 7 days: {report.activityLast7DaysCount}</p>
@@ -137,14 +137,16 @@ function Metric({
 function ReportSection({
   title,
   description,
+  className,
   children
 }: {
   title: string;
   description: string;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <Surface>
+    <Surface className={className}>
       <SurfaceHeader className="pb-0">
         <SurfaceTitle>{title}</SurfaceTitle>
         <SurfaceDescription>{description}</SurfaceDescription>
