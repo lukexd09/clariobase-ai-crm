@@ -1,23 +1,45 @@
-import { URL } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
+import { URL } from "node:url";
 
-const forbiddenTargets = new Set(["serwer:3000", "serwer:3001"]);
+const protectedPorts = new Set(["3000", "3001"]);
+const supportedAreas = new Set(["dashboard"]);
 
 export function assertSafePlaywrightTarget(rawTarget: string) {
   const target = new URL(rawTarget);
   const host = target.hostname.toLowerCase();
-  const hostPort = `${host}:${target.port || (target.protocol === "https:" ? "443" : "80")}`;
+  const port = target.port || (target.protocol === "https:" ? "443" : "80");
+
+  if (protectedPorts.has(port)) {
+    throw new Error(`Playwright target must not use protected port ${port}: ${rawTarget}`);
+  }
 
   if (host !== "127.0.0.1" && host !== "localhost") {
     throw new Error(`Playwright target must use localhost or 127.0.0.1, got ${rawTarget}`);
   }
 
-  if (forbiddenTargets.has(hostPort)) {
-    throw new Error(`Playwright target must not use a protected production or preview port: ${rawTarget}`);
+  return target.toString();
+}
+
+export function resolvePlaywrightBaseUrl(rawTarget: string) {
+  return assertSafePlaywrightTarget(rawTarget);
+}
+
+export function resolveSelectedArea(rawArea: string | undefined) {
+  if (!rawArea) {
+    throw new Error("E2E area selection is required. Pass a supported area such as `dashboard`.");
   }
 
-  return target.toString();
+  const normalizedArea = rawArea.trim().toLowerCase();
+  if (!supportedAreas.has(normalizedArea)) {
+    throw new Error(`Unknown E2E area: ${rawArea}`);
+  }
+
+  return normalizedArea;
+}
+
+export function getSupportedAreas() {
+  return [...supportedAreas];
 }
 
 export function assertNoProductionTargetInRepo(repoRoot: string) {

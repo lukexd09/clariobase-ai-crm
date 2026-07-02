@@ -1,7 +1,7 @@
 # E021.T001 Playwright Proof
 
 Baseline SHA: `aac25270072e6b280f1c732723fed36e1a77f5b1`
-Head SHA: `aac25270072e6b280f1c732723fed36e1a77f5b1`
+Authoritative review head: recorded in PR #170 and exact-head CI metadata.
 
 ## Changed Files
 
@@ -26,6 +26,9 @@ Head SHA: `aac25270072e6b280f1c732723fed36e1a77f5b1`
 - Playwright Test package: [`@playwright/test`](https://www.npmjs.com/package/@playwright/test)
 - Playwright MCP repo: [`microsoft/playwright-mcp`](https://github.com/microsoft/playwright-mcp)
 - Playwright MCP package: [`@playwright/mcp`](https://www.npmjs.com/package/@playwright/mcp)
+- Playwright MCP candidate version: `0.0.77`
+- Playwright MCP release tag: `v0.0.77`
+- Playwright MCP upstream commit SHA: `36ec986`
 
 ## Licensing
 
@@ -40,6 +43,7 @@ Head SHA: `aac25270072e6b280f1c732723fed36e1a77f5b1`
 
 - Microsoft Playwright GitHub security advisories page currently shows no published advisories.
 - No blocking advisory was found during this proof for the chosen package pair.
+- Playwright MCP advisory status was checked through the official repository and release metadata; no blocking advisory was identified for the selected candidate.
 
 ## Runtime Architecture
 
@@ -84,6 +88,8 @@ $env:PLAYWRIGHT_BASE_URL='http://Serwer:3001'; pnpm test:e2e:smoke
   - `@area:dashboard dashboard priorities remain visible as an explicit area proof`
 - full:
   - both committed browser tests
+- documented Windows invocation for area:
+  - `pnpm test:e2e:area -- dashboard`
 
 ## Failure Artifact Inspection
 
@@ -120,10 +126,13 @@ Temporary failure spec was removed after inspection.
 - `pnpm test:e2e:smoke`: passed
 - `pnpm test:e2e:area`: passed
 - `pnpm test:e2e:full`: passed
+- `pnpm exec playwright test --grep '@smoke'` with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000`: rejected before browser launch from `playwright.config.ts`
+- `pnpm exec playwright test --grep '@smoke'` with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3011`: passed
 - Observed warm-cache execution time:
   - smoke: about 12 to 13 seconds per run
   - area: about 11 seconds
   - full: about 11 to 13 seconds
+- `trace: retain-on-failure` now preserves trace on first-run failure with retries at zero
 - Controlled cold-cache browser installation timing was not captured during this spike.
 - Precise disk impact was not measured.
 - teardown/cleanup: temporary failing spec removed; generated artifacts ignored by `.gitignore`
@@ -140,6 +149,11 @@ Temporary failure spec was removed after inspection.
 ## MCP / Test-Agent
 
 - Official Playwright MCP/test-agent package was identified from primary sources.
+- Exact selected candidate: `@playwright/mcp` `0.0.77`
+- Exact release tag: `v0.0.77`
+- Exact upstream commit SHA: `36ec986`
+- License: Apache-2.0
+- Advisory status: no blocking advisory identified from the official release/repository evidence reviewed for this spike
 - No safe in-app MCP/test-agent tool was available in this environment for a bounded agentic run.
 - Blocker: no official MCP/test-agent execution surface was available here, so this proof remains deterministic browser-only.
 - Recommendation: `REVISE`

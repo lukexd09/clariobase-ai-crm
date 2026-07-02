@@ -4,13 +4,23 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { assertNoProductionTargetInRepo, assertSafePlaywrightTarget } from "../scripts/e2e-guard";
+import { assertNoProductionTargetInRepo, assertSafePlaywrightTarget, getSupportedAreas, resolveSelectedArea } from "../scripts/e2e-guard";
 
 test("playwright guard accepts localhost and rejects protected production targets", () => {
   assert.equal(assertSafePlaywrightTarget("http://127.0.0.1:3011"), "http://127.0.0.1:3011/");
   assert.equal(assertSafePlaywrightTarget("http://localhost:3011"), "http://localhost:3011/");
-  assert.throws(() => assertSafePlaywrightTarget("http://Serwer:3000"), /localhost or 127\.0\.0\.1|protected production or preview port/i);
-  assert.throws(() => assertSafePlaywrightTarget("http://Serwer:3001"), /localhost or 127\.0\.0\.1|protected production or preview port/i);
+  assert.equal(assertSafePlaywrightTarget("http://127.0.0.1:3011/"), "http://127.0.0.1:3011/");
+  assert.equal(assertSafePlaywrightTarget("http://localhost:3011/"), "http://localhost:3011/");
+  for (const target of [
+    "http://Serwer:3000",
+    "http://Serwer:3001",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+  ]) {
+    assert.throws(() => assertSafePlaywrightTarget(target), /localhost or 127\.0\.0\.1|protected port/i);
+  }
 });
 
 test("playwright guard rejects repository references to production targets", () => {
@@ -22,5 +32,26 @@ test("playwright guard rejects repository references to production targets", () 
     assert.throws(() => assertNoProductionTargetInRepo(tmpRoot), /production target references/i);
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test("playwright area selection requires an explicit known area", () => {
+  assert.equal(getSupportedAreas().join(","), "dashboard");
+  assert.throws(() => resolveSelectedArea(undefined), /area selection is required/i);
+  assert.throws(() => resolveSelectedArea("unknown"), /Unknown E2E area/i);
+  assert.equal(resolveSelectedArea("dashboard"), "dashboard");
+  assert.equal(resolveSelectedArea(" Dashboard "), "dashboard");
+});
+
+test("playwright target guard rejects every protected loopback variant", () => {
+  for (const target of [
+    "http://Serwer:3000",
+    "http://Serwer:3001",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+  ]) {
+    assert.throws(() => assertSafePlaywrightTarget(target), /protected port|localhost or 127\.0\.0\.1/i);
   }
 });
