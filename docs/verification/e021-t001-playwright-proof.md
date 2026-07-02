@@ -50,8 +50,20 @@ Authoritative review head: recorded in PR #170 and exact-head CI metadata.
 
 - Local-only Next.js dev server on `127.0.0.1:3011`
 - Playwright config uses `webServer` and non-reused server startup
+- The project-owned wrapper constructs the fixed safe E2E contract.
+- Direct Playwright execution must explicitly provide and pass the same contract.
+- `DATABASE_URL` is overwritten for the Next.js child with the synthetic E2E value.
 - App target is not production or preview
 - Guard fails closed on non-localhost targets and protected ports
+
+## E2E Contract
+
+- Runtime marker: `CLARIOBASE_E2E_RUNTIME=local-proof`
+- Synthetic database URL: `postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public`
+- Child Next.js process receives the synthetic URL as `DATABASE_URL`
+- Inherited CRM `DATABASE_URL` values are overwritten in the E2E child process
+- Direct `pnpm exec playwright test` fails when the contract values are missing
+- Direct `pnpm exec playwright test` passes only when the exact safe contract is provided
 
 ## Production Rejection Proof
 
@@ -74,6 +86,20 @@ Also rejected:
 $env:PLAYWRIGHT_BASE_URL='http://Serwer:3001'; pnpm test:e2e:smoke
 ```
 
+## Database Rejection Matrix
+
+Rejected by the exact E2E database contract:
+
+- `postgresql://127.0.0.1:5432/clariobase_e2e_proof?schema=public`
+- `postgresql://localhost:65535/clariobase_e2e_proof?schema=public`
+- `http://127.0.0.1:65535/clariobase_e2e_proof?schema=public`
+- `postgresql://127.0.0.1:65535/clariobase_crm?schema=public`
+- `postgresql://127.0.0.1:65535/clariobase_e2e_proof`
+- `postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=test`
+- `postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public&extra=1`
+- `postgresql://user:password@127.0.0.1:65535/clariobase_e2e_proof?schema=public`
+- `postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public#unsafe`
+
 ## Test Inventory
 
 - `pnpm test:e2e:smoke`
@@ -94,8 +120,9 @@ $env:PLAYWRIGHT_BASE_URL='http://Serwer:3001'; pnpm test:e2e:smoke
 
 ## Failure Artifact Inspection
 
-Controlled temporary failure produced:
+No-database-access browser proof:
 
+- Controlled temporary failure used a synthetic `data:` page
 - screenshot: `test-results/temp-failure-temporary-failure-for-artifact-proof/test-failed-1.png`
 - video: `test-results/temp-failure-temporary-failure-for-artifact-proof/video.webm`
 - trace: `test-results/temp-failure-temporary-failure-for-artifact-proof/trace.zip`
@@ -128,6 +155,8 @@ Temporary failure spec was removed after inspection.
 - `pnpm test:e2e:full`: passed
 - `pnpm exec playwright test --grep '@smoke'` with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000`: rejected before browser launch from `playwright.config.ts`
 - `pnpm exec playwright test --grep '@smoke'` with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3011`: passed
+- direct `pnpm exec playwright test` without marker/database values: rejected by config validation
+- inherited unsafe `DATABASE_URL=postgresql://localhost:5432/clariobase_crm?schema=public` was overwritten in the Next.js child env
 - Observed warm-cache execution time:
   - smoke: about 12 to 13 seconds per run
   - area: about 11 seconds
@@ -154,11 +183,13 @@ Temporary failure spec was removed after inspection.
 - Exact selected candidate: `@playwright/mcp` `0.0.77`
 - Exact release tag: `v0.0.77`
 - Exact upstream commit SHA: `36ec986b8b1fc6b4d11f2b6971147755e1b0bc84`
+- The upstream MCP metadata declares `playwright 1.62.0-alpha-2026-06-29`.
 - License: Apache-2.0
 - Advisory status: no blocking advisory identified from the official release/repository evidence reviewed for this spike
 - No safe in-app MCP/test-agent tool was available in this environment for a bounded agentic run.
 - Blocker: no official MCP/test-agent execution surface was available here, so this proof remains deterministic browser-only.
 - MCP was not installed.
+- Compatibility/coexistence between the alpha MCP declaration and the deterministic `@playwright/test 1.61.1` suite remains unproven.
 - Recommendation: `REVISE`
 
 ## Remaining Work

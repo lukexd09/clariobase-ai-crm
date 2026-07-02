@@ -5,7 +5,7 @@ import { URL } from "node:url";
 const supportedAreas = new Set(["dashboard"]);
 const approvedE2ERuntime = "local-proof";
 const approvedE2EDatabaseName = "clariobase_e2e_proof";
-const approvedE2EDatabaseHostnames = new Set(["127.0.0.1", "localhost"]);
+const approvedE2EDatabaseUrl = "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public";
 
 export function assertSafePlaywrightTarget(rawTarget: string) {
   const target = new URL(rawTarget);
@@ -15,13 +15,10 @@ export function assertSafePlaywrightTarget(rawTarget: string) {
   if (target.protocol !== "http:") {
     throw new Error(`Playwright target must use http:, got ${rawTarget}`);
   }
-  if (!approvedE2ERuntime) {
-    throw new Error("E2E runtime marker is missing");
-  }
   if (target.username || target.password) {
     throw new Error(`Playwright target must not include credentials: ${rawTarget}`);
   }
-  if (!approvedE2EDatabaseHostnames.has(host)) {
+  if (host !== "127.0.0.1" && host !== "localhost") {
     throw new Error(`Playwright target must use localhost or 127.0.0.1, got ${rawTarget}`);
   }
   if (target.port !== "3011") {
@@ -74,22 +71,41 @@ export function resolveE2ERuntimeContract(env: NodeJS.ProcessEnv) {
   }
 
   const target = new URL(databaseUrl);
-  if (!approvedE2EDatabaseHostnames.has(target.hostname.toLowerCase())) {
-    throw new Error("E2E database host must be loopback");
-  }
-  if (target.pathname.replace(/^\//, "") !== approvedE2EDatabaseName) {
-    throw new Error(`E2E database name must be ${approvedE2EDatabaseName}`);
-  }
-  if (target.username || target.password) {
-    throw new Error("E2E database URL must not include credentials");
-  }
-  if (["clariobase_crm", "clariobase_crm_preview", "clariobase_harvester"].some((blocked) => target.pathname.includes(blocked))) {
-    throw new Error("E2E database target must not match a known CRM, preview or production identity");
+  const normalizedSearch = target.searchParams.toString();
+  const hasSingleSchemaParam = target.searchParams.getAll("schema").length === 1 && normalizedSearch === "schema=public";
+  const exactDatabaseUrl =
+    target.protocol === "postgresql:" &&
+    target.hostname === "127.0.0.1" &&
+    target.port === "65535" &&
+    target.pathname.replace(/^\//, "") === approvedE2EDatabaseName &&
+    !target.username &&
+    !target.password &&
+    hasSingleSchemaParam &&
+    !target.hash;
+
+  if (!exactDatabaseUrl) {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must be exactly ${approvedE2EDatabaseUrl}`);
   }
 
   return {
     runtime,
-    databaseUrl: target.toString()
+    databaseUrl: approvedE2EDatabaseUrl
+  };
+}
+
+export function buildE2EChildEnv(baseEnv: NodeJS.ProcessEnv) {
+  const runtimeContract = resolveE2ERuntimeContract({
+    ...baseEnv,
+    CLARIOBASE_E2E_RUNTIME: baseEnv.CLARIOBASE_E2E_RUNTIME ?? approvedE2ERuntime,
+    CLARIOBASE_E2E_DATABASE_URL: approvedE2EDatabaseUrl
+  });
+
+  return {
+    ...baseEnv,
+    CLARIOBASE_E2E_RUNTIME: runtimeContract.runtime,
+    CLARIOBASE_E2E_DATABASE_URL: runtimeContract.databaseUrl,
+    DATABASE_URL: runtimeContract.databaseUrl,
+    PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3011"
   };
 }
 

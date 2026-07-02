@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { assertNoProductionTargetInRepo, assertSafePlaywrightTarget, getSupportedAreas, resolveE2ERuntimeContract, resolveSelectedArea } from "../scripts/e2e-guard";
+import { assertNoProductionTargetInRepo, assertSafePlaywrightTarget, buildE2EChildEnv, getSupportedAreas, resolveE2ERuntimeContract, resolveSelectedArea } from "../scripts/e2e-guard";
 
 test("playwright guard accepts localhost and rejects protected production targets", () => {
   assert.equal(assertSafePlaywrightTarget("http://127.0.0.1:3011"), "http://127.0.0.1:3011/");
@@ -63,6 +63,13 @@ test("e2e runtime contract requires the approved marker and synthetic database i
   } as const;
 
   assert.equal(resolveE2ERuntimeContract(safeEnv).databaseUrl, safeEnv.CLARIOBASE_E2E_DATABASE_URL);
+  assert.equal(
+    buildE2EChildEnv({
+      DATABASE_URL: "postgresql://localhost:5432/clariobase_crm?schema=public",
+      CLARIOBASE_E2E_RUNTIME: "local-proof"
+    }).DATABASE_URL,
+    safeEnv.CLARIOBASE_E2E_DATABASE_URL
+  );
   assert.throws(() => resolveE2ERuntimeContract({} as NodeJS.ProcessEnv), /CLARIOBASE_E2E_RUNTIME must be local-proof/i);
   assert.throws(
     () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "wrong", CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL } as NodeJS.ProcessEnv),
@@ -74,10 +81,25 @@ test("e2e runtime contract requires the approved marker and synthetic database i
   );
   assert.throws(
     () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: "postgresql://localhost:5432/clariobase_crm?schema=public" } as NodeJS.ProcessEnv),
-    /E2E database name must be clariobase_e2e_proof/i
+    /must be exactly/i
   );
   assert.throws(
-    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: "postgresql://example.com:5432/clariobase_e2e_proof?schema=public" } as NodeJS.ProcessEnv),
-    /E2E database host must be loopback/i
+    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: "postgresql://127.0.0.1:5432/clariobase_e2e_proof?schema=public" } as NodeJS.ProcessEnv),
+    /must be exactly/i
   );
+  for (const invalid of [
+    "postgresql://localhost:65535/clariobase_e2e_proof?schema=public",
+    "http://127.0.0.1:65535/clariobase_e2e_proof?schema=public",
+    "postgresql://127.0.0.1:65535/clariobase_crm?schema=public",
+    "postgresql://127.0.0.1:65535/clariobase_e2e_proof",
+    "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=test",
+    "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public&extra=1",
+    "postgresql://user:password@127.0.0.1:65535/clariobase_e2e_proof?schema=public",
+    "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public#unsafe"
+  ]) {
+    assert.throws(
+      () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: invalid } as NodeJS.ProcessEnv),
+      /must be exactly/i
+    );
+  }
 });
