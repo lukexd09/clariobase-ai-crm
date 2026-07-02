@@ -6,6 +6,7 @@ Authoritative review head: recorded in PR #170 and exact-head CI metadata.
 ## Changed Files
 
 - `.gitignore`
+- `docs/verification/e021-t001-playwright-proof.md`
 - `package.json`
 - `pnpm-lock.yaml`
 - `playwright.config.ts`
@@ -151,7 +152,7 @@ Temporary failure spec was removed after inspection.
 - `pnpm test:fast`: passed
 - `pnpm build`: passed
 - `pnpm test:e2e:smoke`: passed
-- `pnpm test:e2e:area`: passed
+- `pnpm test:e2e:area -- dashboard`: passed
 - `pnpm test:e2e:full`: passed
 - `pnpm exec playwright test --grep '@smoke'` with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000`: rejected before browser launch from `playwright.config.ts`
 - `pnpm exec playwright test --grep '@smoke'` with `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3011`: passed
