@@ -1,7 +1,8 @@
 import { defineConfig } from "@playwright/test";
-import { resolvePlaywrightBaseUrl } from "./scripts/e2e-guard";
+import { resolveE2ERuntimeContract, resolvePlaywrightBaseUrl } from "./scripts/e2e-guard";
 
 const baseURL = resolvePlaywrightBaseUrl(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3011");
+resolveE2ERuntimeContract(process.env);
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -15,7 +16,7 @@ export default defineConfig({
     video: "retain-on-failure"
   },
   webServer: {
-    command: "pnpm dev:e2e",
+    command: "tsx scripts/dev-e2e-server.ts",
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000

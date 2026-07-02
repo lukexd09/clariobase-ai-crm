@@ -10,6 +10,7 @@ Authoritative review head: recorded in PR #170 and exact-head CI metadata.
 - `pnpm-lock.yaml`
 - `playwright.config.ts`
 - `scripts/e2e-guard.ts`
+- `scripts/dev-e2e-server.ts`
 - `scripts/run-e2e.ts`
 - `tests/e2e-guard.test.ts`
 - `tests/e2e/smoke.spec.ts`
@@ -28,7 +29,7 @@ Authoritative review head: recorded in PR #170 and exact-head CI metadata.
 - Playwright MCP package: [`@playwright/mcp`](https://www.npmjs.com/package/@playwright/mcp)
 - Playwright MCP candidate version: `0.0.77`
 - Playwright MCP release tag: `v0.0.77`
-- Playwright MCP upstream commit SHA: `36ec986`
+- Playwright MCP upstream commit SHA: `36ec986b8b1fc6b4d11f2b6971147755e1b0bc84`
 
 ## Licensing
 
@@ -111,8 +112,7 @@ Temporary failure spec was removed after inspection.
 ## Repeatability And Cleanup
 
 - Smoke was rerun multiple times from a clean state and passed each time.
-- The browser harness exits cleanly after each run.
-- The wrapper uses a fixed localhost target and does not touch production or preview.
+- The browser harness was exercised with a fixed localhost target and did not touch production or preview.
 - The temporary failure bundle was generated, inspected, and the failing spec was deleted.
 
 ## Measurements
@@ -136,6 +136,7 @@ Temporary failure spec was removed after inspection.
 - Controlled cold-cache browser installation timing was not captured during this spike.
 - Precise disk impact was not measured.
 - teardown/cleanup: temporary failing spec removed; generated artifacts ignored by `.gitignore`
+- Synthetic artifact proof used `data:text/html,<h1>E2E artifact proof</h1>` and did not use real CRM data.
 
 ## Windows And Recovery Notes
 
@@ -145,17 +146,19 @@ Temporary failure spec was removed after inspection.
 - No persistent application containers or databases were reused
 - Recovery strategy is reinstallable from lockfile and cached browser binaries
 - Cleanup was verified by rerunning the browser suite from a clean state after the temporary failure was removed.
+- Artifact inspection covered screenshot, video, trace and error context for the synthetic proof page.
 
 ## MCP / Test-Agent
 
 - Official Playwright MCP/test-agent package was identified from primary sources.
 - Exact selected candidate: `@playwright/mcp` `0.0.77`
 - Exact release tag: `v0.0.77`
-- Exact upstream commit SHA: `36ec986`
+- Exact upstream commit SHA: `36ec986b8b1fc6b4d11f2b6971147755e1b0bc84`
 - License: Apache-2.0
 - Advisory status: no blocking advisory identified from the official release/repository evidence reviewed for this spike
 - No safe in-app MCP/test-agent tool was available in this environment for a bounded agentic run.
 - Blocker: no official MCP/test-agent execution surface was available here, so this proof remains deterministic browser-only.
+- MCP was not installed.
 - Recommendation: `REVISE`
 
 ## Remaining Work
