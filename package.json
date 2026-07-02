@@ -5,10 +5,14 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "next dev",
+    "dev:e2e": "tsx scripts/dev-e2e-server.ts",
     "prebuild": "pnpm prisma:generate",
     "build": "node --env-file=.env.example ./node_modules/next/dist/bin/next build",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "test:e2e:smoke": "tsx scripts/run-e2e.ts smoke",
+    "test:e2e:area": "tsx scripts/run-e2e.ts area",
+    "test:e2e:full": "tsx scripts/run-e2e.ts full",
     "test": "tsx --test tests/smoke.test.ts tests/docs-sanity.test.ts tests/docker-test-support.test.ts tests/docker-image.test.ts tests/compose-runtime.test.ts tests/preview-runtime.test.ts tests/preview-stop-config.test.ts tests/github-actions-preview.test.ts tests/compose-backup-restore.test.ts tests/runtime-readiness.test.ts tests/homepage.test.ts tests/navigation.test.ts tests/ui-foundation.test.ts tests/light-core-work-screens.test.ts tests/lead-detail-light-proof.test.ts tests/light-remaining-list-detail-screens.test.ts tests/leads-pagination.test.ts tests/work-view.test.ts tests/activity.test.ts tests/lead-drafts.test.ts tests/offer-drafts.test.ts tests/sales-report.test.ts && tsx --test --test-concurrency=1 tests/health-endpoint.test.ts tests/light-density-route-contracts.test.ts tests/dashboard-density.test.ts",
     "docker:test-image": "tsx scripts/verify-docker-image.ts",
     "docker:test-runtime": "tsx scripts/verify-compose-runtime.ts",
@@ -22,7 +26,7 @@
     "leads:detect-duplicates": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/detect-duplicates.ts",
     "ai:export-leads": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts",
     "ai:validate-import-file": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/validate-ai-import-file.ts",
-    "test:fast": "tsx --test tests/smoke.test.ts tests/product-docs-sanity.test.ts tests/health-contract.test.ts tests/runtime-readiness.test.ts tests/homepage.test.ts tests/navigation.test.ts tests/ui-foundation.test.ts tests/light-core-work-screens.test.ts tests/lead-detail-light-proof.test.ts tests/light-remaining-list-detail-screens.test.ts tests/leads-pagination.test.ts tests/work-view.test.ts tests/activity.test.ts tests/lead-drafts.test.ts tests/offer-drafts.test.ts tests/sales-report.test.ts tests/dashboard-density.test.ts tests/test-suite-classification.test.ts",
+    "test:fast": "tsx --test tests/smoke.test.ts tests/product-docs-sanity.test.ts tests/health-contract.test.ts tests/runtime-readiness.test.ts tests/homepage.test.ts tests/navigation.test.ts tests/ui-foundation.test.ts tests/light-core-work-screens.test.ts tests/lead-detail-light-proof.test.ts tests/light-remaining-list-detail-screens.test.ts tests/leads-pagination.test.ts tests/work-view.test.ts tests/activity.test.ts tests/lead-drafts.test.ts tests/offer-drafts.test.ts tests/sales-report.test.ts tests/dashboard-density.test.ts tests/e2e-guard.test.ts tests/test-suite-classification.test.ts",
     "test:infra": "tsx --test --test-concurrency=1 tests/docs-sanity.test.ts tests/runtime-docs-sanity.test.ts tests/docker-test-support.test.ts tests/health-endpoint.test.ts tests/docker-image.test.ts tests/compose-runtime.test.ts tests/preview-runtime.test.ts tests/preview-volume-lifecycle.test.ts tests/preview-stop-config.test.ts tests/github-actions-preview.test.ts tests/compose-backup-restore.test.ts tests/light-density-route-contracts.test.ts",
     "test:full": "pnpm test:fast && pnpm test:infra"
   },
@@ -35,6 +39,7 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
