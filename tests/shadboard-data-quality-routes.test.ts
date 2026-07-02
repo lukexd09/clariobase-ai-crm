@@ -45,6 +45,9 @@ test("T006 routes stay on the project-owned boundary and keep explicit semantic 
   assert.match(duplicatesPage, /DataQualityStatusBadge/);
   assert.match(duplicateDetailPage, /DataQualityStatusBadge/);
   assert.match(dataQualityPrimitives, /export function DataQualityStatusBadge/);
+  assert.match(importsPage, /<Table className="min-w-\[1050px\]">/);
+  assert.match(duplicatesPage, /<Table className="min-w-\[1100px\]">/);
+  assert.doesNotMatch(dataQualityPrimitives, /min-w-\[1050px\]|min-w-\[1100px\]/);
 
   assert.match(dataQualityPrimitives, /<dt className="text-xs font-medium uppercase tracking-\[0\.18em\]/);
   assert.match(dataQualityPrimitives, /<Badge tone=\{tone\}>{label}<\/Badge>/);

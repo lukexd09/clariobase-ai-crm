@@ -72,7 +72,7 @@ export default async function DuplicatesPage() {
       />
 
       <TableSurface aria-label="Scrollable duplicate candidates table">
-        <Table>
+        <Table className="min-w-[1100px]">
           <caption className="sr-only">Duplicate candidates awaiting review.</caption>
           <TableHead>
             <tr>

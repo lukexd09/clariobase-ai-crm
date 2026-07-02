@@ -72,7 +72,7 @@ export default async function ImportsPage() {
       />
 
       <TableSurface aria-label="Scrollable import batches table">
-        <Table>
+        <Table className="min-w-[1050px]">
           <caption className="sr-only">Import batches and their processing results.</caption>
           <TableHead>
             <tr>
