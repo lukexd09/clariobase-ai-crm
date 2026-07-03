@@ -47,25 +47,22 @@ async function setup() {
   try {
     const existing = await prisma.lead.findMany({
       where: {
-        OR: [
-          { customerId: state.customerId },
-          { source: state.source, sourceRecordId: state.sourceRecordId }
-        ]
+        customerId: state.customerId
       },
-      select: { id: true, customerId: true, source: true, sourceRecordId: true }
+      select: { id: true, customerId: true, source: true, sourceRecordId: true, businessName: true }
     });
-
-    if (existing.length > 1) {
-      throw new Error("Unexpected duplicate fixture ownership state.");
-    }
 
     if (existing.length === 1) {
       const record = existing[0];
-      if (record.customerId !== state.customerId || record.source !== state.source || record.sourceRecordId !== state.sourceRecordId) {
+      if (record.customerId !== state.customerId || record.businessName !== state.businessName) {
         throw new Error("Stale fixture owned by another run was detected.");
       }
       fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
       return;
+    }
+
+    if (existing.length > 1) {
+      throw new Error("Unexpected duplicate fixture ownership state.");
     }
 
     const lead = await prisma.lead.create({
@@ -94,9 +91,7 @@ async function verify() {
     const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as FixtureState;
     const lead = await prisma.lead.findFirst({
       where: {
-        customerId: state.customerId,
-        source: state.source,
-        sourceRecordId: state.sourceRecordId
+        customerId: state.customerId
       }
     });
 
@@ -119,16 +114,12 @@ async function cleanup() {
   try {
     await prisma.lead.deleteMany({
       where: {
-        customerId: state.customerId,
-        source: state.source,
-        sourceRecordId: state.sourceRecordId
+        customerId: state.customerId
       }
     });
     const remaining = await prisma.lead.findFirst({
       where: {
-        customerId: state.customerId,
-        source: state.source,
-        sourceRecordId: state.sourceRecordId
+        customerId: state.customerId
       }
     });
     assert.equal(remaining, null);

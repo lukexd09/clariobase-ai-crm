@@ -33,6 +33,24 @@
 - `pnpm test:e2e:area -- leads`
 - `pnpm test:e2e:full`
 
+## Verified Results
+
+- `pnpm exec tsx --test tests/docker-test-support.test.ts tests/e2e-guard.test.ts tests/e2e-commands.test.ts tests/test-suite-classification.test.ts`: PASS
+- `pnpm cleanup:test-runtime`: PASS
+- `pnpm test:e2e:smoke`: PASS
+- `pnpm test:e2e:area -- dashboard`: PASS
+- `pnpm test:e2e:area -- leads`: PASS
+- `pnpm test:e2e:full`: PASS
+- Docker unavailable negative run with `DOCKER_HOST=tcp://127.0.0.1:1` against `pnpm test:e2e:smoke`: EXPECTED FAILURE
+- Restored normal environment and re-ran `pnpm test:e2e:smoke`: PASS
+
+## Resilience Checks
+
+- The E2E harness failed closed when two browser runs attempted to own `127.0.0.1:3011` at the same time.
+- Re-running the browser commands sequentially passed, confirming the harness behaves deterministically when used one run at a time.
+- `cleanup:test-runtime` reported that protected Docker resources remained untouched.
+- The Docker-unavailable path failed before Playwright execution and returned a clear Docker connection error.
+
 ## Notes
 
 - HTML report opens disabled.

@@ -12,6 +12,7 @@ import {
   cleanupDisposableTempArtifacts,
   createCleanupController,
   createVerificationFailure,
+  inspectRunOwnership,
   createRuntimeArtifactName,
   DISPOSABLE_RUNTIME_PREFIX,
   getDockerRequirementStatus,
@@ -421,6 +422,22 @@ test("verification failure and cleanup failure are both preserved in the final e
   assert.equal(combined.errors.length, 2);
   assert.match(String(combined.errors[0]), /verification failed/);
   assert.match(String(combined.errors[1]), /cleanup-task/);
+});
+
+test("ownership snapshot rejects absent run-owned resources", () => {
+  const snapshot = inspectRunOwnership({
+    runId: "e021-t002-test",
+    containerName: "e021-t002-test-postgres",
+    networkName: "e021-t002-test-network",
+    manifestPath: path.join(repoRoot, ".codex-tmp", "missing-manifest.json"),
+    hostPort: 54321
+  });
+
+  assert.equal(snapshot.runId, "e021-t002-test");
+  assert.equal(snapshot.containerExists, false);
+  assert.equal(snapshot.networkExists, false);
+  assert.equal(snapshot.volumeExists, false);
+  assert.equal(snapshot.manifestExists, false);
 });
 
 test("failed verification paths still invoke cleanup through process-exit hooks", async () => {

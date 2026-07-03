@@ -18,6 +18,15 @@ export type CleanupReport = {
   alreadyCleaned: boolean;
   failures: CleanupFailure[];
 };
+export type DockerOwnershipSnapshot = {
+  runId: string;
+  containerName: string;
+  networkName: string;
+  volumeName?: string;
+  manifestPath: string;
+  nextPid?: number;
+  hostPort?: number;
+};
 type CleanupTask = {
   label: string;
   run: () => void;
@@ -732,6 +741,30 @@ export function createVerificationFailure(
     [verificationCause, new Error(formatCleanupFailures(cleanupFailures))],
     `${cleanupReason} failed during verification and cleanup.`
   );
+}
+
+export function inspectRunOwnership(snapshot: DockerOwnershipSnapshot) {
+  const containerExists = hasDockerResource("container", snapshot.containerName);
+  const networkExists = hasDockerResource("network", snapshot.networkName);
+  const volumeExists = snapshot.volumeName ? hasDockerResource("volume", snapshot.volumeName) : false;
+  const manifestExists = fs.existsSync(snapshot.manifestPath);
+
+  return {
+    runId: snapshot.runId,
+    containerExists,
+    networkExists,
+    volumeExists,
+    manifestExists,
+    nextPid: snapshot.nextPid ?? null,
+    hostPort: snapshot.hostPort ?? null
+  };
+}
+
+function hasDockerResource(kind: "container" | "network" | "volume", name: string) {
+  const args = kind === "volume" ? ["volume", "inspect", name] : [kind, "inspect", name];
+  const result = runDockerCommand(args);
+
+  return result.status === 0;
 }
 
 export function resolveCleanupTestRuntimeStatus(input: {
