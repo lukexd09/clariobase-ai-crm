@@ -3,12 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
-import { createDockerRunId, createRuntimeArtifactName } from "./docker-test-support";
-
-const repoRoot = path.resolve(__dirname, "..");
-const runtimeRoot = path.join(repoRoot, ".codex-tmp", createRuntimeArtifactName("e2e-fixture"));
+const runtimeRoot = path.join(path.resolve(__dirname, ".."), ".codex-tmp", "e2e-fixture");
 const statePath = path.join(runtimeRoot, "fixture-state.json");
 
 type FixtureState = {
@@ -17,27 +15,35 @@ type FixtureState = {
   customerId: string;
   source: string;
   sourceRecordId: string;
+  businessName: string;
 };
 
-function makeState(runId = createDockerRunId("e2e")): FixtureState {
+function getPrisma() {
+  assert.ok(process.env.DATABASE_URL, "DATABASE_URL must be provided by the managed E2E runtime");
+  return new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+    log: ["error"]
+  });
+}
+
+function getState(): FixtureState {
+  const runId = process.env.E2E_RUN_ID;
+  assert.ok(runId, "E2E_RUN_ID must be provided by the managed E2E runtime");
   return {
     runId,
     leadId: `lead_${runId}`,
     customerId: `e2e-${runId}`,
     source: "E2E_PLAYWRIGHT",
-    sourceRecordId: `source-${runId}`
+    sourceRecordId: runId,
+    businessName: `E2E Synthetic ${runId}`
   };
-}
-
-function getPrisma() {
-  assert.ok(process.env.DATABASE_URL, "DATABASE_URL must be provided by the managed E2E runtime");
-  return new PrismaClient();
 }
 
 async function setup() {
   fs.mkdirSync(runtimeRoot, { recursive: true });
-  const state = makeState(process.env.E2E_RUN_ID ?? undefined);
+  const state = getState();
   const prisma = getPrisma();
+
   try {
     const existing = await prisma.lead.findMany({
       where: {
@@ -66,14 +72,12 @@ async function setup() {
       data: {
         id: state.leadId,
         customerId: state.customerId,
-        businessName: `E2E Synthetic ${state.runId}`,
+        businessName: state.businessName,
         source: state.source,
         sourceRecordId: state.sourceRecordId,
         leadStatus: "NEW",
         priority: "LOW",
-        packageFit: "UNKNOWN",
-        city: "Test City",
-        country: "PL"
+        packageFit: "UNKNOWN"
       }
     });
 
@@ -97,7 +101,8 @@ async function verify() {
     });
 
     assert.ok(lead, "Expected the current-run synthetic lead to exist.");
-    assert.match(lead.businessName, /E2E Synthetic/);
+    assert.equal(lead?.businessName, state.businessName);
+    assert.equal(lead?.customerId, state.customerId);
   } finally {
     await prisma.$disconnect();
   }
@@ -110,6 +115,7 @@ async function cleanup() {
 
   const state = JSON.parse(fs.readFileSync(statePath, "utf8")) as FixtureState;
   const prisma = getPrisma();
+
   try {
     await prisma.lead.deleteMany({
       where: {

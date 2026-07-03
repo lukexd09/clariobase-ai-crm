@@ -14,6 +14,9 @@ function select(command: string, args: string[]) {
 test("e2e command selection maps smoke, area, and full correctly", () => {
   assert.deepEqual(select("smoke", []), ["test", "--grep", "@smoke"]);
   assert.deepEqual(select("area", ["dashboard"]), ["test", "--grep", "@area:dashboard"]);
+  assert.deepEqual(select("area", ["leads"]), ["test", "--grep", "@area:leads"]);
   assert.deepEqual(select("full", []), ["test"]);
+  assert.throws(() => select("area", []), /area selection requires a known area/);
+  assert.throws(() => select("unknown", []), /unsupported command/);
 });
 
