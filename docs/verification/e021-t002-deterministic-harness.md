@@ -36,13 +36,18 @@
 ## Verified Results
 
 - `pnpm exec tsx --test tests/docker-test-support.test.ts tests/e2e-guard.test.ts tests/e2e-commands.test.ts tests/test-suite-classification.test.ts`: PASS
+- `pnpm exec tsx --test tests/docs-sanity.test.ts tests/runtime-docs-sanity.test.ts`: PASS
 - `pnpm cleanup:test-runtime`: PASS
 - `pnpm test:e2e:smoke`: PASS
+- five consecutive smoke runs: PASS
 - `pnpm test:e2e:area -- dashboard`: PASS
 - `pnpm test:e2e:area -- leads`: PASS
 - `pnpm test:e2e:full`: PASS
 - Docker unavailable negative run with `DOCKER_HOST=tcp://127.0.0.1:1` against `pnpm test:e2e:smoke`: EXPECTED FAILURE
 - Restored normal environment and re-ran `pnpm test:e2e:smoke`: PASS
+- forced-termination recovery proof: PASS
+- controlled browser failure proof: PASS
+- artifact inspection: PASS
 
 ## Resilience Checks
 
@@ -50,6 +55,8 @@
 - Re-running the browser commands sequentially passed, confirming the harness behaves deterministically when used one run at a time.
 - `cleanup:test-runtime` reported that protected Docker resources remained untouched.
 - The Docker-unavailable path failed before Playwright execution and returned a clear Docker connection error.
+- The forced-termination proof used a test-only pause hook, then a manifest-driven recovery script inspected ownership before cleanup.
+- The controlled browser failure produced screenshot, video, trace, and error-context artifacts and then cleaned the runtime.
 
 ## Notes
 

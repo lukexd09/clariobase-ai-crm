@@ -85,6 +85,20 @@ async function waitForHttp(url: string, expected = 200) {
   throw new Error(`${url} did not return HTTP ${expected} in time`);
 }
 
+async function pauseBeforePlaywright() {
+  const rawPause = process.env.CLARIOBASE_E2E_PAUSE_BEFORE_PLAYWRIGHT_MS;
+  if (!rawPause) {
+    return;
+  }
+
+  const pauseMs = Number.parseInt(rawPause, 10);
+  if (!Number.isInteger(pauseMs) || pauseMs < 0) {
+    throw new Error(`CLARIOBASE_E2E_PAUSE_BEFORE_PLAYWRIGHT_MS must be a non-negative integer, got ${rawPause}`);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, pauseMs));
+}
+
 async function waitForPostgres(containerName: string) {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     const result = docker(["exec", containerName, "pg_isready", "-U", "clariobase_e021_t002_user", "-d", manifest.databaseName]);
@@ -181,6 +195,7 @@ async function main() {
     fs.writeFileSync(manifestPath, JSON.stringify({ ...manifestWithPid, hostPort, databaseUrl }, null, 2));
 
     await waitForHttp(`${appBaseUrl}/api/ready`, 200);
+    await pauseBeforePlaywright();
 
     const playwrightCli = path.join(repoRoot, "node_modules", "@playwright", "test", "cli.js");
     const playwrightArgs = ["test", ...(grepByMode[mode] ? ["--grep", grepByMode[mode]] : [])];
