@@ -49,6 +49,26 @@
 - controlled browser failure proof: PASS
 - artifact inspection: PASS
 
+## Negative Matrices
+
+- Command/classification negative matrix: PASS
+  - Covered by `tests/e2e-commands.test.ts`, `tests/e2e-guard.test.ts`, and `tests/test-suite-classification.test.ts`.
+  - Includes exact command selection, missing/unknown mode, missing/unknown area, unsafe extra area arg, exact `@smoke` semantics, `@smoke-extra` non-match, and suite classification.
+- Target/runtime negative matrix: PASS
+  - Covered by `tests/e2e-guard.test.ts`.
+  - Includes protected hostnames, `http`-only target checks, credentials, query strings, fragments, non-root paths, missing runtime marker, wrong runtime marker, and occupied `127.0.0.1:3011` command failure.
+- Docker/database ownership negative matrix: PASS
+  - Covered by `tests/docker-test-support.test.ts`.
+  - Includes synthetic ownership snapshots for wrong image, missing labels, wrong run ID label, wrong network ownership, protected identity, wrong host port, and manifest/container mismatch.
+- Docker unavailable proof: PASS
+  - `DOCKER_HOST=tcp://127.0.0.1:1 pnpm test:e2e:smoke` failed before Playwright with a Docker network creation error.
+  - Restored `docker info` and `pnpm test:e2e:smoke` both passed.
+- Fixture negative matrix: PASS
+  - Covered by `tests/e2e-fixture-negative.test.ts`.
+  - Includes run-scoped synthetic fixture creation, exact current-run ownership, stale-row rejection, and cleanup filter behavior.
+- Occupied-port proof: PASS
+  - Temporary listener on `127.0.0.1:3011` caused `pnpm test:e2e:smoke` to fail immediately with `Error: Port 3011 is occupied` before Docker startup.
+
 ## Resilience Checks
 
 - The E2E harness failed closed when two browser runs attempted to own `127.0.0.1:3011` at the same time.

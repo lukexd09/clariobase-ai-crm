@@ -19,6 +19,7 @@ import {
   matchesDisposableImageName,
   PROTECTED_DOCKER_PROJECT,
   VERIFY_IMAGE_TAG_PREFIX,
+  validateOwnedRuntimeSnapshot,
   resolveCleanupTestRuntimeStatus,
   selectDisposableResourceNames,
   terminateProcessTree
@@ -438,6 +439,102 @@ test("ownership snapshot rejects absent run-owned resources", () => {
   assert.equal(snapshot.networkExists, false);
   assert.equal(snapshot.volumeExists, false);
   assert.equal(snapshot.manifestExists, false);
+});
+
+test("owned runtime snapshot validation rejects mismatched synthetic ownership data", () => {
+  const baseInspect = {
+    container: {
+      Config: {
+        Image: "postgres:16",
+        Labels: {
+          "clariobase.epic": "E021",
+          task: "T002",
+          "run-id": "e021-t002-test"
+        }
+      },
+      NetworkSettings: {
+        Networks: {
+          "e021-t002-test-network": {}
+        }
+      },
+      HostConfig: {
+        PortBindings: {
+          "5432/tcp": [{ HostPort: "54321" }]
+        }
+      }
+    },
+    manifest: {
+      runId: "e021-t002-test",
+      containerName: "e021-t002-test-postgres",
+      networkName: "e021-t002-test-network",
+      hostPort: 54321
+    }
+  };
+
+  assert.deepEqual(validateOwnedRuntimeSnapshot({
+    runId: "e021-t002-test",
+    hostPort: 54321,
+    expectedImage: "postgres:16",
+    inspect: baseInspect
+  }).labels["run-id"], "e021-t002-test");
+
+  assert.throws(() => validateOwnedRuntimeSnapshot({
+    runId: "e021-t002-test",
+    hostPort: 54321,
+    expectedImage: "postgres:15",
+    inspect: baseInspect
+  }), /unexpected postgres image/);
+
+  assert.throws(() => validateOwnedRuntimeSnapshot({
+    runId: "e021-t002-test",
+    hostPort: 54321,
+    expectedImage: "postgres:16",
+    inspect: {
+      ...baseInspect,
+      container: {
+        ...baseInspect.container,
+        Config: {
+          ...baseInspect.container?.Config,
+          Labels: {
+            ...baseInspect.container?.Config?.Labels,
+            "clariobase.epic": undefined
+          }
+        }
+      }
+    }
+  }), /missing E021 label/);
+
+  assert.throws(() => validateOwnedRuntimeSnapshot({
+    runId: "e021-t002-test",
+    hostPort: 54321,
+    expectedImage: "postgres:16",
+    inspect: {
+      ...baseInspect,
+      container: {
+        ...baseInspect.container,
+        Config: {
+          ...baseInspect.container?.Config,
+          Labels: {
+            ...baseInspect.container?.Config?.Labels,
+            task: undefined
+          }
+        }
+      }
+    }
+  }), /missing T002 label/);
+
+  assert.throws(() => validateOwnedRuntimeSnapshot({
+    runId: "e021-t002-test",
+    hostPort: 54321,
+    expectedImage: "postgres:16",
+    inspect: {
+      ...baseInspect,
+      manifest: {
+        ...baseInspect.manifest,
+        runId: "wrong-run"
+      }
+    }
+  }), /manifest\/container mismatch/);
 });
 
 test("failed verification paths still invoke cleanup through process-exit hooks", async () => {

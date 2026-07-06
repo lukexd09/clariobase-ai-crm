@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
@@ -18,6 +19,37 @@ type FixtureState = {
   businessName: string;
 };
 
+export function createFixtureState(runId: string): FixtureState {
+  assert.ok(runId, "E2E_RUN_ID must be provided by the managed E2E runtime");
+
+  return {
+    runId,
+    leadId: `lead_${runId}`,
+    customerId: `e2e-${runId}`,
+    source: "E2E_PLAYWRIGHT",
+    sourceRecordId: runId,
+    businessName: `E2E Synthetic ${runId}`
+  };
+}
+
+export function isOwnedFixtureRow(
+  row: Pick<FixtureState, "customerId" | "source" | "sourceRecordId" | "businessName">,
+  state: FixtureState
+) {
+  return (
+    row.customerId === state.customerId
+    && row.source === state.source
+    && row.sourceRecordId === state.sourceRecordId
+    && row.businessName === state.businessName
+  );
+}
+
+export function fixtureCleanupFilter(runId: string) {
+  return {
+    customerId: `e2e-${runId}`
+  };
+}
+
 function getPrisma() {
   assert.ok(process.env.DATABASE_URL, "DATABASE_URL must be provided by the managed E2E runtime");
   return new PrismaClient({
@@ -28,15 +60,7 @@ function getPrisma() {
 
 function getState(): FixtureState {
   const runId = process.env.E2E_RUN_ID;
-  assert.ok(runId, "E2E_RUN_ID must be provided by the managed E2E runtime");
-  return {
-    runId,
-    leadId: `lead_${runId}`,
-    customerId: `e2e-${runId}`,
-    source: "E2E_PLAYWRIGHT",
-    sourceRecordId: runId,
-    businessName: `E2E Synthetic ${runId}`
-  };
+  return createFixtureState(runId ?? "");
 }
 
 async function setup() {
@@ -54,7 +78,7 @@ async function setup() {
 
     if (existing.length === 1) {
       const record = existing[0];
-      if (record.customerId !== state.customerId || record.businessName !== state.businessName) {
+      if (!isOwnedFixtureRow(record, state)) {
         throw new Error("Stale fixture owned by another run was detected.");
       }
       fs.writeFileSync(statePath, JSON.stringify(state, null, 2));
@@ -112,11 +136,7 @@ async function cleanup() {
   const prisma = getPrisma();
 
   try {
-    await prisma.lead.deleteMany({
-      where: {
-        customerId: state.customerId
-      }
-    });
+    await prisma.lead.deleteMany({ where: fixtureCleanupFilter(state.runId) });
     const remaining = await prisma.lead.findFirst({
       where: {
         customerId: state.customerId
@@ -129,7 +149,7 @@ async function cleanup() {
   }
 }
 
-async function main() {
+export async function main() {
   const mode = process.argv[2];
   if (mode === "setup") return setup();
   if (mode === "verify") return verify();
@@ -137,7 +157,9 @@ async function main() {
   throw new Error("Usage: pnpm e2e:fixture <setup|verify|cleanup>");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

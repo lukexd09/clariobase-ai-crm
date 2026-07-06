@@ -27,6 +27,26 @@ export type DockerOwnershipSnapshot = {
   nextPid?: number;
   hostPort?: number;
 };
+export type DockerInspectCandidate = {
+  container?: {
+    Config?: {
+      Image?: string;
+      Labels?: Record<string, string | undefined>;
+    };
+    NetworkSettings?: {
+      Networks?: Record<string, unknown>;
+    };
+    HostConfig?: {
+      PortBindings?: Record<string, unknown>;
+    };
+  };
+  manifest?: {
+    runId?: string;
+    containerName?: string;
+    networkName?: string;
+    hostPort?: number;
+  };
+};
 type CleanupTask = {
   label: string;
   run: () => void;
@@ -757,6 +777,60 @@ export function inspectRunOwnership(snapshot: DockerOwnershipSnapshot) {
     manifestExists,
     nextPid: snapshot.nextPid ?? null,
     hostPort: snapshot.hostPort ?? null
+  };
+}
+
+export function validateOwnedRuntimeSnapshot(input: {
+  runId: string;
+  hostPort: number;
+  expectedImage?: string;
+  inspect: DockerInspectCandidate;
+}) {
+  const image = input.inspect.container?.Config?.Image;
+  const labels = input.inspect.container?.Config?.Labels ?? {};
+  const containerNetworkNames = Object.keys(input.inspect.container?.NetworkSettings?.Networks ?? {});
+  const portBindings = input.inspect.container?.HostConfig?.PortBindings ?? {};
+  const manifest = input.inspect.manifest ?? {};
+
+  if (image && input.expectedImage && image !== input.expectedImage) {
+    throw new Error("unexpected postgres image");
+  }
+  if (labels["clariobase.epic"] !== "E021") {
+    throw new Error("missing E021 label");
+  }
+  if (labels["task"] !== "T002") {
+    throw new Error("missing T002 label");
+  }
+  if (labels["run-id"] !== input.runId) {
+    throw new Error("wrong run ID label");
+  }
+  if (labels["com.docker.compose.project"] === PROTECTED_DOCKER_PROJECT || labels["com.docker.compose.project"] === PROTECTED_DOCKER_PROJECT + "-crm") {
+    throw new Error("protected clariobase-crm identity");
+  }
+  if (containerNetworkNames.length === 0 || !containerNetworkNames.some((name) => name === `${input.runId}-network`)) {
+    throw new Error("wrong network ownership");
+  }
+  if (!portBindings["5432/tcp"] && input.hostPort) {
+    throw new Error("wrong inspected host port");
+  }
+  if (manifest.runId && manifest.runId !== input.runId) {
+    throw new Error("manifest/container mismatch");
+  }
+  if (manifest.containerName && manifest.containerName !== `${input.runId}-postgres`) {
+    throw new Error("manifest/container mismatch");
+  }
+  if (manifest.networkName && manifest.networkName !== `${input.runId}-network`) {
+    throw new Error("manifest/container mismatch");
+  }
+  if (manifest.hostPort && manifest.hostPort !== input.hostPort) {
+    throw new Error("wrong inspected host port");
+  }
+  return {
+    image,
+    labels,
+    containerNetworkNames,
+    portBindings,
+    manifest
   };
 }
 

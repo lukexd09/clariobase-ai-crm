@@ -18,7 +18,18 @@ import {
 test("playwright guard accepts localhost and rejects protected production targets", () => {
   assert.equal(assertSafePlaywrightTarget("http://127.0.0.1:3011"), "http://127.0.0.1:3011/");
   assert.equal(assertSafePlaywrightTarget("http://localhost:3011"), "http://localhost:3011/");
-  for (const target of ["http://Serwer:3000", "http://Serwer:3001", "http://localhost:3000", "http://127.0.0.1:3000"]) {
+  for (const target of [
+    "http://Serwer:3000",
+    "http://Serwer:3001",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "https://127.0.0.1:3011",
+    "http://user:pass@127.0.0.1:3011",
+    "http://127.0.0.1:3011/?a=1",
+    "http://127.0.0.1:3011/#x",
+    "http://127.0.0.1:3011/path"
+  ]) {
     assert.throws(() => assertSafePlaywrightTarget(target));
   }
 });
@@ -79,9 +90,17 @@ test("runtime manifest and database safety are validated", () => {
     "postgresql://127.0.0.1:54321/clariobase_e021_t002_abc123?schema=public"
   );
 
-  assert.throws(() => resolveE2ERuntimeContract({} as NodeJS.ProcessEnv), /must be local-proof/i);
-  assert.throws(
-    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", DATABASE_URL: "postgresql://localhost:5432/clariobase_crm?schema=public" } as NodeJS.ProcessEnv),
-    /disposable local PostgreSQL run/i
-  );
+  const assertRejected = (env: NodeJS.ProcessEnv, pattern: RegExp) => {
+    try {
+      resolveE2ERuntimeContract(env);
+      assert.fail(`Expected rejection matching ${pattern}`);
+    } catch (error) {
+      assert.match(String(error), pattern);
+    }
+  };
+
+  assertRejected({}, /must be local-proof/i);
+  assertRejected({ CLARIOBASE_E2E_RUNTIME: "local-proof", DATABASE_URL: "postgresql://localhost:5432/clariobase_crm?schema=public" } as NodeJS.ProcessEnv, /disposable local PostgreSQL run/i);
+  assertRejected({ CLARIOBASE_E2E_RUNTIME: "wrong-marker", DATABASE_URL: "postgresql://127.0.0.1:54321/clariobase_e021_t002_abc123?schema=public" } as NodeJS.ProcessEnv, /must be local-proof/i);
+  assertRejected({ CLARIOBASE_E2E_RUNTIME: "local-proof", DATABASE_URL: "postgresql://127.0.0.1:54321/clariobase_crm?schema=public" } as NodeJS.ProcessEnv, /disposable local PostgreSQL run/i);
 });
