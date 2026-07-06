@@ -48,14 +48,36 @@ Adopt Better Auth `1.6.23` with `@better-auth/prisma-adapter@1.6.23` for the pro
 - Canonical snapshot conformance: PASS
 - Raw Better Auth CLI schema equivalence: FAIL
 - CLI accepted as canonical generator: NO
-- Immutable image execution by digest: NOT YET EXECUTED
-- Overall E011.T008 verdict: CHANGES REQUIRED
+- Immutable proof image build: PASS
+- Immutable image execution by content identifier: PASS
+- Image archive checksum verification: PASS
+- Image removal and restore: PASS
+- Restored immutable image execution: PASS
+- External network isolation: PASS
+- Secret scan: PASS
+- Cleanup: PASS
+- Overall E011.T008 technical proof verdict: GO
 - CLI mismatch includes different model casing.
 - CLI mismatch includes different `@@map` shape.
 - CLI mismatch includes legacy `datasource url`.
 - CLI mismatch includes a different schema shape.
 - Runtime Better Auth writes `session.ipAddress` and `session.userAgent`.
 - Therefore raw CLI output is not automatically accepted as migration source or canonical schema.
+
+## Final proof evidence
+
+- helper commit: `d858a210019dfccc89d0b7c609d70085b8d55425`
+- proof image ID: `sha256:550a5aad9edc343abf28453a937c52564ea9acf0389e4c09f43f47b341c216ed`
+- restored image ID: `sha256:550a5aad9edc343abf28453a937c52564ea9acf0389e4c09f43f47b341c216ed`
+- image archive SHA-256: `0C99A22C6846419D9216867738381DD76C4F000F29DA0D3888E68009B9C7A086`
+- helper git hash-object: `6bde79aad3976f0f66d88b93f49216c00a382baa`
+- helper SHA-256: `832F5FEC4E6F092AF59A12A4E86C3B59811A53B72934EB01C983D70CD1C47FD1`
+- tsc: PASS
+- prisma:validate: PASS
+- lint: PASS
+- git diff --check: PASS
+- working tree after helper commit: clean
+- Docker resources after proof: no remaining E011 proof containers, networks or volumes
 
 ## Verdict
 
