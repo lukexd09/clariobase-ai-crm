@@ -10,28 +10,20 @@ import {
   createRuntimeManifest,
   createRuntimeRunId,
   resolvePlaywrightBaseUrl,
-  resolveSelectedArea,
   validateRuntimeManifest
 } from "./e2e-guard";
+import { buildPlaywrightGrepForMode, resolveE2EArea, resolveE2EMode } from "./e2e-command";
 
 const repoRoot = path.resolve(__dirname, "..");
 const tmpRoot = path.join(repoRoot, ".codex-tmp");
-const mode = process.argv[2];
+const mode = resolveE2EMode(process.argv[2]);
 const appBaseUrl = resolvePlaywrightBaseUrl(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3011");
 const runtimeRunId = createRuntimeRunId();
 
 assertNoProductionTargetInRepo(repoRoot);
 
-if (!["smoke", "area", "full"].includes(mode ?? "")) {
-  throw new Error(`Unknown E2E mode: ${mode ?? "<missing>"}`);
-}
-
-const selectedArea = mode === "area" ? resolveSelectedArea(process.argv[3] ?? process.env.E2E_AREA) : undefined;
-const grepByMode: Record<string, string> = {
-  smoke: "@smoke",
-  area: `@area:${selectedArea ?? ""}`,
-  full: ""
-};
+const selectedArea = mode === "area" ? resolveE2EArea(process.argv[3] ?? process.env.E2E_AREA) : undefined;
+const grep = buildPlaywrightGrepForMode(mode, selectedArea);
 
 const cleanupLog: string[] = [];
 let postgres: ChildProcess | undefined;
@@ -198,7 +190,7 @@ async function main() {
     await pauseBeforePlaywright();
 
     const playwrightCli = path.join(repoRoot, "node_modules", "@playwright", "test", "cli.js");
-    const playwrightArgs = ["test", ...(grepByMode[mode] ? ["--grep", grepByMode[mode]] : [])];
+    const playwrightArgs = ["test", ...(grep ? ["--grep", grep] : [])];
     const playwright = spawnSync(process.execPath, [playwrightCli, ...playwrightArgs], {
       cwd: repoRoot,
       stdio: "inherit",

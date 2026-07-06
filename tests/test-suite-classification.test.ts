@@ -9,6 +9,10 @@ function extractTestFiles(command: string) {
   return [...command.matchAll(/tests\/[A-Za-z0-9._/-]+\.test\.ts/g)].map((match) => match[0]);
 }
 
+function extractSpecFiles(command: string) {
+  return [...command.matchAll(/tests\/e2e\/[A-Za-z0-9._/-]+\.spec\.ts/g)].map((match) => match[0]);
+}
+
 test("every test file belongs to exactly one fast or infrastructure suite", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
     scripts: Record<string, string>;
@@ -45,4 +49,29 @@ test("every test file belongs to exactly one fast or infrastructure suite", () =
   assert.ok(infraTests.includes("tests/github-actions-preview.test.ts"));
   assert.ok(infraTests.includes("tests/compose-backup-restore.test.ts"));
   assert.ok(infraTests.includes("tests/light-density-route-contracts.test.ts"));
+});
+
+test("browser specs are classified and tagged with one area and one suite tag", () => {
+  const specFiles = fs.readdirSync(path.join(repoRoot, "tests", "e2e"))
+    .filter((name) => name.endsWith(".spec.ts"))
+    .map((name) => `tests/e2e/${name}`)
+    .sort();
+  const specSource = specFiles.map((file) => [file, fs.readFileSync(path.join(repoRoot, file), "utf8")] as const);
+
+  assert.deepEqual(extractSpecFiles(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")), []);
+  assert.deepEqual(specFiles, ["tests/e2e/smoke.spec.ts"]);
+
+  for (const [file, source] of specSource) {
+    const titles = [...source.matchAll(/test\("([^"]+)"/g)].map((match) => match[1]);
+    assert.ok(titles.length > 0, `${file} should define at least one test`);
+    for (const title of titles) {
+      const areaTags = title.match(/@area:[A-Za-z0-9_-]+/g) ?? [];
+      const suiteTags = title.match(/@(smoke|regression)(?![A-Za-z0-9_-])/g) ?? [];
+
+      assert.equal(areaTags.length, 1, `${file} must include exactly one @area tag: ${title}`);
+      assert.equal(suiteTags.length, 1, `${file} must include exactly one suite tag: ${title}`);
+      assert.doesNotMatch(title, /@smoke-extra/);
+      assert.doesNotMatch(title, /@area:[A-Za-z0-9_-]+-extra/);
+    }
+  }
 });

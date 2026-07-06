@@ -5,6 +5,10 @@ import path from "node:path";
 import process from "node:process";
 
 export const DISPOSABLE_RUNTIME_PREFIX = "clariobase-e014-runtime-";
+export const E021_E2E_DOCKER_LABELS = {
+  epic: "clariobase.epic=E021",
+  task: "task=T002"
+} as const;
 export const PROTECTED_DOCKER_PROJECT = "clariobase-crm";
 export const VERIFY_IMAGE_TAG_PREFIX = `clariobase-ai-crm:test-verify-${DISPOSABLE_RUNTIME_PREFIX}`;
 
@@ -248,6 +252,14 @@ export function createDockerRunId(scope: string) {
     .replace(/^-+|-+$/g, "");
 
   return `${DISPOSABLE_RUNTIME_PREFIX}${normalizedScope}-${process.pid}-${Date.now()}`;
+}
+
+export function buildE021T002RuntimeLabels(runId: string) {
+  return [
+    E021_E2E_DOCKER_LABELS.epic,
+    E021_E2E_DOCKER_LABELS.task,
+    `run-id=${runId}`
+  ];
 }
 
 export function createRuntimeArtifactName(scope: string) {

@@ -1,20 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-
-const repoRoot = path.resolve(__dirname, "..");
-
-function select(command: string, args: string[]) {
-  if (command === "smoke") return ["test", "--grep", "@smoke"];
-  if (command === "full") return ["test"];
-  if (command === "area") {
-    assert.ok(args[0], "area selection requires a known area");
-    assert.ok(!args[1], "area selection accepts exactly one area argument");
-    return ["test", "--grep", `@area:${args[0]}`];
-  }
-  throw new Error("unsupported command");
-}
+import { buildPlaywrightGrepForMode, resolveE2EArea, resolveE2EMode } from "../scripts/e2e-command";
 
 function hasExactTag(text: string, tag: string) {
   const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -22,13 +8,21 @@ function hasExactTag(text: string, tag: string) {
 }
 
 test("e2e command selection maps smoke, area, and full correctly", () => {
-  assert.deepEqual(select("smoke", []), ["test", "--grep", "@smoke"]);
-  assert.deepEqual(select("area", ["dashboard"]), ["test", "--grep", "@area:dashboard"]);
-  assert.deepEqual(select("area", ["leads"]), ["test", "--grep", "@area:leads"]);
-  assert.deepEqual(select("full", []), ["test"]);
-  assert.throws(() => select("area", []), /area selection requires a known area/);
-  assert.throws(() => select("area", ["dashboard", "extra"]), /accepts exactly one area argument/);
-  assert.throws(() => select("unknown", []), /unsupported command/);
+  assert.equal(resolveE2EMode("smoke"), "smoke");
+  assert.equal(resolveE2EMode("area"), "area");
+  assert.equal(resolveE2EMode("full"), "full");
+  assert.throws(() => resolveE2EMode(undefined), /Unknown E2E mode/);
+  assert.throws(() => resolveE2EMode("unknown"), /Unknown E2E mode/);
+
+  assert.equal(resolveE2EArea("dashboard"), "dashboard");
+  assert.equal(resolveE2EArea(" leads "), "leads");
+  assert.throws(() => resolveE2EArea(undefined), /required/);
+  assert.throws(() => resolveE2EArea("unknown"), /Unknown E2E area/);
+
+  assert.equal(buildPlaywrightGrepForMode("smoke"), String.raw`(?<![A-Za-z0-9_-])@smoke(?![A-Za-z0-9_-])`);
+  assert.equal(buildPlaywrightGrepForMode("area", "dashboard"), String.raw`(?<![A-Za-z0-9_-])@area:dashboard(?![A-Za-z0-9_-])`);
+  assert.equal(buildPlaywrightGrepForMode("area", "leads"), String.raw`(?<![A-Za-z0-9_-])@area:leads(?![A-Za-z0-9_-])`);
+  assert.equal(buildPlaywrightGrepForMode("full"), "");
 });
 
 test("e2e command and tag semantics stay exact", () => {

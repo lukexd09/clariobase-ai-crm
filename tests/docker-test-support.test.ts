@@ -10,6 +10,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import {
   cleanupDisposableTempArtifacts,
+  buildE021T002RuntimeLabels,
   createCleanupController,
   createVerificationFailure,
   inspectRunOwnership,
@@ -148,6 +149,14 @@ test("cleanup planning removes only approved disposable resources and protects c
   assert.deepEqual(plan.skipUnrelated, [
     "postgres",
     "shared-network"
+  ]);
+});
+
+test("E021.T002 runtime labels are canonical and shared", () => {
+  assert.deepEqual(buildE021T002RuntimeLabels("e021-t002-run-123"), [
+    "clariobase.epic=E021",
+    "task=T002",
+    "run-id=e021-t002-run-123"
   ]);
 });
 
