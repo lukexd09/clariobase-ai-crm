@@ -15,7 +15,7 @@
 - PostgreSQL image: `postgres:16`
 - App URL: `http://127.0.0.1:3011`
 - Database URL: constructed only by the project-owned E2E runtime
-- Ownership marker: synthetic `E2E_PLAYWRIGHT` source plus run-scoped IDs
+- Ownership marker: canonical Docker labels `clariobase.epic=E021`, `task=T002`, and `run-id=<runId>`
 
 ## Fixture Rules
 
@@ -35,16 +35,14 @@
 
 ## Verified Results
 
-- `pnpm exec tsx --test tests/docker-test-support.test.ts tests/e2e-guard.test.ts tests/e2e-commands.test.ts tests/test-suite-classification.test.ts`: PASS
+- `pnpm exec tsx --test tests/e2e-commands.test.ts tests/e2e-guard.test.ts tests/test-suite-classification.test.ts tests/docker-test-support.test.ts tests/e2e-fixture-negative.test.ts`: PASS
 - `pnpm exec tsx --test tests/docs-sanity.test.ts tests/runtime-docs-sanity.test.ts`: PASS
 - `pnpm cleanup:test-runtime`: PASS
 - `pnpm test:e2e:smoke`: PASS
-- five consecutive smoke runs: PASS
 - `pnpm test:e2e:area -- dashboard`: PASS
 - `pnpm test:e2e:area -- leads`: PASS
 - `pnpm test:e2e:full`: PASS
 - Docker unavailable negative run with `DOCKER_HOST=tcp://127.0.0.1:1` against `pnpm test:e2e:smoke`: EXPECTED FAILURE
-- Restored normal environment and re-ran `pnpm test:e2e:smoke`: PASS
 - forced-termination recovery proof: PASS
 - controlled browser failure proof: PASS
 - artifact inspection: PASS
@@ -53,12 +51,19 @@
 - final `pnpm test:e2e:area -- dashboard`: PASS
 - final `pnpm test:e2e:area -- leads`: PASS
 - final `pnpm test:e2e:full`: PASS
+- `pnpm install --frozen-lockfile`: PASS
+- `pnpm prisma:validate`: PASS
+- `pnpm prisma:generate`: PASS
+- `pnpm lint`: PASS
+- `pnpm test:fast`: PASS
+- `pnpm build`: PASS
+- `git diff --check`: PASS
 
 ## Negative Matrices
 
 - Command/classification negative matrix: PASS
   - Covered by `tests/e2e-commands.test.ts`, `tests/e2e-guard.test.ts`, and `tests/test-suite-classification.test.ts`.
-  - Includes exact command selection, missing/unknown mode, missing/unknown area, unsafe extra area arg, exact `@smoke` semantics, `@smoke-extra` non-match, and suite classification.
+  - Includes exact command selection, missing/unknown mode, missing/unknown area, extra-argument rejection, exact `@smoke` semantics, `@smoke-extra` non-match, and suite classification.
 - Target/runtime negative matrix: PASS
   - Covered by `tests/e2e-guard.test.ts`.
   - Includes protected hostnames, `http`-only target checks, credentials, query strings, fragments, non-root paths, missing runtime marker, wrong runtime marker, and occupied `127.0.0.1:3011` command failure.
@@ -82,6 +87,7 @@
 - The Docker-unavailable path failed before Playwright execution and returned a clear Docker connection error.
 - The forced-termination proof used a test-only pause hook, then a manifest-driven recovery script inspected ownership before cleanup.
 - The controlled browser failure produced screenshot, video, trace, and error-context artifacts and then cleaned the runtime.
+- `cleanup:test-runtime` removed the E021 fixture temp entry and left no `.codex-tmp` residue after the normal cleanup proof.
 
 ## Forced-Termination Recovery
 
@@ -122,13 +128,6 @@
 
 ## Final Validation
 
-- `pnpm install --frozen-lockfile`: PASS
-- `pnpm prisma:validate`: PASS
-- `pnpm prisma:generate`: PASS
-- `pnpm lint`: PASS
-- `pnpm test:fast`: PASS
-- `pnpm build`: PASS
-- `git diff --check`: PASS
 - Final `pnpm test:e2e:smoke`: PASS
 - Final `pnpm test:e2e:area -- dashboard`: PASS
 - Final `pnpm test:e2e:area -- leads`: PASS

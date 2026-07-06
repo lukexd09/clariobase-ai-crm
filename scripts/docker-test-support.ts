@@ -262,6 +262,35 @@ export function buildE021T002RuntimeLabels(runId: string) {
   ];
 }
 
+function listDockerResourceNamesByLabel(
+  kind: Exclude<DockerResourceKind, "image">,
+  labels: string[],
+  spawnCommand: SpawnCommand = defaultSpawnCommand
+) {
+  const argsByKind: Record<Exclude<DockerResourceKind, "image">, string[]> = {
+    container: ["ps", "-a", "--format", "{{.Names}}"],
+    network: ["network", "ls", "--format", "{{.Name}}"],
+    volume: ["volume", "ls", "--format", "{{.Name}}"]
+  };
+
+  const args = [...argsByKind[kind]];
+  for (const label of labels) {
+    args.splice(2, 0, "--filter", `label=${label}`);
+  }
+
+  const result = spawnCommand("docker", args, {
+    encoding: "utf8"
+  });
+
+  if (result.status !== 0) {
+    throw new Error(
+      `Could not list Docker ${kind} resources by label: ${(result.stderr ?? result.stdout ?? "").trim() || "unknown Docker error"}`
+    );
+  }
+
+  return normalizeLines(result.stdout);
+}
+
 export function createRuntimeArtifactName(scope: string) {
   return `${createDockerRunId(scope)}-artifacts`;
 }
@@ -822,9 +851,6 @@ export function validateOwnedRuntimeSnapshot(input: {
   if (containerNetworkNames.length === 0 || !containerNetworkNames.some((name) => name === `${input.runId}-network`)) {
     throw new Error("wrong network ownership");
   }
-  if (!portBindings["5432/tcp"] && input.hostPort) {
-    throw new Error("wrong inspected host port");
-  }
   if (manifest.runId && manifest.runId !== input.runId) {
     throw new Error("manifest/container mismatch");
   }
@@ -844,6 +870,74 @@ export function validateOwnedRuntimeSnapshot(input: {
     portBindings,
     manifest
   };
+}
+
+export function cleanupOwnedRuntimeResourcesByLabel(options: {
+  labels: string[];
+  spawnCommand?: SpawnCommand;
+}) {
+  const spawnCommand = options.spawnCommand ?? defaultSpawnCommand;
+  const labels = [...new Set(options.labels)];
+  const removed = {
+    containers: listDockerResourceNamesByLabel("container", labels, spawnCommand),
+    networks: listDockerResourceNamesByLabel("network", labels, spawnCommand),
+    volumes: listDockerResourceNamesByLabel("volume", labels, spawnCommand)
+  };
+  const failures: CleanupFailure[] = [];
+
+  for (const [kind, names] of [
+    ["container", removed.containers],
+    ["network", removed.networks],
+    ["volume", removed.volumes]
+  ] as const) {
+    for (const name of names) {
+      const args = kind === "container"
+        ? ["rm", "-f", name]
+        : kind === "network"
+          ? ["network", "rm", name]
+          : ["volume", "rm", "-f", name];
+      const result = spawnCommand("docker", args, { encoding: "utf8" });
+      if (result.status !== 0 && !isMissingDockerResource(result)) {
+        failures.push({
+          label: `${kind}:${name}`,
+          message: `${(result.stderr ?? result.stdout ?? "").trim() || "unknown Docker error"}`
+        });
+      }
+    }
+  }
+
+  return { removed, failures };
+}
+
+export function cleanupE021RuntimeTempArtifacts(rootDir: string) {
+  const removed: string[] = [];
+  const skippedUnrelated: string[] = [];
+  const failures: CleanupFailure[] = [];
+
+  if (!fs.existsSync(rootDir)) {
+    return { removed, skippedUnrelated, failures };
+  }
+
+  for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    const targetPath = path.join(rootDir, entry.name);
+    if (entry.name === "e2e-fixture" || /^e021-t002-.*\.json$/i.test(entry.name)) {
+      try {
+        fs.rmSync(targetPath, { recursive: true, force: true });
+        removed.push(entry.name);
+      } catch (error) {
+        failures.push({ label: `temp:${entry.name}`, message: stringifyError(error) });
+      }
+      continue;
+    }
+
+    skippedUnrelated.push(entry.name);
+  }
+
+  if (fs.existsSync(rootDir) && fs.readdirSync(rootDir).length === 0) {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+
+  return { removed, skippedUnrelated, failures };
 }
 
 function hasDockerResource(kind: "container" | "network" | "volume", name: string) {

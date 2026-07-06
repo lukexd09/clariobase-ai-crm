@@ -12,17 +12,19 @@ import {
   resolvePlaywrightBaseUrl,
   validateRuntimeManifest
 } from "./e2e-guard";
-import { buildPlaywrightGrepForMode, resolveE2EArea, resolveE2EMode } from "./e2e-command";
+import { buildPlaywrightGrepForMode, type E2EMode, parseE2ECommandArgs } from "./e2e-command";
+import { buildE021T002RuntimeLabels, validateOwnedRuntimeSnapshot } from "./docker-test-support";
 
 const repoRoot = path.resolve(__dirname, "..");
 const tmpRoot = path.join(repoRoot, ".codex-tmp");
-const mode = resolveE2EMode(process.argv[2]);
+const parsedArgs = parseE2ECommandArgs(process.argv.slice(2));
+const mode: E2EMode = parsedArgs.mode;
 const appBaseUrl = resolvePlaywrightBaseUrl(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3011");
 const runtimeRunId = createRuntimeRunId();
 
 assertNoProductionTargetInRepo(repoRoot);
 
-const selectedArea = mode === "area" ? resolveE2EArea(process.argv[3] ?? process.env.E2E_AREA) : undefined;
+const selectedArea = parsedArgs.area;
 const grep = buildPlaywrightGrepForMode(mode, selectedArea);
 
 const cleanupLog: string[] = [];
@@ -30,6 +32,8 @@ let postgres: ChildProcess | undefined;
 let nextApp: ChildProcess | undefined;
 let hostPort = 0;
 let databaseUrl = "";
+let cleanupError: Error | undefined;
+const runtimeLabels = buildE021T002RuntimeLabels(runtimeRunId);
 let manifest = validateRuntimeManifest(createRuntimeManifest({
   runId: runtimeRunId,
   containerName: `${runtimeRunId}-postgres`,
@@ -118,6 +122,7 @@ function startPostgres() {
 }
 
 async function main() {
+  let mainError: unknown;
   if (!(await freePort(3011))) {
     throw new Error("Port 3011 is occupied");
   }
@@ -148,9 +153,9 @@ async function main() {
       "run",
       "-d",
       "--name", containerName,
-      "--label", `clariobase=e021`,
-      "--label", `task=t002`,
-      "--label", `run-id=${manifest.runId}`,
+      "--label", runtimeLabels[0],
+      "--label", runtimeLabels[1],
+      "--label", runtimeLabels[2],
       "--network", networkName,
       "-p", `127.0.0.1:${hostPort}:5432`,
       "-e", "POSTGRES_DB=" + manifest.databaseName,
@@ -161,13 +166,18 @@ async function main() {
 
     const inspect = docker(["inspect", containerName]);
     ensureSuccess(inspect, "docker inspect postgres");
-    const container = JSON.parse(inspect.stdout)[0];
-    if (container.Config.Image !== "postgres:16") {
-      throw new Error("unexpected postgres image");
-    }
-    if (container.Config.Labels["run-id"] !== manifest.runId) {
-      throw new Error("missing run ownership label");
-    }
+    validateOwnedRuntimeSnapshot({
+      runId: manifest.runId,
+      hostPort,
+      expectedImage: "postgres:16",
+      inspect: {
+        container: JSON.parse(inspect.stdout)[0],
+        manifest: {
+          ...manifest,
+          hostPort
+        }
+      }
+    });
 
     await waitForPostgres(containerName);
 
@@ -202,6 +212,8 @@ async function main() {
     }
 
     cleanupLog.push("playwright-success");
+  } catch (error) {
+    mainError = error;
   } finally {
     if (nextApp?.pid) {
       try {
@@ -210,18 +222,25 @@ async function main() {
         // best effort
       }
     }
-    docker(["rm", "-f", containerName]);
-    docker(["network", "rm", networkName]);
     try {
       await run(process.execPath, ["./node_modules/tsx/dist/cli.mjs", "scripts/e2e-fixture.ts", "cleanup"], { env: childEnv });
-    } catch {
-      // cleanup best effort
+    } catch (error) {
+      cleanupError = error instanceof Error ? error : new Error(String(error));
     }
+    docker(["rm", "-f", containerName]);
+    docker(["network", "rm", networkName]);
     fs.rmSync(manifestPath, { force: true });
     const freeAgain = await freePort(3011);
     if (!freeAgain) {
       throw new Error("Port 3011 remained occupied after cleanup");
     }
+    if (cleanupError && !mainError) {
+      throw cleanupError;
+    }
+  }
+
+  if (mainError) {
+    throw mainError;
   }
 }
 

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildPlaywrightGrepForMode, resolveE2EArea, resolveE2EMode } from "../scripts/e2e-command";
+import { buildPlaywrightGrepForMode, parseE2ECommandArgs, resolveE2EArea, resolveE2EMode } from "../scripts/e2e-command";
 
 function hasExactTag(text: string, tag: string) {
   const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -18,6 +18,13 @@ test("e2e command selection maps smoke, area, and full correctly", () => {
   assert.equal(resolveE2EArea(" leads "), "leads");
   assert.throws(() => resolveE2EArea(undefined), /required/);
   assert.throws(() => resolveE2EArea("unknown"), /Unknown E2E area/);
+  assert.deepEqual(parseE2ECommandArgs(["smoke"]), { mode: "smoke" });
+  assert.deepEqual(parseE2ECommandArgs(["full"]), { mode: "full" });
+  assert.deepEqual(parseE2ECommandArgs(["area", "dashboard"]), { mode: "area", area: "dashboard" });
+  assert.deepEqual(parseE2ECommandArgs(["area", "leads"]), { mode: "area", area: "leads" });
+  assert.throws(() => parseE2ECommandArgs(["smoke", "extra"]), /does not accept extra arguments/);
+  assert.throws(() => parseE2ECommandArgs(["full", "extra"]), /does not accept extra arguments/);
+  assert.throws(() => parseE2ECommandArgs(["area", "dashboard", "extra"]), /accepts exactly one area argument/);
 
   assert.equal(buildPlaywrightGrepForMode("smoke"), String.raw`(?<![A-Za-z0-9_-])@smoke(?![A-Za-z0-9_-])`);
   assert.equal(buildPlaywrightGrepForMode("area", "dashboard"), String.raw`(?<![A-Za-z0-9_-])@area:dashboard(?![A-Za-z0-9_-])`);

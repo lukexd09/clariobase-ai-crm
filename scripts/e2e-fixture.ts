@@ -134,6 +134,9 @@ async function verify() {
 
 async function cleanup() {
   if (!fs.existsSync(statePath)) {
+    if (fs.existsSync(runtimeRoot) && fs.readdirSync(runtimeRoot).length === 0) {
+      fs.rmSync(runtimeRoot, { recursive: true, force: true });
+    }
     return;
   }
 
@@ -149,6 +152,9 @@ async function cleanup() {
     });
     assert.equal(remaining, null);
     fs.rmSync(statePath, { force: true });
+    if (fs.existsSync(runtimeRoot) && fs.readdirSync(runtimeRoot).length === 0) {
+      fs.rmSync(runtimeRoot, { recursive: true, force: true });
+    }
   } finally {
     await prisma.$disconnect();
   }

@@ -3,9 +3,12 @@ import path from "node:path";
 import process from "node:process";
 
 import {
+  cleanupOwnedRuntimeResourcesByLabel,
+  cleanupE021RuntimeTempArtifacts,
   cleanupDisposableTempArtifacts,
   cleanupDisposableResourcesByPrefix,
   DISPOSABLE_RUNTIME_PREFIX,
+  E021_E2E_DOCKER_LABELS,
   formatCleanupFailures,
   hasDocker,
   PROTECTED_DOCKER_PROJECT,
@@ -24,6 +27,10 @@ function main() {
   let removedNetworks: string[] = [];
   let removedVolumes: string[] = [];
   let removedImages: string[] = [];
+  let removedE021Containers: string[] = [];
+  let removedE021Networks: string[] = [];
+  let removedE021Volumes: string[] = [];
+  let removedE021TempEntries: string[] = [];
   let protectedResourcesEncountered = false;
 
   if (dockerAvailable) {
@@ -56,6 +63,24 @@ function main() {
     dockerCleanupStatus = "SKIPPED";
   }
 
+  const e021Cleanup = dockerAvailable
+    ? cleanupOwnedRuntimeResourcesByLabel({
+      labels: [E021_E2E_DOCKER_LABELS.epic, E021_E2E_DOCKER_LABELS.task]
+    })
+    : { removed: { containers: [], networks: [], volumes: [] }, failures: [] as { label: string; message: string }[] };
+  removedE021Containers = e021Cleanup.removed.containers;
+  removedE021Networks = e021Cleanup.removed.networks;
+  removedE021Volumes = e021Cleanup.removed.volumes;
+  if (e021Cleanup.failures.length > 0) {
+    cleanupFailures.push(formatCleanupFailures(e021Cleanup.failures));
+  }
+
+  const e021TempReport = cleanupE021RuntimeTempArtifacts(tmpRoot);
+  removedE021TempEntries = e021TempReport.removed;
+  if (e021TempReport.failures.length > 0) {
+    cleanupFailures.push(formatCleanupFailures(e021TempReport.failures));
+  }
+
   const tempReport = cleanupDisposableTempArtifacts(tmpRoot);
   tempCleanupStatus = tempReport.failures.length > 0 ? "NOT EXECUTED" : "PASS";
 
@@ -69,6 +94,10 @@ function main() {
   console.log(`Removed networks: ${removedNetworks.length}`);
   console.log(`Removed volumes: ${removedVolumes.length}`);
   console.log(`Removed images: ${removedImages.length}`);
+  console.log(`Removed E021 containers: ${removedE021Containers.length}`);
+  console.log(`Removed E021 networks: ${removedE021Networks.length}`);
+  console.log(`Removed E021 volumes: ${removedE021Volumes.length}`);
+  console.log(`Removed E021 temp entries: ${removedE021TempEntries.length}`);
   console.log(`Removed .codex-tmp disposable entries: ${tempReport.removed.length}`);
   console.log(`Skipped unrelated .codex-tmp entries: ${tempReport.skippedUnrelated.length}`);
   console.log(`Removed .codex-tmp root: ${!fs.existsSync(tmpRoot)}`);

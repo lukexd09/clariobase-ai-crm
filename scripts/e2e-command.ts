@@ -39,3 +39,25 @@ export function buildPlaywrightGrepForMode(mode: E2EMode, area?: E2EArea) {
 
   return "";
 }
+
+export function parseE2ECommandArgs(argv: string[]): { mode: E2EMode; area?: E2EArea } {
+  const [rawMode, rawArea, ...extra] = argv;
+  const mode = resolveE2EMode(rawMode);
+
+  if (mode === "smoke" || mode === "full") {
+    if (rawArea) {
+      throw new Error(`${mode} mode does not accept extra arguments.`);
+    }
+    if (extra.length > 0) {
+      throw new Error(`${mode} mode does not accept extra arguments.`);
+    }
+    return { mode };
+  }
+
+  const area = resolveE2EArea(rawArea);
+  if (extra.length > 0) {
+    throw new Error("area mode accepts exactly one area argument.");
+  }
+
+  return { mode, area };
+}

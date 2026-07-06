@@ -9,6 +9,8 @@ import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 import {
+  cleanupE021RuntimeTempArtifacts,
+  cleanupOwnedRuntimeResourcesByLabel,
   cleanupDisposableTempArtifacts,
   buildE021T002RuntimeLabels,
   createCleanupController,
@@ -158,6 +160,46 @@ test("E021.T002 runtime labels are canonical and shared", () => {
     "task=T002",
     "run-id=e021-t002-run-123"
   ]);
+});
+
+test("E021 cleanup removes only owned runtime resources and temp residue", () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "clariobase-e021-cleanup-"));
+  const e021Manifest = path.join(tmpRoot, "e021-t002-run-123.json");
+  const unrelated = path.join(tmpRoot, "keep-me.txt");
+  fs.writeFileSync(e021Manifest, "{}", "utf8");
+  fs.writeFileSync(unrelated, "keep", "utf8");
+  fs.mkdirSync(path.join(tmpRoot, "e2e-fixture"));
+
+  const spawnCommand = (command: string, args: string[]) => {
+    if (command === "docker" && args[0] === "ps") {
+      return { status: 0, stdout: "e021-container\n", stderr: "" } as ReturnType<typeof spawnSync>;
+    }
+    if (command === "docker" && args[0] === "network" && args[1] === "ls") {
+      return { status: 0, stdout: "e021-network\n", stderr: "" } as ReturnType<typeof spawnSync>;
+    }
+    if (command === "docker" && args[0] === "volume" && args[1] === "ls") {
+      return { status: 0, stdout: "e021-volume\n", stderr: "" } as ReturnType<typeof spawnSync>;
+    }
+    return { status: 0, stdout: "", stderr: "" } as ReturnType<typeof spawnSync>;
+  };
+
+  const cleanup = cleanupOwnedRuntimeResourcesByLabel({
+    labels: ["clariobase.epic=E021", "task=T002"],
+    spawnCommand
+  });
+  const temp = cleanupE021RuntimeTempArtifacts(tmpRoot);
+
+  assert.deepEqual(cleanup.failures, []);
+  assert.deepEqual(cleanup.removed.containers, ["e021-container"]);
+  assert.deepEqual(cleanup.removed.networks, ["e021-network"]);
+  assert.deepEqual(cleanup.removed.volumes, ["e021-volume"]);
+  assert.deepEqual([...temp.removed].sort(), ["e021-t002-run-123.json", "e2e-fixture"]);
+  assert.deepEqual(temp.skippedUnrelated, ["keep-me.txt"]);
+  assert.equal(fs.existsSync(unrelated), true);
+  assert.equal(fs.existsSync(e021Manifest), false);
+  assert.equal(fs.existsSync(path.join(tmpRoot, "e2e-fixture")), false);
+
+  fs.rmSync(tmpRoot, { recursive: true, force: true });
 });
 
 test("temporary cleanup removes only approved .codex-tmp artifacts", () => {
@@ -544,6 +586,25 @@ test("owned runtime snapshot validation rejects mismatched synthetic ownership d
       }
     }
   }), /manifest\/container mismatch/);
+
+  assert.throws(() => validateOwnedRuntimeSnapshot({
+    runId: "e021-t002-test",
+    hostPort: 54321,
+    expectedImage: "postgres:16",
+    inspect: {
+      ...baseInspect,
+      container: {
+        ...baseInspect.container,
+        Config: {
+          ...baseInspect.container?.Config,
+          Labels: {
+            ...baseInspect.container?.Config?.Labels,
+            "clariobase.epic": "legacy"
+          }
+        }
+      }
+    }
+  }), /missing E021 label/);
 });
 
 test("failed verification paths still invoke cleanup through process-exit hooks", async () => {

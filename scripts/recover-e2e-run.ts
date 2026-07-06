@@ -1,8 +1,9 @@
 import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
 
-import { inspectRunOwnership, terminateProcessTree } from "./docker-test-support";
+import { inspectRunOwnership, terminateProcessTree, validateOwnedRuntimeSnapshot } from "./docker-test-support";
 
 const manifestPath = process.argv[2];
 
@@ -35,6 +36,29 @@ async function main() {
 
   console.log(JSON.stringify({ phase: "ownership-check", snapshot }, null, 2));
 
+  const containerInspect = spawnSync("docker", ["inspect", manifest.containerName], { encoding: "utf8" });
+  if (containerInspect.status !== 0) {
+    throw new Error(`Failed to inspect container: ${(containerInspect.stderr ?? containerInspect.stdout ?? "").trim()}`);
+  }
+  const networkInspect = spawnSync("docker", ["network", "inspect", manifest.networkName], { encoding: "utf8" });
+  if (networkInspect.status !== 0) {
+    throw new Error(`Failed to inspect network: ${(networkInspect.stderr ?? networkInspect.stdout ?? "").trim()}`);
+  }
+  validateOwnedRuntimeSnapshot({
+    runId: manifest.runId,
+    hostPort: manifest.hostPort ?? 0,
+    expectedImage: "postgres:16",
+    inspect: {
+      container: JSON.parse(containerInspect.stdout)[0],
+      manifest: {
+        runId: manifest.runId,
+        containerName: manifest.containerName,
+        networkName: manifest.networkName,
+        hostPort: manifest.hostPort
+      }
+    }
+  });
+
   if (manifest.nextPid) {
     try {
       terminateProcessTree(manifest.nextPid);
@@ -42,8 +66,6 @@ async function main() {
       // Best-effort; stale resources are still removed below if present.
     }
   }
-
-  const { spawnSync } = await import("node:child_process");
 
   if (snapshot.containerExists) {
     const result = spawnSync("docker", ["rm", "-f", manifest.containerName], { encoding: "utf8" });
