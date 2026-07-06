@@ -17,7 +17,7 @@ const initialState: ActivityFormState = {
 };
 
 const fieldInputClassName =
-  "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+  "w-full rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus-visible:border-[#006194] focus-visible:ring-2 focus-visible:ring-[#006194]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -26,7 +26,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[#006194] px-4 py-2 font-semibold text-white transition hover:bg-[#004D70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : "Add activity"}
     </button>
@@ -44,9 +44,9 @@ export function ActivityForm({ leadId }: { leadId: string }) {
     <form
       action={formAction}
       aria-describedby={state.message ? feedbackId : undefined}
-      className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+      className="space-y-4 rounded-[24px] border border-[#CBD5E1] bg-white p-4"
     >
-      <h3 className="text-lg font-semibold text-slate-950">Add manual activity</h3>
+      <h3 className="text-lg font-semibold text-[#0F172A]">Add manual activity</h3>
       <div className="grid gap-4 md:grid-cols-2">
         <Field
           label="Type"
@@ -117,29 +117,29 @@ export function ActivityTimeline({
   }[];
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <h2 className="text-lg font-semibold text-slate-950">Activity timeline</h2>
+    <section className="rounded-[24px] border border-[#CBD5E1] bg-white p-4">
+      <h2 className="text-lg font-semibold text-[#0F172A]">Activity timeline</h2>
       <div className="mt-4 space-y-4">
         {activities.length === 0 ? (
-          <p className="text-sm text-slate-500">No activities yet.</p>
+          <p className="text-sm text-[#64748B]">No activities yet.</p>
         ) : (
           activities.map((activity) => (
-            <article key={activity.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <article key={activity.id} className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusPill value={activity.type} appearance="light" />
-                <h3 className="text-base font-medium text-slate-950">{activity.title}</h3>
+                <h3 className="text-base font-medium text-[#0F172A]">{activity.title}</h3>
               </div>
-              <p className="mt-2 text-sm text-slate-600">{activity.body ?? "-"}</p>
-              <dl className="mt-3 grid gap-2 text-xs uppercase tracking-[0.24em] text-slate-500 sm:grid-cols-2">
+              <p className="mt-2 text-sm text-[#475569]">{activity.body ?? "-"}</p>
+              <dl className="mt-3 grid gap-2 text-xs uppercase tracking-[0.24em] text-[#64748B] sm:grid-cols-2">
                 <div>
                   <dt>Occurred</dt>
-                  <dd className="mt-1 normal-case tracking-normal text-slate-900">
+                  <dd className="mt-1 normal-case tracking-normal text-[#0F172A]">
                     {formatDate(activity.occurredAt)}
                   </dd>
                 </div>
                 <div>
                   <dt>Created</dt>
-                  <dd className="mt-1 normal-case tracking-normal text-slate-900">
+                  <dd className="mt-1 normal-case tracking-normal text-[#0F172A]">
                     {formatDate(activity.createdAt)}
                   </dd>
                 </div>
@@ -165,11 +165,11 @@ function Field({
 }) {
   return (
     <label className={`space-y-2 ${className ?? ""}`}>
-      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">
+      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[#475569]">
         {label}
       </span>
       {control}
-      <span className="block text-xs leading-5 text-slate-500">{hint}</span>
+      <span className="block text-xs leading-5 text-[#64748B]">{hint}</span>
     </label>
   );
 }

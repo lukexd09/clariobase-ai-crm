@@ -86,46 +86,46 @@ export default async function LeadDetailPage({
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
       <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="Lead breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+          <nav aria-label="Lead breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-[#475569]">
             <Link
               href="/leads"
-              className="font-medium text-slate-700 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+              className="font-medium text-[#334155] transition hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               Leads
             </Link>
-            <span aria-hidden="true" className="text-slate-300">
+            <span aria-hidden="true" className="text-[#CBD5E1]">
               /
             </span>
-            <span className="font-medium text-slate-900">{lead.businessName}</span>
+            <span className="font-medium text-[#0F172A]">{lead.businessName}</span>
           </nav>
 
           <div className="flex flex-wrap gap-2">
             <Link
               href="/work"
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-sm font-medium text-[#334155] transition hover:border-[#006194] hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               Open workbench
             </Link>
           </div>
         </div>
 
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
+        <header className="mb-4 rounded-[28px] border border-[#CBD5E1] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] lg:p-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 space-y-4">
-              <p className="text-sm font-medium text-sky-700">Lead workspace</p>
+              <p className="text-sm font-medium text-[#006194]">Lead workspace</p>
 
               <div className="space-y-3">
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                <h1 className="text-3xl font-semibold tracking-tight text-[#0F172A] sm:text-4xl">
                   {lead.businessName}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-[#475569]">
                   {primaryMetadata.map((item, index) => (
                     <span key={`${item}-${index}`} className="flex items-center gap-3">
                       {index > 0 ? (
-                        <span aria-hidden="true" className="text-slate-300">
+                        <span aria-hidden="true" className="text-[#CBD5E1]">
                           |
                         </span>
                       ) : null}
@@ -166,22 +166,22 @@ export default async function LeadDetailPage({
               </div>
             </div>
 
-            <section className="xl:max-w-sm rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-medium text-sky-700">Next recommended action</p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+            <section className="xl:max-w-sm rounded-[24px] border border-[#B7C6D6] bg-[linear-gradient(180deg,#F8FAFC_0%,#EEF3F8_100%)] p-4">
+              <p className="text-sm font-medium text-[#006194]">Next recommended action</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#0F172A]">
                 {recommendation.title}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{recommendation.description}</p>
+              <p className="mt-2 text-sm leading-6 text-[#475569]">{recommendation.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href={recommendation.primaryHref}
-                  className="rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  className="rounded-full bg-[#006194] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#004D70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   {recommendation.primaryLabel}
                 </Link>
                 <Link
                   href={recommendation.secondaryHref}
-                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  className="rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-sm font-medium text-[#334155] transition hover:border-[#006194] hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   {recommendation.secondaryLabel}
                 </Link>
@@ -195,7 +195,7 @@ export default async function LeadDetailPage({
             <Link
               key={section.href}
               href={section.href}
-              className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="rounded-full border border-[#CBD5E1] bg-white px-3 py-1.5 text-sm font-medium text-[#334155] transition hover:border-[#006194] hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               {section.label}
             </Link>
@@ -204,10 +204,10 @@ export default async function LeadDetailPage({
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,400px)]">
           <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-2 border-b border-slate-200 pb-4">
-                <h2 className="text-xl font-semibold text-slate-950">Business context</h2>
-                <p className="text-sm text-slate-600">
+            <section className="rounded-[24px] border border-[#CBD5E1] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+              <div className="flex flex-col gap-2 border-b border-[#E2E8F0] pb-4">
+                <h2 className="text-xl font-semibold text-[#0F172A]">Business context</h2>
+                <p className="text-sm text-[#475569]">
                   A compact view of the operator-facing context without repeating status or package data.
                 </p>
               </div>
@@ -316,25 +316,22 @@ export default async function LeadDetailPage({
               </ArtifactPanel>
             </section>
 
-            <details
-              id="technical-details"
-              className="rounded-2xl border border-slate-200 bg-white shadow-sm"
-            >
-              <summary className="cursor-pointer list-none rounded-2xl px-5 py-4 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+            <details id="technical-details" className="rounded-[24px] border border-[#CBD5E1] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+              <summary className="cursor-pointer list-none rounded-[24px] px-5 py-4 transition hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Show technical details</p>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="text-sm font-medium text-[#0F172A]">Show technical details</p>
+                    <p className="mt-1 text-sm text-[#475569]">
                       Source identifiers and audit timestamps stay available here when needed.
                     </p>
                   </div>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
+                  <span className="rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-1 text-sm font-medium text-[#334155]">
                     Technical metadata
                   </span>
                 </div>
               </summary>
 
-              <div className="border-t border-slate-200 px-5 py-4">
+              <div className="border-t border-[#E2E8F0] px-5 py-4">
                 <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   <DefinitionItem label="Customer ID" value={lead.customerId} subtle />
                   <DefinitionItem label="Source" value={lead.source ?? "Not provided"} subtle />
@@ -350,14 +347,11 @@ export default async function LeadDetailPage({
           </div>
 
           <aside className="space-y-4">
-            <section
-              id="lead-controls"
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="border-b border-slate-200 pb-4">
-                <p className="text-sm font-medium text-sky-700">Lead controls</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">Operational update</h2>
-                <p className="mt-1 text-sm text-slate-600">
+            <section id="lead-controls" className="rounded-[24px] border border-[#CBD5E1] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+              <div className="border-b border-[#E2E8F0] pb-4">
+                <p className="text-sm font-medium text-[#006194]">Lead controls</p>
+                <h2 className="mt-2 text-xl font-semibold text-[#0F172A]">Operational update</h2>
+                <p className="mt-1 text-sm text-[#475569]">
                   Keep the lead state, priority, package fit, and next action aligned with the latest work.
                 </p>
               </div>
@@ -374,16 +368,13 @@ export default async function LeadDetailPage({
               </div>
             </section>
 
-            <section
-              id="activity"
-              className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="border-b border-slate-200 pb-4">
-                <p className="text-sm font-medium text-sky-700">Activity log</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">
+            <section id="activity" className="space-y-4 rounded-[24px] border border-[#CBD5E1] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+              <div className="border-b border-[#E2E8F0] pb-4">
+                <p className="text-sm font-medium text-[#006194]">Activity log</p>
+                <h2 className="mt-2 text-xl font-semibold text-[#0F172A]">
                   Notes, calls, messages, and updates
                 </h2>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-[#475569]">
                   Activity stays easy to log without narrowing the fields or clipping the date input.
                 </p>
               </div>
@@ -562,10 +553,10 @@ function HeaderMetric({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className="mt-3 text-lg font-semibold text-slate-950">{value}</p>
-      <p className="mt-1 text-sm text-slate-600">{detail}</p>
+    <div className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748B]">{label}</p>
+      <p className="mt-3 text-lg font-semibold text-[#0F172A]">{value}</p>
+      <p className="mt-1 text-sm text-[#475569]">{detail}</p>
     </div>
   );
 }
@@ -580,9 +571,9 @@ function DefinitionItem({
   subtle?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border p-4 ${subtle ? "border-slate-200 bg-slate-50" : "border-slate-200 bg-white"}`}>
-      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</dt>
-      <dd className="mt-2 break-words text-sm leading-6 text-slate-900">{value}</dd>
+    <div className={`rounded-2xl border p-4 ${subtle ? "border-[#CBD5E1] bg-[#F8FAFC]" : "border-[#CBD5E1] bg-white"}`}>
+      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748B]">{label}</dt>
+      <dd className="mt-2 break-words text-sm leading-6 text-[#0F172A]">{value}</dd>
     </div>
   );
 }
@@ -611,23 +602,23 @@ function ArtifactPanel({
   children: ReactNode;
 }) {
   return (
-    <details id={id} className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <summary className="list-none cursor-pointer rounded-2xl px-5 py-4 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+    <details id={id} className="group rounded-2xl border border-[#CBD5E1] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+      <summary className="list-none cursor-pointer rounded-2xl px-5 py-4 transition hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-sky-700">{label}</p>
+              <p className="text-sm font-medium text-[#006194]">{label}</p>
               {statusBadge}
               {packageBadge}
             </div>
-            <h3 className="text-xl font-semibold tracking-tight text-slate-950">{title}</h3>
-            <p className="max-w-3xl text-sm leading-6 text-slate-600">{description}</p>
-            <p className="text-xs text-slate-500">
+            <h3 className="text-xl font-semibold tracking-tight text-[#0F172A]">{title}</h3>
+            <p className="max-w-3xl text-sm leading-6 text-[#475569]">{description}</p>
+            <p className="text-xs text-[#64748B]">
               {updatedAt ? `Updated ${formatShortDate(updatedAt)}` : emptyMessage}
             </p>
           </div>
 
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-1 text-sm font-medium text-[#334155]">
             {actionLabel}
             <span aria-hidden="true" className="text-base transition-transform group-open:rotate-180">
               v
@@ -636,7 +627,7 @@ function ArtifactPanel({
         </div>
       </summary>
 
-      <div className="border-t border-slate-200 p-5">{children}</div>
+      <div className="border-t border-[#E2E8F0] p-5">{children}</div>
     </details>
   );
 }
@@ -644,7 +635,7 @@ function ArtifactPanel({
 function ExternalLink({ href, label }: { href: string; label: string }) {
   return (
     <a
-      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+      className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-white px-3 py-2 text-sm font-medium text-[#334155] transition hover:border-[#006194] hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
       href={href}
       target="_blank"
       rel="noreferrer"
@@ -657,16 +648,16 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
 
 function InlineMeta({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-      <span className="font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</span>
-      <span className="text-slate-900">{value}</span>
+    <span className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-2 text-sm text-[#475569]">
+      <span className="font-semibold uppercase tracking-[0.2em] text-[#64748B]">{label}</span>
+      <span className="text-[#0F172A]">{value}</span>
     </span>
   );
 }
 
 function SecondaryBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
+    <span className="inline-flex items-center rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1 text-xs font-medium text-[#334155]">
       {children}
     </span>
   );
