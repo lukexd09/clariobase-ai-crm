@@ -59,7 +59,7 @@ test("browser specs are classified and tagged with one area and one suite tag", 
   const specSource = specFiles.map((file) => [file, fs.readFileSync(path.join(repoRoot, file), "utf8")] as const);
 
   assert.deepEqual(extractSpecFiles(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")), []);
-  assert.deepEqual(specFiles, ["tests/e2e/smoke.spec.ts"]);
+  assert.deepEqual(specFiles, ["tests/e2e/leads.spec.ts", "tests/e2e/smoke.spec.ts"]);
 
   for (const [file, source] of specSource) {
     const titles = [...source.matchAll(/test\("([^"]+)"/g)].map((match) => match[1]);
