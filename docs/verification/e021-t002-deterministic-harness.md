@@ -58,6 +58,21 @@
 - The forced-termination proof used a test-only pause hook, then a manifest-driven recovery script inspected ownership before cleanup.
 - The controlled browser failure produced screenshot, video, trace, and error-context artifacts and then cleaned the runtime.
 
+## Forced-Termination Recovery
+
+- Residue archive: `C:\Serwer\Projekty\Clariobase\recovery\e021-t002-paused-residue-20260706-095726`
+- Archive manifest: `C:\Serwer\Projekty\Clariobase\recovery\e021-t002-paused-residue-20260706-095726\manifest.csv`
+- Paused-run residue archived from `.codex-tmp\e2e-fixture`, `.codex-tmp\paused-smoke.err.log`, and `.codex-tmp\paused-smoke.out.log`.
+- Pause hook env var: `CLARIOBASE_E2E_PAUSE_BEFORE_PLAYWRIGHT_MS`
+- Paused run ID: `e021-t002-mr8xjuaa-r9ycf5`
+- Stale resources observed before recovery: Postgres container `e021-t002-mr8xjuaa-r9ycf5-postgres`, network `e021-t002-mr8xjuaa-r9ycf5-network`, host port `59012`, Next.js PID `7584`.
+- Forced termination method: stopped only the top-level orchestrator process after readiness, leaving the stale run in place.
+- Recovery command: `pnpm exec tsx scripts/recover-e2e-run.ts .codex-tmp/e021-t002-mr8xjuaa-r9ycf5.json`
+- Ownership verification result: PASS, with recovery inspecting the run manifest before deleting only the stale owned container, network, and manifest.
+- Sentinel preservation: PASS, unrelated Docker network `clariobase-e021-t002-unrelated-sentinel` survived recovery until explicitly removed afterward.
+- Post-recovery smoke result: PASS
+- Status: PASS
+
 ## Notes
 
 - HTML report opens disabled.
