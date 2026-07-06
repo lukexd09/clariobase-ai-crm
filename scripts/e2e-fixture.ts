@@ -33,7 +33,12 @@ export function createFixtureState(runId: string): FixtureState {
 }
 
 export function isOwnedFixtureRow(
-  row: Pick<FixtureState, "customerId" | "source" | "sourceRecordId" | "businessName">,
+  row: {
+    customerId: string;
+    source: string | null;
+    sourceRecordId: string | null;
+    businessName: string;
+  },
   state: FixtureState
 ) {
   return (

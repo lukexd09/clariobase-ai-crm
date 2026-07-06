@@ -48,6 +48,11 @@
 - forced-termination recovery proof: PASS
 - controlled browser failure proof: PASS
 - artifact inspection: PASS
+- final repository validation: PASS
+- final `pnpm test:e2e:smoke`: PASS
+- final `pnpm test:e2e:area -- dashboard`: PASS
+- final `pnpm test:e2e:area -- leads`: PASS
+- final `pnpm test:e2e:full`: PASS
 
 ## Negative Matrices
 
@@ -92,6 +97,43 @@
 - Sentinel preservation: PASS, unrelated Docker network `clariobase-e021-t002-unrelated-sentinel` survived recovery until explicitly removed afterward.
 - Post-recovery smoke result: PASS
 - Status: PASS
+
+## Controlled Browser Failure
+
+- Temporary hook: `CLARIOBASE_E021_T002_FORCE_SMOKE_FAIL=1` inside `tests/e2e/smoke.spec.ts`
+- Result: `pnpm test:e2e:smoke` failed as expected with `Error: Temporary E021.T002 smoke failure`
+- Screenshot: PASS
+- Trace: PASS
+- Video: PASS
+- HTML report: PASS
+- Next.js stopped: PASS
+- Postgres removed: PASS
+- Network removed: PASS
+- Manifest removed: PASS
+- Port 3011 free: PASS
+- No E021 Docker residue: PASS
+
+## Artifact Inspection
+
+- `test-results` error context only contained the injected failure message and the local Playwright stack trace.
+- `playwright-report` contained the generated HTML report and trace viewer assets only.
+- The synthetic fixture state remained run-scoped and contained no secrets, credential-bearing URLs, or real customer/operator data.
+- The temporary hook was removed before the final successful smoke run.
+
+## Final Validation
+
+- `pnpm install --frozen-lockfile`: PASS
+- `pnpm prisma:validate`: PASS
+- `pnpm prisma:generate`: PASS
+- `pnpm lint`: PASS
+- `pnpm test:fast`: PASS
+- `pnpm build`: PASS
+- `git diff --check`: PASS
+- Final `pnpm test:e2e:smoke`: PASS
+- Final `pnpm test:e2e:area -- dashboard`: PASS
+- Final `pnpm test:e2e:area -- leads`: PASS
+- Final `pnpm test:e2e:full`: PASS
+- Cleanup after every browser command: PASS
 
 ## Notes
 
