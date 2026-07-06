@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
 
-import { inspectRunOwnership, terminateProcessTree, validateOwnedRuntimeSnapshot } from "./docker-test-support";
+import { inspectRunOwnership, terminateProcessTree, validateOwnedNetworkSnapshot, validateOwnedRuntimeSnapshot } from "./docker-test-support";
 
 const manifestPath = process.argv[2];
 
@@ -50,6 +50,18 @@ async function main() {
     expectedImage: "postgres:16",
     inspect: {
       container: JSON.parse(containerInspect.stdout)[0],
+      manifest: {
+        runId: manifest.runId,
+        containerName: manifest.containerName,
+        networkName: manifest.networkName,
+        hostPort: manifest.hostPort
+      }
+    }
+  });
+  validateOwnedNetworkSnapshot({
+    runId: manifest.runId,
+    inspect: {
+      network: JSON.parse(networkInspect.stdout)[0],
       manifest: {
         runId: manifest.runId,
         containerName: manifest.containerName,

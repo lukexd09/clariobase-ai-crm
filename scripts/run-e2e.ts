@@ -13,7 +13,7 @@ import {
   validateRuntimeManifest
 } from "./e2e-guard";
 import { buildPlaywrightGrepForMode, type E2EMode, parseE2ECommandArgs } from "./e2e-command";
-import { buildE021T002RuntimeLabels, validateOwnedRuntimeSnapshot } from "./docker-test-support";
+import { buildE021T002RuntimeLabels, validateOwnedNetworkSnapshot, validateOwnedRuntimeSnapshot } from "./docker-test-support";
 
 const repoRoot = path.resolve(__dirname, "..");
 const tmpRoot = path.join(repoRoot, ".codex-tmp");
@@ -147,7 +147,26 @@ async function main() {
   const networkName = manifest.networkName;
 
   try {
-    ensureSuccess(docker(["network", "create", networkName]), "docker network create");
+    ensureSuccess(docker([
+      "network",
+      "create",
+      "--label", runtimeLabels[0],
+      "--label", runtimeLabels[1],
+      "--label", runtimeLabels[2],
+      networkName
+    ]), "docker network create");
+    const networkInspect = docker(["network", "inspect", networkName]);
+    ensureSuccess(networkInspect, "docker network inspect");
+    validateOwnedNetworkSnapshot({
+      runId: manifest.runId,
+      inspect: {
+        network: JSON.parse(networkInspect.stdout)[0],
+        manifest: {
+          ...manifest,
+          hostPort
+        }
+      }
+    });
     ensureSuccess(docker(["pull", "postgres:16"]), "docker pull postgres:16");
     ensureSuccess(docker([
       "run",

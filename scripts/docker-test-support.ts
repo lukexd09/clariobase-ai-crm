@@ -44,6 +44,10 @@ export type DockerInspectCandidate = {
       PortBindings?: Record<string, unknown>;
     };
   };
+  network?: {
+    Name?: string;
+    Labels?: Record<string, string | undefined>;
+  };
   manifest?: {
     runId?: string;
     containerName?: string;
@@ -872,25 +876,66 @@ export function validateOwnedRuntimeSnapshot(input: {
   };
 }
 
+export function validateOwnedNetworkSnapshot(input: {
+  runId: string;
+  inspect: DockerInspectCandidate;
+}) {
+  const network = input.inspect.network;
+  const labels = network?.Labels ?? {};
+  const manifest = input.inspect.manifest ?? {};
+
+  if (!network) {
+    throw new Error("network ownership validation requires a network inspect payload");
+  }
+  if (labels["clariobase.epic"] !== "E021") {
+    throw new Error("missing E021 label");
+  }
+  if (labels["task"] !== "T002") {
+    throw new Error("missing T002 label");
+  }
+  if (labels["run-id"] !== input.runId) {
+    throw new Error("wrong run ID label");
+  }
+  if (manifest.networkName && manifest.networkName !== `${input.runId}-network`) {
+    throw new Error("manifest/network mismatch");
+  }
+
+  return { network, labels, manifest };
+}
+
 export function cleanupOwnedRuntimeResourcesByLabel(options: {
   labels: string[];
   spawnCommand?: SpawnCommand;
 }) {
   const spawnCommand = options.spawnCommand ?? defaultSpawnCommand;
   const labels = [...new Set(options.labels)];
-  const removed = {
+  const planned = {
     containers: listDockerResourceNamesByLabel("container", labels, spawnCommand),
     networks: listDockerResourceNamesByLabel("network", labels, spawnCommand),
     volumes: listDockerResourceNamesByLabel("volume", labels, spawnCommand)
   };
+  const removed = {
+    containers: [] as string[],
+    networks: [] as string[],
+    volumes: [] as string[]
+  };
   const failures: CleanupFailure[] = [];
+  const protectedResources = {
+    containers: [] as string[],
+    networks: [] as string[],
+    volumes: [] as string[]
+  };
 
   for (const [kind, names] of [
-    ["container", removed.containers],
-    ["network", removed.networks],
-    ["volume", removed.volumes]
+    ["container", planned.containers],
+    ["network", planned.networks],
+    ["volume", planned.volumes]
   ] as const) {
     for (const name of names) {
+      if (isProtectedDockerResourceName(name)) {
+        protectedResources[`${kind}s` as const].push(name);
+        continue;
+      }
       const args = kind === "container"
         ? ["rm", "-f", name]
         : kind === "network"
@@ -902,11 +947,13 @@ export function cleanupOwnedRuntimeResourcesByLabel(options: {
           label: `${kind}:${name}`,
           message: `${(result.stderr ?? result.stdout ?? "").trim() || "unknown Docker error"}`
         });
+      } else if (result.status === 0 || isMissingDockerResource(result)) {
+        removed[`${kind}s` as const].push(name);
       }
     }
   }
 
-  return { removed, failures };
+  return { removed, failures, protectedResources };
 }
 
 export function cleanupE021RuntimeTempArtifacts(rootDir: string) {

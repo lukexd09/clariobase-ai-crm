@@ -23,6 +23,7 @@ import {
   PROTECTED_DOCKER_PROJECT,
   VERIFY_IMAGE_TAG_PREFIX,
   validateOwnedRuntimeSnapshot,
+  validateOwnedNetworkSnapshot,
   resolveCleanupTestRuntimeStatus,
   selectDisposableResourceNames,
   terminateProcessTree
@@ -200,6 +201,130 @@ test("E021 cleanup removes only owned runtime resources and temp residue", () =>
   assert.equal(fs.existsSync(path.join(tmpRoot, "e2e-fixture")), false);
 
   fs.rmSync(tmpRoot, { recursive: true, force: true });
+});
+
+test("E021 cleanup finds and removes E021.T002 networks by canonical labels", () => {
+  const calls: string[] = [];
+  const spawnCommand = (command: string, args: string[]) => {
+    calls.push(`${command} ${args.join(" ")}`);
+    if (command === "docker" && args[0] === "network" && args[1] === "ls") {
+      return { status: 0, stdout: "e021-network\n", stderr: "" } as ReturnType<typeof spawnSync>;
+    }
+    return { status: 0, stdout: "", stderr: "" } as ReturnType<typeof spawnSync>;
+  };
+
+  const report = cleanupOwnedRuntimeResourcesByLabel({
+    labels: ["clariobase.epic=E021", "task=T002"],
+    spawnCommand
+  });
+
+  assert.deepEqual(report.removed.networks, ["e021-network"]);
+  assert.match(calls.join("\n"), /--filter label=clariobase\.epic=E021/);
+  assert.match(calls.join("\n"), /--filter label=task=T002/);
+});
+
+test("E021 cleanup skips unlabeled, wrong-run, and protected networks", () => {
+  const inspected = new Map([
+    ["e021-network", ["clariobase.epic=E021", "task=T002"]],
+    ["unlabeled-network", []],
+    ["clariobase-crm", ["clariobase.epic=E021", "task=T002"]]
+  ]);
+  const spawnCommand = (command: string, args: string[]) => {
+    if (command === "docker" && args[0] === "network" && args[1] === "ls") {
+      const requiredLabels = args
+        .filter((value, index) => value === "--filter" && args[index + 1]?.startsWith("label="))
+        .map((value, index) => args[args.indexOf(value, index) + 1].slice("label=".length));
+      const filtered = [...inspected.entries()]
+        .filter(([, labels]) => requiredLabels.every((label) => labels.includes(label)))
+        .map(([name]) => name)
+        .join("\n");
+      return { status: 0, stdout: `${filtered}\n`, stderr: "" } as ReturnType<typeof spawnSync>;
+    }
+    return { status: 0, stdout: "", stderr: "" } as ReturnType<typeof spawnSync>;
+  };
+
+  const report = cleanupOwnedRuntimeResourcesByLabel({
+    labels: ["clariobase.epic=E021", "task=T002"],
+    spawnCommand
+  });
+
+  assert.deepEqual(report.removed.networks, ["e021-network"]);
+  assert.deepEqual(report.protectedResources.networks, ["clariobase-crm"]);
+});
+
+test("network ownership validation covers canonical labels and manifest name matching", () => {
+  const baseInspect = {
+    network: {
+      Name: "e021-t002-test-network",
+      Labels: {
+        "clariobase.epic": "E021",
+        task: "T002",
+        "run-id": "e021-t002-test"
+      }
+    },
+    manifest: {
+      runId: "e021-t002-test",
+      networkName: "e021-t002-test-network"
+    }
+  };
+
+  assert.equal(validateOwnedNetworkSnapshot({
+    runId: "e021-t002-test",
+    inspect: baseInspect
+  }).labels["run-id"], "e021-t002-test");
+
+  assert.throws(() => validateOwnedNetworkSnapshot({
+    runId: "e021-t002-test",
+    inspect: {
+      ...baseInspect,
+      network: {
+        ...baseInspect.network,
+        Labels: {
+          ...baseInspect.network?.Labels,
+          "clariobase.epic": undefined
+        }
+      }
+    }
+  }), /missing E021 label/);
+
+  assert.throws(() => validateOwnedNetworkSnapshot({
+    runId: "e021-t002-test",
+    inspect: {
+      ...baseInspect,
+      network: {
+        ...baseInspect.network,
+        Labels: {
+          ...baseInspect.network?.Labels,
+          task: undefined
+        }
+      }
+    }
+  }), /missing T002 label/);
+
+  assert.throws(() => validateOwnedNetworkSnapshot({
+    runId: "e021-t002-test",
+    inspect: {
+      ...baseInspect,
+      network: {
+        ...baseInspect.network,
+        Labels: {
+          ...baseInspect.network?.Labels,
+          "run-id": "wrong-run"
+        }
+      }
+    }
+  }), /wrong run ID label/);
+
+  assert.throws(() => validateOwnedNetworkSnapshot({
+    runId: "e021-t002-test",
+    inspect: {
+      ...baseInspect,
+      manifest: {
+        ...baseInspect.manifest,
+        networkName: "wrong-network"
+      }
+    }
+  }), /manifest\/network mismatch/);
 });
 
 test("temporary cleanup removes only approved .codex-tmp artifacts", () => {

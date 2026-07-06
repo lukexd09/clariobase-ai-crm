@@ -15,7 +15,7 @@
 - PostgreSQL image: `postgres:16`
 - App URL: `http://127.0.0.1:3011`
 - Database URL: constructed only by the project-owned E2E runtime
-- Ownership marker: canonical Docker labels `clariobase.epic=E021`, `task=T002`, and `run-id=<runId>`
+- Ownership marker: canonical Docker labels `clariobase.epic=E021`, `task=T002`, and `run-id=<runId>` on both the runtime Postgres container and the runtime Docker network
 
 ## Fixture Rules
 
@@ -38,6 +38,7 @@
 - `pnpm exec tsx --test tests/e2e-commands.test.ts tests/e2e-guard.test.ts tests/test-suite-classification.test.ts tests/docker-test-support.test.ts tests/e2e-fixture-negative.test.ts`: PASS
 - `pnpm exec tsx --test tests/docs-sanity.test.ts tests/runtime-docs-sanity.test.ts`: PASS
 - `pnpm cleanup:test-runtime`: PASS
+- `cleanup:test-runtime` removed E021-owned networks and E021 fixture temp entries: PASS
 - `pnpm test:e2e:smoke`: PASS
 - `pnpm test:e2e:area -- dashboard`: PASS
 - `pnpm test:e2e:area -- leads`: PASS
@@ -87,7 +88,7 @@
 - The Docker-unavailable path failed before Playwright execution and returned a clear Docker connection error.
 - The forced-termination proof used a test-only pause hook, then a manifest-driven recovery script inspected ownership before cleanup.
 - The controlled browser failure produced screenshot, video, trace, and error-context artifacts and then cleaned the runtime.
-- `cleanup:test-runtime` removed the E021 fixture temp entry and left no `.codex-tmp` residue after the normal cleanup proof.
+- `cleanup:test-runtime` removed the E021-owned network and the E021 fixture temp entry, leaving no `.codex-tmp` residue after the normal cleanup proof.
 
 ## Forced-Termination Recovery
 
