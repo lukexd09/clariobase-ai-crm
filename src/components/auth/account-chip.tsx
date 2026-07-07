@@ -1,26 +1,27 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 
-export function AccountChip({
-  session
-}: {
-  session: { name: string | null; email: string | null } | null;
-}) {
-  if (!session) {
+export function AccountChip() {
+  const router = useRouter();
+  const { data: session } = authClient.useSession();
+
+  if (!session?.user) {
     return (
-      <Link
-        href="/sign-in"
-        prefetch={false}
+      <button
+        type="button"
+        onClick={() => router.push("/sign-in")}
         className="inline-flex h-10 items-center rounded-xl border border-[#CBD5E1] bg-white px-3 text-sm font-semibold text-[#0F172A] transition hover:border-[#B7C6D6] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
       >
         Sign in
-      </Link>
+      </button>
     );
   }
 
-  const initials = (session.name ?? session.email ?? "U")
+  const user = session.user;
+  const initials = (user.name ?? user.email ?? "U")
     .split(" ")
     .map((part) => part[0])
     .join("")
@@ -34,10 +35,10 @@ export function AccountChip({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold text-[#0F172A]">
-          {session.name ?? "Signed in user"}
+          {user.name ?? "Signed in user"}
         </span>
         <span className="block truncate text-xs uppercase tracking-[0.14em] text-[#475569]">
-          {session.email ?? "Session active"}
+          {user.email ?? "Session active"}
         </span>
       </span>
       <SignOutButton />

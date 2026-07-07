@@ -48,13 +48,7 @@ function NavigationLinks({ pathname, compact = false }: { pathname: string; comp
   );
 }
 
-export function AppShell({
-  children,
-  session
-}: {
-  children: React.ReactNode;
-  session: { name: string | null; email: string | null } | null;
-}) {
+export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
 
   return (
@@ -78,7 +72,7 @@ export function AppShell({
           <NavigationLinks pathname={pathname} />
         </nav>
         <div className="border-t border-[#CBD5E1] px-[clamp(16px,2vw,28px)] py-4">
-          <AccountChip session={session} />
+          <AccountChip />
         </div>
       </aside>
 
@@ -101,7 +95,7 @@ export function AppShell({
                   <NavigationLinks pathname={pathname} compact />
                 </nav>
                 <div className="mt-4 border-t border-[#CBD5E1] pt-4">
-                  <AccountChip session={session} />
+                  <AccountChip />
                 </div>
               </div>
             </details>

@@ -29,7 +29,7 @@ function run(command: string, args: string[], env: Record<string, string> = {}) 
 function assertSafeLogLine(line: string, forbidden: string[]) {
   for (const item of forbidden) {
     if (item && line.includes(item)) {
-      throw new Error(`proof attempted to expose secret-bearing value: ${item}`);
+      throw new Error("Proof attempted to expose a secret-bearing value");
     }
   }
 }
@@ -85,6 +85,7 @@ async function main() {
     process.env.DATABASE_URL = databaseUrl;
     process.env.BETTER_AUTH_URL = appBaseUrl;
     process.env.BETTER_AUTH_SECRET = authSecret;
+    process.env.BETTER_AUTH_TELEMETRY = "0";
 
     const { createAppAuth } = await import("@/lib/auth");
     const appAuth = createAppAuth();
@@ -102,7 +103,11 @@ async function main() {
         enabled: true,
         disableSignUp: false
       },
-      secret: authSecret
+      secret: authSecret,
+      telemetry: {
+        enabled: false,
+        debug: false
+      }
     });
 
     const signUp = await appAuth.api.signUpEmail({
@@ -131,13 +136,39 @@ async function main() {
     assertSafeLogLine("CONTROLLED_USER_CREATED", forbidden);
 
     const freshAuth = createAppAuth();
-    const invalid = await freshAuth.api.signInEmail({
+    const invalidExisting = await freshAuth.api.signInEmail({
       body: {
         email: proofEmail,
         password: "wrong-password"
       }
-    }).catch((error) => error);
-    assert(invalid, "invalid credentials should fail");
+    }).then(
+      () => null,
+      (error) => error as { status?: number; code?: string; message?: string }
+    );
+    assert(invalidExisting, "invalid credentials should fail");
+
+    const nonExistentEmail = `missing-${randomUUID()}@example.test`;
+    const invalidMissing = await freshAuth.api.signInEmail({
+      body: {
+        email: nonExistentEmail,
+        password: "wrong-password"
+      }
+    }).then(
+      () => null,
+      (error) => error as { status?: number; code?: string; message?: string }
+    );
+    assert(invalidMissing, "non-existent user sign-in should fail");
+    assert.equal(invalidExisting?.status, invalidMissing?.status);
+    assert.equal(invalidExisting?.code, invalidMissing?.code);
+    assert.equal(invalidExisting?.message, invalidMissing?.message);
+    assertSafeLogLine(
+      JSON.stringify({
+        status: invalidExisting?.status,
+        code: invalidExisting?.code,
+        message: invalidExisting?.message
+      }),
+      forbidden
+    );
 
     const signIn = await appAuth.api.signInEmail({
       body: {

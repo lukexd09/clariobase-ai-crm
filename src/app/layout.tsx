@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AppShellSession } from "@/components/app-shell-session";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AppShellSession>
-          {children}
-        </AppShellSession>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
