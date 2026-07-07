@@ -91,10 +91,10 @@ function OutreachDraftEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-[color:var(--cb-foreground)]">
-            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create outreach draft"}
+            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create message draft"}
           </h3>
           <p className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">
-            {draft ? "Update the existing outreach draft below." : "Create the first outreach draft for this lead."}
+            {draft ? "Update the existing draft below." : "Create the first message draft for this lead."}
           </p>
         </div>
         {draft ? (
@@ -139,7 +139,7 @@ function OutreachDraftEditor({
           hint="Choose the channel this draft is prepared for."
         />
         <DraftField
-          label="Linked mini-audit"
+          label="Linked review"
           control={
             <select
               name="miniAuditDraftId"
@@ -155,7 +155,7 @@ function OutreachDraftEditor({
               ))}
             </select>
           }
-          hint="Optional link to the supporting mini-audit draft."
+          hint="Optional link to the supporting review draft."
         />
         <DraftField
           label="Subject"
@@ -175,7 +175,7 @@ function OutreachDraftEditor({
           hint="Optional manual send timestamp in local operator time."
         />
         <DraftField
-          label="Opening hook"
+          label="Opening line"
           control={
             <textarea
               name="openingHook"
@@ -199,7 +199,7 @@ function OutreachDraftEditor({
           hint="Prepared outreach text."
         />
         <DraftField
-          label="Call to action"
+          label="Next step"
           control={
             <textarea
               name="callToAction"
@@ -208,7 +208,7 @@ function OutreachDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="What should the lead do next."
+          hint="What should happen next."
         />
         <DraftField
           label="Notes"
@@ -225,7 +225,7 @@ function OutreachDraftEditor({
       </div>
 
       <div className="flex items-center gap-4">
-        <SubmitButton>{draft ? "Save outreach draft" : "Create outreach draft"}</SubmitButton>
+        <SubmitButton>{draft ? "Save message draft" : "Create message draft"}</SubmitButton>
         {state.message ? (
           <p
             id={feedbackId}

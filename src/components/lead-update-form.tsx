@@ -70,7 +70,7 @@ export function LeadUpdateForm({
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Field
-          label="Lead status"
+          label="Status"
           hint="Choose the current working status for this lead."
           control={
             <select name="leadStatus" defaultValue={leadStatus} className={fieldInputClassName}>
@@ -96,8 +96,8 @@ export function LeadUpdateForm({
           }
         />
         <Field
-          label="Package fit"
-          hint="Keep the current package assessment aligned with the lead."
+          label="Match"
+          hint="Keep the current match assessment aligned with the lead."
           control={
             <select name="packageFit" defaultValue={packageFit} className={fieldInputClassName}>
               {PACKAGE_FIT_VALUES.map((value) => (
@@ -109,10 +109,10 @@ export function LeadUpdateForm({
           }
         />
         <Field
-          label="Next action"
+          label="Next task"
           hint={
             nextActionDisplay === "No next action set"
-              ? "No next action is scheduled yet."
+              ? "No next task is scheduled yet."
               : `Current schedule: ${nextActionDisplay}`
           }
           control={

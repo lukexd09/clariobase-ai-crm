@@ -16,22 +16,21 @@ test("lead detail route uses the approved ClarioBase UI boundary", () => {
   assert.match(page, /rounded-\[var\(--cb-radius-xl\)\] border border-\[color:var\(--cb-border\)\]/);
   assert.match(page, /shadow-\[var\(--cb-shadow-surface\)\]/);
   assert.match(page, /focus-visible:ring-\[color:var\(--cb-focus-ring\)\]/);
-  assert.match(page, /Lead controls/);
+  assert.match(page, /Status/);
   assert.match(page, /Activity log/);
-  assert.match(page, /Mini-audit/);
-  assert.match(page, /Outreach/);
-  assert.match(page, /Offer/);
+  assert.match(page, /Review/);
+  assert.match(page, /Message plan/);
+  assert.match(page, /Draft preparation/);
   assert.match(page, /Show technical details/);
   assert.match(page, /Technical metadata/);
   assert.match(page, /StatusPill value=\{lead\.leadStatus\} appearance="light"/);
   assert.match(page, /StatusPill value=\{lead\.priority\} appearance="light"/);
-  assert.match(page, /StatusPill value=\{lead\.packageFit\} appearance="light"/);
-  assert.match(page, /Lead controls/);
+  assert.doesNotMatch(page, /StatusPill value=\{lead\.packageFit\} appearance="light"/);
   assert.match(page, /Activity log/);
-  assert.match(page, /Mini-audit/);
-  assert.match(page, /Outreach/);
-  assert.match(page, /Offer/);
-  assert.match(page, /Lead workspace sections/);
+  assert.match(page, /Review/);
+  assert.match(page, /Message plan/);
+  assert.match(page, /Draft preparation/);
+  assert.match(page, /Operator workspace sections/);
   assert.match(page, /"#lead-controls"/);
   assert.match(page, /"#activity"/);
   assert.match(page, /"#mini-audit"/);
@@ -60,10 +59,10 @@ test("lead detail route keeps forms and actions wired to the existing persistenc
 
   assert.match(leadUpdateForm, /updateLeadAction/);
   assert.match(leadUpdateForm, /Save updates/);
-  assert.match(leadUpdateForm, /Lead status/);
+  assert.match(leadUpdateForm, /Status/);
   assert.match(leadUpdateForm, /Priority/);
-  assert.match(leadUpdateForm, /Package fit/);
-  assert.match(leadUpdateForm, /Next action/);
+  assert.match(leadUpdateForm, /Match/);
+  assert.match(leadUpdateForm, /Next task/);
   assert.match(leadUpdateForm, /role=\{state\.ok \? "status" : "alert"\}/);
 
   assert.match(activityForm, /createLeadActivityAction/);
@@ -76,26 +75,30 @@ test("lead detail route keeps forms and actions wired to the existing persistenc
   assert.match(activityForm, /StatusPill value=\{"NOTE" as ActivityTypeValue\} appearance="light"/);
 
   assert.match(miniAuditForm, /saveMiniAuditDraftAction/);
-  assert.match(miniAuditForm, /Create mini-audit draft/);
-  assert.match(miniAuditForm, /Save mini-audit draft/);
+  assert.match(miniAuditForm, /Create review draft/);
+  assert.match(miniAuditForm, /Save review draft/);
   assert.match(miniAuditForm, /New draft/);
   assert.match(miniAuditForm, /StatusPill value=\{draft\.status as MiniAuditStatusValue\} appearance="light"/);
   assert.match(miniAuditForm, /StatusPill value=\{draft\.suggestedPackage as PackageFitValue\} appearance="light"/);
+  assert.match(miniAuditForm, /Finding 1/);
 
   assert.match(outreachForm, /saveOutreachDraftAction/);
-  assert.match(outreachForm, /Create outreach draft/);
-  assert.match(outreachForm, /Save outreach draft/);
+  assert.match(outreachForm, /Create message draft/);
+  assert.match(outreachForm, /Save message draft/);
   assert.match(outreachForm, /New draft/);
-  assert.match(outreachForm, /Linked mini-audit/);
+  assert.match(outreachForm, /Linked review/);
   assert.match(outreachForm, /StatusPill value=\{draft\.status as OutreachDraftStatusValue\} appearance="light"/);
   assert.match(outreachForm, /StatusPill value=\{draft\.channel as OutreachChannelValue\} appearance="light"/);
+  assert.match(outreachForm, /Opening line/);
+  assert.match(outreachForm, /Next step/);
 
   assert.match(offerForm, /saveOfferDraftAction/);
-  assert.match(offerForm, /Create offer draft/);
-  assert.match(offerForm, /Save offer draft/);
+  assert.match(offerForm, /Create draft/);
+  assert.match(offerForm, /Save draft/);
   assert.match(offerForm, /New draft/);
-  assert.match(offerForm, /Price net/);
-  assert.match(offerForm, /Valid until/);
+  assert.match(offerForm, /Price/);
+  assert.match(offerForm, /Expires/);
   assert.match(offerForm, /StatusPill value=\{draft\.status as OfferDraftStatusValue\} appearance="light"/);
   assert.match(offerForm, /StatusPill value=\{draft\.packageFit as PackageFitValue\} appearance="light"/);
+  assert.doesNotMatch(offerForm, /Create draft preparation/);
 });
