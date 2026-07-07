@@ -127,7 +127,7 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.doesNotMatch(leadsPage, /ProofShell/);
   assert.doesNotMatch(leadsPage, /<main className=/);
   assert.match(leadsPage, /PageSurface/);
-  assert.match(leadsPage, /Lead CRM/);
+  assert.match(leadsPage, /Workspace/);
   assert.doesNotMatch(leadsPage, /<main className=/);
 
   assert.match(packageJson.dependencies["@radix-ui/react-dialog"], /1\.1\.3/);

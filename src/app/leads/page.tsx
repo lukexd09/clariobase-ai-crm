@@ -29,9 +29,9 @@ export default async function LeadsPage({
   return (
     <div className="space-y-4">
       <PageSurface
-        eyebrow="Lead CRM"
+        eyebrow="Workspace"
         title="Leads"
-        description="Filter the queue, confirm the current result window, and open any lead for deeper operator work."
+        description="Filter the queue, confirm the current result window, and open any record for deeper operator work."
       >
         <LeadTable
           leads={leadPage.leads}

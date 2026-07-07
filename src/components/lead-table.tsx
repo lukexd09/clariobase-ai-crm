@@ -23,7 +23,7 @@ export function LeadTable({
 
       <TableSurface aria-label="Lead records table">
         <Table>
-          <caption className="sr-only">Lead records matching the current filters</caption>
+          <caption className="sr-only">Records matching the current filters</caption>
           <TableHead>
             <tr>
               <TableHeadCell scope="col">Business</TableHeadCell>
@@ -31,9 +31,9 @@ export function LeadTable({
               <TableHeadCell scope="col">Category</TableHeadCell>
               <TableHeadCell scope="col">Status</TableHeadCell>
               <TableHeadCell scope="col">Priority</TableHeadCell>
-              <TableHeadCell scope="col">Package</TableHeadCell>
+              <TableHeadCell scope="col">Match</TableHeadCell>
               <TableHeadCell scope="col">Score</TableHeadCell>
-              <TableHeadCell scope="col">Next action</TableHeadCell>
+              <TableHeadCell scope="col">Next task</TableHeadCell>
             </tr>
           </TableHead>
           <TableBody>
@@ -67,7 +67,7 @@ export function LeadTable({
             {leads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="py-8 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
-                  No leads match the current filters.
+                  No records match the current filters.
                 </TableCell>
               </TableRow>
             ) : null}

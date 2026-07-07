@@ -21,7 +21,7 @@ test("navigation config keeps canonical production groups", () => {
   );
   assert.deepEqual(
     NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => item.label),
-    ["Dashboard", "Daily work", "Leads", "Sales", "Imports", "Possible duplicates", "System status"]
+    ["Dashboard", "Daily work", "Leads", "Operations", "Imports", "Possible duplicates", "System status"]
   );
   assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.label === "Support"));
   assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.label === "Settings"));
@@ -73,6 +73,6 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.match(leadsPage, /LeadPagination/);
   assert.doesNotMatch(leadsPage, /ProofShell/);
   assert.match(leadsPage, /PageSurface/);
-  assert.match(leadsPage, /Lead CRM/);
+  assert.match(leadsPage, /Workspace/);
   assert.doesNotMatch(leadsPage, /<main className=/);
 });

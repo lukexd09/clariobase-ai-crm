@@ -5,8 +5,8 @@ import { Surface, SurfaceContent, SurfaceHeader, SurfaceTitle } from "@/componen
 const priorities = [
   {
     company: "Lumina PMU Studio",
-    action: "Send revised proposal",
-    context: "The owner asked for the Essential package and confirmation that hosting is included.",
+    action: "Send revised draft",
+    context: "The owner asked for a lighter workspace summary and confirmation that hosting is included.",
     deadline: "Today, 15:30",
     href: "/leads"
   },
@@ -19,15 +19,15 @@ const priorities = [
   },
   {
     company: "Sienna Dental Care",
-    action: "Send mini-audit summary",
-    context: "The discovery call was completed yesterday and the client is waiting for recommendations.",
+    action: "Send review summary",
+    context: "The check-in was completed yesterday and the client is waiting for the next step.",
     deadline: "Today, 16:00",
     href: "/leads"
   },
   {
     company: "Velvet Brows & Lashes",
     action: "Schedule the next follow-up",
-    context: "No next action was created after the proposal was sent.",
+    context: "No next task was created after the previous update was sent.",
     deadline: "No deadline",
     href: "/leads"
   }
@@ -54,7 +54,7 @@ export default function DashboardPage() {
           <MetricCard label="Overdue" value="2" tone="danger" />
           <MetricCard label="Due today" value="4" tone="warning" />
           <MetricCard label="Upcoming" value="11" tone="information" />
-          <MetricCard label="No next action" value="6" tone="neutral" />
+        <MetricCard label="Idle" value="6" tone="neutral" />
         </dl>
       </section>
 
