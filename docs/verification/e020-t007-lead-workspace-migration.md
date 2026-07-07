@@ -5,7 +5,8 @@
 - PR: `#177`
 - Branch: `feature/e020-t007-shadboard-lead-workspace-reclean`
 - Base: `epic/e020-shadboard-ui-foundation`
-- Validated clean head SHA: `8a45ad73bb76e6a0100f323df02aea229e043b91`
+- Browser/product-code validated head SHA: `0bb47b8f7bb49b0817b65bb17060000ec1983055`
+- Proof hygiene commit: `d5280b9f5f7ecf31d70e9b1c8c0ee4f6f6ff8b0d`
 - Draft status: Draft
 - Mergeability: `MERGEABLE`
 
@@ -61,6 +62,8 @@ Browser environment:
 - Seeded local lead: `Aurora Nail Studio`
 - Lead route: `/leads/cmrae699j000023qhg2x32sg9`
 - Chromium executable used for Playwright: `C:\Users\User\AppData\Local\ms-playwright\chromium-1223\chrome-win64\chrome.exe`
+- Browser/manual QA was executed on product code at `0bb47b8f7bb49b0817b65bb17060000ec1983055`.
+- Any later commit in this pass must be documentation/PR-metadata-only and must not change product code, tests, package files, schema, migrations, auth, or preview workflows.
 
 Matrix results:
 
