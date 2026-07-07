@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isNavigationItemActive, NAVIGATION_GROUPS } from "@/lib/navigation";
+import { AccountChip } from "@/components/auth/account-chip";
 
 function navigationItemClass(active: boolean) {
   return [
@@ -71,21 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <NavigationLinks pathname={pathname} />
         </nav>
         <div className="border-t border-[#CBD5E1] px-[clamp(16px,2vw,28px)] py-4">
-          <div className="rounded-xl border border-[#CBD5E1] bg-white px-3 py-2.5">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E2E8F0] text-sm font-semibold text-[#0F172A]">
-                ŁC
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-[#0F172A]">
-                  Łukasz Chmiel
-                </span>
-                <span className="block text-xs uppercase tracking-[0.14em] text-[#475569]">
-                  Operator
-                </span>
-              </span>
-            </div>
-          </div>
+          <AccountChip />
         </div>
       </aside>
 
@@ -108,19 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <NavigationLinks pathname={pathname} compact />
                 </nav>
                 <div className="mt-4 border-t border-[#CBD5E1] pt-4">
-                  <div className="flex items-center gap-3 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-2.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E2E8F0] text-sm font-semibold text-[#0F172A]">
-                      ŁC
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-semibold text-[#0F172A]">
-                        Łukasz Chmiel
-                      </span>
-                      <span className="block text-xs uppercase tracking-[0.14em] text-[#475569]">
-                        Operator
-                      </span>
-                    </span>
-                  </div>
+                  <AccountChip />
                 </div>
               </div>
             </details>

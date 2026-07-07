@@ -41,14 +41,12 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.match(shellSource, /Menu/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(shellSource, /focus-visible:ring-\[#006194\]/);
-  assert.match(shellSource, /Łukasz Chmiel/);
-  assert.match(shellSource, /Operator/);
+  assert.match(shellSource, /AccountChip/);
   assert.doesNotMatch(shellSource, /Notifications/);
   assert.doesNotMatch(shellSource, /21 June 2026/);
   assert.doesNotMatch(shellSource, /Single Operator CRM/);
   assert.doesNotMatch(shellSource, /Current/);
   assert.doesNotMatch(shellSource, /Keep the app check handy\./);
-  assert.doesNotMatch(shellSource, /Sign out/);
   assert.doesNotMatch(shellSource, /Account menu coming soon\./);
   assert.doesNotMatch(shellSource, /<details>/);
   assert.doesNotMatch(shellSource, /<summary>/);
