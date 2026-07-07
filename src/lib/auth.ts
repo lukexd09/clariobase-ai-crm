@@ -33,22 +33,22 @@ function readAuthBaseUrl() {
 }
 
 export function buildAuthOptions() {
+  const baseURL = readAuthBaseUrl();
+
   return {
     appName: "ClarioBase",
-    baseURL: readAuthBaseUrl(),
+    baseURL,
     database: prismaAdapter(prisma, {
       provider: "postgresql"
     }),
-    emailAndPassword: {
-      enabled: true,
-      disableSignUp: true
-    },
+    trustedOrigins: [new URL(baseURL).origin],
+    emailAndPassword: { enabled: true, disableSignUp: true },
     secret: readAuthSecret(),
     telemetry: {
       enabled: false,
       debug: false
     }
-  } as const;
+  };
 }
 
 export function createAppAuth() {
