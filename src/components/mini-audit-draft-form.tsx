@@ -81,10 +81,10 @@ function MiniAuditDraftEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-[color:var(--cb-foreground)]">
-            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create mini-audit draft"}
+            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create review draft"}
           </h3>
           <p className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">
-            {draft ? "Update the existing draft below." : "Create the first mini-audit draft for this lead."}
+            {draft ? "Update the existing draft below." : "Create the first review draft for this lead."}
           </p>
         </div>
         {draft ? (
@@ -116,7 +116,7 @@ function MiniAuditDraftEditor({
           hint="Set the current review stage for this draft."
         />
         <DraftField
-          label="Suggested package"
+          label="Suggested match"
           control={
             <select
               name="suggestedPackage"
@@ -130,22 +130,22 @@ function MiniAuditDraftEditor({
               ))}
             </select>
           }
-          hint="Record the current package recommendation."
+          hint="Record the current match recommendation."
         />
         <DraftField
-          label="Problem 1"
+          label="Finding 1"
           control={<input name="problem1" defaultValue={draft?.problem1 ?? ""} className={fieldInputClassName} />}
-          hint="First core issue to address."
+          hint="First core finding to address."
         />
         <DraftField
-          label="Problem 2"
+          label="Finding 2"
           control={<input name="problem2" defaultValue={draft?.problem2 ?? ""} className={fieldInputClassName} />}
-          hint="Second core issue to address."
+          hint="Second core finding to address."
         />
         <DraftField
-          label="Problem 3"
+          label="Finding 3"
           control={<input name="problem3" defaultValue={draft?.problem3 ?? ""} className={fieldInputClassName} />}
-          hint="Third core issue to address."
+          hint="Third core finding to address."
         />
         <DraftField
           label="Approved at"
@@ -160,7 +160,7 @@ function MiniAuditDraftEditor({
           hint="Optional approval timestamp in local operator time."
         />
         <DraftField
-          label="Recommendation"
+          label="Review note"
           control={
             <textarea
               name="recommendation"
@@ -169,10 +169,10 @@ function MiniAuditDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="Short recommendation summary."
+          hint="Short review summary."
         />
         <DraftField
-          label="Outreach angle"
+          label="Message angle"
           control={
             <textarea
               name="outreachAngle"
@@ -184,7 +184,7 @@ function MiniAuditDraftEditor({
           hint="Lead-in for the first message."
         />
         <DraftField
-          label="Draft message"
+          label="Draft note"
           control={
             <textarea
               name="draftMessage"
@@ -193,7 +193,7 @@ function MiniAuditDraftEditor({
               className={`${fieldInputClassName} min-h-32 resize-y md:col-span-2`}
             />
           }
-          hint="Prepared message text."
+          hint="Prepared note text."
         />
         <DraftField
           label="Risk notes"
@@ -210,7 +210,7 @@ function MiniAuditDraftEditor({
       </div>
 
       <div className="flex items-center gap-4">
-        <SubmitButton>{draft ? "Save mini-audit draft" : "Create mini-audit draft"}</SubmitButton>
+        <SubmitButton>{draft ? "Save review draft" : "Create review draft"}</SubmitButton>
         {state.message ? (
           <p
             id={feedbackId}

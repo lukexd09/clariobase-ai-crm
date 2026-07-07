@@ -63,8 +63,6 @@ export default async function LeadDetailPage({
   if (!lead) notFound();
 
   const clientOfferDrafts = offerDrafts.map(toOfferDraftClientRecord);
-  const miniAuditPanelPackage = getMiniAuditPanelPackage(miniAuditDrafts);
-  const offerPanelPackage = getOfferPanelPackage(clientOfferDrafts);
   const recommendation = getNextRecommendedAction({
     miniAuditDrafts,
     outreachDrafts,
@@ -77,12 +75,12 @@ export default async function LeadDetailPage({
     [lead.region, lead.country].filter(Boolean).join(", ") || "No region or country"
   ];
   const sectionLinks = [
-    { href: "#lead-controls", label: "Lead controls" },
+    { href: "#lead-controls", label: "Status" },
     { href: "#activity", label: "Activity log" },
-    { href: "#mini-audit", label: "Mini-audit" },
-    { href: "#outreach", label: "Outreach" },
-    { href: "#offer", label: "Offer" },
-    { href: "#technical-details", label: "Technical details" }
+    { href: "#mini-audit", label: "Review" },
+    { href: "#outreach", label: "Message plan" },
+    { href: "#offer", label: "Draft" },
+    { href: "#technical-details", label: "Internal details" }
   ];
 
   return (
@@ -115,7 +113,7 @@ export default async function LeadDetailPage({
         <header className="mb-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-4 shadow-[var(--cb-shadow-surface)] lg:p-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 space-y-4">
-              <p className="text-sm font-medium text-[color:var(--cb-accent)]">Lead workspace</p>
+              <p className="text-sm font-medium text-[color:var(--cb-accent)]">Operator workspace</p>
 
               <div className="space-y-3">
                 <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--cb-foreground)] sm:text-4xl">
@@ -138,22 +136,21 @@ export default async function LeadDetailPage({
               <div className="flex flex-wrap gap-2">
                 <StatusPill value={lead.leadStatus} appearance="light" />
                 <StatusPill value={lead.priority} appearance="light" />
-                <StatusPill value={lead.packageFit} appearance="light" />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <HeaderMetric
-                  label="Lead score"
-                  value={String(lead.scoreTotal)}
-                  detail={lead.scoreLabel ?? "No score label"}
+                  label="Readiness"
+                  value={lead.scoreLabel ?? String(lead.scoreTotal)}
+                  detail={`Priority: ${lead.priority.replaceAll("_", " ")}`}
                 />
                 <HeaderMetric
-                  label="Next action"
+                  label="Recommended next step"
                   value={nextActionDisplay}
                   detail="Shown in local operator time."
                 />
                 <HeaderMetric
-                  label="Customer"
+                  label="Contact"
                   value={lead.customerId}
                   detail={lead.phone ?? lead.email ?? "No direct contact saved"}
                 />
@@ -167,7 +164,7 @@ export default async function LeadDetailPage({
             </div>
 
             <section className="xl:max-w-sm rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]">
-              <p className="text-sm font-medium text-[color:var(--cb-accent)]">Next recommended action</p>
+              <p className="text-sm font-medium text-[color:var(--cb-accent)]">Recommended next step</p>
               <h2 className="mt-2 text-xl font-semibold tracking-tight text-[color:var(--cb-foreground)]">
                 {recommendation.title}
               </h2>
@@ -249,8 +246,8 @@ export default async function LeadDetailPage({
             <section id="lead-artifacts" className="space-y-4">
               <ArtifactPanel
                 id="mini-audit"
-                label="Mini-audit"
-                title={getArtifactPanelTitle("Mini-audit", miniAuditDrafts.length)}
+                label="Review"
+                title={getArtifactPanelTitle("Review", miniAuditDrafts.length)}
                 description={getMiniAuditPanelDescription(miniAuditDrafts)}
                 statusBadge={
                   miniAuditDrafts.length > 0 ? (
@@ -259,11 +256,9 @@ export default async function LeadDetailPage({
                     <SecondaryBadge>Not started</SecondaryBadge>
                   )
                 }
-                packageBadge={
-                  miniAuditPanelPackage ? <StatusPill value={miniAuditPanelPackage} appearance="light" /> : null
-                }
+                packageBadge={miniAuditDrafts.length > 0 ? <SecondaryBadge>Match</SecondaryBadge> : null}
                 updatedAt={getMiniAuditPanelUpdatedAt(miniAuditDrafts)}
-                emptyMessage="Create the first draft when this lead is ready."
+                emptyMessage="Create the first review when this lead is ready."
                 actionLabel={getMiniAuditPanelAction(miniAuditDrafts)}
               >
                 <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
@@ -271,8 +266,8 @@ export default async function LeadDetailPage({
 
               <ArtifactPanel
                 id="outreach"
-                label="Outreach sequence"
-                title={getArtifactPanelTitle("Outreach sequence", outreachDrafts.length)}
+                label="Message plan"
+                title={getArtifactPanelTitle("Message plan", outreachDrafts.length)}
                 description={getOutreachPanelDescription(outreachDrafts)}
                 statusBadge={
                   outreachDrafts.length > 0 ? (
@@ -283,7 +278,7 @@ export default async function LeadDetailPage({
                 }
                 packageBadge={null}
                 updatedAt={getOutreachPanelUpdatedAt(outreachDrafts)}
-                emptyMessage="Create the first draft when outreach is ready."
+                emptyMessage="Create the first message draft when outreach is ready."
                 actionLabel={getOutreachPanelAction(outreachDrafts)}
               >
                 <OutreachDraftSection
@@ -295,7 +290,7 @@ export default async function LeadDetailPage({
 
               <ArtifactPanel
                 id="offer"
-                label="Offer generation"
+                label="Draft preparation"
                 title={getOfferPanelTitle(clientOfferDrafts)}
                 description={getOfferPanelDescription(clientOfferDrafts)}
                 statusBadge={
@@ -305,11 +300,9 @@ export default async function LeadDetailPage({
                     <SecondaryBadge>Not started</SecondaryBadge>
                   )
                 }
-                packageBadge={
-                  offerPanelPackage ? <StatusPill value={offerPanelPackage} appearance="light" /> : null
-                }
+                packageBadge={clientOfferDrafts.length > 0 ? <SecondaryBadge>Match</SecondaryBadge> : null}
                 updatedAt={getOfferPanelUpdatedAt(clientOfferDrafts)}
-                emptyMessage="Create the first commercial draft when the lead is ready."
+                emptyMessage="Create the first draft when the lead is ready."
                 actionLabel={getOfferPanelAction(clientOfferDrafts)}
               >
                 <OfferDraftSection leadId={lead.id} drafts={clientOfferDrafts} />
@@ -355,10 +348,10 @@ export default async function LeadDetailPage({
               className="rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]"
             >
               <div className="border-b border-[color:var(--cb-border)] pb-4">
-                <p className="text-sm font-medium text-[color:var(--cb-accent)]">Lead controls</p>
-                <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">Operational update</h2>
+                <p className="text-sm font-medium text-[color:var(--cb-accent)]">Status</p>
+                <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">Status update</h2>
                 <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
-                  Keep the lead state, priority, package fit, and next action aligned with the latest work.
+                  Keep the state, priority, match, and next task aligned with the latest work.
                 </p>
               </div>
 
@@ -381,7 +374,7 @@ export default async function LeadDetailPage({
               <div className="border-b border-[color:var(--cb-border)] pb-4">
                 <p className="text-sm font-medium text-[color:var(--cb-accent)]">Activity log</p>
                 <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">
-                  Notes, calls, messages, and updates
+                  Notes, messages, and updates
                 </h2>
                 <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
                   Activity stays easy to log without narrowing the fields or clipping the date input.
@@ -414,10 +407,10 @@ function getNextRecommendedAction({
 
   if (miniAuditDrafts.length === 0) {
     return {
-      title: "Prepare mini-audit",
+      title: "Prepare review",
       description:
-        "No mini-audit draft exists yet, so start with diagnosis, package fit, and the first message angle.",
-      primaryLabel: "Prepare mini-audit",
+        "No review draft exists yet, so start with findings, match, and the first message angle.",
+      primaryLabel: "Prepare review",
       primaryHref: "#mini-audit",
       secondaryLabel: "Open activity log",
       secondaryHref: "#activity"
@@ -426,22 +419,22 @@ function getNextRecommendedAction({
 
   if (outreachDrafts.length === 0) {
     return {
-      title: "Prepare outreach",
+      title: "Prepare message plan",
       description:
-        "The lead already has a mini-audit foundation, so the next practical step is an outreach draft.",
-      primaryLabel: "Prepare outreach",
+        "The lead already has a review foundation, so the next practical step is a message draft.",
+      primaryLabel: "Prepare message plan",
       primaryHref: "#outreach",
-      secondaryLabel: "Review lead controls",
+      secondaryLabel: "Review status",
       secondaryHref: "#lead-controls"
     };
   }
 
   if (offerDrafts.length === 0) {
     return {
-      title: "Prepare offer",
+      title: "Prepare draft",
       description:
-        "The lead has enough earlier-workflow context, so create the first commercial offer draft next.",
-      primaryLabel: "Prepare offer",
+        "The lead has enough earlier-workflow context, so create the first draft preparation next.",
+      primaryLabel: "Prepare draft",
       primaryHref: "#offer",
       secondaryLabel: "Open activity log",
       secondaryHref: "#activity"
@@ -450,10 +443,10 @@ function getNextRecommendedAction({
 
   if (hasActiveOffer && latestOfferDraft) {
     return {
-      title: "Review offer",
+      title: "Review draft",
       description:
-        `The latest offer draft is still active (${latestOfferDraft.status.replaceAll("_", " ").toLowerCase()}). Review the current version before moving on.`,
-      primaryLabel: "Review offer",
+        `The latest draft is still active (${latestOfferDraft.status.replaceAll("_", " ").toLowerCase()}). Review the current version before moving on.`,
+      primaryLabel: "Review draft",
       primaryHref: "#offer",
       secondaryLabel: "Jump to activity",
       secondaryHref: "#activity"
@@ -461,7 +454,7 @@ function getNextRecommendedAction({
   }
 
   return {
-    title: "Log activity or update lead status",
+    title: "Log activity or update status",
     description:
       "The core workflow artifacts already exist, so use the workspace to log a fresh activity or tighten the operational state.",
     primaryLabel: "Log activity",
@@ -479,17 +472,13 @@ function getMiniAuditPanelStatus(drafts: Array<{ status: string }>) {
   return drafts[0].status as MiniAuditStatusValue;
 }
 
-function getMiniAuditPanelPackage(drafts: MiniAuditDraftRecord[]) {
-  return drafts[0]?.suggestedPackage ?? null;
-}
-
 function getMiniAuditPanelDescription(drafts: MiniAuditDraftRecord[]) {
   const latest = drafts[0];
   if (!latest) {
-    return "Capture the first diagnosis, suggested package fit, and a draft message angle.";
+    return "Capture the first review, suggested match, and a draft message angle.";
   }
 
-  return latest.recommendation ?? latest.problem1 ?? "Compact diagnosis ready for review.";
+  return latest.recommendation ?? latest.problem1 ?? "Compact review ready for review.";
 }
 
 function getMiniAuditPanelUpdatedAt(drafts: MiniAuditDraftRecord[]) {
@@ -507,7 +496,7 @@ function getOutreachPanelStatus(drafts: OutreachDraftRecord[]) {
 function getOutreachPanelDescription(drafts: OutreachDraftRecord[]) {
   const latest = drafts[0];
   if (!latest) {
-    return "Prepare the first message sequence, channel, and follow-up metadata.";
+    return "Prepare the first message plan, channel, and follow-up metadata.";
   }
 
   return latest.subject ?? latest.openingHook ?? latest.message ?? "Latest outreach draft is ready.";
@@ -529,7 +518,7 @@ function getOfferPanelTitle(drafts: OfferDraftClientRecord[]) {
 function getOfferPanelDescription(drafts: OfferDraftClientRecord[]) {
   const latest = drafts[0];
   if (!latest) {
-    return "Prepare the first commercial offer draft when the lead is ready.";
+    return "Prepare the first draft when the lead is ready.";
   }
 
   const price = latest.priceNet ? `${latest.currency} ${latest.priceNet}` : "No price set yet";
@@ -538,10 +527,6 @@ function getOfferPanelDescription(drafts: OfferDraftClientRecord[]) {
 
 function getOfferPanelStatus(drafts: OfferDraftClientRecord[]) {
   return drafts[0].status as OfferDraftStatusValue;
-}
-
-function getOfferPanelPackage(drafts: OfferDraftClientRecord[]) {
-  return drafts[0]?.packageFit ?? null;
 }
 
 function getOfferPanelUpdatedAt(drafts: OfferDraftClientRecord[]) {

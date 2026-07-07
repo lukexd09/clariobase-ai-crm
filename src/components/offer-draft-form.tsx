@@ -81,10 +81,10 @@ function OfferDraftEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-[color:var(--cb-foreground)]">
-            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create offer draft"}
+            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create draft preparation"}
           </h3>
           <p className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">
-            {draft ? "Update the existing offer draft below." : "Create the first commercial offer draft for this lead."}
+            {draft ? "Update the existing draft below." : "Create the first draft preparation for this lead."}
           </p>
         </div>
         {draft ? (
@@ -116,7 +116,7 @@ function OfferDraftEditor({
           hint="Set the current stage for this offer draft."
         />
         <DraftField
-          label="Package fit"
+          label="Match"
           control={
             <select
               name="packageFit"
@@ -130,7 +130,7 @@ function OfferDraftEditor({
               ))}
             </select>
           }
-          hint="Record the package this offer currently targets."
+          hint="Record the match this draft currently targets."
         />
         <DraftField
           label="Title"
@@ -138,7 +138,7 @@ function OfferDraftEditor({
           hint="Required offer title."
         />
         <DraftField
-          label="Price net"
+          label="Price"
           control={
             <input
               name="priceNet"
@@ -157,7 +157,7 @@ function OfferDraftEditor({
           hint="Defaults to PLN."
         />
         <DraftField
-          label="Valid until"
+          label="Expires"
           control={
             <input
               name="validUntil"
@@ -255,7 +255,7 @@ function OfferDraftEditor({
       </div>
 
       <div className="flex items-center gap-4">
-        <SubmitButton>{draft ? "Save offer draft" : "Create offer draft"}</SubmitButton>
+        <SubmitButton>{draft ? "Save draft" : "Create draft"}</SubmitButton>
         {state.message ? (
           <p
             id={feedbackId}
