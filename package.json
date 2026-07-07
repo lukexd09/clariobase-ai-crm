@@ -18,6 +18,7 @@
     "prisma:validate": "node --env-file=.env.example ./node_modules/prisma/build/index.js validate",
     "prisma:migrate": "node --env-file=.env.local ./node_modules/prisma/build/index.js migrate dev",
     "prisma:seed": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs prisma/seed.ts",
+    "e011:t009:proof": "node --env-file=.env.example ./node_modules/tsx/dist/cli.mjs scripts/e011-t009-better-auth-core-proof.ts",
     "leads:import": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/import-leads.ts",
     "leads:detect-duplicates": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/detect-duplicates.ts",
     "ai:export-leads": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts",
@@ -27,8 +28,10 @@
     "test:full": "pnpm test:fast && pnpm test:infra"
   },
   "dependencies": {
+    "@better-auth/prisma-adapter": "1.6.23",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "better-auth": "1.6.23",
     "next": "^15.3.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -43,8 +46,8 @@
     "eslint-config-next": "^15.3.3",
     "postcss": "^8.5.4",
     "prisma": "^7.8.0",
-    "tsx": "^4.20.6",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.6",
     "typescript": "^5.8.3"
   }
 }
