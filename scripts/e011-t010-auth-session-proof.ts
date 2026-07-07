@@ -132,7 +132,8 @@ async function main() {
 
     const cookieHeader = createdHeaders.get("set-cookie");
     assert(cookieHeader);
-    const forbidden = [databaseUrl, postgresPassword, authSecret, proofPassword, proofEmail];
+    const nonExistentEmail = `missing-${randomUUID()}@example.test`;
+    const forbidden = [databaseUrl, postgresPassword, authSecret, proofPassword, proofEmail, nonExistentEmail];
     assertSafeLogLine("CONTROLLED_USER_CREATED", forbidden);
 
     const freshAuth = createAppAuth();
@@ -147,7 +148,6 @@ async function main() {
     );
     assert(invalidExisting, "invalid credentials should fail");
 
-    const nonExistentEmail = `missing-${randomUUID()}@example.test`;
     const invalidMissing = await freshAuth.api.signInEmail({
       body: {
         email: nonExistentEmail,
@@ -161,6 +161,11 @@ async function main() {
     assert.equal(invalidExisting?.status, invalidMissing?.status);
     assert.equal(invalidExisting?.code, invalidMissing?.code);
     assert.equal(invalidExisting?.message, invalidMissing?.message);
+    const sanitizedAuthError = JSON.stringify({
+      status: invalidExisting?.status,
+      code: invalidExisting?.code,
+      message: invalidExisting?.message
+    });
     assertSafeLogLine(
       JSON.stringify({
         status: invalidExisting?.status,
@@ -169,6 +174,7 @@ async function main() {
       }),
       forbidden
     );
+    assertSafeLogLine(sanitizedAuthError, forbidden);
 
     const signIn = await appAuth.api.signInEmail({
       body: {
@@ -182,9 +188,9 @@ async function main() {
     assert(signInHeaders);
     const setCookie = signInHeaders.get("set-cookie");
     assert(setCookie);
-    assertSafeLogLine("SIGN_IN_OK", forbidden);
-
     const sessionCookie = setCookie.split(";")[0];
+    assertSafeLogLine(sessionCookie, forbidden);
+    assertSafeLogLine("SIGN_IN_OK", forbidden);
     const sessionHeaders = new Headers({ cookie: sessionCookie });
 
     const session = await appAuth.api.getSession({ headers: sessionHeaders });
@@ -224,7 +230,7 @@ async function main() {
       sessionAfterRestartPresent: Boolean(sessionAfterRestart),
       signOutClearedSession: afterSignOut === null
     });
-    assertSafeLogLine(rendered, forbidden);
+    assertSafeLogLine(rendered, [...forbidden, sessionCookie]);
 
     console.log("E011.T010 live auth proof: PASS");
   } finally {
