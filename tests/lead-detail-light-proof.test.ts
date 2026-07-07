@@ -30,7 +30,7 @@ test("lead detail route uses the approved ClarioBase UI boundary", () => {
   assert.match(page, /Review/);
   assert.match(page, /Message plan/);
   assert.match(page, /Draft preparation/);
-  assert.match(page, /Lead workspace sections/);
+  assert.match(page, /Operator workspace sections/);
   assert.match(page, /"#lead-controls"/);
   assert.match(page, /"#activity"/);
   assert.match(page, /"#mini-audit"/);
@@ -79,7 +79,6 @@ test("lead detail route keeps forms and actions wired to the existing persistenc
   assert.match(miniAuditForm, /Save review draft/);
   assert.match(miniAuditForm, /New draft/);
   assert.match(miniAuditForm, /StatusPill value=\{draft\.status as MiniAuditStatusValue\} appearance="light"/);
-  assert.match(miniAuditForm, /StatusPill value=\{draft\.suggestedPackage as PackageFitValue\} appearance="light"/);
   assert.match(miniAuditForm, /StatusPill value=\{draft\.suggestedPackage as PackageFitValue\} appearance="light"/);
   assert.match(miniAuditForm, /Finding 1/);
 

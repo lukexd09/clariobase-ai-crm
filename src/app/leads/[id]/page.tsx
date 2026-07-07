@@ -187,7 +187,7 @@ export default async function LeadDetailPage({
           </div>
         </header>
 
-        <nav aria-label="Lead workspace sections" className="mb-4 flex flex-wrap gap-2">
+        <nav aria-label="Operator workspace sections" className="mb-4 flex flex-wrap gap-2">
           {sectionLinks.map((section) => (
             <Link
               key={section.href}
