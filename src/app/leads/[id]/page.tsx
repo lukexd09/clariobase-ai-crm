@@ -86,46 +86,46 @@ export default async function LeadDetailPage({
   ];
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
+    <main className="min-h-screen bg-[var(--clariobase-background)] text-[var(--clariobase-text-primary)]">
       <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="Lead breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-[#475569]">
+          <nav aria-label="Lead breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-[var(--clariobase-text-secondary)]">
             <Link
               href="/leads"
-              className="font-medium text-[#334155] transition hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="font-medium text-[var(--clariobase-text-primary)] transition hover:text-[var(--clariobase-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               Leads
             </Link>
-            <span aria-hidden="true" className="text-[#CBD5E1]">
+            <span aria-hidden="true" className="text-[var(--clariobase-border)]">
               /
             </span>
-            <span className="font-medium text-[#0F172A]">{lead.businessName}</span>
+            <span className="font-medium text-[var(--clariobase-text-primary)]">{lead.businessName}</span>
           </nav>
 
           <div className="flex flex-wrap gap-2">
             <Link
               href="/work"
-              className="rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-sm font-medium text-[#334155] transition hover:border-[#006194] hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] px-4 py-2 text-sm font-medium text-[var(--clariobase-text-primary)] transition hover:border-[var(--clariobase-primary)] hover:text-[var(--clariobase-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               Open workbench
             </Link>
           </div>
         </div>
 
-        <header className="mb-4 rounded-[28px] border border-[#CBD5E1] bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] lg:p-5">
+        <header className="mb-4 rounded-[24px] border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] p-4 shadow-sm lg:p-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 space-y-4">
-              <p className="text-sm font-medium text-[#006194]">Lead workspace</p>
+              <p className="text-sm font-medium text-[var(--clariobase-primary)]">Lead workspace</p>
 
               <div className="space-y-3">
-                <h1 className="text-3xl font-semibold tracking-tight text-[#0F172A] sm:text-4xl">
+                <h1 className="text-3xl font-semibold tracking-tight text-[var(--clariobase-text-primary)] sm:text-4xl">
                   {lead.businessName}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-[#475569]">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-[var(--clariobase-text-secondary)]">
                   {primaryMetadata.map((item, index) => (
                     <span key={`${item}-${index}`} className="flex items-center gap-3">
                       {index > 0 ? (
-                        <span aria-hidden="true" className="text-[#CBD5E1]">
+                        <span aria-hidden="true" className="text-[var(--clariobase-border)]">
                           |
                         </span>
                       ) : null}
@@ -166,22 +166,22 @@ export default async function LeadDetailPage({
               </div>
             </div>
 
-            <section className="xl:max-w-sm rounded-[24px] border border-[#B7C6D6] bg-[linear-gradient(180deg,#F8FAFC_0%,#EEF3F8_100%)] p-4">
-              <p className="text-sm font-medium text-[#006194]">Next recommended action</p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-[#0F172A]">
+            <section className="xl:max-w-sm rounded-[24px] border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] p-4">
+              <p className="text-sm font-medium text-[var(--clariobase-primary)]">Next recommended action</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-[var(--clariobase-text-primary)]">
                 {recommendation.title}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#475569]">{recommendation.description}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--clariobase-text-secondary)]">{recommendation.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href={recommendation.primaryHref}
-                  className="rounded-full bg-[#006194] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#004D70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  className="rounded-full bg-[var(--clariobase-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   {recommendation.primaryLabel}
                 </Link>
                 <Link
                   href={recommendation.secondaryHref}
-                  className="rounded-full border border-[#CBD5E1] bg-white px-4 py-2 text-sm font-medium text-[#334155] transition hover:border-[#006194] hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  className="rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] px-4 py-2 text-sm font-medium text-[var(--clariobase-text-primary)] transition hover:border-[var(--clariobase-primary)] hover:text-[var(--clariobase-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
                 >
                   {recommendation.secondaryLabel}
                 </Link>
@@ -195,7 +195,7 @@ export default async function LeadDetailPage({
             <Link
               key={section.href}
               href={section.href}
-              className="rounded-full border border-[#CBD5E1] bg-white px-3 py-1.5 text-sm font-medium text-[#334155] transition hover:border-[#006194] hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] px-3 py-1.5 text-sm font-medium text-[var(--clariobase-text-primary)] transition hover:border-[var(--clariobase-primary)] hover:text-[var(--clariobase-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
             >
               {section.label}
             </Link>
@@ -204,10 +204,10 @@ export default async function LeadDetailPage({
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,400px)]">
           <div className="space-y-4">
-            <section className="rounded-[24px] border border-[#CBD5E1] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-              <div className="flex flex-col gap-2 border-b border-[#E2E8F0] pb-4">
-                <h2 className="text-xl font-semibold text-[#0F172A]">Business context</h2>
-                <p className="text-sm text-[#475569]">
+            <section className="rounded-[24px] border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] p-5 shadow-sm">
+              <div className="flex flex-col gap-2 border-b border-[var(--clariobase-border)] pb-4">
+                <h2 className="text-xl font-semibold text-[var(--clariobase-text-primary)]">Business context</h2>
+                <p className="text-sm text-[var(--clariobase-text-secondary)]">
                   A compact view of the operator-facing context without repeating status or package data.
                 </p>
               </div>
@@ -316,22 +316,22 @@ export default async function LeadDetailPage({
               </ArtifactPanel>
             </section>
 
-            <details id="technical-details" className="rounded-[24px] border border-[#CBD5E1] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-              <summary className="cursor-pointer list-none rounded-[24px] px-5 py-4 transition hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+            <details id="technical-details" className="rounded-[24px] border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] shadow-sm">
+              <summary className="cursor-pointer list-none rounded-[24px] px-5 py-4 transition hover:bg-[var(--clariobase-surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[#0F172A]">Show technical details</p>
-                    <p className="mt-1 text-sm text-[#475569]">
+                    <p className="text-sm font-medium text-[var(--clariobase-text-primary)]">Show technical details</p>
+                    <p className="mt-1 text-sm text-[var(--clariobase-text-secondary)]">
                       Source identifiers and audit timestamps stay available here when needed.
                     </p>
                   </div>
-                  <span className="rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-1 text-sm font-medium text-[#334155]">
+                  <span className="rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] px-3 py-1 text-sm font-medium text-[var(--clariobase-text-primary)]">
                     Technical metadata
                   </span>
                 </div>
               </summary>
 
-              <div className="border-t border-[#E2E8F0] px-5 py-4">
+              <div className="border-t border-[var(--clariobase-border)] px-5 py-4">
                 <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   <DefinitionItem label="Customer ID" value={lead.customerId} subtle />
                   <DefinitionItem label="Source" value={lead.source ?? "Not provided"} subtle />
@@ -347,11 +347,11 @@ export default async function LeadDetailPage({
           </div>
 
           <aside className="space-y-4">
-            <section id="lead-controls" className="rounded-[24px] border border-[#CBD5E1] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-              <div className="border-b border-[#E2E8F0] pb-4">
-                <p className="text-sm font-medium text-[#006194]">Lead controls</p>
-                <h2 className="mt-2 text-xl font-semibold text-[#0F172A]">Operational update</h2>
-                <p className="mt-1 text-sm text-[#475569]">
+            <section id="lead-controls" className="rounded-[24px] border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] p-5 shadow-sm">
+              <div className="border-b border-[var(--clariobase-border)] pb-4">
+                <p className="text-sm font-medium text-[var(--clariobase-primary)]">Lead controls</p>
+                <h2 className="mt-2 text-xl font-semibold text-[var(--clariobase-text-primary)]">Operational update</h2>
+                <p className="mt-1 text-sm text-[var(--clariobase-text-secondary)]">
                   Keep the lead state, priority, package fit, and next action aligned with the latest work.
                 </p>
               </div>
@@ -368,13 +368,13 @@ export default async function LeadDetailPage({
               </div>
             </section>
 
-            <section id="activity" className="space-y-4 rounded-[24px] border border-[#CBD5E1] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-              <div className="border-b border-[#E2E8F0] pb-4">
-                <p className="text-sm font-medium text-[#006194]">Activity log</p>
-                <h2 className="mt-2 text-xl font-semibold text-[#0F172A]">
+            <section id="activity" className="space-y-4 rounded-[24px] border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] p-5 shadow-sm">
+              <div className="border-b border-[var(--clariobase-border)] pb-4">
+                <p className="text-sm font-medium text-[var(--clariobase-primary)]">Activity log</p>
+                <h2 className="mt-2 text-xl font-semibold text-[var(--clariobase-text-primary)]">
                   Notes, calls, messages, and updates
                 </h2>
-                <p className="mt-1 text-sm text-[#475569]">
+                <p className="mt-1 text-sm text-[var(--clariobase-text-secondary)]">
                   Activity stays easy to log without narrowing the fields or clipping the date input.
                 </p>
               </div>
@@ -553,10 +553,10 @@ function HeaderMetric({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748B]">{label}</p>
-      <p className="mt-3 text-lg font-semibold text-[#0F172A]">{value}</p>
-      <p className="mt-1 text-sm text-[#475569]">{detail}</p>
+    <div className="rounded-2xl border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--clariobase-text-secondary)]">{label}</p>
+      <p className="mt-3 text-lg font-semibold text-[var(--clariobase-text-primary)]">{value}</p>
+      <p className="mt-1 text-sm text-[var(--clariobase-text-secondary)]">{detail}</p>
     </div>
   );
 }
@@ -571,9 +571,9 @@ function DefinitionItem({
   subtle?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border p-4 ${subtle ? "border-[#CBD5E1] bg-[#F8FAFC]" : "border-[#CBD5E1] bg-white"}`}>
-      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-[#64748B]">{label}</dt>
-      <dd className="mt-2 break-words text-sm leading-6 text-[#0F172A]">{value}</dd>
+    <div className={`rounded-2xl border p-4 ${subtle ? "border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)]" : "border-[var(--clariobase-border)] bg-[var(--clariobase-surface)]"}`}>
+      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--clariobase-text-secondary)]">{label}</dt>
+      <dd className="mt-2 break-words text-sm leading-6 text-[var(--clariobase-text-primary)]">{value}</dd>
     </div>
   );
 }
@@ -602,23 +602,23 @@ function ArtifactPanel({
   children: ReactNode;
 }) {
   return (
-    <details id={id} className="group rounded-2xl border border-[#CBD5E1] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <summary className="list-none cursor-pointer rounded-2xl px-5 py-4 transition hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+    <details id={id} className="group rounded-2xl border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] shadow-sm">
+      <summary className="list-none cursor-pointer rounded-2xl px-5 py-4 transition hover:bg-[var(--clariobase-surface-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-[#006194]">{label}</p>
+              <p className="text-sm font-medium text-[var(--clariobase-primary)]">{label}</p>
               {statusBadge}
               {packageBadge}
             </div>
-            <h3 className="text-xl font-semibold tracking-tight text-[#0F172A]">{title}</h3>
-            <p className="max-w-3xl text-sm leading-6 text-[#475569]">{description}</p>
-            <p className="text-xs text-[#64748B]">
+            <h3 className="text-xl font-semibold tracking-tight text-[var(--clariobase-text-primary)]">{title}</h3>
+            <p className="max-w-3xl text-sm leading-6 text-[var(--clariobase-text-secondary)]">{description}</p>
+            <p className="text-xs text-[var(--clariobase-text-secondary)]">
               {updatedAt ? `Updated ${formatShortDate(updatedAt)}` : emptyMessage}
             </p>
           </div>
 
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-1 text-sm font-medium text-[#334155]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] px-3 py-1 text-sm font-medium text-[var(--clariobase-text-primary)]">
             {actionLabel}
             <span aria-hidden="true" className="text-base transition-transform group-open:rotate-180">
               v
@@ -627,7 +627,7 @@ function ArtifactPanel({
         </div>
       </summary>
 
-      <div className="border-t border-[#E2E8F0] p-5">{children}</div>
+      <div className="border-t border-[var(--clariobase-border)] p-5">{children}</div>
     </details>
   );
 }
@@ -635,7 +635,7 @@ function ArtifactPanel({
 function ExternalLink({ href, label }: { href: string; label: string }) {
   return (
     <a
-      className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-white px-3 py-2 text-sm font-medium text-[#334155] transition hover:border-[#006194] hover:text-[#006194] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+      className="inline-flex items-center gap-2 rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] px-3 py-2 text-sm font-medium text-[var(--clariobase-text-primary)] transition hover:border-[var(--clariobase-primary)] hover:text-[var(--clariobase-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
       href={href}
       target="_blank"
       rel="noreferrer"
@@ -648,16 +648,16 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
 
 function InlineMeta({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-2 text-sm text-[#475569]">
-      <span className="font-semibold uppercase tracking-[0.2em] text-[#64748B]">{label}</span>
-      <span className="text-[#0F172A]">{value}</span>
+    <span className="inline-flex items-center gap-2 rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] px-3 py-2 text-sm text-[var(--clariobase-text-secondary)]">
+      <span className="font-semibold uppercase tracking-[0.2em] text-[var(--clariobase-text-secondary)]">{label}</span>
+      <span className="text-[var(--clariobase-text-primary)]">{value}</span>
     </span>
   );
 }
 
 function SecondaryBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-2.5 py-1 text-xs font-medium text-[#334155]">
+    <span className="inline-flex items-center rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--clariobase-text-primary)]">
       {children}
     </span>
   );

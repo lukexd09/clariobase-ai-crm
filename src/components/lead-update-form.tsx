@@ -24,7 +24,7 @@ const initialState: LeadUpdateState = {
 };
 
 const fieldInputClassName =
-  "w-full rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus-visible:border-[#006194] focus-visible:ring-2 focus-visible:ring-[#006194]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+  "w-full rounded-2xl border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] px-4 py-3 text-sm text-[var(--clariobase-text-primary)] outline-none transition placeholder:text-[var(--clariobase-text-secondary)] focus-visible:border-[var(--clariobase-primary)] focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -33,7 +33,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-[#006194] px-4 py-2 font-semibold text-white transition hover:bg-[#004D70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[var(--clariobase-primary)] px-4 py-2 font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : "Save updates"}
     </button>
@@ -154,11 +154,11 @@ function Field({
 }) {
   return (
     <label className="space-y-2">
-      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[#475569]">
+      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[var(--clariobase-text-secondary)]">
         {label}
       </span>
       {control}
-      <span className="block text-xs leading-5 text-[#64748B]">{hint}</span>
+      <span className="block text-xs leading-5 text-[var(--clariobase-text-secondary)]">{hint}</span>
     </label>
   );
 }

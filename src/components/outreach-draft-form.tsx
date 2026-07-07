@@ -24,7 +24,7 @@ const initialState: DraftState = {
 };
 
 const fieldInputClassName =
-  "w-full rounded-2xl border border-[#CBD5E1] bg-[#F8FAFC] px-4 py-3 text-sm text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus-visible:border-[#006194] focus-visible:ring-2 focus-visible:ring-[#006194]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+  "w-full rounded-2xl border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] px-4 py-3 text-sm text-[var(--clariobase-text-primary)] outline-none transition placeholder:text-[var(--clariobase-text-secondary)] focus-visible:border-[var(--clariobase-primary)] focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -33,7 +33,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-[#006194] px-4 py-2 font-semibold text-white transition hover:bg-[#004D70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006194] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[var(--clariobase-primary)] px-4 py-2 font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : children}
     </button>
@@ -86,14 +86,14 @@ function OutreachDraftEditor({
     <form
       action={formAction}
       aria-describedby={state.message ? feedbackId : undefined}
-      className="space-y-4 rounded-[24px] border border-[#CBD5E1] bg-white p-4"
+      className="space-y-4 rounded-[24px] border border-[var(--clariobase-border)] bg-[var(--clariobase-surface)] p-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-medium text-[#0F172A]">
+          <h3 className="text-base font-medium text-[var(--clariobase-text-primary)]">
             {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create outreach draft"}
           </h3>
-          <p className="mt-1 text-xs text-[#64748B]">
+          <p className="mt-1 text-xs text-[var(--clariobase-text-secondary)]">
             {draft ? "Update the existing outreach draft below." : "Create the first outreach draft for this lead."}
           </p>
         </div>
@@ -103,7 +103,7 @@ function OutreachDraftEditor({
             <StatusPill value={draft.channel as OutreachChannelValue} appearance="light" />
           </div>
         ) : (
-          <span className="rounded-full border border-[#CBD5E1] bg-[#F8FAFC] px-3 py-1 text-sm font-medium text-[#334155]">
+          <span className="rounded-full border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] px-3 py-1 text-sm font-medium text-[var(--clariobase-text-primary)]">
             New draft
           </span>
         )}
@@ -252,11 +252,11 @@ function DraftField({
 }) {
   return (
     <label className="space-y-2 md:col-span-1">
-      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[#475569]">
+      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[var(--clariobase-text-secondary)]">
         {label}
       </span>
       {control}
-      <span className="block text-xs leading-5 text-[#64748B]">{hint}</span>
+      <span className="block text-xs leading-5 text-[var(--clariobase-text-secondary)]">{hint}</span>
     </label>
   );
 }

@@ -11,9 +11,21 @@ function read(filePath: string) {
 
 test("lead detail workspace uses the approved ClarioBase UI foundation", () => {
   const page = read("src/app/leads/[id]/page.tsx");
+  const leadUpdateForm = read("src/components/lead-update-form.tsx");
+  const activityForm = read("src/components/activity-form.tsx");
+  const miniAuditForm = read("src/components/mini-audit-draft-form.tsx");
+  const outreachForm = read("src/components/outreach-draft-form.tsx");
+  const offerForm = read("src/components/offer-draft-form.tsx");
+  const slice = [page, leadUpdateForm, activityForm, miniAuditForm, outreachForm, offerForm].join("\n");
 
-  assert.match(page, /min-h-screen bg-\[#F8FAFC\] text-\[#0F172A\]/);
+  assert.match(page, /bg-\[var\(--clariobase-background\)\] text-\[var\(--clariobase-text-primary\)\]/);
   assert.match(page, /xl:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(320px,400px\)\]/);
+  assert.match(slice, /var\(--clariobase-primary\)/);
+  assert.match(slice, /var\(--clariobase-surface\)/);
+  assert.match(slice, /var\(--clariobase-surface-subtle\)/);
+  assert.match(slice, /var\(--clariobase-border\)/);
+  assert.match(slice, /var\(--clariobase-text-primary\)/);
+  assert.match(slice, /var\(--clariobase-text-secondary\)/);
   assert.match(page, /Lead workspace/);
   assert.match(page, /StatusPill value=\{lead\.leadStatus\} appearance="light"/);
   assert.match(page, /StatusPill value=\{lead\.priority\} appearance="light"/);
@@ -44,12 +56,9 @@ test("lead detail workspace uses the approved ClarioBase UI foundation", () => {
   assert.doesNotMatch(page, /Operator sidebar|Workspace routes/);
   assert.doesNotMatch(page, /No updates yet/);
   assert.match(page, /focus-visible:ring-2/);
-  assert.match(page, /bg-\[#006194\] px-4 py-2 text-sm font-semibold text-white transition hover:bg-\[#004D70\]/);
-  assert.doesNotMatch(page, /bg-sky-600|hover:bg-sky-500/);
-  assert.match(page, /border-\[#CBD5E1\] bg-white/);
-  assert.match(page, /bg-\[linear-gradient\(180deg,#F8FAFC_0%,#EEF3F8_100%\)\]/);
-  assert.doesNotMatch(page, /bg-sky-600|hover:bg-sky-500|bg-sky-700|hover:bg-sky-800/);
+  assert.doesNotMatch(page, /bg-sky-|text-sky-|border-sky-/);
   assert.doesNotMatch(page, /bg-slate-50|text-slate-900|border-slate-200/);
+  assert.doesNotMatch(slice, /#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})/);
 });
 
 test("lead detail proof preserves actions, forms, and status affordances", () => {
@@ -69,7 +78,7 @@ test("lead detail proof preserves actions, forms, and status affordances", () =>
   assert.match(leadUpdateForm, /Current schedule:/);
   assert.match(leadUpdateForm, /role=\{state\.ok \? "status" : "alert"\}/);
   assert.doesNotMatch(leadUpdateForm, /StatusPill value=\{leadStatus\} appearance="light"/);
-  assert.match(leadUpdateForm, /bg-\[#006194\] px-4 py-2 font-semibold text-white transition hover:bg-\[#004D70\]/);
+  assert.match(leadUpdateForm, /var\(--clariobase-primary\)/);
   assert.match(leadUpdateForm, /focus-visible:ring-2/);
 
   assert.match(activityForm, /createLeadActivityAction/);
@@ -82,7 +91,7 @@ test("lead detail proof preserves actions, forms, and status affordances", () =>
   assert.match(activityForm, /grid gap-4 md:grid-cols-2/);
   assert.match(activityForm, /className="md:col-span-2"/);
   assert.match(activityForm, /StatusPill value=\{activity\.type\} appearance="light"/);
-  assert.match(activityForm, /bg-\[#006194\] px-4 py-2 font-semibold text-white transition hover:bg-\[#004D70\]/);
+  assert.match(activityForm, /var\(--clariobase-primary\)/);
   assert.match(activityForm, /focus-visible:ring-2/);
 
   assert.match(miniAuditForm, /saveMiniAuditDraftAction/);
@@ -90,7 +99,7 @@ test("lead detail proof preserves actions, forms, and status affordances", () =>
   assert.match(miniAuditForm, /Save mini-audit draft/);
   assert.match(miniAuditForm, /New draft/);
   assert.doesNotMatch(miniAuditForm, /StatusPill value=\{\(draft\?\.status \?\? "DRAFT"\) as MiniAuditStatusValue\} appearance="light"/);
-  assert.match(miniAuditForm, /bg-\[#006194\] px-4 py-2 font-semibold text-white transition hover:bg-\[#004D70\]/);
+  assert.match(miniAuditForm, /var\(--clariobase-primary\)/);
   assert.match(miniAuditForm, /focus-visible:ring-2/);
 
   assert.match(outreachForm, /saveOutreachDraftAction/);
@@ -99,7 +108,7 @@ test("lead detail proof preserves actions, forms, and status affordances", () =>
   assert.match(outreachForm, /New draft/);
   assert.match(outreachForm, /Linked mini-audit/);
   assert.doesNotMatch(outreachForm, /StatusPill value=\{\(draft\?\.status \?\? "DRAFT"\) as OutreachDraftStatusValue\} appearance="light"/);
-  assert.match(outreachForm, /bg-\[#006194\] px-4 py-2 font-semibold text-white transition hover:bg-\[#004D70\]/);
+  assert.match(outreachForm, /var\(--clariobase-primary\)/);
   assert.match(outreachForm, /focus-visible:ring-2/);
 
   assert.match(offerForm, /saveOfferDraftAction/);
@@ -109,6 +118,6 @@ test("lead detail proof preserves actions, forms, and status affordances", () =>
   assert.match(offerForm, /Price net/);
   assert.match(offerForm, /Valid until/);
   assert.doesNotMatch(offerForm, /StatusPill value=\{\(draft\?\.status \?\? "DRAFT"\) as OfferDraftStatusValue\} appearance="light"/);
-  assert.match(offerForm, /bg-\[#006194\] px-4 py-2 font-semibold text-white transition hover:bg-\[#004D70\]/);
+  assert.match(offerForm, /var\(--clariobase-primary\)/);
   assert.match(offerForm, /focus-visible:ring-2/);
 });
