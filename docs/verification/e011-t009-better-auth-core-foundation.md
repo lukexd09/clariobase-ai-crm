@@ -8,10 +8,10 @@
 
 ## Implemented boundary
 
-- Server auth factory: [src/lib/auth.ts](/C:/Serwer/Projekty/Clariobase/clariobase-ai-crm/src/lib/auth.ts)
-- Next.js route boundary: [src/app/api/auth/[...all]/route.ts](/C:/Serwer/Projekty/Clariobase/clariobase-ai-crm/src/app/api/auth/%5B...all%5D/route.ts)
-- Prisma schema foundation: [prisma/schema.prisma](/C:/Serwer/Projekty/Clariobase/clariobase-ai-crm/prisma/schema.prisma)
-- Migration foundation: [prisma/migrations/20260706130000_better_auth_core_foundation/migration.sql](/C:/Serwer/Projekty/Clariobase/clariobase-ai-crm/prisma/migrations/20260706130000_better_auth_core_foundation/migration.sql)
+- Server auth factory: `src/lib/auth.ts`
+- Next.js route boundary: `src/app/api/auth/[...all]/route.ts`
+- Prisma schema foundation: `prisma/schema.prisma`
+- Migration foundation: `prisma/migrations/20260706130000_better_auth_core_foundation/migration.sql`
 
 ## Environment contract
 
@@ -24,7 +24,19 @@
 
 - `corepack pnpm e011:t009:proof`
 
+## Verification result
+
+- `corepack pnpm e011:t009:proof`: PASS
+- `corepack pnpm test:infra`: PASS
+- `corepack pnpm prisma:validate`: PASS
+- `corepack pnpm prisma:generate`: PASS
+- `corepack pnpm lint`: PASS
+- `corepack pnpm test:fast`: PASS
+- `corepack pnpm build`: PASS
+- `git diff --check`: PASS
+- GitHub CI: PASS
+- GitHub Full Integration: PASS
+
 ## Residual risks
 
-- The proof harness still needs to be executed against disposable PostgreSQL to confirm the full record-creation and restart semantics.
 - The auth factory intentionally disables public signup, so the proof must continue to verify that closed behavior remains intact.
