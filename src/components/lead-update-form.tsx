@@ -24,7 +24,7 @@ const initialState: LeadUpdateState = {
 };
 
 const fieldInputClassName =
-  "w-full rounded-2xl border border-[var(--clariobase-border)] bg-[var(--clariobase-surface-subtle)] px-4 py-3 text-sm text-[var(--clariobase-text-primary)] outline-none transition placeholder:text-[var(--clariobase-text-secondary)] focus-visible:border-[var(--clariobase-primary)] focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+  "w-full rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-3 text-sm text-[color:var(--cb-foreground)] outline-none transition placeholder:text-[color:var(--cb-muted-foreground)] focus-visible:border-[color:var(--cb-accent)] focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -33,7 +33,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-[var(--clariobase-primary)] px-4 py-2 font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--clariobase-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : "Save updates"}
     </button>
@@ -154,11 +154,11 @@ function Field({
 }) {
   return (
     <label className="space-y-2">
-      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[var(--clariobase-text-secondary)]">
+      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--cb-muted-foreground)]">
         {label}
       </span>
       {control}
-      <span className="block text-xs leading-5 text-[var(--clariobase-text-secondary)]">{hint}</span>
+      <span className="block text-xs leading-5 text-[color:var(--cb-muted-foreground)]">{hint}</span>
     </label>
   );
 }
