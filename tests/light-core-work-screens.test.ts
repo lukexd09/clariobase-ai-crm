@@ -38,7 +38,7 @@ test("core CRM work screens use the light shell baseline", () => {
     assert.doesNotMatch(source, /bg-slate-50/);
     assert.doesNotMatch(source, /max-w-7xl/);
   }
-  assert.match(leadsPage, /Lead CRM/);
+  assert.match(leadsPage, /Workspace/);
   assert.match(leadsPage, /PageSurface/);
   assert.match(leadsPage, /LeadTable/);
 });
@@ -88,7 +88,7 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(leadTable, /appearance="foundation"/);
   assert.match(leadTable, /tabular-nums/);
   assert.match(leadTable, /text-left sm:text-center/);
-  assert.match(leadTable, /No leads match the current filters\./);
+  assert.match(leadTable, /No records match the current filters\./);
 
   assert.match(workPage, /dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"/);
   assert.match(workPage, /xl:grid-cols-4/);
@@ -104,7 +104,7 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
     /Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead\./
   );
   assert.match(workPage, /text-left sm:text-center/);
-  assert.match(workPage, /No leads in this bucket\./);
+  assert.match(workPage, /No records in this bucket\./);
 
   assert.match(homepage, /Today's priorities|Today&apos;s priorities|Today&#x27;s priorities/);
   assert.match(homepage, /DashboardDataQualityAlert/);

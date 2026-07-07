@@ -26,7 +26,7 @@ export const NAVIGATION_GROUPS = [
       { href: "/", label: "Dashboard", icon: "dashboard" },
       { href: "/work", label: "Daily work", icon: "work" },
       { href: "/leads", label: "Leads", icon: "leads" },
-      { href: "/reports/sales", label: "Sales", icon: "sales" }
+      { href: "/reports/sales", label: "Operations", icon: "sales" }
     ]
   },
   {

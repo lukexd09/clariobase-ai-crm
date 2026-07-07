@@ -86,8 +86,8 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(globalsCss, /html\s*\{\s*scrollbar-gutter:\s*stable;\s*\}/s);
   assert.match(leadTable, /text-left sm:text-center/);
   assert.match(workPage, /text-left sm:text-center/);
-  assert.match(leadTable, /No leads match the current filters\./);
-  assert.match(workPage, /No leads in this bucket\./);
+  assert.match(leadTable, /No records match the current filters\./);
+  assert.match(workPage, /No records in this bucket\./);
   assert.doesNotMatch(leadTable, /text-center[^\\S\r\n]*text-left/);
 
   assert.match(salesReportPage, /getSalesReport\(\)/);

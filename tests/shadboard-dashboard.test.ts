@@ -31,7 +31,7 @@ test("dashboard renders the exact business contract", () => {
   assert.match(markup, /Overdue/);
   assert.match(markup, /Due today/);
   assert.match(markup, /Upcoming/);
-  assert.match(markup, /No next action/);
+  assert.match(markup, /Idle/);
   assert.match(markup, /Today(?:&#x27;|&apos;|')s priorities/);
   assert.equal((markup.match(/<ol\b/g) ?? []).length, 1);
   assert.equal((markup.match(/<li\b/g) ?? []).length, 4);
@@ -40,9 +40,9 @@ test("dashboard renders the exact business contract", () => {
   assert.match(markup, /Aurora Nail Studio/);
   assert.match(markup, /Sienna Dental Care/);
   assert.match(markup, /Velvet Brows &amp; Lashes/);
-  assert.match(markup, /Send revised proposal/);
+  assert.match(markup, /Send revised draft/);
   assert.match(markup, /Confirm booking flow/);
-  assert.match(markup, /Send mini-audit summary/);
+  assert.match(markup, /Send review summary/);
   assert.match(markup, /Schedule the next follow-up/);
   assert.match(markup, /aria-label="Open Lumina PMU Studio"/);
   assert.match(markup, /aria-label="Open Aurora Nail Studio"/);

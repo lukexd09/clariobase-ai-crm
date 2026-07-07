@@ -16,7 +16,7 @@ const filterLabels: Record<keyof FilterOptions, string> = {
   status: "Status",
   priority: "Priority",
   city: "City",
-  packageFit: "Package"
+  packageFit: "Match"
 };
 
 function formatFilterValue(value: string) {
@@ -89,7 +89,7 @@ export function LeadFilters({
           <FilterSelect label="Status" name="status" value={filters.status ?? ""} options={options.status} onChange={(value) => updateFilter("status", value)} />
           <FilterSelect label="Priority" name="priority" value={filters.priority ?? ""} options={options.priority} onChange={(value) => updateFilter("priority", value)} />
           <FilterSelect label="City" name="city" value={filters.city ?? ""} options={options.city} onChange={(value) => updateFilter("city", value)} />
-          <FilterSelect label="Package fit" name="packageFit" value={filters.packageFit ?? ""} options={options.packageFit} onChange={(value) => updateFilter("packageFit", value)} />
+          <FilterSelect label="Match" name="packageFit" value={filters.packageFit ?? ""} options={options.packageFit} onChange={(value) => updateFilter("packageFit", value)} />
         </div>
       </fieldset>
 

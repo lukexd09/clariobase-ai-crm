@@ -16,7 +16,7 @@ test("dashboard density contracts keep business values and link-based priorities
   assert.match(page, /<MetricCard label="Overdue" value="2" tone="danger" \/>/);
   assert.match(page, /<MetricCard label="Due today" value="4" tone="warning" \/>/);
   assert.match(page, /<MetricCard label="Upcoming" value="11" tone="information" \/>/);
-  assert.match(page, /<MetricCard label="No next action" value="6" tone="neutral" \/>/);
+  assert.match(page, /<MetricCard label="Idle" value="6" tone="neutral" \/>/);
   assert.match(page, /sm:grid-cols-2/);
   assert.match(page, /xl:grid-cols-4/);
   assert.match(page, /xl:grid-cols-\[minmax\(0,1\.7fr\)_minmax\(280px,1fr\)\]/);

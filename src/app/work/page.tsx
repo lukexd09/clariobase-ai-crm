@@ -22,7 +22,7 @@ export default async function WorkPage() {
     overdue: "Overdue",
     dueToday: "Due today",
     upcoming: "Upcoming",
-    noAction: "No next action"
+    noAction: "Idle"
   };
   const bucketCounts = buckets.map((bucket) => ({
     key: bucket.key,
@@ -34,7 +34,7 @@ export default async function WorkPage() {
     <div className="space-y-4">
       <Surface>
         <SurfaceHeader>
-          <p className="text-sm font-medium text-[color:var(--cb-accent)]">Sales workbench</p>
+          <p className="text-sm font-medium text-[color:var(--cb-accent)]">Operator queue</p>
           <SurfaceTitle className="text-2xl sm:text-3xl">Work queue</SurfaceTitle>
         </SurfaceHeader>
         <SurfaceContent className="space-y-4">
@@ -74,9 +74,9 @@ export default async function WorkPage() {
                       <TableHeadCell scope="col">Category</TableHeadCell>
                       <TableHeadCell scope="col">Status</TableHeadCell>
                       <TableHeadCell scope="col">Priority</TableHeadCell>
-                      <TableHeadCell scope="col">Package</TableHeadCell>
+                      <TableHeadCell scope="col">Match</TableHeadCell>
                       <TableHeadCell scope="col">Score</TableHeadCell>
-                      <TableHeadCell scope="col">Next action</TableHeadCell>
+                      <TableHeadCell scope="col">Next task</TableHeadCell>
                       <TableHeadCell scope="col">Action</TableHeadCell>
                     </tr>
                   </TableHead>
@@ -109,9 +109,9 @@ export default async function WorkPage() {
                     ))}
                     {bucket.leads.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="py-8 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
-                          No leads in this bucket.
-                        </TableCell>
+                          <TableCell colSpan={9} className="py-8 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
+                            No records in this bucket.
+                          </TableCell>
                       </TableRow>
                     ) : null}
                   </TableBody>
