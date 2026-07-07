@@ -81,10 +81,10 @@ function OfferDraftEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-[color:var(--cb-foreground)]">
-            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create draft preparation"}
+            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create draft"}
           </h3>
           <p className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">
-            {draft ? "Update the existing draft below." : "Create the first draft preparation for this lead."}
+            {draft ? "Update the existing draft below." : "Create the first draft for this lead."}
           </p>
         </div>
         {draft ? (

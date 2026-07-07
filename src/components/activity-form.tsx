@@ -121,7 +121,7 @@ export function ActivityTimeline({
       <h2 className="text-lg font-semibold text-[color:var(--cb-foreground)]">Activity timeline</h2>
       <div className="mt-4 space-y-4">
         {activities.length === 0 ? (
-          <p className="text-sm text-[color:var(--cb-muted-foreground)]">No records yet.</p>
+          <p className="text-sm text-[color:var(--cb-muted-foreground)]">No activity yet.</p>
         ) : (
           activities.map((activity) => (
             <article key={activity.id} className="rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-4 shadow-[var(--cb-shadow-surface)]">

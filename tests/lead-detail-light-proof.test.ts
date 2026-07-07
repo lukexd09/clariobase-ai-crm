@@ -80,7 +80,7 @@ test("lead detail route keeps forms and actions wired to the existing persistenc
   assert.match(miniAuditForm, /New draft/);
   assert.match(miniAuditForm, /StatusPill value=\{draft\.status as MiniAuditStatusValue\} appearance="light"/);
   assert.match(miniAuditForm, /StatusPill value=\{draft\.suggestedPackage as PackageFitValue\} appearance="light"/);
-  assert.match(miniAuditForm, /Suggested match/);
+  assert.match(miniAuditForm, /StatusPill value=\{draft\.suggestedPackage as PackageFitValue\} appearance="light"/);
   assert.match(miniAuditForm, /Finding 1/);
 
   assert.match(outreachForm, /saveOutreachDraftAction/);
@@ -94,11 +94,12 @@ test("lead detail route keeps forms and actions wired to the existing persistenc
   assert.match(outreachForm, /Next step/);
 
   assert.match(offerForm, /saveOfferDraftAction/);
-  assert.match(offerForm, /Create draft preparation/);
+  assert.match(offerForm, /Create draft/);
   assert.match(offerForm, /Save draft/);
   assert.match(offerForm, /New draft/);
   assert.match(offerForm, /Price/);
   assert.match(offerForm, /Expires/);
   assert.match(offerForm, /StatusPill value=\{draft\.status as OfferDraftStatusValue\} appearance="light"/);
   assert.match(offerForm, /StatusPill value=\{draft\.packageFit as PackageFitValue\} appearance="light"/);
+  assert.doesNotMatch(offerForm, /Create draft preparation/);
 });

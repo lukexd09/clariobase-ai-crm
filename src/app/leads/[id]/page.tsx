@@ -256,7 +256,11 @@ export default async function LeadDetailPage({
                     <SecondaryBadge>Not started</SecondaryBadge>
                   )
                 }
-                packageBadge={miniAuditDrafts.length > 0 ? <SecondaryBadge>Match</SecondaryBadge> : null}
+                packageBadge={
+                  miniAuditDrafts.length > 0 ? (
+                    <StatusPill value={miniAuditDrafts[0].suggestedPackage} appearance="light" />
+                  ) : null
+                }
                 updatedAt={getMiniAuditPanelUpdatedAt(miniAuditDrafts)}
                 emptyMessage="Create the first review when this lead is ready."
                 actionLabel={getMiniAuditPanelAction(miniAuditDrafts)}
@@ -300,7 +304,11 @@ export default async function LeadDetailPage({
                     <SecondaryBadge>Not started</SecondaryBadge>
                   )
                 }
-                packageBadge={clientOfferDrafts.length > 0 ? <SecondaryBadge>Match</SecondaryBadge> : null}
+                packageBadge={
+                  clientOfferDrafts.length > 0 ? (
+                    <StatusPill value={clientOfferDrafts[0].packageFit} appearance="light" />
+                  ) : null
+                }
                 updatedAt={getOfferPanelUpdatedAt(clientOfferDrafts)}
                 emptyMessage="Create the first draft when the lead is ready."
                 actionLabel={getOfferPanelAction(clientOfferDrafts)}
@@ -433,7 +441,7 @@ function getNextRecommendedAction({
     return {
       title: "Prepare draft",
       description:
-        "The lead has enough earlier-workflow context, so create the first draft preparation next.",
+        "The lead has enough earlier-workflow context, so create the first draft next.",
       primaryLabel: "Prepare draft",
       primaryHref: "#offer",
       secondaryLabel: "Open activity log",
@@ -478,7 +486,7 @@ function getMiniAuditPanelDescription(drafts: MiniAuditDraftRecord[]) {
     return "Capture the first review, suggested match, and a draft message angle.";
   }
 
-  return latest.recommendation ?? latest.problem1 ?? "Compact review ready for review.";
+  return latest.recommendation ?? latest.problem1 ?? "Compact review ready.";
 }
 
 function getMiniAuditPanelUpdatedAt(drafts: MiniAuditDraftRecord[]) {
