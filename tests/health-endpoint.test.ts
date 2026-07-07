@@ -11,6 +11,12 @@ import { createCleanupController, reserveFreePort, terminateProcessTree } from "
 const repoRoot = path.resolve(__dirname, "..");
 const nextCli = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
 
+function buildCommand() {
+  return process.platform === "win32"
+    ? { command: "cmd.exe", args: ["/d", "/s", "/c", "corepack pnpm build"] }
+    : { command: "corepack", args: ["pnpm", "build"] };
+}
+
 function extractTimestamp(html: string) {
   const timestamp = html.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
 
@@ -54,16 +60,23 @@ async function waitForHealth(url: string, timeoutMs = 60000) {
 function buildProductionApp() {
   fs.rmSync(path.join(repoRoot, ".next"), { recursive: true, force: true });
 
-  const result = spawnSync(process.execPath, [nextCli, "build"], {
+  const { command, args } = buildCommand();
+  const result = spawnSync(command, args, {
     cwd: repoRoot,
     encoding: "utf8",
     env: {
       ...process.env,
-      DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"
+      BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+      BETTER_AUTH_SECRET:
+        process.env.BETTER_AUTH_SECRET ?? "test-only-better-auth-secret-32-chars-minimum",
+      BETTER_AUTH_TELEMETRY: "0",
+      DATABASE_URL:
+        process.env.DATABASE_URL ??
+        "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"
     }
   });
 
-  assert.equal(result.status, 0, `next build should pass: ${result.stderr ?? result.stdout}`);
+  assert.equal(result.status, 0, `pnpm build should pass: ${result.stderr ?? result.stdout}`);
   assert.ok(fs.existsSync(path.join(repoRoot, ".next", "BUILD_ID")), "next build should create a production BUILD_ID");
 }
 
@@ -78,7 +91,17 @@ test("health endpoint is non-cacheable and returns a fresh timestamp on every re
     [nextCli, "start", "--hostname", "127.0.0.1", "--port", port],
     {
       cwd: repoRoot,
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+        BETTER_AUTH_SECRET:
+          process.env.BETTER_AUTH_SECRET ?? "test-only-better-auth-secret-32-chars-minimum",
+        BETTER_AUTH_TELEMETRY: "0",
+        DATABASE_URL:
+          process.env.DATABASE_URL ??
+          "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"
+      }
     }
   );
   const childPid = child.pid ?? 0;

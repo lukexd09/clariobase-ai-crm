@@ -10,19 +10,30 @@ import { reserveFreePort, terminateProcessTree } from "../scripts/docker-test-su
 const repoRoot = path.resolve(__dirname, "..");
 const nextCli = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
 
+function buildCommand() {
+  return process.platform === "win32"
+    ? { command: "cmd.exe", args: ["/d", "/s", "/c", "corepack pnpm build"] }
+    : { command: "corepack", args: ["pnpm", "build"] };
+}
+
 function buildProductionApp() {
-  const result = spawnSync(process.execPath, [nextCli, "build"], {
+  const { command, args } = buildCommand();
+  const result = spawnSync(command, args, {
     cwd: repoRoot,
     encoding: "utf8",
     env: {
       ...process.env,
+      BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+      BETTER_AUTH_SECRET:
+        process.env.BETTER_AUTH_SECRET ?? "test-only-better-auth-secret-32-chars-minimum",
+      BETTER_AUTH_TELEMETRY: "0",
       DATABASE_URL:
         process.env.DATABASE_URL ??
         "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"
     }
   });
 
-  assert.equal(result.status, 0, `next build should pass: ${result.stderr ?? result.stdout}`);
+  assert.equal(result.status, 0, `pnpm build should pass: ${result.stderr ?? result.stdout}`);
 }
 
 async function waitForHttp(url: string, timeoutMs = 60000) {
@@ -59,6 +70,10 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
     stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
+      BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+      BETTER_AUTH_SECRET:
+        process.env.BETTER_AUTH_SECRET ?? "test-only-better-auth-secret-32-chars-minimum",
+      BETTER_AUTH_TELEMETRY: "0",
       DATABASE_URL:
         process.env.DATABASE_URL ??
         "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"
