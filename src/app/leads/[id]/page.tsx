@@ -86,46 +86,46 @@ export default async function LeadDetailPage({
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen bg-[color:var(--cb-background)] text-[color:var(--cb-foreground)]">
       <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="Lead breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+          <nav aria-label="Lead breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-[color:var(--cb-muted-foreground)]">
             <Link
               href="/leads"
-              className="font-medium text-slate-700 transition hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50"
+              className="font-medium text-[color:var(--cb-foreground)] transition hover:text-[color:var(--cb-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
             >
               Leads
             </Link>
-            <span aria-hidden="true" className="text-slate-300">
+            <span aria-hidden="true" className="text-[color:var(--cb-border)]">
               /
             </span>
-            <span className="font-medium text-slate-900">{lead.businessName}</span>
+            <span className="font-medium text-[color:var(--cb-foreground)]">{lead.businessName}</span>
           </nav>
 
           <div className="flex flex-wrap gap-2">
             <Link
               href="/work"
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-2 text-sm font-medium text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)] hover:text-[color:var(--cb-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
             >
               Open workbench
             </Link>
           </div>
         </div>
 
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
+        <header className="mb-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-4 shadow-[var(--cb-shadow-surface)] lg:p-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 space-y-4">
-              <p className="text-sm font-medium text-sky-700">Lead workspace</p>
+              <p className="text-sm font-medium text-[color:var(--cb-accent)]">Lead workspace</p>
 
               <div className="space-y-3">
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--cb-foreground)] sm:text-4xl">
                   {lead.businessName}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-[color:var(--cb-muted-foreground)]">
                   {primaryMetadata.map((item, index) => (
                     <span key={`${item}-${index}`} className="flex items-center gap-3">
                       {index > 0 ? (
-                        <span aria-hidden="true" className="text-slate-300">
+                        <span aria-hidden="true" className="text-[color:var(--cb-border)]">
                           |
                         </span>
                       ) : null}
@@ -166,22 +166,22 @@ export default async function LeadDetailPage({
               </div>
             </div>
 
-            <section className="xl:max-w-sm rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-medium text-sky-700">Next recommended action</p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">
+            <section className="xl:max-w-sm rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]">
+              <p className="text-sm font-medium text-[color:var(--cb-accent)]">Next recommended action</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-[color:var(--cb-foreground)]">
                 {recommendation.title}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{recommendation.description}</p>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--cb-muted-foreground)]">{recommendation.description}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href={recommendation.primaryHref}
-                  className="rounded-full bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 text-sm font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
                 >
                   {recommendation.primaryLabel}
                 </Link>
                 <Link
                   href={recommendation.secondaryHref}
-                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                  className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-2 text-sm font-medium text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)] hover:text-[color:var(--cb-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
                 >
                   {recommendation.secondaryLabel}
                 </Link>
@@ -195,7 +195,7 @@ export default async function LeadDetailPage({
             <Link
               key={section.href}
               href={section.href}
-              className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-1.5 text-sm font-medium text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)] hover:text-[color:var(--cb-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
             >
               {section.label}
             </Link>
@@ -204,10 +204,10 @@ export default async function LeadDetailPage({
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,400px)]">
           <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-2 border-b border-slate-200 pb-4">
-                <h2 className="text-xl font-semibold text-slate-950">Business context</h2>
-                <p className="text-sm text-slate-600">
+            <section className="rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]">
+              <div className="flex flex-col gap-2 border-b border-[color:var(--cb-border)] pb-4">
+                <h2 className="text-xl font-semibold text-[color:var(--cb-foreground)]">Business context</h2>
+                <p className="text-sm text-[color:var(--cb-muted-foreground)]">
                   A compact view of the operator-facing context without repeating status or package data.
                 </p>
               </div>
@@ -318,23 +318,23 @@ export default async function LeadDetailPage({
 
             <details
               id="technical-details"
-              className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+              className="rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] shadow-[var(--cb-shadow-surface)]"
             >
-              <summary className="cursor-pointer list-none rounded-2xl px-5 py-4 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+              <summary className="cursor-pointer list-none rounded-[var(--cb-radius-xl)] px-5 py-4 transition hover:bg-[color:var(--cb-elevated-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Show technical details</p>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="text-sm font-medium text-[color:var(--cb-foreground)]">Show technical details</p>
+                    <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
                       Source identifiers and audit timestamps stay available here when needed.
                     </p>
                   </div>
-                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
+                  <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
                     Technical metadata
                   </span>
                 </div>
               </summary>
 
-              <div className="border-t border-slate-200 px-5 py-4">
+              <div className="border-t border-[color:var(--cb-border)] px-5 py-4">
                 <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   <DefinitionItem label="Customer ID" value={lead.customerId} subtle />
                   <DefinitionItem label="Source" value={lead.source ?? "Not provided"} subtle />
@@ -352,12 +352,12 @@ export default async function LeadDetailPage({
           <aside className="space-y-4">
             <section
               id="lead-controls"
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              className="rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]"
             >
-              <div className="border-b border-slate-200 pb-4">
-                <p className="text-sm font-medium text-sky-700">Lead controls</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">Operational update</h2>
-                <p className="mt-1 text-sm text-slate-600">
+              <div className="border-b border-[color:var(--cb-border)] pb-4">
+                <p className="text-sm font-medium text-[color:var(--cb-accent)]">Lead controls</p>
+                <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">Operational update</h2>
+                <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
                   Keep the lead state, priority, package fit, and next action aligned with the latest work.
                 </p>
               </div>
@@ -376,14 +376,14 @@ export default async function LeadDetailPage({
 
             <section
               id="activity"
-              className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              className="space-y-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]"
             >
-              <div className="border-b border-slate-200 pb-4">
-                <p className="text-sm font-medium text-sky-700">Activity log</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">
+              <div className="border-b border-[color:var(--cb-border)] pb-4">
+                <p className="text-sm font-medium text-[color:var(--cb-accent)]">Activity log</p>
+                <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">
                   Notes, calls, messages, and updates
                 </h2>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
                   Activity stays easy to log without narrowing the fields or clipping the date input.
                 </p>
               </div>
@@ -562,10 +562,10 @@ function HeaderMetric({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className="mt-3 text-lg font-semibold text-slate-950">{value}</p>
-      <p className="mt-1 text-sm text-slate-600">{detail}</p>
+    <div className="rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--cb-muted-foreground)]">{label}</p>
+      <p className="mt-3 text-lg font-semibold text-[color:var(--cb-foreground)]">{value}</p>
+      <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">{detail}</p>
     </div>
   );
 }
@@ -580,9 +580,9 @@ function DefinitionItem({
   subtle?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border p-4 ${subtle ? "border-slate-200 bg-slate-50" : "border-slate-200 bg-white"}`}>
-      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</dt>
-      <dd className="mt-2 break-words text-sm leading-6 text-slate-900">{value}</dd>
+    <div className={`rounded-[var(--cb-radius-lg)] border p-4 ${subtle ? "border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)]" : "border-[color:var(--cb-border)] bg-[color:var(--cb-surface)]"}`}>
+      <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--cb-muted-foreground)]">{label}</dt>
+      <dd className="mt-2 break-words text-sm leading-6 text-[color:var(--cb-foreground)]">{value}</dd>
     </div>
   );
 }
@@ -611,23 +611,23 @@ function ArtifactPanel({
   children: ReactNode;
 }) {
   return (
-    <details id={id} className="group rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <summary className="list-none cursor-pointer rounded-2xl px-5 py-4 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white">
+    <details id={id} className="group rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] shadow-[var(--cb-shadow-surface)]">
+      <summary className="list-none cursor-pointer rounded-[var(--cb-radius-xl)] px-5 py-4 transition hover:bg-[color:var(--cb-elevated-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-sky-700">{label}</p>
+              <p className="text-sm font-medium text-[color:var(--cb-accent)]">{label}</p>
               {statusBadge}
               {packageBadge}
             </div>
-            <h3 className="text-xl font-semibold tracking-tight text-slate-950">{title}</h3>
-            <p className="max-w-3xl text-sm leading-6 text-slate-600">{description}</p>
-            <p className="text-xs text-slate-500">
+            <h3 className="text-xl font-semibold tracking-tight text-[color:var(--cb-foreground)]">{title}</h3>
+            <p className="max-w-3xl text-sm leading-6 text-[color:var(--cb-muted-foreground)]">{description}</p>
+            <p className="text-xs text-[color:var(--cb-muted-foreground)]">
               {updatedAt ? `Updated ${formatShortDate(updatedAt)}` : emptyMessage}
             </p>
           </div>
 
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
             {actionLabel}
             <span aria-hidden="true" className="text-base transition-transform group-open:rotate-180">
               v
@@ -636,7 +636,7 @@ function ArtifactPanel({
         </div>
       </summary>
 
-      <div className="border-t border-slate-200 p-5">{children}</div>
+      <div className="border-t border-[color:var(--cb-border)] p-5">{children}</div>
     </details>
   );
 }
@@ -644,7 +644,7 @@ function ArtifactPanel({
 function ExternalLink({ href, label }: { href: string; label: string }) {
   return (
     <a
-      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+      className="inline-flex items-center gap-2 rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-2 text-sm font-medium text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)] hover:text-[color:var(--cb-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
       href={href}
       target="_blank"
       rel="noreferrer"
@@ -657,16 +657,16 @@ function ExternalLink({ href, label }: { href: string; label: string }) {
 
 function InlineMeta({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-      <span className="font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</span>
-      <span className="text-slate-900">{value}</span>
+    <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 py-2 text-sm text-[color:var(--cb-muted-foreground)]">
+      <span className="font-semibold uppercase tracking-[0.2em] text-[color:var(--cb-muted-foreground)]">{label}</span>
+      <span className="text-[color:var(--cb-foreground)]">{value}</span>
     </span>
   );
 }
 
 function SecondaryBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
+    <span className="inline-flex items-center rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-2.5 py-1 text-xs font-medium text-[color:var(--cb-foreground)]">
       {children}
     </span>
   );
