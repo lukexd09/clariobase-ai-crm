@@ -5,6 +5,7 @@ import {
   PipelineSnapshot,
   PriorityItem
 } from "@/components/dashboard-primitives";
+import { requireUser } from "@/lib/auth-context";
 
 const priorities = [
   {
@@ -45,7 +46,9 @@ const pipeline = [
   { stage: "Won", value: 2 }
 ] as const;
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  await requireUser({ mode: "redirect", returnTo: "/" });
+
   return (
     <div className="space-y-5">
       <PageHeader title="Dashboard" subtitle="Your priorities for 21 June 2026" />

@@ -2,10 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createLeadActivity } from "@/lib/activities";
+import { requireUser, unauthorizedResult } from "@/lib/auth-context";
 import { miniAuditDraftFormSchema } from "@/lib/mini-audit-form";
 import { createMiniAuditDraft, updateMiniAuditDraft } from "@/lib/mini-audits";
 
 export async function saveMiniAuditDraftAction(leadId: string, formData: FormData) {
+  try {
+    await requireUser();
+  } catch {
+    return unauthorizedResult();
+  }
+
   const parsed = miniAuditDraftFormSchema.safeParse({
     draftId: formData.get("draftId"),
     status: formData.get("status"),

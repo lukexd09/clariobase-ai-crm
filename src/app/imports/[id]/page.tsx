@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusPill } from "@/components/lead-status-pill";
+import { requireUser } from "@/lib/auth-context";
 import { getImportBatchById } from "@/lib/imports";
 import {
   type ImportBatchStatusValue,
@@ -75,6 +76,7 @@ export default async function ImportBatchDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireUser({ mode: "redirect", returnTo: "/imports" });
   const { id } = await params;
   const batch = await getImportBatchById(id);
 

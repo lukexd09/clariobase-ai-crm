@@ -3,8 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { activityCreateSchema } from "@/lib/activity-form";
 import { createLeadActivity } from "@/lib/activities";
+import { requireUser, unauthorizedResult } from "@/lib/auth-context";
 
 export async function createLeadActivityAction(leadId: string, formData: FormData) {
+  try {
+    await requireUser();
+  } catch {
+    return unauthorizedResult();
+  }
+
   const parsed = activityCreateSchema.safeParse({
     type: formData.get("type"),
     title: formData.get("title"),

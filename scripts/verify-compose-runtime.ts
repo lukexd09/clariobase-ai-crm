@@ -85,6 +85,90 @@ async function waitForHttpStatus(url: string, expectedStatus: number) {
   throw new Error(`${url} did not return HTTP ${expectedStatus} in time.`);
 }
 
+function resolveLocation(location: string, baseUrl: string) {
+  try {
+    return new URL(location, baseUrl).toString();
+  } catch {
+    return "";
+  }
+}
+
+function redactExcerpt(value: string) {
+  return value
+    .slice(0, 500)
+    .replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/gi, "[redacted-db-url]")
+    .replace(/(password|secret|token|cookie)=([^&\s"'<>]+)/gi, "$1=[redacted]")
+    .replace(/BETTER_AUTH_[A-Z_]+/g, "[redacted-auth-env]");
+}
+
+async function waitForProtectedPageContract(baseUrl: string, path: string) {
+  const targetUrl = `${baseUrl}${path}`;
+  const attempts: string[] = [];
+
+  for (let attempt = 0; attempt < 45; attempt += 1) {
+    try {
+      const manualResponse = await fetch(targetUrl, {
+        redirect: "manual",
+        headers: {
+          "Cache-Control": "no-store"
+        }
+      });
+
+      if ([302, 303, 307, 308].includes(manualResponse.status)) {
+        const location = manualResponse.headers.get("location") ?? "";
+        const resolvedLocation = resolveLocation(location, baseUrl);
+        assert(resolvedLocation.includes("/sign-in"));
+        return manualResponse;
+      }
+
+      if (manualResponse.status === 200) {
+        const body = await manualResponse.text();
+        assert.doesNotMatch(body, /Lead CRM|Import batches|Duplicate review|Sales reporting/i);
+        if (/sign in|sign-in|protected by better auth/i.test(body)) {
+          return manualResponse;
+        }
+        attempts.push(
+          `manual status=200 content-type=${manualResponse.headers.get("content-type") ?? "unknown"} body=${redactExcerpt(body)}`
+        );
+      } else {
+        attempts.push(
+          `manual status=${manualResponse.status} location=${redactExcerpt(manualResponse.headers.get("location") ?? "")} content-type=${manualResponse.headers.get("content-type") ?? "unknown"}`
+        );
+      }
+
+      const followedResponse = await fetch(targetUrl, {
+        redirect: "follow",
+        headers: {
+          "Cache-Control": "no-store"
+        }
+      });
+
+      if (followedResponse.status === 200) {
+        const body = await followedResponse.text();
+        assert.doesNotMatch(body, /Lead CRM|Import batches|Duplicate review|Sales reporting/i);
+        if (/sign in|sign-in|protected by better auth/i.test(body)) {
+          return followedResponse;
+        }
+        attempts.push(
+          `follow status=200 finalUrl=${followedResponse.url} content-type=${followedResponse.headers.get("content-type") ?? "unknown"} body=${redactExcerpt(body)}`
+        );
+      } else {
+        attempts.push(
+          `follow status=${followedResponse.status} finalUrl=${followedResponse.url} content-type=${followedResponse.headers.get("content-type") ?? "unknown"}`
+        );
+      }
+    } catch {
+      // Retry until the service becomes available.
+    }
+
+    await delay(1000);
+  }
+
+  throw new Error(
+    `${targetUrl} did not satisfy the protected page contract in time. ${attempts.at(-1) ?? "no response captured"}`
+  );
+}
+
 function assertNoSensitiveData(payload: unknown) {
   const serialized = JSON.stringify(payload);
 
@@ -163,7 +247,9 @@ async function main() {
       "CRM_POSTGRES_DB=clariobase_crm_compose_test",
       "CRM_POSTGRES_USER=clariobase_crm_user",
       "CRM_POSTGRES_PASSWORD=clariobase_test_password",
-      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:clariobase_test_password@crm-postgres:5432/clariobase_crm_compose_test?schema=public"
+      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:clariobase_test_password@crm-postgres:5432/clariobase_crm_compose_test?schema=public",
+      `BETTER_AUTH_URL=http://127.0.0.1:${hostPort}`,
+      "BETTER_AUTH_SECRET=better-auth-compose-test-secret-better-auth-compose-test-secret"
     ].join("\n")
   );
 
@@ -199,7 +285,7 @@ async function main() {
     await waitForDockerHealth(`${project}-crm-app-1`);
     await waitForHttpStatus(`${baseUrl}/health`, 200);
     await assertReadyStatus(200, "ok");
-    await waitForHttpStatus(`${baseUrl}/imports`, 200);
+    await waitForProtectedPageContract(baseUrl, "/imports");
 
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, `compose AI export command should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);

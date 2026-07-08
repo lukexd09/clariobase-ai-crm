@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireUser } from "@/lib/auth-context";
 import { StatusPill } from "@/components/lead-status-pill";
 import { getImportBatches } from "@/lib/imports";
 import { type ImportBatchStatusValue, type ImportSourceTypeValue } from "@/lib/lead-values";
@@ -61,6 +62,7 @@ function CountChip({
 }
 
 export default async function ImportsPage() {
+  await requireUser({ mode: "redirect", returnTo: "/imports" });
   const batches = await getImportBatches();
 
   return (

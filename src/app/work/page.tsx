@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLeads } from "@/lib/leads";
 import { getWorkBuckets } from "@/lib/work-view";
 import { StatusPill } from "@/components/lead-status-pill";
+import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +79,7 @@ function WorkIndicatorCard({
 }
 
 export default async function WorkPage() {
+  await requireUser({ mode: "redirect", returnTo: "/work" });
   const leads = await getLeads();
   const buckets = getWorkBuckets(leads);
   const indicatorLabels: Record<string, string> = {

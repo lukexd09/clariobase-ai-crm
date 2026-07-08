@@ -146,7 +146,9 @@ async function main() {
       "CRM_POSTGRES_DB=clariobase_crm_backup_restore_test",
       "CRM_POSTGRES_USER=clariobase_crm_user",
       "CRM_POSTGRES_PASSWORD=clariobase_test_password",
-      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:clariobase_test_password@crm-postgres:5432/clariobase_crm_backup_restore_test?schema=public"
+      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:clariobase_test_password@crm-postgres:5432/clariobase_crm_backup_restore_test?schema=public",
+      "BETTER_AUTH_URL=http://127.0.0.1:3000",
+      "BETTER_AUTH_SECRET=better-auth-backup-restore-test-secret-better-auth-backup-restore-test-secret"
     ].join("\n")
   );
 
