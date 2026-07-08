@@ -9,7 +9,7 @@ Final QA pass for E022 after #184, #185, #187. This PR is docs-only and records 
 - Branch used: `feature/e022-t005-final-ui-qa`
 - Base branch: `origin/epic/e020-shadboard-ui-foundation`
 - Base SHA: `cfbc3ed7414a635b4040dfc25fda847606d866c3`
-- Current HEAD SHA before this doc change: `cfbc3ed7414a635b4040dfc25fda847606d866c3`
+- Current HEAD SHA before this doc change: `e01ec8d0f9fc9acd1f670e66a78befb58f70485c`
 - Working tree before changes: clean
 - Final diff: docs-only
 - Exact changed files in this PR: `docs/verification/e022-t005-final-ui-qa.md`
@@ -40,20 +40,18 @@ Final QA pass for E022 after #184, #185, #187. This PR is docs-only and records 
 
 ### `/work`
 
-- [`src/app/work/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\work\page.tsx:37) still shows `Sales workbench`.
-- The queue itself is scannable, but the eyebrow keeps the sales-workflow framing visible.
-- Column labels such as `Package`, `Next action`, and `No next action` are still present.
+- [`src/app/work/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\work\page.tsx:37) now uses `Operator queue`.
+- The queue remains scannable, and the visible task labels are neutralized to `Match`, `Next task`, and `No next task`.
 
 ### `/leads`
 
-- [`src/app/leads/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\leads\page.tsx:32) still shows `Lead CRM`.
-- The list and filters remain usable, but the eyebrow still advertises the old CRM framing.
+- [`src/app/leads/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\leads\page.tsx:32) now uses `Workspace`.
+- The list and filters remain usable, with neutral queue framing at the entry point.
 
 ### `/leads/[id]`
 
-- [`src/app/leads/[id]/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\leads\[id]\page.tsx:193) still uses `Lead workspace sections`.
-- The lead detail page is otherwise structured around lighter workspace surfaces, but the navigation aria-label has not yet been neutralized in this baseline.
-- Activity logging, technical metadata disclosure, and draft sections remain present and wired.
+- [`src/app/leads/[id]/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\leads\[id]\page.tsx:193) now uses `Operator workspace sections`.
+- The lead detail page is structured around lighter workspace surfaces, with activity logging, technical metadata disclosure, and draft sections still wired.
 
 ### Reports / operations exposure
 
@@ -64,10 +62,8 @@ Final QA pass for E022 after #184, #185, #187. This PR is docs-only and records 
 
 Searches against current source show:
 
-- Visible old terms still present in primary UI source:
-  - `Sales workbench` in [`src/app/work/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\work\page.tsx:37)
-  - `Lead CRM` in [`src/app/leads/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\leads\page.tsx:32)
-  - `Lead workspace sections` in [`src/app/leads/[id]/page.tsx`](C:\Serwer\Projekty\Clariobase\clariobase-ai-crm-e022-copy\src\app\leads\[id]\page.tsx:193)
+- No confirmed primary visible UI blockers on the current GitHub head for the core E022 surfaces.
+- Historical docs still mention earlier terms, but those are not blockers by themselves.
 - Neutralized wording already present in other current surfaces:
   - `Workspace` in navigation
   - `Operator workspace` and `Workspace`-style labels in lead detail copy from earlier E022 work
@@ -76,7 +72,7 @@ Searches against current source show:
 Interpretation:
 
 - Old terms inside historical docs, issue text, backend field names, and compatibility tests are not blockers by themselves.
-- Old terms in current primary visible UI source are blockers.
+- Current primary visible UI source on the GitHub head does not show the old terms as blockers for the E022 QA decision.
 
 ## No-lower-layer audit
 
@@ -107,6 +103,7 @@ Interpretation:
 - 360-390px mobile width: not run in this QA pass.
 - 200% zoom: not run in this QA pass.
 - Browser automation status: not available in this QA pass.
+- Browser / preview review was not performed in this QA pass. This prevents a full `ACCEPTED` decision, but it is not a source-level blocker. Owner/browser review remains required before final product sign-off.
 
 ## Accessibility and responsive review
 
@@ -131,9 +128,11 @@ Interpretation:
 
 | ID | Severity | Surface | Finding | Decision | Follow-up |
 | --- | --- | --- | --- | --- | --- |
-| F-01 | BLOCKER | `/work` | `Sales workbench` is still visible in the work header. | Blocked | Neutralize the workbench eyebrow in a follow-up UI pass. |
-| F-02 | BLOCKER | `/leads` | `Lead CRM` is still visible on the leads page eyebrow. | Blocked | Replace the eyebrow with workspace-oriented wording. |
-| F-03 | BLOCKER | `/leads/[id]` | `Lead workspace sections` is still visible in the lead-detail aria-label. | Blocked | Update the section-navigation aria-label to the neutral wording. |
+| F-01 | PASS | `/work` | Current GitHub head uses `Operator queue` and neutralized queue labels such as `Match` and `Next task`. | Accepted | None. |
+| F-02 | PASS | `/leads` | Current GitHub head uses `Workspace` for the page eyebrow and neutral queue framing. | Accepted | None. |
+| F-03 | PASS | `/leads/[id]` | Current GitHub head uses `Operator workspace sections` and neutralized lead-detail labels. | Accepted | None. |
+| F-04 | FOLLOW_UP | Browser / preview | Real browser/preview review was not performed in this QA pass. | Accepted with follow-up | Owner/browser review still required before final product sign-off. |
+| F-05 | INFO | Lower-layer/domain | Backend names such as `packageFit`, `suggestedPackage`, `miniAuditDraft`, `outreachDraft`, `offerDraft`, and route/domain names such as `/reports/sales` remain intentionally deferred. | Deferred to lower-layer cleanup | Capture in later lower-layer/domain cleanup epic. |
 
 ## Deferred lower-layer cleanup
 
@@ -144,4 +143,4 @@ Interpretation:
 
 ## Final decision
 
-BLOCKED
+ACCEPTED WITH FOLLOW-UP
