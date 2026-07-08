@@ -6,7 +6,7 @@ import path from "node:path";
 const repoRoot = path.resolve(__dirname, "..");
 
 function extractTestFiles(command: string) {
-  return [...command.matchAll(/tests\/[A-Za-z0-9._/-]+\.test\.ts/g)].map((match) => match[0]);
+  return [...command.matchAll(/tests\/[A-Za-z0-9._/-]+\.test\.(?:tsx|ts)/g)].map((match) => match[0]);
 }
 
 test("every test file belongs to exactly one fast or infrastructure suite", () => {
@@ -16,7 +16,7 @@ test("every test file belongs to exactly one fast or infrastructure suite", () =
   const testDirectory = path.join(repoRoot, "tests");
   const repositoryTests = fs
     .readdirSync(testDirectory)
-    .filter((name) => name.endsWith(".test.ts"))
+    .filter((name) => name.endsWith(".test.ts") || name.endsWith(".test.tsx"))
     .map((name) => `tests/${name}`)
     .sort();
 
@@ -33,6 +33,9 @@ test("every test file belongs to exactly one fast or infrastructure suite", () =
   assert.ok(fastTests.includes("tests/health-contract.test.ts"));
   assert.ok(fastTests.includes("tests/runtime-readiness.test.ts"));
   assert.ok(fastTests.includes("tests/dashboard-density.test.ts"));
+  assert.ok(fastTests.includes("tests/shadboard-proof.test.ts"));
+  assert.ok(fastTests.includes("tests/clariobase-ui-boundary.test.ts"));
+  assert.ok(fastTests.includes("tests/clariobase-ui-render.test.ts"));
   assert.ok(infraTests.includes("tests/docs-sanity.test.ts"));
   assert.ok(infraTests.includes("tests/runtime-docs-sanity.test.ts"));
   assert.ok(infraTests.includes("tests/health-endpoint.test.ts"));

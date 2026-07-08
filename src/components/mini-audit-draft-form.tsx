@@ -6,9 +6,7 @@ import { saveMiniAuditDraftAction } from "@/app/leads/mini-audit-actions";
 import { StatusPill } from "@/components/lead-status-pill";
 import {
   MINI_AUDIT_STATUS_VALUES,
-  PACKAGE_FIT_VALUES,
   type MiniAuditStatusValue,
-  type PackageFitValue
 } from "@/lib/lead-values";
 import type { MiniAuditDraftRecord } from "@/lib/mini-audits";
 
@@ -23,7 +21,7 @@ const initialState: DraftState = {
 };
 
 const fieldInputClassName =
-  "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+  "w-full rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-3 text-sm text-[color:var(--cb-foreground)] outline-none transition placeholder:text-[color:var(--cb-muted-foreground)] focus-visible:border-[color:var(--cb-accent)] focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -32,7 +30,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : children}
     </button>
@@ -76,30 +74,30 @@ function MiniAuditDraftEditor({
     <form
       action={formAction}
       aria-describedby={state.message ? feedbackId : undefined}
-      className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+      className="space-y-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-medium text-slate-950">
-            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create mini-audit draft"}
+          <h3 className="text-base font-medium text-[color:var(--cb-foreground)]">
+            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create review draft"}
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
-            {draft ? "Update the existing draft below." : "Create the first mini-audit draft for this lead."}
+          <p className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">
+            {draft ? "Update the existing draft below." : "Create the first review draft for this lead."}
           </p>
         </div>
         {draft ? (
           <div className="flex flex-wrap gap-2">
             <StatusPill value={draft.status as MiniAuditStatusValue} appearance="light" />
-            <StatusPill value={draft.suggestedPackage as PackageFitValue} appearance="light" />
           </div>
         ) : (
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700">
+          <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
             New draft
           </span>
         )}
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
+      <input type="hidden" name="suggestedPackage" value={draft?.suggestedPackage ?? "UNKNOWN"} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <DraftField
@@ -116,36 +114,19 @@ function MiniAuditDraftEditor({
           hint="Set the current review stage for this draft."
         />
         <DraftField
-          label="Suggested package"
-          control={
-            <select
-              name="suggestedPackage"
-              defaultValue={draft?.suggestedPackage ?? "UNKNOWN"}
-              className={fieldInputClassName}
-            >
-              {PACKAGE_FIT_VALUES.map((value) => (
-                <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
-          }
-          hint="Record the current package recommendation."
-        />
-        <DraftField
-          label="Problem 1"
+          label="Finding 1"
           control={<input name="problem1" defaultValue={draft?.problem1 ?? ""} className={fieldInputClassName} />}
-          hint="First core issue to address."
+          hint="First core finding to address."
         />
         <DraftField
-          label="Problem 2"
+          label="Finding 2"
           control={<input name="problem2" defaultValue={draft?.problem2 ?? ""} className={fieldInputClassName} />}
-          hint="Second core issue to address."
+          hint="Second core finding to address."
         />
         <DraftField
-          label="Problem 3"
+          label="Finding 3"
           control={<input name="problem3" defaultValue={draft?.problem3 ?? ""} className={fieldInputClassName} />}
-          hint="Third core issue to address."
+          hint="Third core finding to address."
         />
         <DraftField
           label="Approved at"
@@ -160,7 +141,7 @@ function MiniAuditDraftEditor({
           hint="Optional approval timestamp in local operator time."
         />
         <DraftField
-          label="Recommendation"
+          label="Review note"
           control={
             <textarea
               name="recommendation"
@@ -169,10 +150,10 @@ function MiniAuditDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="Short recommendation summary."
+          hint="Short review summary."
         />
         <DraftField
-          label="Outreach angle"
+          label="Message angle"
           control={
             <textarea
               name="outreachAngle"
@@ -184,7 +165,7 @@ function MiniAuditDraftEditor({
           hint="Lead-in for the first message."
         />
         <DraftField
-          label="Draft message"
+          label="Draft note"
           control={
             <textarea
               name="draftMessage"
@@ -193,7 +174,7 @@ function MiniAuditDraftEditor({
               className={`${fieldInputClassName} min-h-32 resize-y md:col-span-2`}
             />
           }
-          hint="Prepared message text."
+          hint="Prepared note text."
         />
         <DraftField
           label="Risk notes"
@@ -210,7 +191,7 @@ function MiniAuditDraftEditor({
       </div>
 
       <div className="flex items-center gap-4">
-        <SubmitButton>{draft ? "Save mini-audit draft" : "Create mini-audit draft"}</SubmitButton>
+        <SubmitButton>{draft ? "Save review draft" : "Create review draft"}</SubmitButton>
         {state.message ? (
           <p
             id={feedbackId}
@@ -237,11 +218,11 @@ function DraftField({
 }) {
   return (
     <label className="space-y-2 md:col-span-1">
-      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">
+      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--cb-muted-foreground)]">
         {label}
       </span>
       {control}
-      <span className="block text-xs leading-5 text-slate-500">{hint}</span>
+      <span className="block text-xs leading-5 text-[color:var(--cb-muted-foreground)]">{hint}</span>
     </label>
   );
 }

@@ -1,16 +1,12 @@
-import {
-  Alert,
-  MetricCard,
-  PageHeader,
-  PipelineSnapshot,
-  PriorityItem
-} from "@/components/dashboard-primitives";
+import React from "react";
+import { DashboardDataQualityAlert, MetricCard, PipelineSnapshot, PriorityItem } from "@/components/dashboard-primitives";
+import { Surface, SurfaceContent, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
 
 const priorities = [
   {
     company: "Lumina PMU Studio",
-    action: "Send revised proposal",
-    context: "The owner asked for the Essential package and confirmation that hosting is included.",
+    action: "Send revised draft",
+    context: "The owner asked for a lighter workspace summary and confirmation that hosting is included.",
     deadline: "Today, 15:30",
     href: "/leads"
   },
@@ -23,15 +19,15 @@ const priorities = [
   },
   {
     company: "Sienna Dental Care",
-    action: "Send mini-audit summary",
-    context: "The discovery call was completed yesterday and the client is waiting for recommendations.",
+    action: "Send review summary",
+    context: "The check-in was completed yesterday and the client is waiting for the next step.",
     deadline: "Today, 16:00",
     href: "/leads"
   },
   {
     company: "Velvet Brows & Lashes",
     action: "Schedule the next follow-up",
-    context: "No next action was created after the proposal was sent.",
+    context: "No next task was created after the previous update was sent.",
     deadline: "No deadline",
     href: "/leads"
   }
@@ -48,39 +44,41 @@ const pipeline = [
 export default function DashboardPage() {
   return (
     <div className="space-y-5">
-      <PageHeader title="Dashboard" subtitle="Your priorities for 21 June 2026" />
+      <header className="space-y-1">
+        <h1 className="text-[2rem] font-semibold tracking-tight text-[color:var(--cb-foreground)]">Dashboard</h1>
+        <p className="text-sm leading-6 text-[color:var(--cb-muted-foreground)]">Your priorities for 21 June 2026</p>
+      </header>
 
-      <section className="grid gap-3 rounded-none border-0 bg-transparent max-[359px]:grid-cols-1 max-[359px]:gap-0 max-[359px]:rounded-xl max-[359px]:border max-[359px]:border-[#CBD5E1] max-[359px]:bg-white max-[359px]:divide-y max-[359px]:divide-[#E2E8F0] min-[360px]:grid-cols-2 min-[360px]:gap-0 min-[360px]:rounded-xl min-[360px]:border min-[360px]:border-[#CBD5E1] min-[360px]:bg-white min-[360px]:divide-y min-[360px]:divide-[#E2E8F0] min-[760px]:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Overdue" value="2" />
-        <MetricCard label="Due today" value="4" />
-        <MetricCard label="Upcoming" value="11" />
-        <MetricCard label="No next action" value="6" />
+      <section className="space-y-3">
+        <dl aria-label="Dashboard metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard label="Overdue" value="2" tone="danger" />
+          <MetricCard label="Due today" value="4" tone="warning" />
+          <MetricCard label="Upcoming" value="11" tone="information" />
+        <MetricCard label="Idle" value="6" tone="neutral" />
+        </dl>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)]">
-        <div className="rounded-xl border border-[#CBD5E1] bg-white p-4 max-[759px]:rounded-none max-[759px]:border-0 max-[759px]:bg-transparent max-[759px]:p-0">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-[#0F172A] max-[759px]:text-[1.1rem]">
-              Today&apos;s priorities
-            </h2>
-          </div>
-          <div className="mt-2 divide-y divide-[#E2E8F0] max-[759px]:mt-1">
-            {priorities.map((item) => (
-              <PriorityItem key={item.company} {...item} />
-            ))}
-          </div>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
+        <Surface aria-labelledby="dashboard-priorities-heading">
+          <SurfaceHeader>
+            <SurfaceTitle id="dashboard-priorities-heading">Today&apos;s priorities</SurfaceTitle>
+          </SurfaceHeader>
+          <SurfaceContent>
+            <ol className="list-none divide-y divide-[color:var(--cb-border)]">
+              {priorities.map((item) => (
+                <li key={item.company} className="py-4 first:pt-0 last:pb-0">
+                  <PriorityItem {...item} />
+                </li>
+              ))}
+            </ol>
+          </SurfaceContent>
+        </Surface>
+
+        <div className="space-y-5">
+          <DashboardDataQualityAlert />
+          <PipelineSnapshot items={pipeline} />
         </div>
-
-        <PipelineSnapshot items={pipeline} />
       </section>
-
-      <Alert
-        title="Data quality warning"
-        body="3 possible duplicates need review"
-        actionHref="/duplicates"
-        actionLabel="Review"
-        tone="warning"
-      />
     </div>
   );
 }

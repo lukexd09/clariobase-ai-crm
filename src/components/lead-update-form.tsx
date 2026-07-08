@@ -6,12 +6,10 @@ import { updateLeadAction } from "@/app/leads/actions";
 import {
   LEAD_PRIORITY_VALUES,
   LEAD_STATUS_VALUES,
-  PACKAGE_FIT_VALUES,
   type LeadPriorityValue,
   type LeadStatusValue,
   type PackageFitValue
 } from "@/lib/lead-values";
-import { StatusPill } from "@/components/lead-status-pill";
 
 type LeadUpdateState = {
   ok: boolean;
@@ -24,7 +22,7 @@ const initialState: LeadUpdateState = {
 };
 
 const fieldInputClassName =
-  "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+  "w-full rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-3 text-sm text-[color:var(--cb-foreground)] outline-none transition placeholder:text-[color:var(--cb-muted-foreground)] focus-visible:border-[color:var(--cb-accent)] focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -33,7 +31,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : "Save updates"}
     </button>
@@ -70,7 +68,7 @@ export function LeadUpdateForm({
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Field
-          label="Lead status"
+          label="Status"
           hint="Choose the current working status for this lead."
           control={
             <select name="leadStatus" defaultValue={leadStatus} className={fieldInputClassName}>
@@ -96,23 +94,10 @@ export function LeadUpdateForm({
           }
         />
         <Field
-          label="Package fit"
-          hint="Keep the current package assessment aligned with the lead."
-          control={
-            <select name="packageFit" defaultValue={packageFit} className={fieldInputClassName}>
-              {PACKAGE_FIT_VALUES.map((value) => (
-                <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
-          }
-        />
-        <Field
-          label="Next action"
+          label="Next task"
           hint={
             nextActionDisplay === "No next action set"
-              ? "No next action is scheduled yet."
+              ? "No next task is scheduled yet."
               : `Current schedule: ${nextActionDisplay}`
           }
           control={
@@ -125,6 +110,8 @@ export function LeadUpdateForm({
           }
         />
       </div>
+
+      <input type="hidden" name="packageFit" value={packageFit} />
 
       <div className="flex items-center gap-4">
         <SubmitButton />
@@ -154,11 +141,11 @@ function Field({
 }) {
   return (
     <label className="space-y-2">
-      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">
+      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--cb-muted-foreground)]">
         {label}
       </span>
       {control}
-      <span className="block text-xs leading-5 text-slate-500">{hint}</span>
+      <span className="block text-xs leading-5 text-[color:var(--cb-muted-foreground)]">{hint}</span>
     </label>
   );
 }
