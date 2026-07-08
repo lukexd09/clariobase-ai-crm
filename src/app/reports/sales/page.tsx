@@ -1,4 +1,5 @@
 import { StatusPill } from "@/components/lead-status-pill";
+import { requireUser } from "@/lib/auth-context";
 import { ACTIVITY_TYPE_VALUES } from "@/lib/activity-values";
 import { getSalesReport } from "@/lib/sales-report";
 import {
@@ -13,6 +14,7 @@ import { getSalesStatusEntries } from "@/lib/sales-status";
 export const dynamic = "force-dynamic";
 
 export default async function SalesReportPage() {
+  await requireUser({ mode: "redirect", returnTo: "/reports/sales" });
   const report = await getSalesReport();
   const statusEntries = getSalesStatusEntries();
 

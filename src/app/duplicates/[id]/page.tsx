@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { DuplicateCandidateStatus } from "@/generated/prisma/client";
 import { updateDuplicateCandidateAction } from "@/app/duplicates/actions";
 import { StatusPill } from "@/components/lead-status-pill";
+import { requireUser } from "@/lib/auth-context";
 import { getDuplicateCandidateById } from "@/lib/duplicates";
 import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
 
@@ -220,6 +221,7 @@ export default async function DuplicateCandidateDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireUser({ mode: "redirect", returnTo: "/duplicates" });
   const { id } = await params;
   const candidate = await getDuplicateCandidateById(id);
 

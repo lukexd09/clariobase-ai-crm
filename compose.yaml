@@ -26,6 +26,8 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: ${CRM_DATABASE_URL:-postgresql://${CRM_POSTGRES_USER:-clariobase_crm_user}:${CRM_POSTGRES_PASSWORD:?Set_CRM_POSTGRES_PASSWORD}@crm-postgres:5432/${CRM_POSTGRES_DB:-clariobase_crm}?schema=public}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://127.0.0.1:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-clariobase-local-better-auth-secret-clariobase-local-better-auth-secret}
     healthcheck:
       test:
         [

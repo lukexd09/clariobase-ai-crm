@@ -2,10 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createLeadActivity } from "@/lib/activities";
+import { requireUser, unauthorizedResult } from "@/lib/auth-context";
 import { outreachDraftFormSchema } from "@/lib/outreach-draft-form";
 import { createOutreachDraft, updateOutreachDraft } from "@/lib/outreach-drafts";
 
 export async function saveOutreachDraftAction(leadId: string, formData: FormData) {
+  try {
+    await requireUser();
+  } catch {
+    return unauthorizedResult();
+  }
+
   const parsed = outreachDraftFormSchema.safeParse({
     draftId: formData.get("draftId"),
     status: formData.get("status"),

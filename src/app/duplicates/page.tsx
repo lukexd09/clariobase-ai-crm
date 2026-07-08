@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireUser } from "@/lib/auth-context";
 import { StatusPill } from "@/components/lead-status-pill";
 import { getDuplicateCandidates, type DuplicateReason } from "@/lib/duplicates";
 import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
@@ -61,6 +62,7 @@ function getReasonPreview(reasons: unknown) {
 }
 
 export default async function DuplicatesPage() {
+  await requireUser({ mode: "redirect", returnTo: "/duplicates" });
   const candidates = await getDuplicateCandidates();
 
   return (

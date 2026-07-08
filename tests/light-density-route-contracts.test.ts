@@ -93,13 +93,14 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
     output += chunk;
   });
 
+  const protectedRoute = await waitForHttp(`${baseUrl}/`);
+  assert.equal(protectedRoute.status, 200);
+  const protectedHtml = await protectedRoute.text();
+  assert.match(protectedHtml, /sign in/i);
+  assert.doesNotMatch(protectedHtml, /Your priorities for 21 June 2026/);
+  assert.doesNotMatch(protectedHtml, /Pipeline snapshot/);
+
   const routes = [
-    {
-      path: "/",
-      heading: "Dashboard",
-      activeNav: "Dashboard",
-      includes: ["Your priorities for 21 June 2026", "Today's priorities", "Pipeline snapshot", "3 possible duplicates need review"]
-    },
     {
       path: "/health",
       heading: "Health check",

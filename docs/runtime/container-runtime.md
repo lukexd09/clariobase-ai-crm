@@ -106,6 +106,8 @@ The approved runtime contract uses the following exact variables.
 | `CRM_POSTGRES_DB` | `crm-postgres` | yes | CRM-only database name. Recommended default: `clariobase_crm`. |
 | `CRM_POSTGRES_USER` | `crm-postgres` | yes | CRM-only PostgreSQL username. |
 | `CRM_POSTGRES_PASSWORD` | `crm-postgres` | yes | CRM-only PostgreSQL password. Runtime secret only. |
+| `BETTER_AUTH_URL` | `crm-app` | yes | Canonical public app URL used by Better Auth for redirects and origin checks. |
+| `BETTER_AUTH_SECRET` | `crm-app` | yes | Better Auth signing secret. Runtime secret only. |
 
 Supporting runtime rules:
 
