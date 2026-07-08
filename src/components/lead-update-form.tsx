@@ -6,12 +6,10 @@ import { updateLeadAction } from "@/app/leads/actions";
 import {
   LEAD_PRIORITY_VALUES,
   LEAD_STATUS_VALUES,
-  PACKAGE_FIT_VALUES,
   type LeadPriorityValue,
   type LeadStatusValue,
   type PackageFitValue
 } from "@/lib/lead-values";
-import { StatusPill } from "@/components/lead-status-pill";
 
 type LeadUpdateState = {
   ok: boolean;
@@ -96,19 +94,6 @@ export function LeadUpdateForm({
           }
         />
         <Field
-          label="Match"
-          hint="Keep the current match assessment aligned with the lead."
-          control={
-            <select name="packageFit" defaultValue={packageFit} className={fieldInputClassName}>
-              {PACKAGE_FIT_VALUES.map((value) => (
-                <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
-          }
-        />
-        <Field
           label="Next task"
           hint={
             nextActionDisplay === "No next action set"
@@ -125,6 +110,8 @@ export function LeadUpdateForm({
           }
         />
       </div>
+
+      <input type="hidden" name="packageFit" value={packageFit} />
 
       <div className="flex items-center gap-4">
         <SubmitButton />

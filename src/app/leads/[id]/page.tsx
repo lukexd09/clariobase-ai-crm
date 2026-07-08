@@ -150,8 +150,8 @@ export default async function LeadDetailPage({
                   detail="Shown in local operator time."
                 />
                 <HeaderMetric
-                  label="Contact"
-                  value={lead.customerId}
+                  label="Contact person"
+                  value="No contact person"
                   detail={lead.phone ?? lead.email ?? "No direct contact saved"}
                 />
               </div>
@@ -337,7 +337,6 @@ export default async function LeadDetailPage({
 
               <div className="border-t border-[color:var(--cb-border)] px-5 py-4">
                 <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <DefinitionItem label="Customer ID" value={lead.customerId} subtle />
                   <DefinitionItem label="Source" value={lead.source ?? "Not provided"} subtle />
                   <DefinitionItem label="Source record ID" value={lead.sourceRecordId ?? "Not provided"} subtle />
                   <DefinitionItem label="Google Place ID" value={lead.googlePlaceId ?? "Not provided"} subtle />
@@ -359,7 +358,7 @@ export default async function LeadDetailPage({
                 <p className="text-sm font-medium text-[color:var(--cb-accent)]">Status</p>
                 <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">Status update</h2>
                 <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
-                  Keep the state, priority, match, and next task aligned with the latest work.
+                  Keep the state, priority, and next task aligned with the latest work.
                 </p>
               </div>
 
@@ -385,7 +384,7 @@ export default async function LeadDetailPage({
                   Notes, messages, and updates
                 </h2>
                 <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
-                  Activity stays easy to log without narrowing the fields or clipping the date input.
+                  Log notes, messages, decisions, and follow-up context.
                 </p>
               </div>
 
@@ -483,7 +482,7 @@ function getMiniAuditPanelStatus(drafts: Array<{ status: string }>) {
 function getMiniAuditPanelDescription(drafts: MiniAuditDraftRecord[]) {
   const latest = drafts[0];
   if (!latest) {
-    return "Capture the first review, suggested match, and a draft message angle.";
+    return "Capture the first review draft and a message angle.";
   }
 
   return latest.recommendation ?? latest.problem1 ?? "Compact review ready.";
@@ -520,7 +519,7 @@ function getOutreachPanelAction(drafts: OutreachDraftRecord[]) {
 
 function getOfferPanelTitle(drafts: OfferDraftClientRecord[]) {
   const latest = drafts[0];
-  return latest ? latest.title : "Offer not started";
+  return latest ? latest.title : "Draft not started";
 }
 
 function getOfferPanelDescription(drafts: OfferDraftClientRecord[]) {
@@ -530,7 +529,7 @@ function getOfferPanelDescription(drafts: OfferDraftClientRecord[]) {
   }
 
   const price = latest.priceNet ? `${latest.currency} ${latest.priceNet}` : "No price set yet";
-  return [latest.packageFit.replaceAll("_", " "), price].join(" | ");
+  return [latest.title, price].filter(Boolean).join(" | ");
 }
 
 function getOfferPanelStatus(drafts: OfferDraftClientRecord[]) {

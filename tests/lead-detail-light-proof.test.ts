@@ -23,6 +23,8 @@ test("lead detail route uses the approved ClarioBase UI boundary", () => {
   assert.match(page, /Draft preparation/);
   assert.match(page, /Show technical details/);
   assert.match(page, /Technical metadata/);
+  assert.match(page, /No contact person/);
+  assert.match(page, /Draft not started/);
   assert.match(page, /StatusPill value=\{lead\.leadStatus\} appearance="light"/);
   assert.match(page, /StatusPill value=\{lead\.priority\} appearance="light"/);
   assert.doesNotMatch(page, /StatusPill value=\{lead\.packageFit\} appearance="light"/);
@@ -61,7 +63,8 @@ test("lead detail route keeps forms and actions wired to the existing persistenc
   assert.match(leadUpdateForm, /Save updates/);
   assert.match(leadUpdateForm, /Status/);
   assert.match(leadUpdateForm, /Priority/);
-  assert.match(leadUpdateForm, /Match/);
+  assert.doesNotMatch(leadUpdateForm, /Match/);
+  assert.match(leadUpdateForm, /name="packageFit" value=\{packageFit\}/);
   assert.match(leadUpdateForm, /Next task/);
   assert.match(leadUpdateForm, /role=\{state\.ok \? "status" : "alert"\}/);
 
@@ -79,7 +82,8 @@ test("lead detail route keeps forms and actions wired to the existing persistenc
   assert.match(miniAuditForm, /Save review draft/);
   assert.match(miniAuditForm, /New draft/);
   assert.match(miniAuditForm, /StatusPill value=\{draft\.status as MiniAuditStatusValue\} appearance="light"/);
-  assert.match(miniAuditForm, /StatusPill value=\{draft\.suggestedPackage as PackageFitValue\} appearance="light"/);
+  assert.doesNotMatch(miniAuditForm, /Suggested match/);
+  assert.match(miniAuditForm, /name="suggestedPackage" value=\{draft\?\.suggestedPackage \?\? "UNKNOWN"\}/);
   assert.match(miniAuditForm, /Finding 1/);
 
   assert.match(outreachForm, /saveOutreachDraftAction/);
@@ -99,6 +103,7 @@ test("lead detail route keeps forms and actions wired to the existing persistenc
   assert.match(offerForm, /Price/);
   assert.match(offerForm, /Expires/);
   assert.match(offerForm, /StatusPill value=\{draft\.status as OfferDraftStatusValue\} appearance="light"/);
-  assert.match(offerForm, /StatusPill value=\{draft\.packageFit as PackageFitValue\} appearance="light"/);
+  assert.doesNotMatch(offerForm, /StatusPill value=\{draft\.packageFit as PackageFitValue\} appearance="light"/);
+  assert.match(offerForm, /name="packageFit" value=\{draft\?\.packageFit \?\? "UNKNOWN"\}/);
   assert.doesNotMatch(offerForm, /Create draft preparation/);
 });
