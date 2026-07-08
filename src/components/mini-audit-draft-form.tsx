@@ -6,9 +6,7 @@ import { saveMiniAuditDraftAction } from "@/app/leads/mini-audit-actions";
 import { StatusPill } from "@/components/lead-status-pill";
 import {
   MINI_AUDIT_STATUS_VALUES,
-  PACKAGE_FIT_VALUES,
   type MiniAuditStatusValue,
-  type PackageFitValue
 } from "@/lib/lead-values";
 import type { MiniAuditDraftRecord } from "@/lib/mini-audits";
 
@@ -90,7 +88,6 @@ function MiniAuditDraftEditor({
         {draft ? (
           <div className="flex flex-wrap gap-2">
             <StatusPill value={draft.status as MiniAuditStatusValue} appearance="light" />
-            <StatusPill value={draft.suggestedPackage as PackageFitValue} appearance="light" />
           </div>
         ) : (
           <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
@@ -100,6 +97,7 @@ function MiniAuditDraftEditor({
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
+      <input type="hidden" name="suggestedPackage" value={draft?.suggestedPackage ?? "UNKNOWN"} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <DraftField
@@ -114,23 +112,6 @@ function MiniAuditDraftEditor({
             </select>
           }
           hint="Set the current review stage for this draft."
-        />
-        <DraftField
-          label="Suggested match"
-          control={
-            <select
-              name="suggestedPackage"
-              defaultValue={draft?.suggestedPackage ?? "UNKNOWN"}
-              className={fieldInputClassName}
-            >
-              {PACKAGE_FIT_VALUES.map((value) => (
-                <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
-          }
-          hint="Record the current match recommendation."
         />
         <DraftField
           label="Finding 1"

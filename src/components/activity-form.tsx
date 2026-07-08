@@ -83,7 +83,7 @@ export function ActivityForm({ leadId }: { leadId: string }) {
               placeholder="Notes, context, or next step..."
             />
           }
-          hint="Capture the key outcome, context, or next task."
+          hint="Log notes, messages, decisions, and follow-up context."
         />
       </div>
 

@@ -6,9 +6,7 @@ import { saveOfferDraftAction } from "@/app/leads/offer-draft-actions";
 import { StatusPill } from "@/components/lead-status-pill";
 import {
   OFFER_DRAFT_STATUS_VALUES,
-  PACKAGE_FIT_VALUES,
   type OfferDraftStatusValue,
-  type PackageFitValue
 } from "@/lib/lead-values";
 import type { OfferDraftClientRecord } from "@/lib/offer-drafts";
 
@@ -90,7 +88,6 @@ function OfferDraftEditor({
         {draft ? (
           <div className="flex flex-wrap gap-2">
             <StatusPill value={draft.status as OfferDraftStatusValue} appearance="light" />
-            <StatusPill value={draft.packageFit as PackageFitValue} appearance="light" />
           </div>
         ) : (
           <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
@@ -100,6 +97,7 @@ function OfferDraftEditor({
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
+      <input type="hidden" name="packageFit" value={draft?.packageFit ?? "UNKNOWN"} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <DraftField
@@ -114,23 +112,6 @@ function OfferDraftEditor({
             </select>
           }
           hint="Set the current stage for this offer draft."
-        />
-        <DraftField
-          label="Match"
-          control={
-            <select
-              name="packageFit"
-              defaultValue={draft?.packageFit ?? "UNKNOWN"}
-              className={fieldInputClassName}
-            >
-              {PACKAGE_FIT_VALUES.map((value) => (
-                <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
-          }
-          hint="Record the match this draft currently targets."
         />
         <DraftField
           label="Title"
