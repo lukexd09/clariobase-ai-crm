@@ -61,6 +61,7 @@ test("package inventory stays aligned with the dependency gate", () => {
     "zod"
   ]);
   assert.deepEqual(Object.keys(packageJson.devDependencies).sort(), [
+    "@playwright/test",
     "@types/node",
     "@types/react",
     "@types/react-dom",

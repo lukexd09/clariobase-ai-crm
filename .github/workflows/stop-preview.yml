@@ -2,6 +2,20 @@ name: Stop Preview
 
 on:
   workflow_dispatch:
+    inputs:
+      database_mode:
+        description: Preview database lifecycle mode
+        required: false
+        default: preserve
+        type: choice
+        options:
+          - preserve
+          - reset
+      reset_confirmation:
+        description: Exact confirmation phrase required for reset mode
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -48,27 +62,71 @@ jobs:
       - name: Stop preview
         shell: pwsh
         working-directory: control
+        id: stop
+        continue-on-error: true
+        env:
+          DATABASE_MODE: ${{ inputs.database_mode }}
+          RESET_CONFIRMATION: ${{ inputs.reset_confirmation }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-preview.ps1 `
             -RequestedRef stop-preview `
+            -DatabaseMode $env:DATABASE_MODE `
+            -ResetConfirmation $env:RESET_CONFIRMATION `
             -ControlCheckoutPath $PWD
 
-          $stopExitCode = $LASTEXITCODE
-
-          if ($stopExitCode -ne 0) {
-            throw "Stop preview script failed with exit code $stopExitCode."
-          }
-
       - name: Write job summary
+        if: always()
         shell: pwsh
         working-directory: control
         run: |
+          $resultPath = Join-Path $PWD "stop-preview-result.json"
+          $result = "FAILED"
+          $databaseMode = "unknown"
+          $databaseVolume = "unknown"
+          $reason = "stop-preview result file was not produced"
+          $failureStage = "unknown"
+
+          if (Test-Path $resultPath) {
+            $payload = Get-Content $resultPath -Raw | ConvertFrom-Json
+            $result = $payload.result
+            $databaseMode = $payload.databaseMode
+            $databaseVolume = $payload.databaseVolume
+            $reason = $payload.reason
+            $failureStage = $payload.failureStage
+          }
+
+          if ($result -eq "BLOCKED") {
+            $summaryResult = "BLOCKED"
+          } elseif ($result -eq "FAILED") {
+            $summaryResult = "FAILED"
+          } else {
+            $summaryResult = "PASS"
+          }
+
           @"
-          Result: PASS
+          Result: $summaryResult
 
           Requested ref: `stop-preview`
+          Database mode: $databaseMode
+          Database volume: $databaseVolume
+          Reason: $reason
           Preview URL: `http://Serwer:3001`
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Fail workflow if stop failed
+        if: always()
+        shell: pwsh
+        working-directory: control
+        run: |
+          $resultPath = Join-Path $PWD "stop-preview-result.json"
+          if (Test-Path $resultPath) {
+            $payload = Get-Content $resultPath -Raw | ConvertFrom-Json
+            if ($payload.result -ne "PASS") {
+              throw "Stop preview failed with result $($payload.result)."
+            }
+          } else {
+            throw "Stop preview failed."
+          }
 
       - name: Cleanup secrets and job artifacts
         if: always()
