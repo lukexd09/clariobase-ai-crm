@@ -1,6 +1,5 @@
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
-import { admin } from "better-auth/plugins/admin";
 
 import { prisma } from "@/lib/prisma";
 
@@ -42,7 +41,6 @@ export function buildAuthOptions() {
     database: prismaAdapter(prisma, {
       provider: "postgresql"
     }),
-    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] })],
     trustedOrigins: [new URL(baseURL).origin],
     emailAndPassword: { enabled: true, disableSignUp: true },
     secret: readAuthSecret(),

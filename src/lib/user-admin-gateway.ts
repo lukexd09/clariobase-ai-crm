@@ -4,8 +4,6 @@ import {
   canBanUser,
   canChangeRole,
   canDisableUser,
-  canPerformLastAdminProtection,
-  canPreventSelfLockout,
   getApprovedAdminOperations,
   getProhibitedAdminOperations,
   type AdminActor
@@ -17,7 +15,6 @@ export type AdminGatewayResult<T> =
 
 type GatewayContext = {
   headers?: Headers;
-  actor?: AdminActor | null;
 };
 
 const auth = createAppAuth();
@@ -39,10 +36,6 @@ function conflict(code: string, message: string): AdminGatewayResult<never> {
 }
 
 async function resolveActor(context?: GatewayContext) {
-  if (context?.actor) {
-    return context.actor;
-  }
-
   if (!context?.headers) {
     return null;
   }
@@ -117,10 +110,10 @@ export async function disableUser(context?: GatewayContext): Promise<AdminGatewa
   }
 
   if (!canDisableUser(actor)) {
-    return forbidden("forbidden", "Admin access required");
+    return conflict("last_admin_protection", "Disablement is deferred until last-admin protection is fully implemented");
   }
 
-  return notImplemented("admin_gateway_deferred", "User disablement is deferred");
+  return conflict("last_admin_protection", "Disablement is deferred until last-admin protection is fully implemented");
 }
 
 export async function reactivateUser(context?: GatewayContext): Promise<AdminGatewayResult<never>> {
@@ -131,10 +124,10 @@ export async function reactivateUser(context?: GatewayContext): Promise<AdminGat
   }
 
   if (!canBanUser(actor)) {
-    return forbidden("forbidden", "Admin access required");
+    return conflict("self_lockout_protection", "Reactivation is deferred until self-lockout protection is fully implemented");
   }
 
-  return notImplemented("admin_gateway_deferred", "User reactivation is deferred");
+  return conflict("self_lockout_protection", "Reactivation is deferred until self-lockout protection is fully implemented");
 }
 
 export async function listUserSessions(context?: GatewayContext): Promise<AdminGatewayResult<readonly never[]>> {
@@ -192,19 +185,11 @@ export function prohibitWorkspaceOperations() {
 }
 
 export function assertLastAdminProtection(actor: AdminActor | null | undefined) {
-  if (!canPerformLastAdminProtection(actor)) {
-    return conflict("last_admin_protection", "Last-admin protection prevents this change");
-  }
-
-  return null;
+  return conflict("last_admin_protection", "Last-admin protection is deferred until data-backed enforcement exists");
 }
 
 export function assertSelfLockoutProtection(actor: AdminActor | null | undefined) {
-  if (!canPreventSelfLockout(actor)) {
-    return conflict("self_lockout_protection", "Self-lockout protection prevents this change");
-  }
-
-  return null;
+  return conflict("self_lockout_protection", "Self-lockout protection is deferred until data-backed enforcement exists");
 }
 
 export const ADMIN_GATEWAY_APPROVED_OPERATIONS = getApprovedAdminOperations();

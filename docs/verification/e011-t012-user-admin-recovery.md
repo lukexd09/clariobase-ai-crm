@@ -173,6 +173,7 @@ This slice adds the minimum schema and server-side policy foundation needed for 
 
 - Added the Better Auth admin fields required by the installed plugin surface.
 - Migration file: `prisma/migrations/20260709000000_add_better_auth_admin_fields/migration.sql`
+- The migration uses `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` on purpose so repeated local verification runs stay idempotent.
 - Added fields:
   - `user.role`
   - `user.banned`
@@ -182,9 +183,8 @@ This slice adds the minimum schema and server-side policy foundation needed for 
 
 ### Better Auth admin plugin config
 
-- `src/lib/auth.ts` now enables the installed Better Auth admin plugin with:
-  - `defaultRole: "user"`
-  - `adminRoles: ["admin"]`
+- `src/lib/auth.ts` keeps the Better Auth admin plugin runtime disabled for now.
+- The plugin was discovered and the schema was prepared, but raw endpoint restrictions still need to be proven before runtime enablement.
 - Public signup remains disabled.
 - Telemetry remains disabled.
 - Better Auth remains self-hosted through the existing app auth route.
@@ -231,6 +231,7 @@ This slice adds the minimum schema and server-side policy foundation needed for 
 - Recovery delivery flow.
 - Concrete admin CRUD and session mutation implementations.
 - Any impersonation, hard delete, org/team/workspace, or arbitrary forwarding surface.
+- Better Auth admin plugin runtime enablement until raw endpoint restrictions are proven.
 
 ### Updated proof coverage
 

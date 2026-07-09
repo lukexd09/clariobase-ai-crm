@@ -26,8 +26,6 @@ import {
   canBanUser,
   canChangeRole,
   canDisableUser,
-  canPerformLastAdminProtection,
-  canPreventSelfLockout,
   getApprovedAdminOperations,
   getProhibitedAdminOperations,
   isAdminRole
@@ -72,8 +70,7 @@ async function main() {
   assert.equal(authOptions.emailAndPassword.disableSignUp, true);
   assert.equal(authOptions.telemetry.enabled, false);
   assert.equal(authOptions.telemetry.debug, false);
-  assert.ok(Array.isArray(authOptions.plugins));
-  assert.equal(authOptions.plugins?.length, 1);
+  assert.ok(!("plugins" in authOptions) || !authOptions.plugins || authOptions.plugins.length === 0);
 
   const { admin } = await import("better-auth/plugins/admin");
   const plugin = admin({ defaultRole: "user", adminRoles: ["admin"] });
@@ -113,13 +110,9 @@ async function main() {
   assert.equal(canDisableUser(adminActor), true);
   assert.equal(canBanUser(adminActor), true);
   assert.equal(canChangeRole(adminActor), true);
-  assert.equal(canPerformLastAdminProtection(adminActor), true);
-  assert.equal(canPreventSelfLockout(adminActor), true);
   assert.equal(canDisableUser(normalActor), false);
   assert.equal(canBanUser(normalActor), false);
   assert.equal(canChangeRole(normalActor), false);
-  assert.equal(canPerformLastAdminProtection(normalActor), false);
-  assert.equal(canPreventSelfLockout(normalActor), false);
   assert.equal(canDisableUser(bannedAdmin), false);
 
   assert.equal((await listUsers()).ok, false);
@@ -129,17 +122,12 @@ async function main() {
   assert.equal((await listUserSessions()).ok, false);
   assert.equal((await setUserPassword()).ok, false);
 
-  assert.equal((await listUsers({ actor: normalActor })).ok, false);
-  assert.equal((await createControlledUser({ actor: normalActor })).ok, false);
-  assert.equal((await disableUser({ actor: normalActor })).ok, false);
-  assert.equal((await reactivateUser({ actor: normalActor })).ok, false);
-
-  assert.equal((await listUsers({ actor: adminActor })).ok, false);
-  assert.equal((await createControlledUser({ actor: adminActor })).ok, false);
-  assert.equal((await disableUser({ actor: adminActor })).ok, false);
-  assert.equal((await reactivateUser({ actor: adminActor })).ok, false);
-  assert.equal((await listUserSessions({ actor: adminActor })).ok, false);
-  assert.equal((await setUserPassword({ actor: adminActor })).ok, false);
+  assert.equal((await listUsers({ headers: new Headers() })).ok, false);
+  assert.equal((await createControlledUser({ headers: new Headers() })).ok, false);
+  assert.equal((await disableUser({ headers: new Headers() })).ok, false);
+  assert.equal((await reactivateUser({ headers: new Headers() })).ok, false);
+  assert.equal((await listUserSessions({ headers: new Headers() })).ok, false);
+  assert.equal((await setUserPassword({ headers: new Headers() })).ok, false);
 
   assert.equal(prohibitImpersonation().ok, false);
   assert.equal(prohibitHardDelete().ok, false);
@@ -148,8 +136,8 @@ async function main() {
   assert.equal(prohibitTeamOperations().ok, false);
   assert.equal(prohibitWorkspaceOperations().ok, false);
 
-  assert.equal(assertLastAdminProtection(adminActor), null);
-  assert.equal(assertSelfLockoutProtection(adminActor), null);
+  assert.equal(assertLastAdminProtection(adminActor)?.ok, false);
+  assert.equal(assertSelfLockoutProtection(adminActor)?.ok, false);
   assert.equal(assertLastAdminProtection(normalActor)?.ok, false);
   assert.equal(assertSelfLockoutProtection(normalActor)?.ok, false);
   assert.equal(assertLastAdminProtection(null)?.ok, false);
@@ -161,6 +149,7 @@ async function main() {
     adminCapabilities: Object.keys(plugin.endpoints).sort(),
     approvedOperations: [...ADMIN_GATEWAY_APPROVED_OPERATIONS],
     prohibitedOperations: [...ADMIN_GATEWAY_PROHIBITED_OPERATIONS],
+    adminPluginRuntimeEnabled: false,
     signupDisabled: true,
     telemetryDisabled: true,
     noOrgTeamWorkspaceSchema: true,
