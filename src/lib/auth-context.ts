@@ -8,6 +8,8 @@ export type CurrentUser = {
   id: string;
   email: string | null;
   name: string | null;
+  role: string | null;
+  banned: boolean;
 };
 
 export type AccessContext = {
@@ -32,7 +34,9 @@ function toCurrentUser(session: Awaited<ReturnType<typeof auth.api.getSession>>)
   return {
     id: session.user.id,
     email: session.user.email ?? null,
-    name: session.user.name ?? null
+    name: session.user.name ?? null,
+    role: (session.user as { role?: string | null }).role ?? null,
+    banned: Boolean((session.user as { banned?: boolean | null }).banned)
   } satisfies CurrentUser;
 }
 
