@@ -316,3 +316,11 @@ docker network prune
 ```
 
 Production state is not an eligibility dependency. Safety comes from exact identities, isolated preview resources and narrowly scoped cleanup.
+
+## Application environment marker
+
+The app itself shows a persistent `TEST` banner and watermark whenever `CRM_DEPLOYMENT_ENV` is not exactly normalized `production`.
+
+Preview operators should assume the marker will be visible in preview and other non-production runtimes.
+Production deployments must explicitly set `CRM_DEPLOYMENT_ENV=production`.
+The marker contract is server-side runtime configuration and must not use `NEXT_PUBLIC_*`.

@@ -95,6 +95,18 @@ Preview must remain isolated from production by:
 - env-file contract and runtime secrets;
 - cleanup scope.
 
+## Deployment environment marker
+
+The application reads `CRM_DEPLOYMENT_ENV` as a server-side runtime value.
+
+- `CRM_DEPLOYMENT_ENV=production` hides the in-app environment marker.
+- `CRM_DEPLOYMENT_ENV=preview` shows the in-app `TEST` marker.
+- missing, empty, invalid or unsupported values fail safe and show the marker.
+
+Preview operators should expect the visible `TEST` banner and watermark before doing destructive or manual testing.
+Production deployment must explicitly declare `CRM_DEPLOYMENT_ENV=production`.
+Do not use `NEXT_PUBLIC_*` for this contract.
+
 Preview must never reuse production `.env.compose.local`, production AI exchange paths, production containers or production database identifiers.
 Preview deployment does not query production health and must not depend on production being reachable from the preview host.
 
