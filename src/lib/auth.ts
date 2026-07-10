@@ -1,5 +1,6 @@
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
+import { admin } from "better-auth/plugins/admin";
 
 import { prisma } from "@/lib/prisma";
 
@@ -32,15 +33,18 @@ function readAuthBaseUrl() {
   return baseURL;
 }
 
-export function buildAuthOptions() {
+type AuthDatabaseClient = Parameters<typeof prismaAdapter>[0];
+
+export function buildAuthOptions(databaseClient: AuthDatabaseClient = prisma) {
   const baseURL = readAuthBaseUrl();
 
   return {
     appName: "ClarioBase",
     baseURL,
-    database: prismaAdapter(prisma, {
+    database: prismaAdapter(databaseClient, {
       provider: "postgresql"
     }),
+    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] })],
     trustedOrigins: [new URL(baseURL).origin],
     emailAndPassword: { enabled: true, disableSignUp: true },
     secret: readAuthSecret(),
@@ -51,6 +55,8 @@ export function buildAuthOptions() {
   };
 }
 
-export function createAppAuth() {
-  return betterAuth(buildAuthOptions());
+export function createAppAuth(databaseClient: AuthDatabaseClient = prisma) {
+  return betterAuth(buildAuthOptions(databaseClient));
 }
+
+export const auth = createAppAuth();
