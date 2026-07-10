@@ -1,9 +1,6 @@
 import { createAppAuth } from "@/lib/auth";
 import {
   assertAdminRole,
-  canBanUser,
-  canChangeRole,
-  canDisableUser,
   getApprovedAdminOperations,
   getProhibitedAdminOperations,
   type AdminActor
@@ -47,11 +44,17 @@ async function resolveActor(context?: GatewayContext) {
     return null;
   }
 
+  const sessionUser = user as unknown as Record<string, unknown>;
+
   return {
     id: user.id,
     email: user.email ?? null,
-    role: (user as { role?: string | null }).role ?? null,
-    banned: Boolean((user as { banned?: boolean | null }).banned)
+    role: typeof sessionUser.role === "string"
+      ? sessionUser.role
+      : null,
+    banned: typeof sessionUser.banned === "boolean"
+      ? sessionUser.banned
+      : null
   } satisfies AdminActor;
 }
 
@@ -109,10 +112,6 @@ export async function disableUser(context?: GatewayContext): Promise<AdminGatewa
     return denied;
   }
 
-  if (!canDisableUser(actor)) {
-    return conflict("last_admin_protection", "Disablement is deferred until last-admin protection is fully implemented");
-  }
-
   return conflict("last_admin_protection", "Disablement is deferred until last-admin protection is fully implemented");
 }
 
@@ -121,10 +120,6 @@ export async function reactivateUser(context?: GatewayContext): Promise<AdminGat
   const denied = requireAdminActor(actor);
   if (denied) {
     return denied;
-  }
-
-  if (!canBanUser(actor)) {
-    return conflict("self_lockout_protection", "Reactivation is deferred until self-lockout protection is fully implemented");
   }
 
   return conflict("self_lockout_protection", "Reactivation is deferred until self-lockout protection is fully implemented");
@@ -184,11 +179,11 @@ export function prohibitWorkspaceOperations() {
   return denyProhibitedOperation("workspace");
 }
 
-export function assertLastAdminProtection(actor: AdminActor | null | undefined) {
+export function assertLastAdminProtection() {
   return conflict("last_admin_protection", "Last-admin protection is deferred until data-backed enforcement exists");
 }
 
-export function assertSelfLockoutProtection(actor: AdminActor | null | undefined) {
+export function assertSelfLockoutProtection() {
   return conflict("self_lockout_protection", "Self-lockout protection is deferred until data-backed enforcement exists");
 }
 

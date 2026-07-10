@@ -9,7 +9,7 @@ export type CurrentUser = {
   email: string | null;
   name: string | null;
   role: string | null;
-  banned: boolean;
+  banned: boolean | null;
 };
 
 export type AccessContext = {
@@ -31,12 +31,18 @@ function toCurrentUser(session: Awaited<ReturnType<typeof auth.api.getSession>>)
     return null;
   }
 
+  const sessionUser = session.user as unknown as Record<string, unknown>;
+
   return {
     id: session.user.id,
     email: session.user.email ?? null,
     name: session.user.name ?? null,
-    role: (session.user as { role?: string | null }).role ?? null,
-    banned: Boolean((session.user as { banned?: boolean | null }).banned)
+    role: typeof sessionUser.role === "string"
+      ? sessionUser.role
+      : null,
+    banned: typeof sessionUser.banned === "boolean"
+      ? sessionUser.banned
+      : null
   } satisfies CurrentUser;
 }
 

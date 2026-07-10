@@ -37,7 +37,7 @@ The following T011/T010 foundation is already in place:
 - telemetry is disabled in `src/lib/auth.ts`;
 - CRM browser boundaries and server actions are protected in T011;
 - the current auth route handler is the standard Better Auth handler in `src/app/api/auth/[...all]/route.ts`;
-- the current Prisma schema does not yet contain the Better Auth admin-related columns needed by the installed plugin surface.
+- the Prisma schema now contains the Better Auth admin-related columns, while the admin plugin remains disabled at runtime.
 
 ## Installed Better Auth admin/recovery surface
 
@@ -86,7 +86,7 @@ Observed default access-control statements exposed by the plugin:
 
 ## Schema impact
 
-The installed admin plugin exposes schema fields that are required by the plugin contract and are not yet present in the current Prisma schema:
+The installed admin plugin exposes these schema fields, which this foundation slice adds to the Prisma schema:
 
 - `user.role`
 - `user.banned`
@@ -94,12 +94,12 @@ The installed admin plugin exposes schema fields that are required by the plugin
 - `user.banExpires`
 - `session.impersonatedBy`
 
-That means the first T012 slice still needs a schema migration before any real gateway implementation can write those fields.
+The migration prepares storage only. No real gateway write path or admin plugin runtime endpoint is enabled in this slice.
 
 Current repository Prisma schema status:
 
-- `user` table exists for core auth and does not yet carry the admin role/ban columns;
-- `session` table exists for core auth and does not yet carry the impersonation marker column;
+- `user` carries the prepared admin role/ban columns;
+- `session` carries the prepared impersonation marker column;
 - `account` table exists for core auth;
 - `verification` table exists for core auth;
 - no organization, team, workspace, or invitation tables are present.
@@ -159,7 +159,7 @@ Discovery result:
 | Telemetry remains disabled | App auth config inspection | `src/lib/auth.ts`, `scripts/e011-t012-user-admin-proof.ts` | Proven |
 | Installed admin APIs are known | Installed package source inspection | `node_modules/better-auth/dist/plugins/admin/*` | Proven |
 | Password / recovery APIs are known | Installed package source inspection | `node_modules/better-auth/dist/api/routes/password.mjs` | Proven |
-| Current Prisma schema already contains the required admin fields | Schema inspection | `prisma/schema.prisma`, `scripts/e011-t012-user-admin-proof.ts` | Not yet proven; schema gap confirmed |
+| Prisma schema contains the required admin fields | Schema inspection | `prisma/schema.prisma`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
 | No full admin UI is present yet | Repo inspection | `src/app/admin/*` not present | Proven |
 | Last-admin / self-lockout enforcement | Deferred to gateway implementation | `docs/verification/e011-t012-user-admin-recovery.md` | Deferred |
 | Session revocation policy | Deferred to gateway implementation | `docs/verification/e011-t012-user-admin-recovery.md` | Deferred |
@@ -173,7 +173,7 @@ This slice adds the minimum schema and server-side policy foundation needed for 
 
 - Added the Better Auth admin fields required by the installed plugin surface.
 - Migration file: `prisma/migrations/20260709000000_add_better_auth_admin_fields/migration.sql`
-- The migration uses `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` on purpose so repeated local verification runs stay idempotent.
+- The migration intentionally uses `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` to accommodate pre-provisioned development databases during rollout. Prisma's migration ledger remains the normal source of migration state; this syntax does not prove that a pre-existing column has the expected type, nullability, or default.
 - Added fields:
   - `user.role`
   - `user.banned`
@@ -181,10 +181,10 @@ This slice adds the minimum schema and server-side policy foundation needed for 
   - `user.banExpires`
   - `session.impersonatedBy`
 
-### Better Auth admin plugin config
+### Better Auth admin plugin runtime boundary
 
 - `src/lib/auth.ts` keeps the Better Auth admin plugin runtime disabled for now.
-- The plugin was discovered and the schema was prepared, but raw endpoint restrictions still need to be proven before runtime enablement.
+- The plugin was discovered and the schema was prepared. The current public handler is executable-proofed to return 404 for every installed admin-plugin path; a safe future runtime-enabled architecture remains deferred.
 - Public signup remains disabled.
 - Telemetry remains disabled.
 - Better Auth remains self-hosted through the existing app auth route.
@@ -192,7 +192,7 @@ This slice adds the minimum schema and server-side policy foundation needed for 
 ### Gateway foundation
 
 - `src/lib/admin-policy.ts` defines the ClarioBase admin role contract and a fail-closed prohibited capability list.
-- `src/lib/user-admin-gateway.ts` exposes a narrow server-only gateway foundation.
+- `src/lib/user-admin-gateway.ts` exposes a narrow server-side gateway foundation; it accepts request headers and resolves the actor from Better Auth rather than accepting caller-supplied actor data.
 - Approved operations are limited to:
   - list users
   - create controlled user
@@ -212,16 +212,16 @@ This slice adds the minimum schema and server-side policy foundation needed for 
 
 ### Last-admin and self-lockout policy
 
-- The gateway foundation exposes pure policy checks for last-admin protection and self-lockout prevention.
-- The current slice keeps those checks fail-closed and policy-testable.
+- The gateway foundation exposes fail-closed placeholders for last-admin protection and self-lockout prevention.
+- Disable/ban and role-change capability checks return false even for an authenticated admin until data-backed protection exists.
 - A full data-backed enforcement path remains deferred.
 
 ### What is implemented now
 
 - Prisma schema and migration for the admin fields.
-- Better Auth admin plugin configuration.
+- Better Auth admin plugin contract inspection, with runtime configuration intentionally absent.
 - Narrow ClarioBase admin policy module.
-- Server-only admin gateway foundation with fail-closed prohibited operations.
+- Unmounted server-side admin gateway foundation with fail-closed prohibited operations; no public route or client import exposes it.
 - Proof coverage for schema, plugin, policy, and gateway foundations.
 
 ### What remains deferred
@@ -239,16 +239,16 @@ This slice adds the minimum schema and server-side policy foundation needed for 
 | --- | --- | --- | --- |
 | Prisma schema contains required admin fields | Schema inspection | `prisma/schema.prisma`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
 | Migration exists and includes only expected admin fields | Migration inspection | `prisma/migrations/20260709000000_add_better_auth_admin_fields/migration.sql` | Proven |
-| Better Auth admin plugin config is present | Source inspection | `src/lib/auth.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
+| Better Auth admin plugin is absent from the public runtime handler | Executable requests to every installed `/admin/*` plugin path | `src/lib/auth.ts`, `src/app/api/auth/[...all]/route.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven; every path returns 404 |
 | Public signup remains disabled | App auth config inspection | `src/lib/auth.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
 | Telemetry remains disabled | App auth config inspection | `src/lib/auth.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
 | No org/team/workspace/invitation schema added | Prisma schema inspection | `prisma/schema.prisma` | Proven |
 | Policy allows only admin/user default roles | Policy inspection | `src/lib/admin-policy.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
 | Prohibited operations fail closed | Gateway proof | `src/lib/user-admin-gateway.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
-| Normal user admin operation fails | Gateway proof | `src/lib/user-admin-gateway.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
+| Non-admin role is rejected by policy | Pure policy proof | `src/lib/admin-policy.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven; a real signed-in normal-user request remains deferred |
 | Unauthenticated admin operation fails | Gateway proof | `src/lib/user-admin-gateway.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
-| Last-admin protection policy fails closed | Policy proof | `src/lib/admin-policy.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
-| Self-lockout protection policy fails closed | Policy proof | `src/lib/admin-policy.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
+| Last-admin protection placeholder fails closed | Gateway proof | `src/lib/user-admin-gateway.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven; data-backed enforcement deferred |
+| Self-lockout protection placeholder fails closed | Gateway proof | `src/lib/user-admin-gateway.ts`, `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven; data-backed enforcement deferred |
 | No secrets printed in proof output | Proof output inspection | `scripts/e011-t012-admin-schema-gateway-proof.ts` | Proven |
 
 ## Explicit exclusions
@@ -268,7 +268,7 @@ This slice adds the minimum schema and server-side policy foundation needed for 
 ## Residual risks
 
 - The admin plugin exposes powerful account-management endpoints, including impersonation and destructive operations, so the app must wrap it with a narrow ClarioBase-owned gateway before any UI work.
-- The schema is not yet compatible with the plugin’s admin fields, so the main risk now includes a required migration before gateway design can be finished.
+- Existing databases still require the checked-in migration, and `IF NOT EXISTS` cannot detect a conflicting pre-existing column definition.
 - Bootstrap and recovery flows still need a policy decision before implementation.
 
 ## Explicit exclusions

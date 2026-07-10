@@ -1,3 +1,4 @@
+-- IF NOT EXISTS supports rollout to pre-provisioned development databases; it does not validate an existing column's definition.
 ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'user';
 ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "banned" BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE "user" ADD COLUMN IF NOT EXISTS "banReason" TEXT;

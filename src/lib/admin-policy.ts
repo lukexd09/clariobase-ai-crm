@@ -15,7 +15,7 @@ export type AdminActor = {
   id: string;
   email: string | null;
   role: string | null;
-  banned: boolean;
+  banned: boolean | null;
 };
 
 export function isAdminRole(role: string | null | undefined) {
@@ -23,7 +23,7 @@ export function isAdminRole(role: string | null | undefined) {
 }
 
 export function canAdministerUsers(actor: AdminActor | null | undefined) {
-  return Boolean(actor && isAdminRole(actor.role) && !actor.banned);
+  return Boolean(actor && isAdminRole(actor.role) && actor.banned === false);
 }
 
 export function assertAdminRole(actor: AdminActor | null | undefined) {
@@ -32,24 +32,16 @@ export function assertAdminRole(actor: AdminActor | null | undefined) {
   }
 }
 
-export function canDisableUser(actor: AdminActor | null | undefined) {
-  return canAdministerUsers(actor);
+export function canDisableUser(_actor: AdminActor | null | undefined) {
+  return false;
 }
 
-export function canBanUser(actor: AdminActor | null | undefined) {
-  return canAdministerUsers(actor);
+export function canBanUser(_actor: AdminActor | null | undefined) {
+  return false;
 }
 
-export function canChangeRole(actor: AdminActor | null | undefined) {
-  return canAdministerUsers(actor);
-}
-
-export function canPerformLastAdminProtection(actor: AdminActor | null | undefined) {
-  return canAdministerUsers(actor);
-}
-
-export function canPreventSelfLockout(actor: AdminActor | null | undefined) {
-  return canAdministerUsers(actor);
+export function canChangeRole(_actor: AdminActor | null | undefined) {
+  return false;
 }
 
 export function getApprovedAdminOperations() {

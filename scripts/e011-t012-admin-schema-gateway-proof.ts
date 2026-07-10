@@ -31,6 +31,7 @@ import {
   isAdminRole
 } from "@/lib/admin-policy";
 import { buildAuthOptions } from "@/lib/auth";
+import { GET as authGet, POST as authPost } from "@/app/api/auth/[...all]/route";
 
 function read(filePath: string) {
   return readFileSync(path.join(process.cwd(), filePath), "utf8");
@@ -38,6 +39,12 @@ function read(filePath: string) {
 
 function assertNoSecrets(value: string) {
   assert.doesNotMatch(value, /DATABASE_URL|BETTER_AUTH_SECRET|cookie/i);
+
+  for (const secret of [process.env.DATABASE_URL, process.env.BETTER_AUTH_SECRET]) {
+    if (secret) {
+      assert.equal(value.includes(secret), false, "proof output contains a configured secret value");
+    }
+  }
 }
 
 async function main() {
@@ -64,6 +71,18 @@ async function main() {
     assert(migrationSql.includes(snippet), `migration missing expected admin field statement: ${snippet}`);
   }
   assert.equal(migrationSql.match(/ALTER TABLE/g)?.length ?? 0, 5);
+  assert.deepEqual(
+    [...migrationSql.matchAll(/ALTER TABLE "([^"]+)" ADD COLUMN IF NOT EXISTS "([^"]+)"/g)]
+      .map((match) => `${match[1]}.${match[2]}`),
+    ["user.role", "user.banned", "user.banReason", "user.banExpires", "session.impersonatedBy"]
+  );
+  assert.doesNotMatch(migrationSql, /\b(?:CREATE|DROP|DELETE|INSERT|UPDATE|TRUNCATE)\b/i);
+
+  assert.doesNotMatch(
+    schema,
+    /^\s*model\s+(?:organization|member|invitation|team|workspace)\b/im,
+    "organization/team/workspace schema is outside this slice"
+  );
 
   const authOptions = buildAuthOptions();
   assert.equal(authOptions.emailAndPassword.enabled, true);
@@ -96,6 +115,18 @@ async function main() {
     ]
   );
 
+  for (const endpoint of Object.values(plugin.endpoints)) {
+    const route = endpoint as { path: string; options: { method: "GET" | "POST" } };
+    const request = new Request(`http://localhost:3000/api/auth${route.path}`, {
+      method: route.options.method,
+      ...(route.options.method === "POST"
+        ? { headers: { "content-type": "application/json" }, body: "{}" }
+        : {})
+    });
+    const response = route.options.method === "GET" ? await authGet(request) : await authPost(request);
+    assert.equal(response.status, 404, `public auth handler unexpectedly exposes ${route.path}`);
+  }
+
   assert.deepEqual(CLARIOBASE_ADMIN_ROLES, ["admin"]);
   assert.equal(CLARIOBASE_DEFAULT_ROLE, "user");
   assert.equal(isAdminRole("admin"), true);
@@ -106,14 +137,16 @@ async function main() {
   const adminActor = { id: "user_admin", email: "admin@example.com", role: "admin", banned: false };
   const normalActor = { id: "user_normal", email: "user@example.com", role: "user", banned: false };
   const bannedAdmin = { id: "user_banned", email: "banned@example.com", role: "admin", banned: true };
+  const unknownBanStateAdmin = { id: "user_unknown", email: "unknown@example.com", role: "admin", banned: null };
 
-  assert.equal(canDisableUser(adminActor), true);
-  assert.equal(canBanUser(adminActor), true);
-  assert.equal(canChangeRole(adminActor), true);
+  assert.equal(canDisableUser(adminActor), false);
+  assert.equal(canBanUser(adminActor), false);
+  assert.equal(canChangeRole(adminActor), false);
   assert.equal(canDisableUser(normalActor), false);
   assert.equal(canBanUser(normalActor), false);
   assert.equal(canChangeRole(normalActor), false);
   assert.equal(canDisableUser(bannedAdmin), false);
+  assert.equal(canDisableUser(unknownBanStateAdmin), false);
 
   assert.equal((await listUsers()).ok, false);
   assert.equal((await createControlledUser()).ok, false);
@@ -129,6 +162,11 @@ async function main() {
   assert.equal((await listUserSessions({ headers: new Headers() })).ok, false);
   assert.equal((await setUserPassword({ headers: new Headers() })).ok, false);
 
+  const callerSuppliedActor = { headers: new Headers(), actor: adminActor } as Parameters<typeof listUsers>[0];
+  const callerActorResult = await listUsers(callerSuppliedActor);
+  assert.equal(callerActorResult.ok, false);
+  assert.equal(callerActorResult.status, 401, "gateway must ignore caller-supplied actor data");
+
   assert.equal(prohibitImpersonation().ok, false);
   assert.equal(prohibitHardDelete().ok, false);
   assert.equal(prohibitArbitraryEndpointForwarding().ok, false);
@@ -136,12 +174,8 @@ async function main() {
   assert.equal(prohibitTeamOperations().ok, false);
   assert.equal(prohibitWorkspaceOperations().ok, false);
 
-  assert.equal(assertLastAdminProtection(adminActor)?.ok, false);
-  assert.equal(assertSelfLockoutProtection(adminActor)?.ok, false);
-  assert.equal(assertLastAdminProtection(normalActor)?.ok, false);
-  assert.equal(assertSelfLockoutProtection(normalActor)?.ok, false);
-  assert.equal(assertLastAdminProtection(null)?.ok, false);
-  assert.equal(assertSelfLockoutProtection(null)?.ok, false);
+  assert.equal(assertLastAdminProtection().ok, false);
+  assert.equal(assertSelfLockoutProtection().ok, false);
 
   const findings = {
     addedSchemaFields: 5,
@@ -156,9 +190,9 @@ async function main() {
     noSecretsPrinted: true
   };
 
-  assertNoSecrets(JSON.stringify(findings));
-  console.log(JSON.stringify(findings, null, 2));
-  console.log("E011.T012 admin schema and gateway foundation proof: PASS");
+  const proofOutput = `${JSON.stringify(findings, null, 2)}\nE011.T012 admin schema and gateway foundation proof: PASS`;
+  assertNoSecrets(proofOutput);
+  console.log(proofOutput);
 }
 
 main().catch((error) => {
