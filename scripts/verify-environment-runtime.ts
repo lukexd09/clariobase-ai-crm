@@ -466,7 +466,7 @@ async function main() {
     );
   }
   console.log("cleanup=PASS; disposable containers, network, database volume, and image tag absent");
-  reportVerificationStatus("PASS", "E016.T014 reused one immutable application image for all four runtime cases.");
+  reportVerificationStatus("PASS", "E016.T014 reused one immutable application image for all runtime cases.");
 }
 
 main().catch((error) => {

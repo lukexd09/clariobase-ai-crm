@@ -43,4 +43,5 @@ test("runtime cases cross readiness and server-rendered HTML with fail-safe mark
   assert.match(proof, /watermarkPattern/);
   assert.match(proof, /cleanup\.registerDockerVolume\(volumeName\)/);
   assert.match(proof, /assertCleanupComplete\(\)/);
+  assert.doesNotMatch(proof, /all four runtime cases/);
 });
