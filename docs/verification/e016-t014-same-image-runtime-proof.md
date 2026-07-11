@@ -26,32 +26,32 @@ tags:
 
 Result: `PASS`
 
-The executable repository-owned proof built one application image and reused its content-addressed image ID for four disposable production-server starts. Each case crossed the container runtime environment, Next.js server rendering, and returned `/health` HTML. No Compose operator stack, production service, or production database was used.
+The executable repository-owned proof built one application image and reused its content-addressed image ID for the four mandatory disposable production-server starts plus one adversarial padded-production case. Each case crossed the container runtime environment, Next.js server rendering, and returned `/health` HTML. No Compose operator stack, production service, or production database was used.
 
 ## Source and image identity
 
-- Source Git SHA: `9a6fcaa1fb5484f2bf12d3dac6d280def8f8c6d4`
-- Proof commit SHA: `9a6fcaa1fb5484f2bf12d3dac6d280def8f8c6d4`
+- Source Git SHA: `fd510bc017d17b58a04f47ade2003205334cae79`
+- Proof commit SHA: `fd510bc017d17b58a04f47ade2003205334cae79`
 - Proof command: `corepack pnpm docker:test-environment-runtime`
-- Image build command: `docker build --target runtime --tag clariobase-ai-crm:test-verify-clariobase-e014-runtime-env-proof-11236-1783773211791 --label io.clariobase.source-sha=9a6fcaa1fb5484f2bf12d3dac6d280def8f8c6d4 .`
-- Build start: `2026-07-11T12:33:31.964Z`
-- Build completion: `2026-07-11T12:33:47.631Z`
+- Image build command: `docker build --target runtime --tag clariobase-ai-crm:test-verify-clariobase-e014-runtime-env-proof-23096-1783774314800 --label io.clariobase.source-sha=fd510bc017d17b58a04f47ade2003205334cae79 .`
+- Build start: `2026-07-11T12:51:54.988Z`
+- Build completion: `2026-07-11T12:52:11.062Z`
 - Dockerfile: `./Dockerfile`
 - Build target: `runtime`
-- Image tag: `clariobase-ai-crm:test-verify-clariobase-e014-runtime-env-proof-11236-1783773211791` (reference only)
-- Image ID: `sha256:55dcaba94ebf351143d791fdc79bf4560cdb1a12e3a05d086175000ec0c091bf`
-- Image digest: `clariobase-ai-crm@sha256:55dcaba94ebf351143d791fdc79bf4560cdb1a12e3a05d086175000ec0c091bf`
+- Image tag: `clariobase-ai-crm:test-verify-clariobase-e014-runtime-env-proof-23096-1783774314800` (reference only)
+- Image ID: `sha256:342caa56cbe629e6447d436aeea33618f393a67c328d1353f6324454f97ccdf7`
+- Image digest: `clariobase-ai-crm@sha256:342caa56cbe629e6447d436aeea33618f393a67c328d1353f6324454f97ccdf7`
 - Build count: `1`
 
 The script recorded the tag-to-ID mapping immediately after the build, inspected both the tag and immutable ID before migration, inspected both again before every runtime case, and repeated the checks after all cases. Every migration and application `docker run` used the recorded image ID, not the tag. The script failed if the tag drifted, the ID became unavailable, a container reported another image ID, or the build count differed from one.
 
 ## Disposable runtime identity
 
-- Network: `clariobase-e014-runtime-env-proof-11236-1783773211791-network`
-- PostgreSQL container: `clariobase-e014-runtime-env-proof-11236-1783773211791-db`
-- PostgreSQL container ID: `17364b63ae0efccddd62f419664c0763736220cb67d1bf32d82ad78434e334d2`
+- Network: `clariobase-e014-runtime-env-proof-23096-1783774314800-network`
+- PostgreSQL container: `clariobase-e014-runtime-env-proof-23096-1783774314800-db`
+- PostgreSQL container ID: `6772f55a6b21574935bc72eb50f83ef2e616d2ccbba2fafe61f144861d048fc6`
 - Database: `clariobase_crm_environment_proof`
-- Database volume: `clariobase-e014-runtime-env-proof-11236-1783773211791-postgres-data`
+- Database volume: `clariobase-e014-runtime-env-proof-23096-1783774314800-postgres-data`
 - Database image: `postgres:16`
 - Published database ports: none
 
@@ -61,12 +61,13 @@ The database password was randomly generated for this disposable run, was never 
 
 | Case | Container | Port | Runtime value | Readiness | Banner | Watermark | Image ID match |
 | --- | --- | ---: | --- | --- | --- | --- | --- |
-| Preview | `clariobase-e014-runtime-env-proof-11236-1783773211791-preview` | `62527` | `preview` | HTTP 200, `status=ready`, `database=ok` | present | present | true |
-| Production | `clariobase-e014-runtime-env-proof-11236-1783773211791-production` | `62534` | `production` | HTTP 200, `status=ready`, `database=ok` | absent | absent | true |
-| Missing | `clariobase-e014-runtime-env-proof-11236-1783773211791-missing` | `62540` | omitted | HTTP 200, `status=ready`, `database=ok` | present | present | true |
-| Invalid | `clariobase-e014-runtime-env-proof-11236-1783773211791-invalid` | `62546` | `prod` | HTTP 200, `status=ready`, `database=ok` | present | present | true |
+| Preview | `clariobase-e014-runtime-env-proof-23096-1783774314800-preview` | `62786` | `preview` | HTTP 200, `status=ready`, `database=ok` | present | present | true |
+| Production | `clariobase-e014-runtime-env-proof-23096-1783774314800-production` | `62792` | `production` | HTTP 200, `status=ready`, `database=ok` | absent | absent | true |
+| Missing | `clariobase-e014-runtime-env-proof-23096-1783774314800-missing` | `62798` | omitted | HTTP 200, `status=ready`, `database=ok` | present | present | true |
+| Invalid | `clariobase-e014-runtime-env-proof-23096-1783774314800-invalid` | `62804` | `prod` | HTTP 200, `status=ready`, `database=ok` | present | present | true |
+| Padded production | `clariobase-e014-runtime-env-proof-23096-1783774314800-padded-production` | `62810` | ` production ` | HTTP 200, `status=ready`, `database=ok` | present | present | true |
 
-For every case, the verifier confirmed the host port belonged to the named container, waited deterministically for `/api/ready`, fetched dynamic server-rendered `/health` HTML, required the `Health check` route fingerprint, and asserted the exact warning-banner text plus the structural `aria-hidden` `TEST` watermark. The production case required both markers to be absent. The missing case inspected the container environment and required `CRM_DEPLOYMENT_ENV` to be truly omitted.
+For every case, the verifier confirmed the host port belonged to the named container, waited deterministically for `/api/ready`, fetched dynamic server-rendered `/health` HTML, required the `Health check` route fingerprint, and asserted the exact warning-banner text plus the structural `aria-hidden` `TEST` watermark. The exact production case required both markers to be absent. The missing case inspected the container environment and required `CRM_DEPLOYMENT_ENV` to be truly omitted. The padded-production case proved that a normalized-but-not-exact value cannot silently resemble production.
 
 ## Cleanup evidence
 
@@ -90,6 +91,8 @@ Required local verification before the proof-code commit:
 - `git diff --check` — `PASS`
 
 The first runtime-proof attempt failed deterministically before the four cases. Its generated database container name was 64 characters, exceeding the 63-character Docker DNS-label boundary, so the migration container could not reach PostgreSQL by name even though `pg_isready` passed inside the database container. The correction shortened the disposable scope and added an executable length assertion. The focused proof contract, suite-classification test, and lint passed after correction. The corrected proof run then returned `PASS` with build count one and all four cases successful.
+
+The first independent adversarial review returned `CHANGES REQUIRED` because the resolver trimmed and lowercased values, allowing padded or differently cased production strings to hide the marker. Commit `a05b6f7` changed the resolver to raw exact equality and added focused coverage plus a padded-production container case. Commit `fd510bc` corrected the executable success summary to cover the expanded case set. The exact-source proof above then passed all mandatory and adversarial cases with build count one.
 
 The earlier branch history also records the initial fast-suite classification failure and correction in commit `b73de4b88ada68493cd97acdd91ec0ca8e4df6c1` (`E016.T014 fix fast-test regression`).
 
