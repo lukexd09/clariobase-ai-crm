@@ -36,7 +36,7 @@ const runtimeCases: RuntimeCase[] = [
   { name: "invalid", deploymentEnv: "prod", expectIndicator: true }
 ];
 
-const runId = createDockerRunId("environment-runtime");
+const runId = createDockerRunId("env-proof");
 const imageTag = `clariobase-ai-crm:test-verify-${runId}`;
 const networkName = `${runId}-network`;
 const volumeName = `${runId}-postgres-data`;
@@ -360,6 +360,7 @@ async function main() {
   const caseEvidence: RuntimeCaseEvidence[] = [];
 
   try {
+    assert.ok(databaseContainerName.length <= 63, "Disposable database name must remain a valid Docker DNS label.");
     assertCleanGitWorktree();
     sourceSha = commandOutput("git", ["rev-parse", "HEAD"], "resolve source Git SHA");
     buildStartedAt = new Date().toISOString();

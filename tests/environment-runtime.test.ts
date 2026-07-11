@@ -24,6 +24,7 @@ test("E016.T014 owns an executable build-once same-image runtime proof", () => {
   assert.match(proof, /assert\.equal\(buildCount, 1/);
   assert.match(proof, /assertSameImageIdentity\(imageId, `before \$\{runtimeCase\.name\} case`\)/);
   assert.match(proof, /args\.push\(imageId\)/);
+  assert.match(proof, /databaseContainerName\.length <= 63/);
   assert.doesNotMatch(proof, /args\.push\(imageTag\)/);
 });
 
