@@ -2,26 +2,38 @@ import React from "react";
 
 import { shouldShowEnvironmentIndicator } from "@/lib/deployment-env";
 
+const watermarkMarks = [
+  { left: "10%", top: "12%" },
+  { left: "78%", top: "14%" },
+  { left: "30%", top: "34%" },
+  { left: "70%", top: "42%" },
+  { left: "18%", top: "64%" },
+  { left: "54%", top: "58%" },
+  { left: "86%", top: "76%" },
+  { left: "40%", top: "86%" }
+] as const;
+
 export function EnvironmentIndicator() {
   if (!shouldShowEnvironmentIndicator(process.env.CRM_DEPLOYMENT_ENV)) {
     return null;
   }
 
   return (
-    <div className="sticky top-0 z-50 border-b border-[color:var(--cb-warning)]/30 bg-[color:var(--cb-warning)]/10 text-[color:var(--cb-foreground)] shadow-sm">
-      <div className="mx-auto flex max-w-[1600px] items-start gap-3 px-4 py-3 min-[768px]:px-6 min-[1024px]:px-8">
-        <p className="text-sm font-semibold leading-6">
-          TEST ENVIRONMENT — data in this environment may be reset or deleted.
-        </p>
-      </div>
-      <div className="pointer-events-none select-none overflow-hidden border-t border-[color:var(--cb-warning)]/15 px-4 py-6 min-[768px]:px-6 min-[1024px]:px-8">
-        <div
-          aria-hidden="true"
-          className="text-center text-[clamp(4rem,16vw,10rem)] font-black uppercase tracking-[0.28em] text-[color:var(--cb-warning)]/12"
-          style={{ transform: "rotate(-18deg)" }}
-        >
-          TEST
-        </div>
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-40 overflow-hidden select-none">
+      <div className="absolute inset-0">
+        {watermarkMarks.map((mark) => (
+          <span
+            key={`${mark.left}-${mark.top}`}
+            className="absolute inline-flex items-center justify-center whitespace-nowrap text-[clamp(0.7rem,1vw+0.4rem,1rem)] font-black uppercase tracking-[0.42em] text-[color:var(--cb-warning)]/5"
+            style={{
+              left: mark.left,
+              top: mark.top,
+              transform: "translate(-50%, -50%) rotate(-18deg)"
+            }}
+          >
+            TEST
+          </span>
+        ))}
       </div>
     </div>
   );

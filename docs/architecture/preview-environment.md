@@ -100,10 +100,11 @@ Preview must remain isolated from production by:
 The application reads `CRM_DEPLOYMENT_ENV` as a server-side runtime value.
 
 - Only the exact literal `CRM_DEPLOYMENT_ENV=production` hides the in-app environment marker.
-- `CRM_DEPLOYMENT_ENV=preview` shows the in-app `TEST` marker.
-- missing, empty, padded, differently cased, invalid or unsupported values fail safe and show the marker.
+- `CRM_DEPLOYMENT_ENV=preview` shows the in-app repeated `TEST` watermark pattern.
+- missing, empty, padded, differently cased, invalid or unsupported values fail safe and show the watermark pattern.
 
-Preview operators should expect the visible `TEST` banner and watermark before doing destructive or manual testing.
+The owner-approved preview UX is watermark-only: no top banner, no layout shift, no interactive affordance and no exact-production suppression except for the raw literal `production`.
+Preview operators should expect subtle repeated `TEST` watermarks before doing destructive or manual testing.
 Production deployment must explicitly declare `CRM_DEPLOYMENT_ENV=production`.
 Do not use `NEXT_PUBLIC_*` for this contract.
 

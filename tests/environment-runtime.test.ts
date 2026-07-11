@@ -39,8 +39,9 @@ test("runtime cases cross readiness and server-rendered HTML with fail-safe mark
   assert.match(proof, /\/api\/ready/);
   assert.match(proof, /\/health/);
   assert.match(proof, /Health check/);
-  assert.match(proof, /TEST ENVIRONMENT — data in this environment may be reset or deleted\./);
+  assert.match(proof, /warning banner must be removed entirely/);
   assert.match(proof, /watermarkPattern/);
+  assert.match(proof, /markCount,\s*runtimeCase\.expectIndicator \? 8 : 0/);
   assert.match(proof, /cleanup\.registerDockerVolume\(volumeName\)/);
   assert.match(proof, /assertCleanupComplete\(\)/);
   assert.doesNotMatch(proof, /all four runtime cases/);

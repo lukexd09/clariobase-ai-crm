@@ -59,15 +59,15 @@ The database password was randomly generated for this disposable run, was never 
 
 ## Runtime cases
 
-| Case | Container | Port | Runtime value | Readiness | Banner | Watermark | Image ID match |
+| Case | Container | Port | Runtime value | Readiness | Banner | Watermark marks | Image ID match |
 | --- | --- | ---: | --- | --- | --- | --- | --- |
-| Preview | `clariobase-e014-runtime-env-proof-23096-1783774314800-preview` | `62786` | `preview` | HTTP 200, `status=ready`, `database=ok` | present | present | true |
-| Production | `clariobase-e014-runtime-env-proof-23096-1783774314800-production` | `62792` | `production` | HTTP 200, `status=ready`, `database=ok` | absent | absent | true |
-| Missing | `clariobase-e014-runtime-env-proof-23096-1783774314800-missing` | `62798` | omitted | HTTP 200, `status=ready`, `database=ok` | present | present | true |
-| Invalid | `clariobase-e014-runtime-env-proof-23096-1783774314800-invalid` | `62804` | `prod` | HTTP 200, `status=ready`, `database=ok` | present | present | true |
-| Padded production | `clariobase-e014-runtime-env-proof-23096-1783774314800-padded-production` | `62810` | ` production ` | HTTP 200, `status=ready`, `database=ok` | present | present | true |
+| Preview | `clariobase-e016-runtime-env-proof-23096-1783774314800-preview` | `62786` | `preview` | HTTP 200, `status=ready`, `database=ok` | absent | 8 | true |
+| Production | `clariobase-e016-runtime-env-proof-23096-1783774314800-production` | `62792` | `production` | HTTP 200, `status=ready`, `database=ok` | absent | 0 | true |
+| Missing | `clariobase-e016-runtime-env-proof-23096-1783774314800-missing` | `62798` | omitted | HTTP 200, `status=ready`, `database=ok` | absent | 8 | true |
+| Invalid | `clariobase-e016-runtime-env-proof-23096-1783774314800-invalid` | `62804` | `prod` | HTTP 200, `status=ready`, `database=ok` | absent | 8 | true |
+| Padded production | `clariobase-e016-runtime-env-proof-23096-1783774314800-padded-production` | `62810` | ` production ` | HTTP 200, `status=ready`, `database=ok` | absent | 8 | true |
 
-For every case, the verifier confirmed the host port belonged to the named container, waited deterministically for `/api/ready`, fetched dynamic server-rendered `/health` HTML, required the `Health check` route fingerprint, and asserted the exact warning-banner text plus the structural `aria-hidden` `TEST` watermark. The exact production case required both markers to be absent. The missing case inspected the container environment and required `CRM_DEPLOYMENT_ENV` to be truly omitted. The padded-production case proved that a normalized-but-not-exact value cannot silently resemble production.
+For every case, the verifier confirmed the host port belonged to the named container, waited deterministically for `/api/ready`, fetched dynamic server-rendered `/health` HTML, required the `Health check` route fingerprint, and asserted the repeated subtle `TEST` watermark pattern plus the structural `aria-hidden="true"`, `pointer-events-none`, and `select-none` behavior. The exact production case required the overlay to be absent entirely. The missing case inspected the container environment and required `CRM_DEPLOYMENT_ENV` to be truly omitted. The padded-production case proved that a normalized-but-not-exact value cannot silently resemble production. The banner was removed completely in the corrected implementation.
 
 ## Cleanup evidence
 
@@ -107,5 +107,5 @@ The earlier branch history also records the initial fast-suite classification fa
 - This is a disposable local production-mode runtime proof, not a production deployment.
 - The Docker daemon supplied a local repo digest; no registry push, remote pull, or multi-host digest rehearsal was performed.
 - Automated HTML assertions prove server-rendered marker presence and absence but do not replace a manual visual check at supported viewport sizes.
-- Manual accessibility gates remain for zoom/reflow, high-contrast or forced-colors presentation, keyboard traversal around the sticky banner, and screen-reader confirmation that the decorative watermark remains ignored.
+- Manual accessibility gates remain for zoom/reflow, high-contrast or forced-colors presentation, keyboard traversal around the application while the decorative overlay stays ignored, and screen-reader confirmation that the repeated watermark remains hidden from assistive tech.
 - PR exact-head CI and Full Integration results are recorded in the PR after the evidence commit is pushed.

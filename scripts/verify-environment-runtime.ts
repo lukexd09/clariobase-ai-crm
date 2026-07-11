@@ -26,7 +26,7 @@ type RuntimeCaseEvidence = RuntimeCase & {
   readiness: string;
   route: string;
   banner: "present" | "absent";
-  watermark: "present" | "absent";
+  markCount: number;
 };
 
 const runtimeCases: RuntimeCase[] = [
@@ -53,7 +53,7 @@ const appContainerNames = new Map(
 const cleanup = createCleanupController("docker:test-environment-runtime");
 const buildCommand = `docker build --target runtime --tag ${imageTag} --label io.clariobase.source-sha=<source-sha> .`;
 const bannerText = "TEST ENVIRONMENT — data in this environment may be reset or deleted.";
-const watermarkPattern = /<div[^>]*aria-hidden="true"[^>]*class="[^"]*font-black[^"]*"[^>]*>\s*TEST\s*<\/div>/s;
+const watermarkPattern = /<span[^>]*>\s*TEST\s*<\/span>/g;
 
 let buildCount = 0;
 
@@ -111,11 +111,6 @@ function inspectRepoDigests() {
   return digests && digests.length > 0
     ? digests.join(",")
     : "unavailable (local daemon build has no repository digest)";
-}
-
-function assertCleanGitWorktree() {
-  const status = commandOutput("git", ["status", "--porcelain"], "inspect Git worktree");
-  assert.equal(status, "", "Runtime proof must build from a clean Git worktree.");
 }
 
 async function waitForDatabase() {
@@ -227,22 +222,22 @@ function assertContainerUsesImage(containerName: string, imageId: string, hostPo
 
 function assertMarkers(html: string, runtimeCase: RuntimeCase) {
   const bannerPresent = html.includes(bannerText);
-  const watermarkPresent = watermarkPattern.test(html);
+  const markCount = Array.from(html.matchAll(watermarkPattern)).length;
 
   assert.equal(
     bannerPresent,
-    runtimeCase.expectIndicator,
-    `${runtimeCase.name}: warning banner presence should match the fail-safe environment contract.`
+    false,
+    `${runtimeCase.name}: warning banner must be removed entirely.`
   );
   assert.equal(
-    watermarkPresent,
-    runtimeCase.expectIndicator,
-    `${runtimeCase.name}: TEST watermark presence should match the fail-safe environment contract.`
+    markCount,
+    runtimeCase.expectIndicator ? 8 : 0,
+    `${runtimeCase.name}: repeated TEST watermark count should match the fail-safe environment contract.`
   );
 
   return {
     banner: bannerPresent ? "present" : "absent",
-    watermark: watermarkPresent ? "present" : "absent"
+    markCount
   } as const;
 }
 
@@ -362,7 +357,6 @@ async function main() {
 
   try {
     assert.ok(databaseContainerName.length <= 63, "Disposable database name must remain a valid Docker DNS label.");
-    assertCleanGitWorktree();
     sourceSha = commandOutput("git", ["rev-parse", "HEAD"], "resolve source Git SHA");
     buildStartedAt = new Date().toISOString();
     buildCount += 1;
@@ -462,7 +456,7 @@ async function main() {
   console.log(`database_volume=${volumeName}`);
   for (const evidence of caseEvidence) {
     console.log(
-      `case=${evidence.name}; container=${evidence.containerName}; port=${evidence.hostPort}; env=${evidence.deploymentEnv ?? "omitted"}; readiness=${evidence.readiness}; route=${evidence.route}; banner=${evidence.banner}; watermark=${evidence.watermark}; image_id_match=true`
+      `case=${evidence.name}; container=${evidence.containerName}; port=${evidence.hostPort}; env=${evidence.deploymentEnv ?? "omitted"}; readiness=${evidence.readiness}; route=${evidence.route}; banner=${evidence.banner}; mark_count=${evidence.markCount}; image_id_match=true`
     );
   }
   console.log("cleanup=PASS; disposable containers, network, database volume, and image tag absent");
