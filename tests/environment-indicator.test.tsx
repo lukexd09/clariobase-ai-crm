@@ -39,5 +39,7 @@ test("preview shows the environment marker", () => {
 
 test("invalid or missing values show the environment marker", () => {
   assert.match(renderWithEnv("invalid"), /TEST ENVIRONMENT — data in this environment may be reset or deleted\./);
+  assert.match(renderWithEnv("PRODUCTION"), /TEST ENVIRONMENT — data in this environment may be reset or deleted\./);
+  assert.match(renderWithEnv(" production "), /TEST ENVIRONMENT — data in this environment may be reset or deleted\./);
   assert.match(renderWithEnv(undefined), /TEST ENVIRONMENT — data in this environment may be reset or deleted\./);
 });

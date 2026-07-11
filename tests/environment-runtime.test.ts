@@ -35,6 +35,7 @@ test("runtime cases cross readiness and server-rendered HTML with fail-safe mark
   assert.match(proof, /name: "production", deploymentEnv: "production", expectIndicator: false/);
   assert.match(proof, /name: "missing", expectIndicator: true/);
   assert.match(proof, /name: "invalid", deploymentEnv: "prod", expectIndicator: true/);
+  assert.match(proof, /name: "padded-production", deploymentEnv: " production ", expectIndicator: true/);
   assert.match(proof, /\/api\/ready/);
   assert.match(proof, /\/health/);
   assert.match(proof, /Health check/);

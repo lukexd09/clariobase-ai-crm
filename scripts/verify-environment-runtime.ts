@@ -15,7 +15,7 @@ import {
 } from "./docker-test-support";
 
 type RuntimeCase = {
-  name: "preview" | "production" | "missing" | "invalid";
+  name: "preview" | "production" | "missing" | "invalid" | "padded-production";
   deploymentEnv?: string;
   expectIndicator: boolean;
 };
@@ -33,7 +33,8 @@ const runtimeCases: RuntimeCase[] = [
   { name: "preview", deploymentEnv: "preview", expectIndicator: true },
   { name: "production", deploymentEnv: "production", expectIndicator: false },
   { name: "missing", expectIndicator: true },
-  { name: "invalid", deploymentEnv: "prod", expectIndicator: true }
+  { name: "invalid", deploymentEnv: "prod", expectIndicator: true },
+  { name: "padded-production", deploymentEnv: " production ", expectIndicator: true }
 ];
 
 const runId = createDockerRunId("env-proof");

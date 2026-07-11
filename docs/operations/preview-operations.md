@@ -319,7 +319,7 @@ Production state is not an eligibility dependency. Safety comes from exact ident
 
 ## Application environment marker
 
-The app itself shows a persistent `TEST` banner and watermark whenever `CRM_DEPLOYMENT_ENV` is not exactly normalized `production`.
+The app itself shows a persistent `TEST` banner and watermark whenever `CRM_DEPLOYMENT_ENV` is not the exact literal `production`. Padded or differently cased values fail safe and keep the marker visible.
 
 Preview operators should assume the marker will be visible in preview and other non-production runtimes.
 Production deployments must explicitly set `CRM_DEPLOYMENT_ENV=production`.

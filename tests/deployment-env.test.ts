@@ -5,9 +5,9 @@ import { resolveDeploymentEnv, shouldShowEnvironmentIndicator } from "@/lib/depl
 
 test("deployment env helper resolves production and fail-safes non-production values", () => {
   assert.equal(resolveDeploymentEnv("production"), "production");
-  assert.equal(resolveDeploymentEnv("PRODUCTION"), "production");
-  assert.equal(resolveDeploymentEnv(" production "), "production");
   assert.equal(resolveDeploymentEnv("preview"), "preview");
+  assert.equal(resolveDeploymentEnv("PRODUCTION"), "unknown");
+  assert.equal(resolveDeploymentEnv(" production "), "unknown");
   assert.equal(resolveDeploymentEnv(undefined), "unknown");
   assert.equal(resolveDeploymentEnv(null), "unknown");
   assert.equal(resolveDeploymentEnv(""), "unknown");
@@ -16,9 +16,9 @@ test("deployment env helper resolves production and fail-safes non-production va
 
 test("deployment env helper only suppresses the marker in production", () => {
   assert.equal(shouldShowEnvironmentIndicator("production"), false);
-  assert.equal(shouldShowEnvironmentIndicator("PRODUCTION"), false);
-  assert.equal(shouldShowEnvironmentIndicator(" production "), false);
   assert.equal(shouldShowEnvironmentIndicator("preview"), true);
+  assert.equal(shouldShowEnvironmentIndicator("PRODUCTION"), true);
+  assert.equal(shouldShowEnvironmentIndicator(" production "), true);
   assert.equal(shouldShowEnvironmentIndicator(undefined), true);
   assert.equal(shouldShowEnvironmentIndicator(null), true);
   assert.equal(shouldShowEnvironmentIndicator(""), true);
