@@ -24,7 +24,7 @@ export function EnvironmentIndicator() {
         {watermarkMarks.map((mark) => (
           <span
             key={`${mark.left}-${mark.top}`}
-            className="absolute inline-flex items-center justify-center whitespace-nowrap text-[clamp(0.7rem,1vw+0.4rem,1rem)] font-black uppercase tracking-[0.42em] text-[color:var(--cb-warning)]/5"
+            className="absolute inline-flex items-center justify-center whitespace-nowrap text-[clamp(0.7rem,1vw+0.4rem,1rem)] font-black uppercase tracking-[0.42em] text-[color:var(--cb-neutral)] opacity-[0.16]"
             style={{
               left: mark.left,
               top: mark.top,
