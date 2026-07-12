@@ -19,11 +19,16 @@ export function EnvironmentIndicator() {
   }
 
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-40 overflow-hidden select-none">
+    <div
+      aria-hidden="true"
+      data-testid="environment-watermark"
+      className="pointer-events-none fixed inset-0 z-40 overflow-hidden select-none"
+    >
       <div className="absolute inset-0">
         {watermarkMarks.map((mark) => (
           <span
             key={`${mark.left}-${mark.top}`}
+            data-testid="environment-watermark-mark"
             className="absolute inline-flex items-center justify-center whitespace-nowrap text-[clamp(0.7rem,1vw+0.4rem,1rem)] font-black uppercase tracking-[0.42em] text-[color:var(--cb-neutral)] opacity-[0.16]"
             style={{
               left: mark.left,

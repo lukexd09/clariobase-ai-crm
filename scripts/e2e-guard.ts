@@ -104,6 +104,7 @@ export function buildE2EChildEnv(baseEnv: NodeJS.ProcessEnv) {
     ...baseEnv,
     CLARIOBASE_E2E_RUNTIME: runtimeContract.runtime,
     CLARIOBASE_E2E_DATABASE_URL: runtimeContract.databaseUrl,
+    CRM_DEPLOYMENT_ENV: baseEnv.CRM_DEPLOYMENT_ENV ?? "preview",
     DATABASE_URL: runtimeContract.databaseUrl,
     PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3011"
   };

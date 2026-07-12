@@ -70,6 +70,13 @@ test("e2e runtime contract requires the approved marker and synthetic database i
     }).DATABASE_URL,
     safeEnv.CLARIOBASE_E2E_DATABASE_URL
   );
+  assert.equal(
+    buildE2EChildEnv({
+      DATABASE_URL: "postgresql://localhost:5432/clariobase_crm?schema=public",
+      CLARIOBASE_E2E_RUNTIME: "local-proof"
+    }).CRM_DEPLOYMENT_ENV,
+    "preview"
+  );
   assert.throws(() => resolveE2ERuntimeContract({} as NodeJS.ProcessEnv), /CLARIOBASE_E2E_RUNTIME must be local-proof/i);
   assert.throws(
     () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "wrong", CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL } as NodeJS.ProcessEnv),
