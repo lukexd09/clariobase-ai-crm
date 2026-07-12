@@ -11,6 +11,8 @@ services:
     build: !reset null
     image: ${CRM_PREVIEW_IMAGE_REF:?Set_CRM_PREVIEW_IMAGE_REF}
     pull_policy: never
+    environment:
+      CRM_DEPLOYMENT_ENV: preview
 
 networks:
   default:
