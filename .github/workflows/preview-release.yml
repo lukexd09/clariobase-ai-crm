@@ -176,6 +176,10 @@ jobs:
                   pull_number: pullNumber,
                   per_page: 100
                 });
+                const normalizedChangedFiles = changedFiles.map((file) => ({
+                  filename: String(file?.filename || ""),
+                  previous_filename: String(file?.previous_filename || "")
+                }));
                 const workflowRuns = await github.paginate(github.rest.actions.listWorkflowRuns, {
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -226,7 +230,7 @@ jobs:
                     ...commonInput,
                     requestedPrNumber,
                     pullRequest: pull,
-                    changedFiles,
+                    changedFiles: normalizedChangedFiles,
                     exactHeadCiRun,
                     artifactContext
                   });

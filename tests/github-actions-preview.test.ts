@@ -186,6 +186,7 @@ test("Preview Release exposes explicit source modes and the resolver policy modu
   assert.match(resolver, /source_mode: \$\{\{ steps\.resolve\.outputs\.source_mode \}\}/);
   assert.match(resolver, /reporting_target: \$\{\{ steps\.resolve\.outputs\.reporting_target \}\}/);
   assert.match(resolver, /validation_run_type: \$\{\{ steps\.resolve\.outputs\.validation_run_type \}\}/);
+  assert.match(resolver, /previous_filename/);
   assert.match(resolver, /DISPATCH_REF/);
   assert.match(resolver, /selectLatestSuccessfulRun/);
   assert.match(resolver, /selectPreviewContextArtifact/);
