@@ -2,6 +2,8 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$RequestedRef,
 
+  [string]$SourceMode = "unknown",
+
   [string]$ResolvedSha,
 
   [string]$DatabaseMode = "preserve",
@@ -22,6 +24,8 @@ param(
 $args = @(
   "./node_modules/tsx/dist/cli.mjs",
   "scripts/deploy-preview.ts",
+  "--source-mode",
+  $SourceMode,
   "--requested-ref",
   $RequestedRef,
   "--database-mode",

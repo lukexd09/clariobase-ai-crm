@@ -47,6 +47,7 @@ export type PreviewRuntimeConfig = {
 };
 
 export type PreviewSummary = {
+  sourceMode: "open_pr" | "main" | "unknown";
   requestedRef: string;
   resolvedSha: string;
   databaseMode: PreviewDatabaseLifecycleMode;
@@ -333,8 +334,13 @@ export function buildStopPlan(previewEnvFilePath: string, lifecycleMode: Preview
   };
 }
 
-export function createPreviewSummary(requestedRef: string, resolvedSha: string): PreviewSummary {
+export function createPreviewSummary(
+  requestedRef: string,
+  resolvedSha: string,
+  sourceMode: "open_pr" | "main" | "unknown" = "unknown"
+): PreviewSummary {
   return {
+    sourceMode,
     requestedRef,
     resolvedSha,
     databaseMode: "preserve",

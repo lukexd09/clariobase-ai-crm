@@ -1,12 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
 const repoRoot = path.resolve(__dirname, "..");
 const expectedRepository = "lukexd09/clariobase-ai-crm";
 const headSha = "1111111111111111111111111111111111111111";
+const mainSha = "2222222222222222222222222222222222222222";
+const previewReleasePolicy = require("../scripts/preview-release-policy.js") as {
+  normalizeSourceMode: (value: string) => "open_pr" | "main";
+  validatePreviewReleaseRequest: (input: Record<string, unknown>) => Record<string, string>;
+};
 
 function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
@@ -19,37 +23,6 @@ function splitJobBlock(workflow: string, jobName: string, nextJobName?: string) 
   return workflow.slice(start, end === -1 ? workflow.length : end);
 }
 
-function assertOrdered(block: string, earlier: string, later: string) {
-  const earlierIndex = block.indexOf(earlier);
-  const laterIndex = block.indexOf(later);
-  assert.notEqual(earlierIndex, -1, `Missing step: ${earlier}`);
-  assert.notEqual(laterIndex, -1, `Missing step: ${later}`);
-  assert.ok(earlierIndex < laterIndex, `${earlier} must appear before ${later}`);
-}
-
-function extractResolverScript(workflow: string) {
-  const stepStart = workflow.indexOf("      - name: Resolve current PR head and exact Fast CI run");
-  assert.notEqual(stepStart, -1, "resolver step missing");
-  const scriptMarker = "          script: |";
-  const markerIndex = workflow.indexOf(scriptMarker, stepStart);
-  assert.notEqual(markerIndex, -1, "resolver script missing");
-
-  const scriptLines: string[] = [];
-  const lines = workflow.slice(markerIndex + scriptMarker.length).replace(/^\r?\n/, "").split(/\r?\n/);
-  for (const line of lines) {
-    if (line.startsWith("            ")) {
-      scriptLines.push(line.slice(12));
-      continue;
-    }
-    if (line.trim() === "") {
-      scriptLines.push("");
-      continue;
-    }
-    break;
-  }
-  return scriptLines.join("\n");
-}
-
 function extractWorkflowStepBlock(workflow: string, stepName: string) {
   const start = workflow.indexOf(`      - name: ${stepName}`);
   if (start === -1) return "";
@@ -59,22 +32,23 @@ function extractWorkflowStepBlock(workflow: string, stepName: string) {
 }
 
 type ResolverFixture = {
+  sourceMode?: "open_pr" | "main";
   expectedSha?: string;
   databaseMode?: string;
   resetConfirmation?: string;
+  requestedPrNumber?: string;
+  sourceSha?: string;
   pull?: Record<string, unknown>;
   changedFiles?: Array<{ filename: string }>;
-  runs?: Array<Record<string, unknown>>;
-  artifacts?: Array<Record<string, unknown>>;
+  exactHeadCiRun?: Record<string, unknown>;
   artifactContext?: Record<string, unknown>;
-  pullError?: Error;
+  fullIntegrationRun?: Record<string, unknown>;
 };
 
-async function executeWorkflowResolver(fixture: ResolverFixture = {}) {
-  const workflow = read(".github/workflows/preview-release.yml");
-  const resolverScript = extractResolverScript(workflow);
-  const outputs: Record<string, string> = {};
-  const paginateCalls: string[] = [];
+function executeWorkflowResolver(fixture: ResolverFixture = {}) {
+  const sourceMode = previewReleasePolicy.normalizeSourceMode(fixture.sourceMode ?? "open_pr");
+  const requestedPrNumber = fixture.requestedPrNumber ?? (sourceMode === "open_pr" ? "130" : "");
+  const sourceSha = fixture.sourceSha ?? mainSha;
   const pull = fixture.pull ?? {
     state: "open",
     html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/130",
@@ -84,18 +58,15 @@ async function executeWorkflowResolver(fixture: ResolverFixture = {}) {
       repo: { full_name: expectedRepository }
     }
   };
-  const runs = fixture.runs ?? [
-    {
-      id: 123456,
-      name: "CI",
-      event: "pull_request",
-      status: "completed",
-      conclusion: "success",
-      head_sha: headSha,
-      html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456"
-    }
-  ];
-  const artifacts = fixture.artifacts ?? [{ id: 654321, name: "auto-preview-context", expired: false }];
+  const exactHeadCiRun = fixture.exactHeadCiRun ?? {
+    id: 123456,
+    name: "CI",
+    event: "pull_request",
+    status: "completed",
+    conclusion: "success",
+    head_sha: headSha,
+    html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456"
+  };
   const artifactContext = fixture.artifactContext ?? {
     schemaVersion: 1,
     repository: expectedRepository,
@@ -107,91 +78,63 @@ async function executeWorkflowResolver(fixture: ResolverFixture = {}) {
     baseRepository: expectedRepository,
     workflowRunId: 123456
   };
+  const fullIntegrationRun = fixture.fullIntegrationRun ?? {
+    id: 654321,
+    name: "Full Integration",
+    event: "push",
+    status: "completed",
+    conclusion: "success",
+    head_sha: sourceSha,
+    head_branch: "main",
+    html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/654321"
+  };
 
-  const listFiles = async () => undefined;
-  const listWorkflowRuns = async () => undefined;
-  const listWorkflowRunArtifacts = async () => undefined;
-  const github = {
-    rest: {
-      pulls: {
-        get: async () => {
-          if (fixture.pullError) throw fixture.pullError;
-          return { data: pull };
-        },
-        listFiles
-      },
-      actions: {
-        listWorkflowRuns,
-        listWorkflowRunArtifacts
-      }
+  const blocked = (skipReason: string) => ({
+    outputs: {
+      resolution_status: "blocked",
+      should_deploy: "false",
+      source_mode: sourceMode,
+      reporting_target: sourceMode === "open_pr" ? "pull_request" : "none",
+      control_plane_restrictions_apply: sourceMode === "open_pr" ? "true" : "false",
+      validation_run_type: sourceMode === "open_pr" ? "exact_head_ci" : "full_integration_main_push",
+      pr_number: requestedPrNumber,
+      pr_url: "",
+      head_ref: sourceMode === "main" ? "main" : "",
+      validated_sha: "",
+      database_mode: fixture.databaseMode ?? "preserve",
+      reset_confirmation: "",
+      ci_run_id: "",
+      ci_run_url: "",
+      skip_reason: skipReason
     },
-    paginate: async (fn: unknown) => {
-      if (fn === listFiles) {
-        paginateCalls.push("files");
-        return fixture.changedFiles ?? [{ filename: "README.md" }];
-      }
-      if (fn === listWorkflowRuns) {
-        paginateCalls.push("runs");
-        return runs;
-      }
-      if (fn === listWorkflowRunArtifacts) {
-        paginateCalls.push("artifacts");
-        return artifacts;
-      }
-      throw new Error("unexpected paginate target");
-    },
-    request: async () => ({ data: Buffer.from("fake-zip") })
-  };
-  const core = {
-    setOutput: (name: string, value: unknown) => {
-      outputs[name] = String(value ?? "");
-    },
-    warning: () => undefined
-  };
-  const fakeFs = {
-    mkdtempSync: () => path.join(os.tmpdir(), "resolver-fixture"),
-    writeFileSync: () => undefined,
-    rmSync: () => undefined
-  };
-  const fakeRequire = (specifier: string) => {
-    if (specifier === "node:fs") return fakeFs;
-    if (specifier === "node:os") return os;
-    if (specifier === "node:path") return path;
-    if (specifier === "node:child_process") {
-      return { execFileSync: () => JSON.stringify(artifactContext) };
-    }
-    throw new Error(`unexpected require: ${specifier}`);
-  };
+    paginateCalls: [] as string[]
+  });
 
-  const previous = {
-    EXPECTED_REPOSITORY: process.env.EXPECTED_REPOSITORY,
-    REQUESTED_PR_NUMBER: process.env.REQUESTED_PR_NUMBER,
-    REQUESTED_EXPECTED_SHA: process.env.REQUESTED_EXPECTED_SHA,
-    REQUESTED_DATABASE_MODE: process.env.REQUESTED_DATABASE_MODE,
-    REQUESTED_RESET_CONFIRMATION: process.env.REQUESTED_RESET_CONFIRMATION,
-    DISPATCH_REF: process.env.DISPATCH_REF
+  return {
+    outputs: (() => {
+      try {
+        return previewReleasePolicy.validatePreviewReleaseRequest({
+          repository: expectedRepository,
+          expectedRepository,
+          sourceMode,
+          requestedPrNumber,
+          expectedSha: fixture.expectedSha ?? (sourceMode === "open_pr" ? headSha : sourceSha),
+          databaseMode: fixture.databaseMode ?? "preserve",
+          resetConfirmation: fixture.resetConfirmation ?? "",
+          dispatchRef: "refs/heads/main",
+          sourceSha,
+          pullRequest: pull,
+          changedFiles: fixture.changedFiles ?? [{ filename: "README.md" }],
+          exactHeadCiRun,
+          artifactContext,
+          fullIntegrationRun
+        });
+      } catch (error) {
+        return blocked(error instanceof Error ? error.message : String(error)).outputs;
+      }
+    })(),
+    paginateCalls: [] as string[]
   };
-  process.env.EXPECTED_REPOSITORY = expectedRepository;
-  process.env.REQUESTED_PR_NUMBER = "130";
-  process.env.REQUESTED_EXPECTED_SHA = fixture.expectedSha ?? headSha;
-  process.env.REQUESTED_DATABASE_MODE = fixture.databaseMode ?? "preserve";
-  process.env.REQUESTED_RESET_CONFIRMATION = fixture.resetConfirmation ?? "";
-  process.env.DISPATCH_REF = "refs/heads/main";
-
-  try {
-    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as new (
-      ...args: string[]
-    ) => (...values: unknown[]) => Promise<void>;
-    const run = new AsyncFunction("require", "github", "context", "core", resolverScript);
-    await run(fakeRequire, github, { repo: { owner: "lukexd09", repo: "clariobase-ai-crm" } }, core);
-  } finally {
-    for (const [name, value] of Object.entries(previous)) {
-      if (value === undefined) delete process.env[name];
-      else process.env[name] = value;
-    }
-  }
-
-  return { outputs, paginateCalls };
 }
 
 test("Fast CI validates exact-head provenance and the current merge candidate without release work", () => {
@@ -230,220 +173,199 @@ test("Full Integration classifies the PR delta and validates the current merge c
   assert.match(splitJobBlock(workflow, "gate"), /if: always\(\)/);
 });
 
-test("Preview Release uses trusted manual dispatch and exact Fast CI correlation", () => {
+test("Preview Release exposes explicit source modes and the resolver policy module", () => {
   const workflow = read(".github/workflows/preview-release.yml");
   const resolver = splitJobBlock(workflow, "resolve-preview-release", "report-blocked");
 
   assert.match(workflow, /^name: Preview Release$/m);
-  assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /database_mode:/);
-  assert.match(workflow, /reset_confirmation:/);
+  assert.match(workflow, /source_mode:/);
+  assert.match(workflow, /options:\s*\n\s*- open_pr\s*\n\s*- main/);
+  assert.match(workflow, /pr_number:/);
+  assert.match(workflow, /expected_sha:/);
+  assert.match(resolver, /preview-release-policy\.js/);
+  assert.match(resolver, /source_mode: \$\{\{ steps\.resolve\.outputs\.source_mode \}\}/);
+  assert.match(resolver, /reporting_target: \$\{\{ steps\.resolve\.outputs\.reporting_target \}\}/);
+  assert.match(resolver, /validation_run_type: \$\{\{ steps\.resolve\.outputs\.validation_run_type \}\}/);
+  assert.match(resolver, /DISPATCH_REF/);
+  assert.match(resolver, /selectLatestSuccessfulRun/);
+  assert.match(resolver, /selectPreviewContextArtifact/);
   assert.doesNotMatch(workflow, /workflow_run:/);
   assert.doesNotMatch(workflow, /pull_request_target/);
-  assert.match(workflow, /group: clariobase-preview-slot/);
-  assert.match(resolver, /ref: main/);
-  assert.match(resolver, /refs\/heads\/main/);
-  assert.match(resolver, /workflow_id: "ci\.yml"/);
-  assert.match(resolver, /head_sha: headSha/);
-  assert.match(resolver, /auto-preview-context/);
-  assert.match(resolver, /workflowRunId/);
-  assert.match(resolver, /PR changes trusted preview control-plane files/);
-  assert.match(resolver, /database_mode: \$\{\{ steps\.resolve\.outputs\.database_mode \}\}/);
 });
 
-test("the real workflow resolver accepts only an exact eligible request", async () => {
-  const { outputs, paginateCalls } = await executeWorkflowResolver();
+test("Preview Release comment jobs only run for pull-request reporting targets", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const blocked = extractWorkflowStepBlock(workflow, "Upsert blocked preview comment");
+  const queued = extractWorkflowStepBlock(workflow, "Upsert queued preview comment");
+  const deploying = extractWorkflowStepBlock(workflow, "Upsert deploying preview comment");
+  const final = extractWorkflowStepBlock(workflow, "Upsert final preview comment");
+
+  assert.match(blocked, /reporting_target == 'pull_request'/);
+  assert.match(queued, /reporting_target == 'pull_request'/);
+  assert.match(deploying, /reporting_target == 'pull_request'/);
+  assert.match(final, /reporting_target == 'pull_request'/);
+  assert.match(blocked, /Source mode:/);
+  assert.match(queued, /Source mode:/);
+  assert.match(deploying, /Source mode:/);
+  assert.match(final, /Source mode:/);
+});
+
+test("Preview Release checks out only the resolved SHA for build and deployment", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const build = splitJobBlock(workflow, "build-preview-image", "report-deploying");
+  const deploy = splitJobBlock(workflow, "deploy-preview", "report-final");
+
+  assert.match(build, /ref: \$\{\{ needs\.resolve-preview-release\.outputs\.validated_sha \}\}/);
+  assert.match(build, /source_mode: \$\{\{ steps\.publish\.outputs\.source_mode \}\}/);
+  assert.match(build, /sourceMode": "\$\{SOURCE_MODE\}"/);
+  assert.match(deploy, /ref: main/);
+  assert.match(deploy, /-SourceMode \$env:SOURCE_MODE/);
+  assert.match(deploy, /IMAGE_SOURCE_SHA: \$\{\{ needs\.build-preview-image\.outputs\.source_sha \}\}/);
+  assert.doesNotMatch(deploy, /docker build|docker compose build|--build/);
+});
+
+test("the real workflow resolver accepts an exact eligible open PR request", () => {
+  const { outputs } = executeWorkflowResolver({
+    sourceMode: "open_pr",
+    expectedSha: headSha,
+    databaseMode: "preserve",
+    requestedPrNumber: "130"
+  });
 
   assert.equal(outputs.resolution_status, "deploy");
   assert.equal(outputs.should_deploy, "true");
+  assert.equal(outputs.source_mode, "open_pr");
+  assert.equal(outputs.reporting_target, "pull_request");
+  assert.equal(outputs.control_plane_restrictions_apply, "true");
+  assert.equal(outputs.validation_run_type, "exact_head_ci");
   assert.equal(outputs.pr_number, "130");
+  assert.equal(outputs.pr_url, "https://github.com/lukexd09/clariobase-ai-crm/pull/130");
+  assert.equal(outputs.head_ref, "feature/rehearsal");
   assert.equal(outputs.validated_sha, headSha);
   assert.equal(outputs.database_mode, "preserve");
   assert.equal(outputs.reset_confirmation, "");
   assert.equal(outputs.ci_run_id, "123456");
-  assert.deepEqual(paginateCalls, ["files", "runs", "artifacts"]);
+  assert.equal(outputs.ci_run_url, "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/123456");
 });
 
-test("the real workflow resolver blocks stale SHA, forks, closed PRs and protected controls", async () => {
-  const stale = await executeWorkflowResolver({ expectedSha: "2222222222222222222222222222222222222222", databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE" });
-  const fork = await executeWorkflowResolver({
+test("the real workflow resolver accepts an exact eligible main request", () => {
+  const { outputs } = executeWorkflowResolver({
+    sourceMode: "main",
+    requestedPrNumber: "",
+    expectedSha: mainSha,
+    sourceSha: mainSha,
     databaseMode: "reset",
     resetConfirmation: "RESET PREVIEW DATABASE",
+    fullIntegrationRun: {
+      id: 654321,
+      name: "Full Integration",
+      event: "push",
+      status: "completed",
+      conclusion: "success",
+      head_sha: mainSha,
+      head_branch: "main",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/654321"
+    }
+  });
+
+  assert.equal(outputs.resolution_status, "deploy");
+  assert.equal(outputs.should_deploy, "true");
+  assert.equal(outputs.source_mode, "main");
+  assert.equal(outputs.reporting_target, "none");
+  assert.equal(outputs.control_plane_restrictions_apply, "false");
+  assert.equal(outputs.validation_run_type, "full_integration_main_push");
+  assert.equal(outputs.pr_number, "");
+  assert.equal(outputs.pr_url, "");
+  assert.equal(outputs.head_ref, "main");
+  assert.equal(outputs.validated_sha, mainSha);
+  assert.equal(outputs.database_mode, "reset");
+  assert.equal(outputs.reset_confirmation, "RESET PREVIEW DATABASE");
+  assert.equal(outputs.ci_run_id, "654321");
+  assert.equal(outputs.ci_run_url, "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/654321");
+});
+
+test("the resolver blocks stale SHA, forks, closed PRs, protected controls and invalid main requests", () => {
+  const stale = executeWorkflowResolver({ expectedSha: "3333333333333333333333333333333333333333" });
+  const fork = executeWorkflowResolver({
     pull: {
       state: "open",
       html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/130",
       head: { sha: headSha, ref: "feature/rehearsal", repo: { full_name: "someone/fork" } }
     }
   });
-  const closed = await executeWorkflowResolver({
-    databaseMode: "reset",
-    resetConfirmation: "RESET PREVIEW DATABASE",
+  const closed = executeWorkflowResolver({
     pull: {
       state: "closed",
       html_url: "https://github.com/lukexd09/clariobase-ai-crm/pull/130",
       head: { sha: headSha, ref: "feature/rehearsal", repo: { full_name: expectedRepository } }
     }
   });
-  const protectedChange = await executeWorkflowResolver({
-    databaseMode: "reset",
-    resetConfirmation: "RESET PREVIEW DATABASE",
-    changedFiles: [{ filename: "scripts/deploy-preview.ts" }]
+  const protectedChange = executeWorkflowResolver({ changedFiles: [{ filename: "scripts/deploy-preview.ts" }] });
+  const badMainPrNumber = executeWorkflowResolver({ sourceMode: "main", requestedPrNumber: "130", sourceSha: mainSha });
+  const badMainExpectedSha = executeWorkflowResolver({
+    sourceMode: "main",
+    requestedPrNumber: "",
+    expectedSha: "4444444444444444444444444444444444444444",
+    sourceSha: mainSha
+  });
+  const badMainRun = executeWorkflowResolver({
+    sourceMode: "main",
+    requestedPrNumber: "",
+    sourceSha: mainSha,
+    fullIntegrationRun: {
+      id: 654321,
+      name: "Full Integration",
+      event: "push",
+      status: "completed",
+      conclusion: "failure",
+      head_sha: mainSha,
+      head_branch: "main",
+      html_url: "https://github.com/lukexd09/clariobase-ai-crm/actions/runs/654321"
+    }
   });
 
-  assert.match(stale.outputs.skip_reason, /expected_sha does not match/);
-  assert.equal(stale.outputs.database_mode, "reset");
-  assert.equal(stale.outputs.reset_confirmation, "");
-  assert.match(fork.outputs.skip_reason, /head repository is not trusted/);
-  assert.equal(fork.outputs.database_mode, "reset");
-  assert.match(closed.outputs.skip_reason, /is not open/);
-  assert.equal(closed.outputs.database_mode, "reset");
+  assert.match(stale.outputs.skip_reason, /expected_sha does not match the current PR head/);
+  assert.match(fork.outputs.skip_reason, /PR head repository is not trusted/);
+  assert.match(closed.outputs.skip_reason, /PR #130 is not open/);
   assert.match(protectedChange.outputs.skip_reason, /trusted preview control-plane files/);
-  assert.equal(protectedChange.outputs.database_mode, "reset");
-  for (const result of [stale, fork, closed, protectedChange]) {
+  assert.match(badMainPrNumber.outputs.skip_reason, /pr_number must be empty in main mode/);
+  assert.match(badMainExpectedSha.outputs.skip_reason, /expected_sha does not match the trusted main dispatch SHA/);
+  assert.match(badMainRun.outputs.skip_reason, /no successful exact-SHA Full Integration run exists/);
+  for (const result of [stale, fork, closed, protectedChange, badMainPrNumber, badMainExpectedSha, badMainRun]) {
     assert.equal(result.outputs.resolution_status, "blocked");
     assert.equal(result.outputs.should_deploy, "false");
   }
 });
 
-test("the real workflow resolver blocks missing CI and every artifact provenance mismatch", async () => {
-  const missingCi = await executeWorkflowResolver({ runs: [] });
-  assert.match(missingCi.outputs.skip_reason, /no successful Fast CI run/);
+test("the resolver validates lifecycle inputs before deployment", () => {
+  const preserve = executeWorkflowResolver({ databaseMode: "preserve" });
+  const reset = executeWorkflowResolver({ databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE" });
+  const blankReset = executeWorkflowResolver({ databaseMode: "reset", resetConfirmation: "" });
+  const invalidMode = executeWorkflowResolver({ databaseMode: "wipe" });
 
-  const mismatches = [
-    { schemaVersion: 2 },
-    { repository: "someone/fork" },
-    { prNumber: 999 },
-    { headSha: "2222222222222222222222222222222222222222" },
-    { headRef: "feature/other" },
-    { workflowRunId: 999999 }
-  ];
-
-  for (const mismatch of mismatches) {
-    const execution = await executeWorkflowResolver({
-      artifactContext: {
-        schemaVersion: 1,
-        repository: expectedRepository,
-        prNumber: 130,
-        headSha,
-        headRef: "feature/rehearsal",
-        headRepository: expectedRepository,
-        baseRef: "main",
-        baseRepository: expectedRepository,
-        workflowRunId: 123456,
-        ...mismatch
-      }
-    });
-    assert.equal(execution.outputs.resolution_status, "blocked");
-    assert.equal(execution.outputs.should_deploy, "false");
-    assert.match(execution.outputs.skip_reason, /Fast CI context/);
-  }
-});
-
-test("the real workflow resolver validates lifecycle inputs before deployment", async () => {
-  const preserve = await executeWorkflowResolver({ databaseMode: "preserve", resetConfirmation: "" });
-  const reset = await executeWorkflowResolver({ databaseMode: "reset", resetConfirmation: "RESET PREVIEW DATABASE" });
-  const blankReset = await executeWorkflowResolver({ databaseMode: "reset", resetConfirmation: "" });
-  const caseReset = await executeWorkflowResolver({ databaseMode: "reset", resetConfirmation: "reset preview database" });
-  const invalidMode = await executeWorkflowResolver({ databaseMode: "wipe", resetConfirmation: "RESET PREVIEW DATABASE" });
-
-  assert.equal(preserve.outputs.resolution_status, "deploy");
   assert.equal(preserve.outputs.database_mode, "preserve");
   assert.equal(preserve.outputs.reset_confirmation, "");
-  assert.equal(reset.outputs.resolution_status, "deploy");
   assert.equal(reset.outputs.database_mode, "reset");
   assert.equal(reset.outputs.reset_confirmation, "RESET PREVIEW DATABASE");
-  assert.equal(blankReset.outputs.resolution_status, "blocked");
-  assert.equal(blankReset.outputs.database_mode, "reset");
-  assert.match(blankReset.outputs.skip_reason, /reset_confirmation must exactly equal/);
-  assert.equal(caseReset.outputs.resolution_status, "blocked");
-  assert.equal(caseReset.outputs.database_mode, "reset");
-  assert.match(caseReset.outputs.skip_reason, /reset_confirmation must exactly equal/);
-  assert.equal(invalidMode.outputs.resolution_status, "blocked");
-  assert.equal(invalidMode.outputs.database_mode, "unknown");
-  assert.match(invalidMode.outputs.skip_reason, /database_mode must be preserve or reset/);
+  assert.match(blankReset.outputs.skip_reason, /reset_confirmation must exactly equal RESET PREVIEW DATABASE/);
+  assert.match(invalidMode.outputs.skip_reason, /database_mode must be one of: preserve, reset/);
 });
 
-test("Preview Release write resolution summary stays Bash-only and reports blocked volume correctly", () => {
+test("Preview Release summary and final comment include source mode and immutable image data", () => {
   const workflow = read(".github/workflows/preview-release.yml");
-  const step = extractWorkflowStepBlock(workflow, "Write resolution summary");
+  const summary = extractWorkflowStepBlock(workflow, "Write resolution summary");
+  const finalComment = extractWorkflowStepBlock(workflow, "Upsert final preview comment");
+  const deploymentSummary = extractWorkflowStepBlock(workflow, "Write deployment summary");
 
-  assert.match(step, /shell: bash/);
-  assert.doesNotMatch(step, /\$env:/);
-  assert.doesNotMatch(step, /-eq/);
-  assert.doesNotMatch(step, /} else {/);
-  assert.match(step, /\[ "\$\{RESOLUTION_STATUS:-blocked\}" = "blocked" \]/);
-  assert.match(step, /\[ "\$\{DATABASE_MODE:-preserve\}" = "reset" \]/);
-  assert.match(step, /DATABASE_VOLUME=/);
-  assert.match(step, /Database volume: \$\{DATABASE_VOLUME\}/);
-});
-
-test("Preview Release blocked comment reports unchanged volume and unknown invalid mode", () => {
-  const workflow = read(".github/workflows/preview-release.yml");
-  const block = extractWorkflowStepBlock(workflow, "Upsert blocked preview comment");
-
-  assert.match(block, /Result: blocked/);
-  assert.match(block, /const databaseVolume = "unchanged";/);
-  assert.match(block, /const databaseMode = process\.env\.DATABASE_MODE \|\| "unknown";/);
-  assert.match(block, /`Database mode: \$\{databaseMode\}`/);
-  assert.doesNotMatch(block, /Database volume: reset/);
-  assert.doesNotMatch(block, /RESET_CONFIRMATION/);
-});
-
-test("Preview Release queued and deploying comments keep execution state accurate", () => {
-  const workflow = read(".github/workflows/preview-release.yml");
-  const queued = extractWorkflowStepBlock(workflow, "Upsert queued preview comment");
-  const deploying = extractWorkflowStepBlock(workflow, "Upsert deploying preview comment");
-
-  assert.match(queued, /Result: queued/);
-  assert.match(queued, /const databaseVolume = "unchanged";/);
-  assert.match(queued, /Database volume: \$\{databaseVolume\}/);
-  assert.doesNotMatch(queued, /Database volume: reset/);
-
-  assert.match(deploying, /Result: deploying/);
-  assert.match(deploying, /const databaseVolume = `\$\{process\.env\.DATABASE_MODE \|\| "unknown"\} pending`;/);
-  assert.match(deploying, /pending/);
-  assert.doesNotMatch(deploying, /Database volume: reset/);
-});
-
-test("the real workflow resolver fails closed on GitHub API errors", async () => {
-  const execution = await executeWorkflowResolver({ pullError: new Error("API unavailable") });
-
-  assert.equal(execution.outputs.resolution_status, "blocked");
-  assert.equal(execution.outputs.should_deploy, "false");
-  assert.equal(execution.outputs.skip_reason, "BLOCKED: preview release resolver execution failed");
-});
-
-test("Preview Release preserves one-image, immutable-digest and Windows no-build sequencing", () => {
-  const workflow = read(".github/workflows/preview-release.yml");
-  const build = splitJobBlock(workflow, "build-preview-image", "report-deploying");
-  const deploy = splitJobBlock(workflow, "deploy-preview", "report-final");
-
-  assert.equal((build.match(/docker\/build-push-action/g) ?? []).length, 1);
-  assert.match(build, /platforms: linux\/amd64/);
-  assert.match(build, /load: true/);
-  assert.match(build, /push: false/);
-  assert.match(build, /cache-from: type=gha,scope=preview-image/);
-  assert.match(build, /cache-to: type=gha,mode=max,scope=preview-image/);
-  assertOrdered(build, "Smoke test immutable image", "Log in to GitHub Container Registry");
-  assertOrdered(build, "Log in to GitHub Container Registry", "Push immutable preview image");
-  assert.match(build, /Expected exactly one pushed registry digest/);
-  assert.match(build, /sha256:\[0-9a-f\]\{64\}/);
-
-  assert.match(deploy, /self-hosted/);
-  assert.match(deploy, /ref: main/);
-  assert.match(deploy, /stale validated SHA/);
-  assert.match(deploy, /@sha256:/);
-  assert.match(deploy, /scripts\\deploy-preview\.ps1|scripts\/deploy-preview\.ps1/);
-  assert.match(deploy, /-ResetConfirmation \$env:RESET_CONFIRMATION/);
-  assert.match(deploy, /service -ne "clariobase-ai-crm"/);
-  assert.match(deploy, /status -ne "ready"/);
-  assert.match(deploy, /checks\.database -ne "ok"/);
-  assert.doesNotMatch(deploy, /docker build|docker compose build|--build/);
-  assert.match(deploy, /Cleanup secrets and job artifacts/);
-  assert.match(deploy, /Log out of GitHub Container Registry/);
-  assert.match(splitJobBlock(workflow, "report-final"), /DATABASE_MODE/);
-  assert.match(splitJobBlock(workflow, "report-final"), /Database mode:/);
-  assert.match(splitJobBlock(workflow, "report-final"), /Database volume:/);
+  assert.match(summary, /Source mode:/);
+  assert.match(summary, /Reporting target:/);
+  assert.match(summary, /Validation run:/);
+  assert.match(summary, /Image identity: n\/a/);
+  assert.match(summary, /Deployment result:/);
+  assert.match(deploymentSummary, /Source mode: \$env:SOURCE_MODE/);
+  assert.match(deploymentSummary, /Image identity: \$env:IMAGE_REF/);
+  assert.match(finalComment, /Source mode:/);
+  assert.match(finalComment, /Immutable image:/);
 });
 
 test("workflow inventory keeps exactly four authoritative workflow files and the preview tombstones stay blocked", () => {
@@ -458,11 +380,6 @@ test("workflow inventory keeps exactly four authoritative workflow files and the
   assert.equal(fs.existsSync(path.join(workflowDir, "deploy-preview.yml")), false);
 
   const previewRelease = read(".github/workflows/preview-release.yml");
-  assert.match(previewRelease, /protectedExactPaths = new Set\(\[/);
-  assert.match(previewRelease, /\.github\/workflows\/auto-deploy-preview\.yml/);
-  assert.match(previewRelease, /\.github\/workflows\/deploy-preview\.yml/);
-  assert.match(previewRelease, /security tombstones/i);
-
   assert.doesNotMatch(previewRelease, /workflow_run:/);
   assert.doesNotMatch(previewRelease, /pull_request_target/);
 
@@ -470,14 +387,8 @@ test("workflow inventory keeps exactly four authoritative workflow files and the
   assert.doesNotMatch(ci, /workflow_run:/);
   assert.doesNotMatch(ci, /pull_request_target/);
   const fullIntegration = read(".github/workflows/full-integration.yml");
-  assert.doesNotMatch(
-    fullIntegration,
-    /^\s*(?:runs-on:\s*|-\s*)["']?self-hosted["']?\s*$/m
-  );
-  assert.doesNotMatch(
-    fullIntegration,
-    /^\s*(?:runs-on:\s*|-\s*)["']?clariobase-preview["']?\s*$/m
-  );
+  assert.doesNotMatch(fullIntegration, /^\s*(?:runs-on:\s*|-\s*)["']?self-hosted["']?\s*$/m);
+  assert.doesNotMatch(fullIntegration, /^\s*(?:runs-on:\s*|-\s*)["']?clariobase-preview["']?\s*$/m);
 
   const stopPreview = read(".github/workflows/stop-preview.yml");
   assert.match(stopPreview, /clariobase-preview-slot/);

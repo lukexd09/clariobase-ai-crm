@@ -83,6 +83,7 @@ function runDeployDryRun(options: {
   controlCheckoutPath: string;
   previewEnvFile: string;
   sourceCheckoutPath?: string;
+  sourceMode?: string;
   resolvedSha?: string;
   databaseMode?: string;
   resetConfirmation?: string;
@@ -99,6 +100,9 @@ function runDeployDryRun(options: {
 
   if (options.sourceCheckoutPath) {
     args.push("--source-checkout-path", options.sourceCheckoutPath);
+  }
+  if (options.sourceMode) {
+    args.push("--source-mode", options.sourceMode);
   }
   if (options.resolvedSha) {
     args.push("--resolved-sha", options.resolvedSha);
@@ -296,7 +300,7 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   const resetDeployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), previewImageRef, "reset");
   const stopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
   const resetStopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), "reset");
-  const summary = createPreviewSummary("epic/e016-manual-preview", "0123456789abcdef0123456789abcdef01234567");
+  const summary = createPreviewSummary("epic/e016-manual-preview", "0123456789abcdef0123456789abcdef01234567", "open_pr");
 
   assert.match(deployPlan.validateComposeModel.join(" "), /config --format json/);
   assert.deepEqual(deployPlan.pullExactImage, ["pull", previewImageRef]);
@@ -319,6 +323,7 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   assert.equal(summary.projectName, PREVIEW_PROJECT_NAME);
   assert.equal(summary.volumeName, PREVIEW_VOLUME_NAME);
   assert.equal(summary.networkName, PREVIEW_NETWORK_NAME);
+  assert.equal(summary.sourceMode, "open_pr");
 });
 
 test("preview identity validation separates control and source checkout identities", () => {
@@ -373,17 +378,19 @@ test("deploy preview dry-run separates trusted control checkout from resolved de
   try {
     const controlHeadSha = createCommitRepo(controlCheckoutPath, "control-checkout");
     const resolvedSha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-    const result = runDeployDryRun({ controlCheckoutPath, resolvedSha, previewEnvFile });
+    const result = runDeployDryRun({ controlCheckoutPath, resolvedSha, previewEnvFile, sourceMode: "main" });
 
     assert.equal(result.status, 0, result.stderr);
     const output = JSON.parse(result.stdout) as {
       controlHeadSha: string;
       resolvedSha: string;
       sourceCheckoutProvided: boolean;
+      sourceMode: string;
       sourceHeadSha?: string;
     };
     assert.equal(output.controlHeadSha, controlHeadSha);
     assert.equal(output.resolvedSha, resolvedSha);
+    assert.equal(output.sourceMode, "main");
     assert.equal(output.sourceCheckoutProvided, false);
     assert.equal(output.sourceHeadSha, undefined);
     assert.doesNotMatch(result.stdout, /Current checkout SHA .* does not match the expected resolved SHA/);
