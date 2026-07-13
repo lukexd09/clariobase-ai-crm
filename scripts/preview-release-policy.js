@@ -103,16 +103,16 @@ function normalizeChangedFiles(changedFiles) {
   }
 
   return changedFiles
-    .map((file) => {
+    .flatMap((file) => {
       if (typeof file === "string") {
-        return file.trim();
+        return [file.trim()];
       }
 
       if (file && typeof file === "object") {
-        return asTrimmedString(file.filename);
+        return [asTrimmedString(file.filename), asTrimmedString(file.previous_filename)];
       }
 
-      return "";
+      return [""];
     })
     .filter(Boolean);
 }

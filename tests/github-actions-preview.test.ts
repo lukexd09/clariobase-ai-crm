@@ -39,7 +39,7 @@ type ResolverFixture = {
   requestedPrNumber?: string;
   sourceSha?: string;
   pull?: Record<string, unknown>;
-  changedFiles?: Array<{ filename: string }>;
+  changedFiles?: Array<{ filename: string; previous_filename?: string }>;
   exactHeadCiRun?: Record<string, unknown>;
   artifactContext?: Record<string, unknown>;
   fullIntegrationRun?: Record<string, unknown>;
@@ -301,6 +301,9 @@ test("the resolver blocks stale SHA, forks, closed PRs, protected controls and i
     }
   });
   const protectedChange = executeWorkflowResolver({ changedFiles: [{ filename: "scripts/deploy-preview.ts" }] });
+  const protectedRenameChange = executeWorkflowResolver({
+    changedFiles: [{ filename: "scripts/renamed-preview.ts", previous_filename: "scripts/deploy-preview.ts" }]
+  });
   const badMainPrNumber = executeWorkflowResolver({ sourceMode: "main", requestedPrNumber: "130", sourceSha: mainSha });
   const badMainExpectedSha = executeWorkflowResolver({
     sourceMode: "main",
@@ -328,10 +331,11 @@ test("the resolver blocks stale SHA, forks, closed PRs, protected controls and i
   assert.match(fork.outputs.skip_reason, /PR head repository is not trusted/);
   assert.match(closed.outputs.skip_reason, /PR #130 is not open/);
   assert.match(protectedChange.outputs.skip_reason, /trusted preview control-plane files/);
+  assert.match(protectedRenameChange.outputs.skip_reason, /trusted preview control-plane files/);
   assert.match(badMainPrNumber.outputs.skip_reason, /pr_number must be empty in main mode/);
   assert.match(badMainExpectedSha.outputs.skip_reason, /expected_sha does not match the trusted main dispatch SHA/);
   assert.match(badMainRun.outputs.skip_reason, /no successful exact-SHA Full Integration run exists/);
-  for (const result of [stale, fork, closed, protectedChange, badMainPrNumber, badMainExpectedSha, badMainRun]) {
+  for (const result of [stale, fork, closed, protectedChange, protectedRenameChange, badMainPrNumber, badMainExpectedSha, badMainRun]) {
     assert.equal(result.outputs.resolution_status, "blocked");
     assert.equal(result.outputs.should_deploy, "false");
   }
