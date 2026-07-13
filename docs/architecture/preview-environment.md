@@ -72,7 +72,10 @@ A successful Fast CI run is evidence that a source SHA passed the fast gate. It 
 
 Full Integration is conditional for pull requests, always available manually, and runs on `main`. Its result does not replace the exact successful Fast CI requirement for Preview Release.
 
-Preview Release is initiated only by `workflow_dispatch` with a PR number and optional expected SHA.
+Preview Release is initiated only by `workflow_dispatch` from trusted `main` and accepts two explicit source modes:
+
+- `open_pr` for an eligible open same-repository pull request;
+- `main` for a trusted exact commit selected from `main` after a successful Full Integration run.
 
 ## Environment boundary model
 
@@ -137,15 +140,17 @@ Forked pull request code must never execute on the self-hosted runner.
 The release control contract is:
 
 1. Preview Release must be dispatched from workflow code on `main`;
-2. the input PR must be open and same-repository;
-3. the workflow resolves the live current PR head SHA;
+2. `source_mode=open_pr` requires an open same-repository PR number;
+3. `source_mode=open_pr` resolves the live current PR head SHA;
 4. optional `expected_sha` must match that live head;
 5. the selected `CI` workflow run must be completed successfully for that exact SHA;
 6. its `auto-preview-context` artifact must match repository, PR, branch, SHA and CI run ID;
 7. a stale successful run for an older SHA must be rejected as `BLOCKED`;
 8. protected preview control-plane changes must first be reviewed and merged to `main`;
-9. the source SHA is revalidated against the live PR again on the Windows runner;
-10. preview deploy and stop operations serialize access through `clariobase-preview-slot`.
+9. `source_mode=main` requires an empty `pr_number` and a trusted exact SHA from `main`;
+10. `source_mode=main` requires a successful Full Integration run for that exact SHA from a push to `main`;
+11. `source_mode=main` must not comment on a nonexistent PR;
+12. preview deploy and stop operations serialize access through `clariobase-preview-slot`.
 
 `pull_request_target` must not be used to execute untrusted code.
 
@@ -167,6 +172,7 @@ ghcr.io/lukexd09/clariobase-ai-crm@sha256:<64 lowercase hex>
 
 The metadata artifact binds:
 
+- source mode;
 - PR number;
 - source SHA;
 - exact Fast CI run ID;

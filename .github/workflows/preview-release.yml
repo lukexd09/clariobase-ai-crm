@@ -3,12 +3,21 @@ name: Preview Release
 on:
   workflow_dispatch:
     inputs:
-      pr_number:
-        description: Open same-repository pull request number to release
+      source_mode:
+        description: Preview release source
         required: true
+        default: open_pr
+        type: choice
+        options:
+          - open_pr
+          - main
+      pr_number:
+        description: Open pull request number for open_pr mode; leave empty for main
+        required: false
+        default: ""
         type: string
       expected_sha:
-        description: Optional exact current PR head SHA
+        description: Optional exact expected source SHA
         required: false
         default: ""
         type: string
@@ -45,6 +54,10 @@ jobs:
     outputs:
       resolution_status: ${{ steps.resolve.outputs.resolution_status }}
       should_deploy: ${{ steps.resolve.outputs.should_deploy }}
+      source_mode: ${{ steps.resolve.outputs.source_mode }}
+      reporting_target: ${{ steps.resolve.outputs.reporting_target }}
+      control_plane_restrictions_apply: ${{ steps.resolve.outputs.control_plane_restrictions_apply }}
+      validation_run_type: ${{ steps.resolve.outputs.validation_run_type }}
       pr_number: ${{ steps.resolve.outputs.pr_number }}
       pr_url: ${{ steps.resolve.outputs.pr_url }}
       head_ref: ${{ steps.resolve.outputs.head_ref }}
@@ -59,39 +72,48 @@ jobs:
       - name: Check out trusted workflow revision
         uses: actions/checkout@v5
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Resolve current PR head and exact Fast CI run
+      - name: Resolve preview release source and validation run
         id: resolve
         uses: actions/github-script@v8
         env:
           EXPECTED_REPOSITORY: lukexd09/clariobase-ai-crm
+          REQUESTED_SOURCE_MODE: ${{ inputs.source_mode }}
           REQUESTED_PR_NUMBER: ${{ inputs.pr_number }}
           REQUESTED_EXPECTED_SHA: ${{ inputs.expected_sha }}
           REQUESTED_DATABASE_MODE: ${{ inputs.database_mode }}
           REQUESTED_RESET_CONFIRMATION: ${{ inputs.reset_confirmation }}
           DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_SHA: ${{ github.sha }}
         with:
           script: |
             const fs = require("node:fs");
             const os = require("node:os");
             const path = require("node:path");
             const { execFileSync } = require("node:child_process");
+            const policy = require("./scripts/preview-release-policy.js");
 
             const expectedRepository = process.env.EXPECTED_REPOSITORY || "";
-            const requestedPrNumber = Number(process.env.REQUESTED_PR_NUMBER);
-            const requestedExpectedSha = (process.env.REQUESTED_EXPECTED_SHA || "").trim().toLowerCase();
-            const requestedDatabaseMode = (process.env.REQUESTED_DATABASE_MODE || "preserve").trim();
+            const repository = `${context.repo.owner}/${context.repo.repo}`;
+            const sourceMode = policy.normalizeSourceMode(process.env.REQUESTED_SOURCE_MODE);
+            const requestedPrNumber = process.env.REQUESTED_PR_NUMBER || "";
+            const requestedExpectedSha = process.env.REQUESTED_EXPECTED_SHA || "";
+            const requestedDatabaseMode = process.env.REQUESTED_DATABASE_MODE || "preserve";
             const requestedResetConfirmation = process.env.REQUESTED_RESET_CONFIRMATION || "";
             const dispatchRef = process.env.DISPATCH_REF || "";
-            const repository = `${context.repo.owner}/${context.repo.repo}`;
+            const dispatchSha = process.env.DISPATCH_SHA || "";
 
             const output = {
               resolution_status: "blocked",
               should_deploy: "false",
-              pr_number: Number.isInteger(requestedPrNumber) && requestedPrNumber > 0 ? String(requestedPrNumber) : "",
+              source_mode: sourceMode,
+              reporting_target: sourceMode === "open_pr" ? "pull_request" : "none",
+              control_plane_restrictions_apply: sourceMode === "open_pr" ? "true" : "false",
+              validation_run_type: sourceMode === "open_pr" ? "exact_head_ci" : "full_integration_main_push",
+              pr_number: "",
               pr_url: "",
               head_ref: "",
               validated_sha: "",
@@ -129,203 +151,126 @@ jobs:
                 return;
               }
 
-              if (!Number.isInteger(requestedPrNumber) || requestedPrNumber <= 0) {
-                block("BLOCKED: pr_number must be a positive integer");
-                return;
-              }
-
-              if (requestedExpectedSha && !/^[0-9a-f]{40}$/.test(requestedExpectedSha)) {
-                block("BLOCKED: expected_sha must be a full 40-character hexadecimal SHA");
-                return;
-              }
-
-              const pullResponse = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: requestedPrNumber
-              });
-              const pull = pullResponse.data;
-              const headSha = String(pull.head?.sha || "").toLowerCase();
-              const headRef = String(pull.head?.ref || "");
-              const headRepository = String(pull.head?.repo?.full_name || "");
-              const prUrl = String(pull.html_url || "");
-
-              if (!["preserve", "reset"].includes(requestedDatabaseMode)) {
-                block("BLOCKED: database_mode must be preserve or reset", {
-                  pr_number: String(requestedPrNumber),
-                  pr_url: prUrl,
-                  head_ref: headRef,
-                  validated_sha: headSha,
-                  database_mode: "unknown"
-                });
-                return;
-              }
-
-              const baseOutputs = {
-                pr_number: String(requestedPrNumber),
-                pr_url: prUrl,
-                head_ref: headRef,
-                validated_sha: headSha,
-                database_mode: requestedDatabaseMode,
-                reset_confirmation: ""
+              const commonInput = {
+                repository,
+                expectedRepository,
+                sourceMode,
+                databaseMode: requestedDatabaseMode,
+                expectedSha: requestedExpectedSha,
+                resetConfirmation: requestedResetConfirmation,
+                dispatchRef
               };
 
-              if (pull.state !== "open") {
-                block(`BLOCKED: PR #${requestedPrNumber} is not open`, baseOutputs);
-                return;
-              }
+              if (sourceMode === "open_pr") {
+                const pullNumber = policy.parsePositiveInteger(requestedPrNumber, "pr_number");
+                const pullResponse = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pullNumber
+                });
+                const pull = pullResponse.data;
+                const headSha = String(pull.head?.sha || "").toLowerCase();
+                const changedFiles = await github.paginate(github.rest.pulls.listFiles, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pullNumber,
+                  per_page: 100
+                });
+                const normalizedChangedFiles = changedFiles.map((file) => ({
+                  filename: String(file?.filename || ""),
+                  previous_filename: String(file?.previous_filename || "")
+                }));
+                const workflowRuns = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: "ci.yml",
+                  event: "pull_request",
+                  status: "completed",
+                  head_sha: headSha,
+                  per_page: 100
+                });
+                const exactHeadCiRun = policy.selectLatestSuccessfulRun(workflowRuns, (run) => run.name === "CI" && run.head_sha === headSha);
 
-              if (headRepository !== expectedRepository) {
-                block("BLOCKED: PR head repository is not trusted", baseOutputs);
-                return;
-              }
+                if (!exactHeadCiRun) {
+                  throw new Error("no successful Fast CI run exists for the exact current PR head SHA");
+                }
 
-              if (!/^[0-9a-f]{40}$/.test(headSha)) {
-                block("BLOCKED: current PR head SHA is missing or invalid", baseOutputs);
-                return;
-              }
+                const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: exactHeadCiRun.id,
+                  per_page: 100
+                });
+                const contextArtifact = policy.selectPreviewContextArtifact(artifacts);
 
-              if (requestedDatabaseMode === "reset" && requestedResetConfirmation !== "RESET PREVIEW DATABASE") {
-                block("BLOCKED: reset_confirmation must exactly equal RESET PREVIEW DATABASE", baseOutputs);
-                return;
-              }
+                if (!contextArtifact) {
+                  throw new Error("exact Fast CI run does not contain a valid auto-preview-context artifact");
+                }
 
-              if (requestedExpectedSha && requestedExpectedSha !== headSha) {
-                block("BLOCKED: expected_sha does not match the current PR head", baseOutputs);
-                return;
-              }
+                const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "clariobase-preview-release-"));
+                const archivePath = path.join(temporaryDirectory, "auto-preview-context.zip");
 
-              const protectedExactPaths = new Set([
-                // Removed workflow files stay as security tombstones so a future PR cannot
-                // reintroduce the old preview deploy paths and bypass the trusted control plane.
-                ".github/workflows/ci.yml",
-                ".github/workflows/full-integration.yml",
-                ".github/workflows/preview-release.yml",
-                ".github/workflows/auto-deploy-preview.yml",
-                ".github/workflows/deploy-preview.yml",
-                "scripts/deploy-preview.ts",
-                "scripts/deploy-preview.ps1",
-                "scripts/preview-runtime-support.ts",
-                "scripts/stop-preview.ts",
-                "scripts/stop-preview.ps1",
-                "compose.yaml",
-                "compose.preview.yaml",
-                ".env.compose.preview.example"
-              ]);
-              const changedFiles = await github.paginate(github.rest.pulls.listFiles, {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: requestedPrNumber,
-                per_page: 100
-              });
-              const changesTrustedControlPlane = changedFiles.some((file) => {
-                const filename = String(file.filename || "");
-                return protectedExactPaths.has(filename) || filename.startsWith("scripts/resolve-preview");
-              });
+                try {
+                  const archiveResponse = await github.request(
+                    "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
+                    {
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      artifact_id: contextArtifact.id,
+                      archive_format: "zip"
+                    }
+                  );
+                  fs.writeFileSync(archivePath, Buffer.from(archiveResponse.data));
+                  const contextJson = execFileSync("unzip", ["-p", archivePath, "auto-preview-context.json"], {
+                    encoding: "utf8"
+                  });
+                  const artifactContext = JSON.parse(contextJson);
 
-              if (changesTrustedControlPlane) {
-                block(
-                  "BLOCKED: PR changes trusted preview control-plane files. Merge the reviewed control-plane change to main before running the runtime rehearsal.",
-                  baseOutputs
-                );
+                  const result = policy.validatePreviewReleaseRequest({
+                    ...commonInput,
+                    requestedPrNumber,
+                    pullRequest: pull,
+                    changedFiles: normalizedChangedFiles,
+                    exactHeadCiRun,
+                    artifactContext
+                  });
+                  finish(result);
+                } finally {
+                  fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+                }
                 return;
               }
 
               const workflowRuns = await github.paginate(github.rest.actions.listWorkflowRuns, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                workflow_id: "ci.yml",
-                event: "pull_request",
+                workflow_id: "full-integration.yml",
+                event: "push",
+                branch: "main",
                 status: "completed",
-                head_sha: headSha,
+                head_sha: dispatchSha,
                 per_page: 100
               });
-              const successfulRuns = workflowRuns
-                .filter((run) => run.name === "CI" && run.conclusion === "success" && String(run.head_sha || "").toLowerCase() === headSha)
-                .sort((left, right) => Number(right.id) - Number(left.id));
-              const ciRun = successfulRuns[0];
+              const fullIntegrationRun = policy.selectLatestSuccessfulRun(
+                workflowRuns,
+                (run) => run.name === "Full Integration" && run.event === "push" && run.head_branch === "main" && run.head_sha === dispatchSha
+              );
 
-              if (!ciRun) {
-                block("BLOCKED: no successful Fast CI run exists for the exact current PR head SHA", baseOutputs);
-                return;
+              if (!fullIntegrationRun) {
+                throw new Error("no successful exact-SHA Full Integration run exists for the trusted main commit");
               }
 
-              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: ciRun.id,
-                per_page: 100
-              });
-              const contextArtifact = artifacts.find((artifact) => artifact.name === "auto-preview-context" && !artifact.expired);
-              const ciOutputs = {
-                ...baseOutputs,
-                ci_run_id: String(ciRun.id),
-                ci_run_url: String(ciRun.html_url || "")
-              };
-
-              if (!contextArtifact) {
-                block("BLOCKED: exact Fast CI run does not contain a valid auto-preview-context artifact", ciOutputs);
-                return;
-              }
-
-              const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "clariobase-preview-release-"));
-              const archivePath = path.join(temporaryDirectory, "auto-preview-context.zip");
-
-              try {
-                const archiveResponse = await github.request(
-                  "GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}",
-                  {
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    artifact_id: contextArtifact.id,
-                    archive_format: "zip"
-                  }
-                );
-                fs.writeFileSync(archivePath, Buffer.from(archiveResponse.data));
-                const contextJson = execFileSync("unzip", ["-p", archivePath, "auto-preview-context.json"], {
-                  encoding: "utf8"
-                });
-                const artifactContext = JSON.parse(contextJson);
-
-                if (artifactContext.schemaVersion !== 1) {
-                  block("BLOCKED: unsupported Fast CI context artifact schema", ciOutputs);
-                  return;
-                }
-                if (artifactContext.repository !== expectedRepository || artifactContext.headRepository !== expectedRepository) {
-                  block("BLOCKED: Fast CI context repository mismatch", ciOutputs);
-                  return;
-                }
-                if (Number(artifactContext.prNumber) !== requestedPrNumber) {
-                  block("BLOCKED: Fast CI context PR number mismatch", ciOutputs);
-                  return;
-                }
-                if (String(artifactContext.headSha || "").toLowerCase() !== headSha) {
-                  block("BLOCKED: Fast CI context SHA mismatch", ciOutputs);
-                  return;
-                }
-                if (String(artifactContext.headRef || "") !== headRef) {
-                  block("BLOCKED: Fast CI context branch mismatch", ciOutputs);
-                  return;
-                }
-                if (Number(artifactContext.workflowRunId) !== Number(ciRun.id)) {
-                  block("BLOCKED: Fast CI context workflow run ID mismatch", ciOutputs);
-                  return;
-                }
-              } finally {
-                fs.rmSync(temporaryDirectory, { recursive: true, force: true });
-              }
-
-              finish({
-                resolution_status: "deploy",
-                should_deploy: "true",
-                skip_reason: "",
-                ...ciOutputs,
-                database_mode: requestedDatabaseMode,
-                reset_confirmation: requestedDatabaseMode === "reset" ? requestedResetConfirmation : ""
-              });
+              finish(
+                policy.validatePreviewReleaseRequest({
+                  ...commonInput,
+                  requestedPrNumber,
+                  sourceSha: dispatchSha,
+                  fullIntegrationRun
+                })
+              );
             } catch (error) {
               core.warning(error instanceof Error ? error.message : String(error));
-              block("BLOCKED: preview release resolver execution failed");
+              block(`BLOCKED: ${error instanceof Error ? error.message : String(error)}`);
             }
 
       - name: Write resolution summary
@@ -333,6 +278,9 @@ jobs:
         shell: bash
         env:
           RESOLUTION_STATUS: ${{ steps.resolve.outputs.resolution_status }}
+          SOURCE_MODE: ${{ steps.resolve.outputs.source_mode }}
+          REPORTING_TARGET: ${{ steps.resolve.outputs.reporting_target }}
+          VALIDATION_RUN_TYPE: ${{ steps.resolve.outputs.validation_run_type }}
           PR_URL: ${{ steps.resolve.outputs.pr_url }}
           HEAD_REF: ${{ steps.resolve.outputs.head_ref }}
           VALIDATED_SHA: ${{ steps.resolve.outputs.validated_sha }}
@@ -342,20 +290,28 @@ jobs:
         run: |
           if [ "${RESOLUTION_STATUS:-blocked}" = "blocked" ]; then
             DATABASE_VOLUME="unchanged"
+            DEPLOYMENT_RESULT="blocked"
           elif [ "${DATABASE_MODE:-preserve}" = "reset" ]; then
             DATABASE_VOLUME="reset"
+            DEPLOYMENT_RESULT="queued"
           else
             DATABASE_VOLUME="preserved"
+            DEPLOYMENT_RESULT="queued"
           fi
 
           {
             echo "Result: ${RESOLUTION_STATUS:-blocked}"
             echo
+            echo "Source mode: ${SOURCE_MODE:-unknown}"
+            echo "Reporting target: ${REPORTING_TARGET:-unknown}"
+            echo "Validation run: ${VALIDATION_RUN_TYPE:-unknown}"
             echo "PR: ${PR_URL:-n/a}"
             echo "Branch: ${HEAD_REF:-n/a}"
             echo "Validated SHA: ${VALIDATED_SHA:-n/a}"
             echo "Database mode: ${DATABASE_MODE:-unknown}"
             echo "Database volume: ${DATABASE_VOLUME}"
+            echo "Image identity: n/a"
+            echo "Deployment result: ${DEPLOYMENT_RESULT}"
             echo "Fast CI run: ${CI_RUN_URL:-n/a}"
             echo "Reason: ${REASON:-eligible}"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -370,9 +326,10 @@ jobs:
 
     steps:
       - name: Upsert blocked preview comment
-        if: needs.resolve-preview-release.outputs.pr_number != ''
+        if: needs.resolve-preview-release.outputs.pr_number != '' && needs.resolve-preview-release.outputs.reporting_target == 'pull_request'
         uses: actions/github-script@v8
         env:
+          SOURCE_MODE: ${{ needs.resolve-preview-release.outputs.source_mode }}
           PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
@@ -391,6 +348,7 @@ jobs:
               "Preview blocked",
               "",
               "Result: blocked",
+              `Source mode: ${process.env.SOURCE_MODE || "unknown"}`,
               `Database mode: ${databaseMode}`,
               `Database volume: ${databaseVolume}`,
               `Reason: ${process.env.BLOCK_REASON || "BLOCKED: preview release resolver execution failed"}`,
@@ -435,8 +393,10 @@ jobs:
 
     steps:
       - name: Upsert queued preview comment
+        if: needs.resolve-preview-release.outputs.reporting_target == 'pull_request'
         uses: actions/github-script@v8
         env:
+          SOURCE_MODE: ${{ needs.resolve-preview-release.outputs.source_mode }}
           PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
@@ -453,6 +413,7 @@ jobs:
               "Preview queued",
               "",
               "Result: queued",
+              `Source mode: ${process.env.SOURCE_MODE || "unknown"}`,
               `Database mode: ${process.env.DATABASE_MODE || "preserve"}`,
               `Database volume: ${databaseVolume}`,
               `PR: #${issue_number}`,
@@ -491,6 +452,7 @@ jobs:
       image_ref: ${{ steps.publish.outputs.image_ref }}
       image_digest: ${{ steps.publish.outputs.image_digest }}
       source_sha: ${{ steps.publish.outputs.source_sha }}
+      source_mode: ${{ steps.publish.outputs.source_mode }}
       ci_run_id: ${{ steps.publish.outputs.ci_run_id }}
       image_build_run_id: ${{ steps.publish.outputs.image_build_run_id }}
 
@@ -608,17 +570,24 @@ jobs:
         shell: bash
         env:
           PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
+          SOURCE_MODE: ${{ needs.resolve-preview-release.outputs.source_mode }}
           SOURCE_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           IMAGE_DIGEST: ${{ steps.push.outputs.image_digest }}
           CI_RUN_ID: ${{ needs.resolve-preview-release.outputs.ci_run_id }}
           IMAGE_BUILD_RUN_ID: ${{ github.run_id }}
         run: |
           IMAGE_REF="ghcr.io/${{ github.repository }}@${IMAGE_DIGEST}"
+          if [ -n "$PR_NUMBER" ]; then
+            PR_NUMBER_JSON="$PR_NUMBER"
+          else
+            PR_NUMBER_JSON=null
+          fi
 
           cat > immutable-preview-image.json <<JSON
           {
             "repository": "${{ github.repository }}",
-            "prNumber": ${PR_NUMBER},
+            "prNumber": ${PR_NUMBER_JSON},
+            "sourceMode": "${SOURCE_MODE}",
             "sourceSha": "${SOURCE_SHA}",
             "image": "ghcr.io/${{ github.repository }}",
             "digest": "${IMAGE_DIGEST}",
@@ -633,6 +602,7 @@ jobs:
             echo "image_ref=${IMAGE_REF}"
             echo "image_digest=${IMAGE_DIGEST}"
             echo "source_sha=${SOURCE_SHA}"
+            echo "source_mode=${SOURCE_MODE}"
             echo "ci_run_id=${CI_RUN_ID}"
             echo "image_build_run_id=${IMAGE_BUILD_RUN_ID}"
           } >> "$GITHUB_OUTPUT"
@@ -661,8 +631,10 @@ jobs:
 
     steps:
       - name: Upsert deploying preview comment
+        if: needs.resolve-preview-release.outputs.reporting_target == 'pull_request'
         uses: actions/github-script@v8
         env:
+          SOURCE_MODE: ${{ needs.resolve-preview-release.outputs.source_mode }}
           PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
@@ -682,6 +654,7 @@ jobs:
               "Preview deploying",
               "",
               "Result: deploying",
+              `Source mode: ${process.env.SOURCE_MODE || "unknown"}`,
               `Database mode: ${process.env.DATABASE_MODE || "preserve"}`,
               `Database volume: ${databaseVolume}`,
               `PR: #${issue_number}`,
@@ -731,7 +704,7 @@ jobs:
       - name: Check out trusted control checkout
         uses: actions/checkout@v5
         with:
-          ref: main
+          ref: ${{ github.sha }}
           path: control
           fetch-depth: 1
           persist-credentials: false
@@ -754,15 +727,17 @@ jobs:
         working-directory: control
         run: pnpm install --frozen-lockfile
 
-      - name: Revalidate PR head before deployment
+      - name: Revalidate release source before deployment
         id: revalidate
         shell: pwsh
         working-directory: control
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
+          SOURCE_MODE: ${{ needs.resolve-preview-release.outputs.source_mode }}
           PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
         run: |
           $headers = @{
             Accept = "application/vnd.github+json"
@@ -774,21 +749,52 @@ jobs:
           $reason = ""
 
           try {
-            $pr = Invoke-RestMethod -Method Get -Headers $headers -Uri "https://api.github.com/repos/$env:REPOSITORY/pulls/$env:PR_NUMBER"
+            switch ($env:SOURCE_MODE) {
+              "open_pr" {
+                if ([string]::IsNullOrWhiteSpace($env:PR_NUMBER) -or $env:PR_NUMBER -notmatch '^[1-9][0-9]*$') {
+                  $result = "BLOCKED"
+                  $reason = "BLOCKED: PR number is required for open_pr source mode"
+                  break
+                }
 
-            if ($pr.state -ne "open") {
-              $result = "BLOCKED"
-              $reason = "BLOCKED: PR is no longer open"
-            } elseif ($pr.head.repo.full_name -ne $env:REPOSITORY) {
-              $result = "BLOCKED"
-              $reason = "BLOCKED: PR head repository is no longer trusted"
-            } elseif ($pr.head.sha.ToLowerInvariant() -ne $env:VALIDATED_SHA.ToLowerInvariant()) {
-              $result = "BLOCKED"
-              $reason = "BLOCKED: stale validated SHA"
+                $pr = Invoke-RestMethod -Method Get -Headers $headers -Uri "https://api.github.com/repos/$env:REPOSITORY/pulls/$env:PR_NUMBER"
+
+                if ($pr.state -ne "open") {
+                  $result = "BLOCKED"
+                  $reason = "BLOCKED: PR is no longer open"
+                } elseif ($pr.head.repo.full_name -ne $env:REPOSITORY) {
+                  $result = "BLOCKED"
+                  $reason = "BLOCKED: PR head repository is no longer trusted"
+                } elseif ($pr.head.sha.ToLowerInvariant() -ne $env:VALIDATED_SHA.ToLowerInvariant()) {
+                  $result = "BLOCKED"
+                  $reason = "BLOCKED: stale validated SHA"
+                }
+              }
+              "main" {
+                if (-not [string]::IsNullOrWhiteSpace($env:PR_NUMBER)) {
+                  $result = "BLOCKED"
+                  $reason = "BLOCKED: PR number must be empty for main source mode"
+                } elseif ($env:VALIDATED_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+                  $result = "BLOCKED"
+                  $reason = "BLOCKED: VALIDATED_SHA must be a full 40-character hexadecimal SHA"
+                } elseif ($env:DISPATCH_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+                  $result = "BLOCKED"
+                  $reason = "BLOCKED: DISPATCH_SHA must be a full 40-character hexadecimal SHA"
+                } elseif ($env:VALIDATED_SHA.ToLowerInvariant() -ne $env:DISPATCH_SHA.ToLowerInvariant()) {
+                  $result = "BLOCKED"
+                  $reason = "BLOCKED: validated SHA does not match the trusted dispatch SHA"
+                }
+              }
+              default {
+                $result = "BLOCKED"
+                $reason = "BLOCKED: unknown source mode"
+              }
             }
           } catch {
-            $result = "BLOCKED"
-            $reason = "BLOCKED: runner-side PR revalidation request failed"
+            if ($result -ne "BLOCKED") {
+              $result = "BLOCKED"
+              $reason = "BLOCKED: runner-side release source revalidation request failed"
+            }
           }
 
           "runner_revalidation_result=$result" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
@@ -863,6 +869,7 @@ jobs:
         shell: pwsh
         working-directory: control
         env:
+          SOURCE_MODE: ${{ needs.resolve-preview-release.outputs.source_mode }}
           REQUESTED_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           CRM_PREVIEW_IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
@@ -870,6 +877,7 @@ jobs:
           RESET_CONFIRMATION: ${{ needs.resolve-preview-release.outputs.reset_confirmation }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
+            -SourceMode $env:SOURCE_MODE `
             -RequestedRef $env:REQUESTED_REF `
             -ResolvedSha $env:VALIDATED_SHA `
             -DatabaseMode $env:DATABASE_MODE `
@@ -905,6 +913,7 @@ jobs:
         if: success() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
         env:
+          SOURCE_MODE: ${{ needs.resolve-preview-release.outputs.source_mode }}
           PR_URL: ${{ needs.resolve-preview-release.outputs.pr_url }}
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
@@ -922,13 +931,16 @@ jobs:
           @"
           Result: PASS
 
+          Source mode: $env:SOURCE_MODE
           PR: $env:PR_URL
           Branch: $env:HEAD_REF
           Validated SHA: $env:VALIDATED_SHA
           Database mode: $env:DATABASE_MODE
           Database volume: $databaseVolume
           Preview URL: http://Serwer:3001
+          Deployment result: PASS
           Preview readiness: PASS
+          Image identity: $env:IMAGE_REF
           Fast CI run: $env:CI_RUN_URL
           Image build run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           Immutable image: $env:IMAGE_REF
@@ -969,8 +981,10 @@ jobs:
 
     steps:
       - name: Upsert final preview comment
+        if: needs.resolve-preview-release.outputs.reporting_target == 'pull_request'
         uses: actions/github-script@v8
         env:
+          SOURCE_MODE: ${{ needs.resolve-preview-release.outputs.source_mode }}
           PR_NUMBER: ${{ needs.resolve-preview-release.outputs.pr_number }}
           VALIDATED_SHA: ${{ needs.resolve-preview-release.outputs.validated_sha }}
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
@@ -1003,6 +1017,7 @@ jobs:
               lines.push(`Reason: ${process.env.RUNNER_REVALIDATION_REASON || "BLOCKED: stale validated SHA"}`);
             }
             lines.push(
+              `Source mode: ${process.env.SOURCE_MODE || "unknown"}`,
               `Database mode: ${databaseMode}`,
               `Database volume: ${databaseVolume}`,
               `PR: #${issue_number}`,
