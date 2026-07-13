@@ -215,11 +215,24 @@ test("Preview Release checks out only the resolved SHA for build and deployment"
   const workflow = read(".github/workflows/preview-release.yml");
   const build = splitJobBlock(workflow, "build-preview-image", "report-deploying");
   const deploy = splitJobBlock(workflow, "deploy-preview", "report-final");
+  const trustedWorkflowCheckoutCount = (workflow.match(/ref: \$\{\{ github\.sha \}\}/g) || []).length;
 
   assert.match(build, /ref: \$\{\{ needs\.resolve-preview-release\.outputs\.validated_sha \}\}/);
   assert.match(build, /source_mode: \$\{\{ steps\.publish\.outputs\.source_mode \}\}/);
   assert.match(build, /sourceMode": "\$\{SOURCE_MODE\}"/);
-  assert.match(deploy, /ref: main/);
+  assert.equal(trustedWorkflowCheckoutCount, 2);
+  assert.match(workflow, /Check out trusted workflow revision/);
+  assert.match(workflow, /Check out trusted control checkout/);
+  assert.doesNotMatch(workflow, /ref: main/);
+  assert.match(deploy, /Revalidate release source before deployment/);
+  assert.match(deploy, /SOURCE_MODE: \$\{\{ needs\.resolve-preview-release\.outputs\.source_mode \}\}/);
+  assert.match(deploy, /DISPATCH_SHA: \$\{\{ github\.sha \}\}/);
+  assert.match(deploy, /switch \(\$env:SOURCE_MODE\)/);
+  assert.match(deploy, /"open_pr"/);
+  assert.match(deploy, /"main"/);
+  assert.match(deploy, /"BLOCKED: PR number is required for open_pr source mode"/);
+  assert.match(deploy, /"BLOCKED: PR number must be empty for main source mode"/);
+  assert.match(deploy, /"BLOCKED: validated SHA does not match the trusted dispatch SHA"/);
   assert.match(deploy, /-SourceMode \$env:SOURCE_MODE/);
   assert.match(deploy, /IMAGE_SOURCE_SHA: \$\{\{ needs\.build-preview-image\.outputs\.source_sha \}\}/);
   assert.doesNotMatch(deploy, /docker build|docker compose build|--build/);
