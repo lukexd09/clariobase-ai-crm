@@ -25,7 +25,7 @@ export const ADMIN_USER_NOTICE_MESSAGES = {
 export type AdminUserNoticeCode = keyof typeof ADMIN_USER_NOTICE_MESSAGES;
 
 export function isAdminUserNoticeCode(value: string | null | undefined): value is AdminUserNoticeCode {
-  return typeof value === "string" && value in ADMIN_USER_NOTICE_MESSAGES;
+  return typeof value === "string" && Object.hasOwn(ADMIN_USER_NOTICE_MESSAGES, value);
 }
 
 export function resolveAdminUserNoticeMessage(code: string | null | undefined) {

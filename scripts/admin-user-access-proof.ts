@@ -83,50 +83,35 @@ async function proveTransactionBoundAdapter(prisma: PrismaClient) {
   assert.equal(await prisma.account.count({ where: { user: { email: proofEmail } } }), 0);
 }
 
-async function proveAuditRollbackAndTransactionAtomicity(prisma: PrismaClient) {
-  const proofEmail = `rollback-${randomUUID()}@example.test`;
-  const beforeUsers = await prisma.user.count({ where: { email: proofEmail } });
-  const beforeAuditRows = await prisma.adminAuditEvent.count();
+async function installAdminAuditInsertFailureTrigger(prisma: PrismaClient) {
+  await prisma.$executeRawUnsafe(`
+    CREATE OR REPLACE FUNCTION public.fail_admin_audit_event_insert()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      RAISE EXCEPTION 'admin_audit_events insert blocked for proof';
+    END;
+    $$;
+  `);
+  await prisma.$executeRawUnsafe(`
+    DROP TRIGGER IF EXISTS admin_audit_events_fail_insert ON public.admin_audit_events;
+  `);
+  await prisma.$executeRawUnsafe(`
+    CREATE TRIGGER admin_audit_events_fail_insert
+    BEFORE INSERT ON public.admin_audit_events
+    FOR EACH ROW
+    EXECUTE FUNCTION public.fail_admin_audit_event_insert();
+  `);
+}
 
-  await assert.rejects(
-    prisma.$transaction(async (transaction) => {
-      const transactionAuth = betterAuth({
-        appName: "ClarioBase admin audit rollback proof",
-        baseURL: "http://127.0.0.1:3000",
-        database: prismaAdapter(transaction, { provider: "postgresql" }),
-        emailAndPassword: { enabled: true, disableSignUp: true },
-        plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] })],
-        secret: authSecret,
-        telemetry: { enabled: false, debug: false }
-      });
-
-      const created = await transactionAuth.api.createUser({
-        body: {
-          email: proofEmail,
-          name: "Rollback Proof",
-          password: "rollback-proof-password-123456",
-          role: "admin"
-        }
-      });
-
-      await transaction.adminAuditEvent.create({
-        data: {
-          actorUserId: null,
-          targetUserId: created.user.id,
-          operation: "BOOTSTRAP_FIRST_ADMIN",
-          outcome: "SUCCESS"
-        }
-      });
-
-      assert.equal(await transaction.user.count({ where: { email: proofEmail } }), beforeUsers + 1);
-      assert.equal(await transaction.adminAuditEvent.count(), beforeAuditRows + 1);
-      throw new ExpectedRollback("rollback proves mutation and audit share the same transaction");
-    }, { isolationLevel: "Serializable" }),
-    ExpectedRollback
-  );
-
-  assert.equal(await prisma.user.count({ where: { email: proofEmail } }), beforeUsers);
-  assert.equal(await prisma.adminAuditEvent.count(), beforeAuditRows);
+async function removeAdminAuditInsertFailureTrigger(prisma: PrismaClient) {
+  await prisma.$executeRawUnsafe(`
+    DROP TRIGGER IF EXISTS admin_audit_events_fail_insert ON public.admin_audit_events;
+  `);
+  await prisma.$executeRawUnsafe(`
+    DROP FUNCTION IF EXISTS public.fail_admin_audit_event_insert();
+  `);
 }
 
 function cookieFrom(response: { headers?: Headers }) {
@@ -217,12 +202,34 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   assert.equal(bootstrapAudit[0].operation, ADMIN_AUDIT_OPERATIONS[0]);
   assert.equal(bootstrapAudit[0].outcome, ADMIN_AUDIT_OUTCOMES[0]);
 
-  const noticeCanary = `<img src=x onerror=alert("${randomUUID()}")>`;
-  const resolvedNotice = resolveAdminUserNoticeMessage(noticeCanary);
-  const renderedNotice = renderToStaticMarkup(createElement("div", { role: "alert" }, resolvedNotice));
-  assert.equal(resolvedNotice, "Administrator operation failed");
-  assert.doesNotMatch(renderedNotice, /<img|onerror|alert\(/i);
-  assert.doesNotMatch(renderedNotice, /provider/i);
+  const approvedNotice = resolveAdminUserNoticeMessage("user_created");
+  assert.equal(approvedNotice, "User created");
+  assert.equal(
+    renderToStaticMarkup(createElement("div", { role: "alert" }, approvedNotice)),
+    '<div role="alert">User created</div>'
+  );
+
+  for (const noticeCode of [
+    `<img src=x onerror=alert("${randomUUID()}")>`,
+    "constructor",
+    "toString",
+    "__proto__",
+    "hasOwnProperty",
+    "",
+    "unknown_notice_code"
+  ]) {
+    const resolvedNotice = resolveAdminUserNoticeMessage(noticeCode);
+    const renderedNotice = renderToStaticMarkup(createElement("div", { role: "alert" }, resolvedNotice));
+    assert.equal(typeof resolvedNotice, "string");
+    assert.equal(resolvedNotice, "Administrator operation failed");
+    assert.equal(renderedNotice, '<div role="alert">Administrator operation failed</div>');
+    if (noticeCode.length > 0) {
+      assert.notEqual(resolvedNotice, noticeCode);
+      assert.equal(renderedNotice.includes(noticeCode), false);
+    }
+    assert.doesNotMatch(renderedNotice, /<img|onerror|alert\(/i);
+    assert.doesNotMatch(renderedNotice, /provider/i);
+  }
 
   const adminSignIn = await auth.api.signInEmail({
     body: { email: adminEmail, password: adminPassword },
@@ -273,6 +280,29 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   const forged = await gateway.listUsers({ headers: new Headers(), actor: { id: adminId } } as never);
   assert.equal(forged.ok, false);
   if (!forged.ok) assert.equal(forged.status, 401);
+
+  const auditProofEmail = `audit-rollback-${randomUUID()}@example.test`;
+  const auditProofPassword = "audit-rollback-proof-password-123456";
+  sensitiveProofValues.push(auditProofEmail, auditProofPassword);
+  const auditRowsBeforeFailure = await prisma.adminAuditEvent.count();
+  await installAdminAuditInsertFailureTrigger(prisma);
+  try {
+    const failure = await gateway.createControlledUser(
+      { headers: adminHeaders },
+      { email: auditProofEmail, name: "Audit Rollback Proof", password: auditProofPassword }
+    );
+    assert.equal(failure.ok, false);
+    if (!failure.ok) {
+      assert.equal(failure.status, 500);
+      assert.equal(failure.message, "Administrator operation failed");
+      assert.match(failure.code, /^admin_(?:provider_error|operation_failed)$/);
+    }
+    assert.equal(await prisma.user.count({ where: { email: auditProofEmail } }), 0);
+    assert.equal(await prisma.account.count({ where: { user: { email: auditProofEmail } } }), 0);
+    assert.equal(await prisma.adminAuditEvent.count(), auditRowsBeforeFailure);
+  } finally {
+    await removeAdminAuditInsertFailureTrigger(prisma);
+  }
 
   const userEmail = `user-${randomUUID()}@example.test`;
   const updatedUserEmail = `user-updated-${randomUUID()}@example.test`;
@@ -511,7 +541,6 @@ async function main() {
     });
     await captureInternalOutput(async () => {
       await proveTransactionBoundAdapter(prisma!);
-      await proveAuditRollbackAndTransactionAtomicity(prisma!);
       await proveCompleteAdminFlow(prisma!);
     });
 

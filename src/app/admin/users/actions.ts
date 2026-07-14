@@ -16,6 +16,7 @@ import {
   type AdminGatewayResult
 } from "@/lib/user-admin-gateway";
 import {
+  type AdminUserNoticeCode,
   isAdminUserNoticeCode
 } from "@/lib/admin-user-notices";
 
@@ -37,7 +38,7 @@ function value(formData: FormData, key: string) {
   return String(formData.get(key) ?? "");
 }
 
-function finish(result: AdminGatewayResult<unknown>, successCode: string): never {
+function finish(result: AdminGatewayResult<unknown>, successCode: AdminUserNoticeCode): never {
   const noticeCode = result.ok ? successCode : isAdminUserNoticeCode(result.code) ? result.code : "admin_operation_failed";
   const tone = result.ok ? "success" : "error";
   if (result.ok) revalidatePath("/admin/users");
