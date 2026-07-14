@@ -285,8 +285,8 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   const auditProofPassword = "audit-rollback-proof-password-123456";
   sensitiveProofValues.push(auditProofEmail, auditProofPassword);
   const auditRowsBeforeFailure = await prisma.adminAuditEvent.count();
-  await installAdminAuditInsertFailureTrigger(prisma);
   try {
+    await installAdminAuditInsertFailureTrigger(prisma);
     const failure = await gateway.createControlledUser(
       { headers: adminHeaders },
       { email: auditProofEmail, name: "Audit Rollback Proof", password: auditProofPassword }
