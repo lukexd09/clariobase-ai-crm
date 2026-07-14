@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { createAppAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -33,13 +34,18 @@ export async function bootstrapFirstAdmin(input: BootstrapAdminInput): Promise<B
         }
 
         const auth = createAppAuth(transaction);
-        await auth.api.createUser({
+        const response = await auth.api.createUser({
           body: {
             email: input.email,
             name: input.name,
             password: input.password,
             role: "admin"
           }
+        });
+        await recordAdminAuditEvent(transaction, {
+          actorUserId: null,
+          targetUserId: response.user.id,
+          operation: "BOOTSTRAP_FIRST_ADMIN"
         });
         return { created: true };
       }, {

@@ -1,6 +1,7 @@
 import { APIError } from "better-auth/api";
 
 import { Prisma, type session as SessionRecord } from "@/generated/prisma/client";
+import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { createAppAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -101,9 +102,9 @@ async function runAdminOperation<T>(
       const status = error.statusCode;
       return {
         ok: false,
-        status: status === 400 || status === 401 || status === 403 || status === 404 ? status : 500,
-        code: error.body?.code ?? "admin_operation_failed",
-        message: error.body?.message ?? "Administrator operation failed"
+        status: status === 400 || status === 401 || status === 403 || status === 404 || status === 409 ? status : 500,
+        code: "admin_provider_error",
+        message: "Administrator operation failed"
       };
     }
 
@@ -189,10 +190,15 @@ export async function createControlledUser(
   context: AdminGatewayContext,
   input: { email: string; name: string; password: string }
 ) {
-  return runAdminOperation(context, async (auth) => {
+  return runAdminOperation(context, async (auth, transaction, actor) => {
     const response = await auth.api.createUser({
       headers: context.headers,
       body: { email: input.email, name: input.name, password: input.password, role: "user" }
+    });
+    await recordAdminAuditEvent(transaction, {
+      actorUserId: actor.id,
+      targetUserId: response.user.id,
+      operation: "CREATE_CONTROLLED_USER"
     });
     return toAdminUser(response.user as unknown as Record<string, unknown>);
   });
@@ -202,10 +208,15 @@ export async function updateBasicIdentity(
   context: AdminGatewayContext,
   input: { userId: string; email: string; name: string }
 ) {
-  return runAdminOperation(context, async (auth) => {
+  return runAdminOperation(context, async (auth, transaction, actor) => {
     const user = await auth.api.adminUpdateUser({
       headers: context.headers,
       body: { userId: input.userId, data: { email: input.email, name: input.name } }
+    });
+    await recordAdminAuditEvent(transaction, {
+      actorUserId: actor.id,
+      targetUserId: input.userId,
+      operation: "UPDATE_BASIC_IDENTITY"
     });
     return toAdminUser(user as unknown as Record<string, unknown>);
   });
@@ -221,14 +232,24 @@ export async function disableUser(
       headers: context.headers,
       body: { userId: input.userId, banReason: input.reason }
     });
+    await recordAdminAuditEvent(transaction, {
+      actorUserId: actor.id,
+      targetUserId: input.userId,
+      operation: "DISABLE_USER"
+    });
     return toAdminUser(response.user as unknown as Record<string, unknown>);
   });
 }
 
 export async function reactivateUser(context: AdminGatewayContext, userId: string) {
-  return runAdminOperation(context, async (auth, transaction) => {
+  return runAdminOperation(context, async (auth, transaction, actor) => {
     await assertTargetExists(transaction, userId);
     const response = await auth.api.unbanUser({ headers: context.headers, body: { userId } });
+    await recordAdminAuditEvent(transaction, {
+      actorUserId: actor.id,
+      targetUserId: userId,
+      operation: "REACTIVATE_USER"
+    });
     return toAdminUser(response.user as unknown as Record<string, unknown>);
   });
 }
@@ -257,6 +278,11 @@ export async function revokeUserSession(context: AdminGatewayContext, sessionId:
       throw new AdminGatewayError(409, "self_lockout", "Administrators cannot revoke their own session here");
     }
     await auth.api.revokeUserSession({ headers: context.headers, body: { sessionToken: target.token } });
+    await recordAdminAuditEvent(transaction, {
+      actorUserId: actor.id,
+      targetUserId: target.userId,
+      operation: "REVOKE_USER_SESSION"
+    });
     return { revoked: true as const };
   });
 }
@@ -268,6 +294,11 @@ export async function revokeUserSessions(context: AdminGatewayContext, userId: s
       throw new AdminGatewayError(409, "self_lockout", "Administrators cannot revoke all their own sessions here");
     }
     await auth.api.revokeUserSessions({ headers: context.headers, body: { userId } });
+    await recordAdminAuditEvent(transaction, {
+      actorUserId: actor.id,
+      targetUserId: userId,
+      operation: "REVOKE_USER_SESSIONS"
+    });
     return { revoked: true as const };
   });
 }
@@ -286,6 +317,11 @@ export async function setUserPassword(
       body: { userId: input.userId, newPassword: input.newPassword }
     });
     await auth.api.revokeUserSessions({ headers: context.headers, body: { userId: input.userId } });
+    await recordAdminAuditEvent(transaction, {
+      actorUserId: actor.id,
+      targetUserId: input.userId,
+      operation: "RESET_USER_PASSWORD"
+    });
     return { passwordUpdated: true as const, sessionsRevoked: true as const };
   });
 }

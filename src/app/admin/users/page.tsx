@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth-context";
+import { resolveAdminUserNoticeMessage } from "@/lib/admin-user-notices";
 import { listUsers, listUserSessions } from "@/lib/user-admin-gateway";
 import {
   createUserAction,
@@ -23,7 +24,7 @@ function formatDate(value: Date) {
 export default async function AdminUsersPage({
   searchParams
 }: {
-  searchParams: Promise<{ userId?: string; notice?: string; tone?: string }>;
+  searchParams: Promise<{ userId?: string; noticeCode?: string; tone?: string }>;
 }) {
   const currentUser = await requireUser({ mode: "redirect", returnTo: "/admin/users" });
   if (currentUser.role !== "admin" || currentUser.banned !== false) redirect("/");
@@ -49,12 +50,12 @@ export default async function AdminUsersPage({
           </p>
         </header>
 
-        {query.notice ? (
+        {query.noticeCode ? (
           <div
-            role={query.tone === "error" ? "alert" : "status"}
-            className={`mt-4 rounded-xl border px-4 py-3 text-sm ${query.tone === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}
+            role={query.tone === "success" ? "status" : "alert"}
+            className={`mt-4 rounded-xl border px-4 py-3 text-sm ${query.tone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}
           >
-            {query.notice}
+            {resolveAdminUserNoticeMessage(query.noticeCode)}
           </div>
         ) : null}
 

@@ -20,7 +20,7 @@ tags:
 
 ## Outcome
 
-ClarioBase uses Better Auth 1.6.23 official admin APIs behind a typed, server-owned gateway. The application provides controlled account provisioning, identity updates, disable/reactivate, session inspection/revocation, and administrator-driven password recovery. Public signup remains disabled.
+ClarioBase uses Better Auth 1.6.23 official admin APIs behind a typed, server-owned gateway. The application provides controlled account provisioning, identity updates, disable/reactivate, session inspection/revocation, and administrator-driven password recovery. Public signup remains disabled. Successful admin lifecycle changes emit bounded durable audit rows.
 
 ## Runtime boundary
 
@@ -95,7 +95,7 @@ The migration intentionally uses `ADD COLUMN IF NOT EXISTS` for pre-provisioned 
 
 ## Administrator UI
 
-`/admin/users` is a protected, server-rendered page. It includes labelled forms, status/alert announcements, controlled provisioning, identity updates, disable/reactivate, password recovery, and session management. Gateway results and rendered forms contain only opaque session IDs; session tokens remain server-side and are resolved only for the official revoke call.
+`/admin/users` is a protected, server-rendered page. It includes labelled forms, status/alert announcements, controlled provisioning, identity updates, disable/reactivate, password recovery, and session management. Redirect feedback uses bounded `noticeCode` values that are resolved inside the app to approved messages. Gateway results and rendered forms contain only opaque session IDs; session tokens remain server-side and are resolved only for the official revoke call.
 
 ## Executable proof
 
@@ -119,6 +119,7 @@ corepack pnpm e011:t012:admin-proof
 | Reactivation | Official unban permits sign-in again without issuing credentials |
 | Session management | List, revoke-one by safe session ID, and revoke-all operate against persisted sessions without returning tokens |
 | Recovery | Password changes through official API, old password fails, all sessions are revoked |
+| Durable audit trail | Successful bootstrap, create, update, disable, reactivate, password reset, revoke-one, and revoke-all operations each create one bounded audit row |
 | Self-lockout | Self-disable is rejected |
 | Last active admin | Concurrent cross-disable leaves exactly one active admin |
 | No custom credential writes | Production gateway/bootstrap source contains no account credential mutation |

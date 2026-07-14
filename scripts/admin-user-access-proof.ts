@@ -8,8 +8,12 @@ import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins/admin";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 import { PrismaClient } from "@/generated/prisma/client";
+import { ADMIN_AUDIT_OPERATIONS, ADMIN_AUDIT_OUTCOMES } from "@/lib/admin-audit";
+import { resolveAdminUserNoticeMessage } from "@/lib/admin-user-notices";
 
 const containerName = `clariobase-auth-t012-${process.pid}`;
 const databaseName = "clariobase_auth_t012";
@@ -79,6 +83,52 @@ async function proveTransactionBoundAdapter(prisma: PrismaClient) {
   assert.equal(await prisma.account.count({ where: { user: { email: proofEmail } } }), 0);
 }
 
+async function proveAuditRollbackAndTransactionAtomicity(prisma: PrismaClient) {
+  const proofEmail = `rollback-${randomUUID()}@example.test`;
+  const beforeUsers = await prisma.user.count({ where: { email: proofEmail } });
+  const beforeAuditRows = await prisma.adminAuditEvent.count();
+
+  await assert.rejects(
+    prisma.$transaction(async (transaction) => {
+      const transactionAuth = betterAuth({
+        appName: "ClarioBase admin audit rollback proof",
+        baseURL: "http://127.0.0.1:3000",
+        database: prismaAdapter(transaction, { provider: "postgresql" }),
+        emailAndPassword: { enabled: true, disableSignUp: true },
+        plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] })],
+        secret: authSecret,
+        telemetry: { enabled: false, debug: false }
+      });
+
+      const created = await transactionAuth.api.createUser({
+        body: {
+          email: proofEmail,
+          name: "Rollback Proof",
+          password: "rollback-proof-password-123456",
+          role: "admin"
+        }
+      });
+
+      await transaction.adminAuditEvent.create({
+        data: {
+          actorUserId: null,
+          targetUserId: created.user.id,
+          operation: "BOOTSTRAP_FIRST_ADMIN",
+          outcome: "SUCCESS"
+        }
+      });
+
+      assert.equal(await transaction.user.count({ where: { email: proofEmail } }), beforeUsers + 1);
+      assert.equal(await transaction.adminAuditEvent.count(), beforeAuditRows + 1);
+      throw new ExpectedRollback("rollback proves mutation and audit share the same transaction");
+    }, { isolationLevel: "Serializable" }),
+    ExpectedRollback
+  );
+
+  assert.equal(await prisma.user.count({ where: { email: proofEmail } }), beforeUsers);
+  assert.equal(await prisma.adminAuditEvent.count(), beforeAuditRows);
+}
+
 function cookieFrom(response: { headers?: Headers }) {
   const cookie = response.headers?.get("set-cookie");
   assert.ok(cookie, "authentication response did not include a session cookie");
@@ -143,6 +193,36 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   assert.deepEqual(bootstrapResults.map((result) => result.created).sort(), [false, true]);
   assert.equal((await bootstrapFirstAdmin(bootstrapInput)).created, false);
   assert.equal(await prisma.user.count(), 1);
+  const bootstrapAudit = await prisma.adminAuditEvent.findMany({
+    select: {
+      id: true,
+      actorUserId: true,
+      targetUserId: true,
+      operation: true,
+      outcome: true,
+      createdAt: true
+    }
+  });
+  assert.equal(bootstrapAudit.length, 1);
+  assert.deepEqual(Object.keys(bootstrapAudit[0]).sort(), [
+    "actorUserId",
+    "createdAt",
+    "id",
+    "operation",
+    "outcome",
+    "targetUserId"
+  ]);
+  assert.equal(bootstrapAudit[0].actorUserId, null);
+  assert.equal(bootstrapAudit[0].targetUserId.length > 0, true);
+  assert.equal(bootstrapAudit[0].operation, ADMIN_AUDIT_OPERATIONS[0]);
+  assert.equal(bootstrapAudit[0].outcome, ADMIN_AUDIT_OUTCOMES[0]);
+
+  const noticeCanary = `<img src=x onerror=alert("${randomUUID()}")>`;
+  const resolvedNotice = resolveAdminUserNoticeMessage(noticeCanary);
+  const renderedNotice = renderToStaticMarkup(createElement("div", { role: "alert" }, resolvedNotice));
+  assert.equal(resolvedNotice, "Administrator operation failed");
+  assert.doesNotMatch(renderedNotice, /<img|onerror|alert\(/i);
+  assert.doesNotMatch(renderedNotice, /provider/i);
 
   const adminSignIn = await auth.api.signInEmail({
     body: { email: adminEmail, password: adminPassword },
@@ -336,14 +416,60 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   const productionSources = [
     readFileSync("src/lib/user-admin-gateway.ts", "utf8"),
     readFileSync("src/lib/admin-bootstrap.ts", "utf8"),
-    readFileSync("scripts/bootstrap-admin.ts", "utf8")
+    readFileSync("scripts/bootstrap-admin.ts", "utf8"),
+    readFileSync("src/app/admin/users/actions.ts", "utf8"),
+    readFileSync("src/app/admin/users/page.tsx", "utf8")
   ].join("\n");
   assert.doesNotMatch(productionSources, /\b(?:prisma|transaction)\.account\.(?:create|update|upsert|delete)/);
   assert.doesNotMatch(productionSources, /impersonateUser\s*\(|removeUser\s*\(/);
   assert.doesNotMatch(productionSources, /console\.error\([^)]*(?:error|password|secret|email)/i);
+  assert.doesNotMatch(productionSources, /result\.message/);
+  assert.doesNotMatch(productionSources, /notice=/);
+  assert.match(productionSources, /noticeCode/);
+  assert.doesNotMatch(productionSources, /error\.body\?\.message/);
   assert.equal("token" in listedSessions.data[0], false, "gateway session results must not expose tokens");
   const schema = readFileSync("prisma/schema.prisma", "utf8");
   assert.doesNotMatch(schema, /^\s*model\s+(?:organization|member|membership|invitation|team|workspace)\b/im);
+
+  const auditRows = await prisma.adminAuditEvent.findMany({
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      actorUserId: true,
+      targetUserId: true,
+      operation: true,
+      outcome: true,
+      createdAt: true
+    }
+  });
+  assert.equal(auditRows.length, 10);
+  assert.deepEqual(
+    auditRows.map((row) => row.operation),
+    [
+      "BOOTSTRAP_FIRST_ADMIN",
+      "CREATE_CONTROLLED_USER",
+      "UPDATE_BASIC_IDENTITY",
+      "DISABLE_USER",
+      "REACTIVATE_USER",
+      "REVOKE_USER_SESSION",
+      "REVOKE_USER_SESSIONS",
+      "RESET_USER_PASSWORD",
+      "CREATE_CONTROLLED_USER",
+      "DISABLE_USER"
+    ]
+  );
+  assert.deepEqual(auditRows.map((row) => row.outcome), new Array(10).fill("SUCCESS"));
+  assert.equal(auditRows[0].actorUserId, null);
+  assert.ok(auditRows.slice(1).every((row) => row.actorUserId === adminId));
+  assert.equal(auditRows[1].targetUserId, userId);
+  assert.equal(auditRows[2].targetUserId, userId);
+  assert.equal(auditRows[3].targetUserId, userId);
+  assert.equal(auditRows[4].targetUserId, userId);
+  assert.equal(auditRows[5].targetUserId, userId);
+  assert.equal(auditRows[6].targetUserId, userId);
+  assert.equal(auditRows[7].targetUserId, userId);
+  assert.equal(auditRows[8].targetUserId, secondAdmin.data.id);
+  assert.ok([adminId, secondAdmin.data.id].includes(auditRows[9].targetUserId));
 }
 
 async function main() {
@@ -374,6 +500,7 @@ async function main() {
     });
     await captureInternalOutput(async () => {
       await proveTransactionBoundAdapter(prisma!);
+      await proveAuditRollbackAndTransactionAtomicity(prisma!);
       await proveCompleteAdminFlow(prisma!);
     });
 
@@ -381,6 +508,7 @@ async function main() {
     console.log("ADMIN_AUTHORIZATION_AND_LIFECYCLE: PASS");
     console.log("PUBLIC_ADMIN_NAMESPACE_FIREWALL: PASS");
     console.log("BOOTSTRAP_AND_RECOVERY: PASS");
+    console.log("DURABLE_ADMIN_AUDIT_AND_BOUNDED_NOTICES: PASS");
     console.log("NO_CUSTOM_CREDENTIAL_WRITES_OR_SECRET_OUTPUT: PASS");
   } finally {
     await prisma?.$disconnect();
