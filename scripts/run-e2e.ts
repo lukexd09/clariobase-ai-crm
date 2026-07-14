@@ -38,27 +38,37 @@ function redactSensitiveText(value: string) {
     .replace(/BETTER_AUTH_[A-Z_]+/g, "[redacted-auth-env]");
 }
 
-function runChecked(command: string, args: string[], env: NodeJS.ProcessEnv, description: string) {
-  const result = spawnSync(command, args, {
-    cwd: repoRoot,
-    encoding: "utf8",
-    env,
-    shell: false
+async function runChecked(command: string, args: string[], env: NodeJS.ProcessEnv, description: string) {
+  return await new Promise<void>((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: repoRoot,
+      env,
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr?.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+
+      const output = [stdout, stderr]
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+      reject(new Error(`${description} failed: ${redactSensitiveText(output || "unknown error")}`));
+    });
   });
-
-  if (result.error) {
-    throw result.error;
-  }
-
-  if (result.status !== 0) {
-    const output = [result.stdout, result.stderr]
-      .filter(Boolean)
-      .join("\n")
-      .trim();
-    throw new Error(`${description} failed: ${redactSensitiveText(output || "unknown error")}`);
-  }
-
-  return result;
 }
 
 function readSetCookies(headers: Headers) {
@@ -145,12 +155,29 @@ function writeStorageState(storageStatePath: string, cookies: ReturnType<typeof 
 
 async function waitForPostgres(containerName: string) {
   for (let attempt = 0; attempt < 60; attempt += 1) {
-    const result = spawnSync("docker", ["exec", containerName, "pg_isready", "-U", "postgres"], {
-      cwd: repoRoot,
-      encoding: "utf8"
+    const result = await new Promise<{ code: number | null; stdout: string; stderr: string; pid?: number }>((resolve, reject) => {
+      const child = spawn("docker", ["exec", containerName, "pg_isready", "-U", "postgres"], {
+        cwd: repoRoot,
+        env: process.env,
+        shell: false,
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+      let stdout = "";
+      let stderr = "";
+
+      child.stdout?.on("data", (chunk: Buffer) => {
+        stdout += chunk.toString("utf8");
+      });
+      child.stderr?.on("data", (chunk: Buffer) => {
+        stderr += chunk.toString("utf8");
+      });
+      child.once("error", reject);
+      child.once("close", (code) => {
+        resolve({ code, stdout, stderr, pid: child.pid });
+      });
     });
 
-    if (result.status === 0) {
+    if (result.code === 0) {
       return;
     }
 
@@ -227,7 +254,7 @@ async function main() {
   let mainError: unknown;
 
   try {
-    runChecked(
+    await runChecked(
       "docker",
       [
         "run",
@@ -257,14 +284,14 @@ async function main() {
       CLARIOBASE_E2E_DATABASE_URL: databaseUrl
     };
 
-    runChecked(
+    await runChecked(
       process.execPath,
       ["./node_modules/prisma/build/index.js", "migrate", "deploy", "--schema", "prisma/schema.prisma"],
       migrateEnv,
       "apply checked-in Prisma migrations"
     );
 
-    runChecked(
+    await runChecked(
       process.execPath,
       ["./node_modules/tsx/dist/cli.mjs", "scripts/bootstrap-admin.ts"],
       bootstrapEnv,
