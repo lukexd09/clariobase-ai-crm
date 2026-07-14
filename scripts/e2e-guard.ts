@@ -4,8 +4,91 @@ import { URL } from "node:url";
 
 const supportedAreas = new Set(["dashboard"]);
 const approvedE2ERuntime = "local-proof";
-const approvedE2EDatabaseName = "clariobase_e2e_proof";
-const approvedE2EDatabaseUrl = "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public";
+const approvedE2EDatabasePrefix = "clariobase_e2e_";
+const approvedPlaywrightBaseUrl = "http://127.0.0.1:3011";
+
+function assertExactHttpOrigin(rawTarget: string, context: string, expectedPort: string) {
+  const target = new URL(rawTarget);
+
+  if (target.protocol !== "http:") {
+    throw new Error(`${context} must use http:, got ${rawTarget}`);
+  }
+  if (target.username || target.password) {
+    throw new Error(`${context} must not include credentials: ${rawTarget}`);
+  }
+  if (target.hostname !== "127.0.0.1") {
+    throw new Error(`${context} must use 127.0.0.1, got ${rawTarget}`);
+  }
+  if (target.port !== expectedPort) {
+    throw new Error(`${context} must use port ${expectedPort}, got ${rawTarget}`);
+  }
+  if ((target.pathname || "/") !== "/") {
+    throw new Error(`${context} must use the root path only, got ${rawTarget}`);
+  }
+  if (target.search || target.hash) {
+    throw new Error(`${context} must not include a query string or hash: ${rawTarget}`);
+  }
+
+  return target.origin;
+}
+
+function assertDisposableDatabaseUrl(rawDatabaseUrl: string) {
+  const target = new URL(rawDatabaseUrl);
+  const databaseName = target.pathname.replace(/^\//, "");
+  const searchParams = target.searchParams;
+
+  if (target.protocol !== "postgresql:") {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must use postgresql:, got ${rawDatabaseUrl}`);
+  }
+  if (target.hostname !== "127.0.0.1") {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must use 127.0.0.1, got ${rawDatabaseUrl}`);
+  }
+  if (!target.port) {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must use a dynamically selected port, got ${rawDatabaseUrl}`);
+  }
+
+  const port = Number(target.port);
+  if (!Number.isInteger(port) || port < 1024 || port === 5432) {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must use a non-production disposable port, got ${rawDatabaseUrl}`);
+  }
+  if (target.username !== "postgres") {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must use the disposable postgres user, got ${rawDatabaseUrl}`);
+  }
+  if (!/^[a-f0-9]{48}$/.test(target.password)) {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must use a generated hexadecimal password, got ${rawDatabaseUrl}`);
+  }
+  if (!/^clariobase_e2e_[a-f0-9]+$/.test(databaseName)) {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must use a database name with the ${approvedE2EDatabasePrefix} prefix, got ${rawDatabaseUrl}`);
+  }
+  if (searchParams.toString() !== "schema=public" || searchParams.getAll("schema").length !== 1) {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must target schema=public only, got ${rawDatabaseUrl}`);
+  }
+  if (target.hash) {
+    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must not include a hash: ${rawDatabaseUrl}`);
+  }
+
+  return rawDatabaseUrl;
+}
+
+function assertBetterAuthEnvironment(env: NodeJS.ProcessEnv) {
+  const authUrl = env.BETTER_AUTH_URL;
+  const authSecret = env.BETTER_AUTH_SECRET;
+
+  if (!authUrl) {
+    throw new Error("BETTER_AUTH_URL is required for the disposable E2E runtime");
+  }
+  if (!authSecret) {
+    throw new Error("BETTER_AUTH_SECRET is required for the disposable E2E runtime");
+  }
+  if (authSecret.length < 32) {
+    throw new Error("BETTER_AUTH_SECRET must be at least 32 characters long");
+  }
+
+  return {
+    betterAuthUrl: assertExactHttpOrigin(authUrl, "BETTER_AUTH_URL", "3011"),
+    betterAuthSecret: authSecret
+  };
+}
 
 export function assertSafePlaywrightTarget(rawTarget: string) {
   const target = new URL(rawTarget);
@@ -61,6 +144,7 @@ export function getSupportedAreas() {
 export function resolveE2ERuntimeContract(env: NodeJS.ProcessEnv) {
   const runtime = env.CLARIOBASE_E2E_RUNTIME;
   const databaseUrl = env.CLARIOBASE_E2E_DATABASE_URL;
+  const databaseUrlFromApp = env.DATABASE_URL;
 
   if (runtime !== approvedE2ERuntime) {
     throw new Error(`CLARIOBASE_E2E_RUNTIME must be ${approvedE2ERuntime}`);
@@ -69,45 +153,44 @@ export function resolveE2ERuntimeContract(env: NodeJS.ProcessEnv) {
   if (!databaseUrl) {
     throw new Error("CLARIOBASE_E2E_DATABASE_URL is required");
   }
-
-  const target = new URL(databaseUrl);
-  const normalizedSearch = target.searchParams.toString();
-  const hasSingleSchemaParam = target.searchParams.getAll("schema").length === 1 && normalizedSearch === "schema=public";
-  const exactDatabaseUrl =
-    target.protocol === "postgresql:" &&
-    target.hostname === "127.0.0.1" &&
-    target.port === "65535" &&
-    target.pathname.replace(/^\//, "") === approvedE2EDatabaseName &&
-    !target.username &&
-    !target.password &&
-    hasSingleSchemaParam &&
-    !target.hash;
-
-  if (!exactDatabaseUrl) {
-    throw new Error(`CLARIOBASE_E2E_DATABASE_URL must be exactly ${approvedE2EDatabaseUrl}`);
+  if (!databaseUrlFromApp) {
+    throw new Error("DATABASE_URL is required for the disposable E2E runtime");
   }
+  if (databaseUrlFromApp !== databaseUrl) {
+    throw new Error("DATABASE_URL and CLARIOBASE_E2E_DATABASE_URL must match exactly");
+  }
+
+  const validatedDatabaseUrl = assertDisposableDatabaseUrl(databaseUrl);
 
   return {
     runtime,
-    databaseUrl: approvedE2EDatabaseUrl
+    databaseUrl: validatedDatabaseUrl
   };
 }
 
 export function buildE2EChildEnv(baseEnv: NodeJS.ProcessEnv) {
   const runtimeContract = resolveE2ERuntimeContract({
     ...baseEnv,
-    CLARIOBASE_E2E_RUNTIME: baseEnv.CLARIOBASE_E2E_RUNTIME ?? approvedE2ERuntime,
-    CLARIOBASE_E2E_DATABASE_URL: approvedE2EDatabaseUrl
+    CLARIOBASE_E2E_RUNTIME: baseEnv.CLARIOBASE_E2E_RUNTIME ?? approvedE2ERuntime
   });
+  const authContract = assertBetterAuthEnvironment(baseEnv);
 
-  return {
+  const childEnv: NodeJS.ProcessEnv = {
     ...baseEnv,
     CLARIOBASE_E2E_RUNTIME: runtimeContract.runtime,
     CLARIOBASE_E2E_DATABASE_URL: runtimeContract.databaseUrl,
-    CRM_DEPLOYMENT_ENV: baseEnv.CRM_DEPLOYMENT_ENV ?? "preview",
     DATABASE_URL: runtimeContract.databaseUrl,
-    PLAYWRIGHT_BASE_URL: "http://127.0.0.1:3011"
+    BETTER_AUTH_URL: authContract.betterAuthUrl,
+    BETTER_AUTH_SECRET: authContract.betterAuthSecret,
+    CRM_DEPLOYMENT_ENV: baseEnv.CRM_DEPLOYMENT_ENV ?? "preview",
+    PLAYWRIGHT_BASE_URL: approvedPlaywrightBaseUrl
   };
+
+  if (baseEnv.PLAYWRIGHT_STORAGE_STATE) {
+    childEnv.PLAYWRIGHT_STORAGE_STATE = baseEnv.PLAYWRIGHT_STORAGE_STATE;
+  }
+
+  return childEnv;
 }
 
 export function assertNoProductionTargetInRepo(repoRoot: string) {

@@ -5,11 +5,13 @@ test.describe("ClarioBase Playwright proof", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Today's priorities" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in" })).toHaveCount(0);
   });
 
   test("@area:dashboard dashboard priorities remain visible as an explicit area proof", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Today's priorities" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Pipeline snapshot" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in" })).toHaveCount(0);
   });
 });

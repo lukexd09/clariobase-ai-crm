@@ -20,6 +20,8 @@ test.describe("Dashboard environment watermark", () => {
     const watermark = page.getByTestId("environment-watermark");
     const marks = page.getByTestId("environment-watermark-mark");
 
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in" })).toHaveCount(0);
     await expect(watermark).toBeVisible();
     await expect(watermark).toHaveAttribute("aria-hidden", "true");
     await expect(watermark).toHaveCSS("pointer-events", "none");
@@ -44,6 +46,8 @@ test.describe("Dashboard environment watermark", () => {
     const watermark = page.getByTestId("environment-watermark");
     const marks = page.getByTestId("environment-watermark-mark");
 
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in" })).toHaveCount(0);
     await expect(watermark).toBeVisible();
     expect(await marks.count()).toBeGreaterThan(1);
     await assertNoHorizontalOverflow(page);

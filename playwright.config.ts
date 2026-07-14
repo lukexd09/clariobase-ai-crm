@@ -3,6 +3,7 @@ import { resolveE2ERuntimeContract, resolvePlaywrightBaseUrl } from "./scripts/e
 
 const baseURL = resolvePlaywrightBaseUrl(process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3011");
 resolveE2ERuntimeContract(process.env);
+const storageState = process.env.PLAYWRIGHT_STORAGE_STATE?.trim();
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -11,6 +12,7 @@ export default defineConfig({
   timeout: 30_000,
   use: {
     baseURL,
+    ...(storageState ? { storageState } : {}),
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure"
