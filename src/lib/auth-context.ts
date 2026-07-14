@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { createAppAuth } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 
 export type CurrentUser = {
@@ -24,25 +24,22 @@ export type UnauthorizedResult = {
   status: 401;
 };
 
-const auth = createAppAuth();
-
 function toCurrentUser(session: Awaited<ReturnType<typeof auth.api.getSession>>) {
   if (!session?.user?.id) {
     return null;
   }
 
   const sessionUser = session.user as unknown as Record<string, unknown>;
+  if (sessionUser.banned !== false || typeof sessionUser.role !== "string") {
+    return null;
+  }
 
   return {
     id: session.user.id,
     email: session.user.email ?? null,
     name: session.user.name ?? null,
-    role: typeof sessionUser.role === "string"
-      ? sessionUser.role
-      : null,
-    banned: typeof sessionUser.banned === "boolean"
-      ? sessionUser.banned
-      : null
+    role: sessionUser.role,
+    banned: sessionUser.banned
   } satisfies CurrentUser;
 }
 
