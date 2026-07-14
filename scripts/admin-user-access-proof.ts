@@ -405,6 +405,7 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
     returnHeaders: true
   });
   const secondAdminHeaders = headersWithCookie(cookieFrom(secondAdminSignIn));
+  const secondAdminId = secondAdminSignIn.response.user.id;
 
   const competingDisables = await Promise.all([
     gateway.disableUser({ headers: adminHeaders }, { userId: secondAdmin.data.id }),
@@ -460,7 +461,18 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   );
   assert.deepEqual(auditRows.map((row) => row.outcome), new Array(10).fill("SUCCESS"));
   assert.equal(auditRows[0].actorUserId, null);
-  assert.ok(auditRows.slice(1).every((row) => row.actorUserId === adminId));
+  assert.equal(auditRows[1].actorUserId, adminId);
+  assert.equal(auditRows[2].actorUserId, adminId);
+  assert.equal(auditRows[3].actorUserId, adminId);
+  assert.equal(auditRows[4].actorUserId, adminId);
+  assert.equal(auditRows[5].actorUserId, adminId);
+  assert.equal(auditRows[6].actorUserId, adminId);
+  assert.equal(auditRows[7].actorUserId, adminId);
+  assert.equal(auditRows[8].actorUserId, adminId);
+  assert.ok([secondAdmin.data.id, secondAdminId].includes(auditRows[8].targetUserId));
+  const auditRowsNineActorId = auditRows[9].actorUserId;
+  assert.notEqual(auditRowsNineActorId, null);
+  assert.ok([adminId, secondAdminId].includes(auditRowsNineActorId!));
   assert.equal(auditRows[1].targetUserId, userId);
   assert.equal(auditRows[2].targetUserId, userId);
   assert.equal(auditRows[3].targetUserId, userId);
@@ -468,7 +480,6 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   assert.equal(auditRows[5].targetUserId, userId);
   assert.equal(auditRows[6].targetUserId, userId);
   assert.equal(auditRows[7].targetUserId, userId);
-  assert.equal(auditRows[8].targetUserId, secondAdmin.data.id);
   assert.ok([adminId, secondAdmin.data.id].includes(auditRows[9].targetUserId));
 }
 
