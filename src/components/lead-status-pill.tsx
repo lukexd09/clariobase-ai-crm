@@ -12,6 +12,7 @@ import {
   type PackageFitValue
 } from "@/lib/lead-values";
 import { type ActivityTypeValue } from "@/lib/activity-values";
+import { Badge } from "@/components/clariobase-ui";
 import { cn } from "@/lib/utils";
 
 const variants: Record<string, string> = {
@@ -147,8 +148,16 @@ export function StatusPill({
     | OutreachChannelValue
     | ActivityTypeValue;
   className?: string;
-  appearance?: "default" | "light";
+  appearance?: "default" | "light" | "foundation";
 }) {
+  if (appearance === "foundation") {
+    return (
+      <Badge tone="neutral" className={cn("uppercase tracking-wide", className)}>
+        {value.replaceAll("_", " ")}
+      </Badge>
+    );
+  }
+
   const variantClassName =
     appearance === "light" ? lightVariants[value] ?? lightVariants.UNKNOWN : variants[value];
 

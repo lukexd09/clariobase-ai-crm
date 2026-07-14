@@ -4,6 +4,7 @@ import { LeadFilters } from "@/components/lead-filters";
 import { LeadPagination } from "@/components/lead-pagination";
 import { formatLeadResultSummary, normalizeLeadFilters } from "@/lib/lead-query";
 import { parseLeadPage } from "@/lib/lead-pagination";
+import { PageSurface } from "@/components/core-work-primitives";
 import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
@@ -28,20 +29,12 @@ export default async function LeadsPage({
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-sky-700">Lead CRM</p>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-              Leads
-            </h1>
-            <p className="text-sm leading-6 text-slate-600">
-              Filter the queue, confirm the current result window, and open any lead for deeper operator work.
-            </p>
-          </div>
-        </header>
-
+    <div className="space-y-4">
+      <PageSurface
+        eyebrow="Workspace"
+        title="Leads"
+        description="Filter the queue, confirm the current result window, and open any record for deeper operator work."
+      >
         <LeadTable
           leads={leadPage.leads}
           filterControls={
@@ -57,16 +50,16 @@ export default async function LeadsPage({
             />
           }
         />
+      </PageSurface>
 
-        <div className="mt-4">
-          <LeadPagination
-            pathname="/leads"
-            searchParams={params}
-            page={leadPage.page}
-            totalPages={leadPage.totalPages}
-          />
-        </div>
+      <div className="mt-4">
+        <LeadPagination
+          pathname="/leads"
+          searchParams={params}
+          page={leadPage.page}
+          totalPages={leadPage.totalPages}
+        />
       </div>
-    </main>
+    </div>
   );
 }

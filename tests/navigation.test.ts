@@ -15,6 +15,14 @@ test("navigation config keeps canonical production groups", () => {
     NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => item.href),
     ["/", "/work", "/leads", "/reports/sales", "/imports", "/duplicates", "/health"]
   );
+  assert.deepEqual(
+    NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => item.icon),
+    ["dashboard", "work", "leads", "sales", "imports", "duplicates", "health"]
+  );
+  assert.deepEqual(
+    NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => item.label),
+    ["Dashboard", "Daily work", "Leads", "Operations", "Imports", "Possible duplicates", "System status"]
+  );
   assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.label === "Support"));
   assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.label === "Settings"));
   assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.href.startsWith("/ux-prototype")));
@@ -30,28 +38,42 @@ test("navigation activity helper handles dashboard and nested routes", () => {
 
 test("app shell source uses semantic primary and compact navigation", () => {
   const shellSource = fs.readFileSync(path.join(repoRoot, "src", "components", "app-shell.tsx"), "utf8");
+  const accountChip = fs.readFileSync(path.join(repoRoot, "src", "components", "auth", "account-chip.tsx"), "utf8");
+  const signOutButton = fs.readFileSync(path.join(repoRoot, "src", "components", "auth", "sign-out-button.tsx"), "utf8");
 
-  assert.match(shellSource, /aria-label="Primary navigation"/);
-  assert.match(shellSource, /aria-label="Compact navigation"/);
-  assert.match(shellSource, /min-\[1100px\]:grid/);
-  assert.match(shellSource, /min-\[1100px\]:flex/);
-  assert.match(shellSource, /min-\[1100px\]:hidden/);
-  assert.match(shellSource, /clamp\(212px,14vw,236px\)/);
+  assert.match(shellSource, /min-\[1024px\]:grid-cols-\[240px_minmax\(0,1fr\)\]/);
+  assert.match(shellSource, /min-\[1024px\]:flex/);
+  assert.match(shellSource, /min-\[1024px\]:hidden/);
   assert.match(shellSource, /ClarioBase/);
+  assert.match(shellSource, /Creator workspace/);
   assert.match(shellSource, /Menu/);
-  assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
-  assert.match(shellSource, /focus-visible:ring-\[#006194\]/);
+  assert.match(shellSource, /SheetTrigger/);
+  assert.match(shellSource, /SheetContent/);
+  assert.match(shellSource, /SheetClose/);
   assert.match(shellSource, /AccountChip/);
-  assert.doesNotMatch(shellSource, /Notifications/);
-  assert.doesNotMatch(shellSource, /21 June 2026/);
-  assert.doesNotMatch(shellSource, /Single Operator CRM/);
-  assert.doesNotMatch(shellSource, /Current/);
-  assert.doesNotMatch(shellSource, /Keep the app check handy\./);
-  assert.doesNotMatch(shellSource, /Account menu coming soon\./);
-  assert.doesNotMatch(shellSource, /<details>/);
-  assert.doesNotMatch(shellSource, /<summary>/);
-  assert.doesNotMatch(shellSource, /▾/);
+  assert.match(shellSource, /aria-label="Close navigation"/);
+  assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
+  assert.match(shellSource, /aria-hidden="true"/);
+  assert.match(shellSource, /bg-\[color:var\(--cb-accent\)\]/);
+  assert.match(shellSource, /focus-visible:ring-\[color:var\(--cb-focus-ring\)\]/);
+  assert.doesNotMatch(shellSource, /--cb-ui-/);
+  assert.doesNotMatch(shellSource, /Łukasz Chmiel/);
+  assert.doesNotMatch(shellSource, /Operator/);
   assert.doesNotMatch(shellSource, /Support/);
   assert.doesNotMatch(shellSource, /Settings/);
-  assert.doesNotMatch(shellSource, /Overview Dashboard/);
+  assert.doesNotMatch(shellSource, /notifications/i);
+  assert.doesNotMatch(shellSource, /calendar/i);
+  assert.doesNotMatch(shellSource, /logout/i);
+  assert.doesNotMatch(shellSource, /account menu/i);
+  assert.doesNotMatch(shellSource, /<details>/);
+  assert.doesNotMatch(shellSource, /<summary>/);
+  assert.doesNotMatch(shellSource, /ProofShell/);
+  assert.doesNotMatch(shellSource, /pathname === "\/leads"/);
+  assert.doesNotMatch(shellSource, /<main className="min-h-screen/);
+  assert.match(accountChip, /authClient\.useSession\(\)/);
+  assert.match(accountChip, /SignOutButton/);
+  assert.match(accountChip, /router\.push\("\/sign-in"\)/);
+  assert.match(accountChip, /Sign in/);
+  assert.match(signOutButton, /authClient\.signOut/);
+  assert.match(signOutButton, /router\.push\("\/sign-in"\)/);
 });

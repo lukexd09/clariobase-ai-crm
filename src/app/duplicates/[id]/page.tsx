@@ -1,12 +1,12 @@
-import Link from "next/link";
 import { type ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { DuplicateCandidateStatus } from "@/generated/prisma/client";
 import { updateDuplicateCandidateAction } from "@/app/duplicates/actions";
-import { StatusPill } from "@/components/lead-status-pill";
-import { requireUser } from "@/lib/auth-context";
+import { Button, ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
+import { ConfidenceBadge, DataQualityPageHeader, DataQualityStatusBadge, TechnicalDisclosure } from "@/components/data-quality-primitives";
 import { getDuplicateCandidateById } from "@/lib/duplicates";
 import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
+import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,7 @@ function getConfidenceMeta(score: number) {
     return {
       label: "Very high confidence",
       detail: "Several fields point to the same business record.",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700"
+      tone: "success" as const
     };
   }
 
@@ -43,14 +43,14 @@ function getConfidenceMeta(score: number) {
     return {
       label: "High confidence",
       detail: "The records look closely related and usually need only a short verification.",
-      className: "border-sky-200 bg-sky-50 text-sky-700"
+      tone: "information" as const
     };
   }
 
   return {
     label: "Needs closer review",
     detail: "There is useful overlap, but a human should confirm the fields carefully.",
-    className: "border-amber-200 bg-amber-50 text-amber-700"
+    tone: "warning" as const
   };
 }
 
@@ -87,11 +87,11 @@ function renderReasons(reasons: unknown) {
         return (
           <li
             key={`${entry.signal ?? "reason"}-${index}`}
-            className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+            className="rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-3"
           >
-            <div className="text-sm font-medium text-slate-950">{entry.label ?? "Duplicate signal"}</div>
-            <div className="mt-1 break-words text-sm text-slate-700">{entry.value ?? "-"}</div>
-            <div className="mt-2 text-xs text-slate-500">Signal strength: {entry.score ?? "-"}</div>
+            <div className="text-sm font-medium text-[color:var(--cb-foreground)]">{entry.label ?? "Duplicate signal"}</div>
+            <div className="mt-1 break-words text-sm text-[color:var(--cb-muted-foreground)]">{entry.value ?? "-"}</div>
+            <div className="mt-2 text-xs text-[color:var(--cb-muted-foreground)]">Signal strength: {entry.score ?? "-"}</div>
           </li>
         );
       })}
@@ -101,14 +101,14 @@ function renderReasons(reasons: unknown) {
 
 function ComparisonLegend() {
   return (
-    <div className="flex flex-wrap gap-2 text-xs text-slate-600">
-      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
+    <div className="flex flex-wrap gap-2 text-xs text-[color:var(--cb-muted-foreground)]">
+      <span className="rounded-full border border-[color:var(--cb-success)]/25 bg-[color:var(--cb-success)]/10 px-2.5 py-1 text-[color:var(--cb-success-ink)]">
         Matching field
       </span>
-      <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-700">
+      <span className="rounded-full border border-[color:var(--cb-warning)]/25 bg-[color:var(--cb-warning)]/10 px-2.5 py-1 text-[color:var(--cb-warning-ink)]">
         Different field
       </span>
-      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700">
+      <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-2.5 py-1 text-[color:var(--cb-foreground)]">
         Missing on both records
       </span>
     </div>
@@ -123,9 +123,9 @@ function ComparisonCell({
   children: ReactNode;
 }) {
   const className = {
-    match: "border-emerald-200 bg-emerald-50 text-emerald-950",
-    difference: "border-amber-200 bg-amber-50 text-amber-950",
-    missing: "border-slate-200 bg-slate-50 text-slate-600"
+    match: "border-[color:var(--cb-success)]/25 bg-[color:var(--cb-success)]/10 text-[color:var(--cb-success-ink)]",
+    difference: "border-[color:var(--cb-warning)]/25 bg-[color:var(--cb-warning)]/10 text-[color:var(--cb-warning-ink)]",
+    missing: "border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] text-[color:var(--cb-muted-foreground)]"
   }[state];
 
   return (
@@ -153,8 +153,8 @@ function ComparisonRow({
   return (
     <tr className="align-top">
       <th scope="row" className="px-4 py-4 text-left">
-        <div className="text-sm font-medium text-slate-900">{label}</div>
-        <div className="mt-1 text-xs text-slate-500">{getComparisonNote(state)}</div>
+        <div className="text-sm font-medium text-[color:var(--cb-foreground)]">{label}</div>
+        <div className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">{getComparisonNote(state)}</div>
       </th>
       <ComparisonCell state={state}>{leftDisplay}</ComparisonCell>
       <ComparisonCell state={state}>{rightDisplay}</ComparisonCell>
@@ -165,7 +165,7 @@ function ComparisonRow({
 function ExternalLink({ href }: { href: string }) {
   return (
     <a
-      className="inline-flex break-all text-sky-700 underline decoration-sky-200 underline-offset-2 transition hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+      className="inline-flex break-all text-[color:var(--cb-information-ink)] underline decoration-[color:var(--cb-information)]/25 underline-offset-2 transition hover:text-[color:var(--cb-information-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
       href={href}
       target="_blank"
       rel="noreferrer"
@@ -188,31 +188,9 @@ function Field({
 }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-[0.3em] text-slate-500">{label}</dt>
-      <dd className="mt-2 break-words text-sm text-slate-900">{value}</dd>
+      <dt className="text-xs uppercase tracking-[0.3em] text-[color:var(--cb-muted-foreground)]">{label}</dt>
+      <dd className="mt-2 break-words text-sm text-[color:var(--cb-foreground)]">{value}</dd>
     </div>
-  );
-}
-
-function TechnicalDetails({
-  title,
-  lead
-}: {
-  title: string;
-  lead: NonNullable<Awaited<ReturnType<typeof getDuplicateCandidateById>>>["leadA"];
-}) {
-  return (
-    <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <summary className="cursor-pointer list-none text-sm font-medium text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-50">
-        {title}
-      </summary>
-      <dl className="mt-4 grid gap-4 md:grid-cols-2">
-        <Field label="Customer ID" value={lead.customerId} />
-        <Field label="Google Place ID" value={lead.googlePlaceId ?? "Not provided"} />
-        <Field label="Source" value={lead.source ?? "Not provided"} />
-        <Field label="Source record ID" value={lead.sourceRecordId ?? "Not provided"} />
-      </dl>
-    </details>
   );
 }
 
@@ -221,8 +199,8 @@ export default async function DuplicateCandidateDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser({ mode: "redirect", returnTo: "/duplicates" });
   const { id } = await params;
+  await requireUser({ mode: "redirect", returnTo: `/duplicates/${id}` });
   const candidate = await getDuplicateCandidateById(id);
 
   if (!candidate) notFound();
@@ -230,207 +208,140 @@ export default async function DuplicateCandidateDetailPage({
   const confidence = getConfidenceMeta(candidate.score);
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
-        <div className="mb-4">
-          <Link
-            href="/duplicates"
-            className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-          >
-            &larr; Back to duplicates
-          </Link>
-        </div>
+    <div className="space-y-4">
+      <ButtonLink href="/duplicates">&larr; Back to duplicates</ButtonLink>
 
-        <header className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5">
-          <p className="text-sm font-medium text-sky-700">Duplicate review</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-            {candidate.leadA.businessName} vs {candidate.leadB.businessName}
-          </h1>
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-            Compare the two records side by side, keep technical IDs secondary, and use the same
-            review states that already exist today.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${confidence.className}`}
-            >
-              {confidence.label}
-            </span>
-            <StatusPill value={candidate.status} appearance="light" />
-            <span className="font-medium text-slate-900">{DUPLICATE_STATUS_LABELS[candidate.status]}</span>
-            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
-              Score {candidate.score}
-            </span>
+      <DataQualityPageHeader
+        eyebrow="Duplicate review"
+        title={`${candidate.leadA.businessName} vs ${candidate.leadB.businessName}`}
+        description="Compare the two records side by side, keep technical IDs secondary, and use the same review states that already exist today."
+        meta={
+          <div className="flex flex-wrap items-center gap-2">
+            <ConfidenceBadge label={confidence.label} score={candidate.score} tone={confidence.tone} detail={confidence.detail} />
+            <DataQualityStatusBadge
+              label={DUPLICATE_STATUS_LABELS[candidate.status]}
+              tone={candidate.status === "OPEN" ? "information" : candidate.status === "NEEDS_REVIEW" ? "warning" : candidate.status === "DISMISSED" ? "neutral" : "success"}
+            />
           </div>
-          <p className="mt-2 text-sm text-slate-600">{confidence.detail}</p>
-        </header>
+        }
+      />
 
-        <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Duplicate reasons</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            These existing signals explain why the pair was surfaced. They do not change any scoring
-            or merge behavior.
-          </p>
-          <div className="mt-4">{renderReasons(candidate.reasons)}</div>
-        </section>
+      <section className="rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]">
+        <h2 className="text-lg font-semibold text-[color:var(--cb-foreground)]">Duplicate reasons</h2>
+        <p className="mt-2 text-sm text-[color:var(--cb-muted-foreground)]">
+          These existing signals explain why the pair was surfaced. They do not change any scoring or record resolution behavior.
+        </p>
+        <div className="mt-4">{renderReasons(candidate.reasons)}</div>
+      </section>
 
-        <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-950">Side-by-side comparison</h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <h2 className="text-lg font-semibold text-[color:var(--cb-foreground)]">Side-by-side comparison</h2>
+              <p className="mt-2 text-sm text-[color:var(--cb-muted-foreground)]">
                 Matching and differing values are highlighted so operators can scan the pair faster.
               </p>
-            </div>
-            <ComparisonLegend />
           </div>
-
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-[980px] divide-y divide-slate-200 text-sm">
-              <caption className="sr-only">Side-by-side comparison for the selected duplicate candidate.</caption>
-              <thead className="bg-slate-50 text-left text-[11px] font-semibold text-slate-500">
-                <tr>
-                  <th scope="col" className="px-4 py-3">Field</th>
-                  <th scope="col" className="px-4 py-3">{candidate.leadA.businessName}</th>
-                  <th scope="col" className="px-4 py-3">{candidate.leadB.businessName}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white">
-                <ComparisonRow
-                  label="Business name"
-                  leftValue={candidate.leadA.businessName}
-                  rightValue={candidate.leadB.businessName}
-                  leftDisplay={candidate.leadA.businessName}
-                  rightDisplay={candidate.leadB.businessName}
-                />
-                <ComparisonRow
-                  label="City"
-                  leftValue={candidate.leadA.city}
-                  rightValue={candidate.leadB.city}
-                  leftDisplay={candidate.leadA.city ?? "Not provided"}
-                  rightDisplay={candidate.leadB.city ?? "Not provided"}
-                />
-                <ComparisonRow
-                  label="Category"
-                  leftValue={candidate.leadA.category}
-                  rightValue={candidate.leadB.category}
-                  leftDisplay={candidate.leadA.category ?? "Not provided"}
-                  rightDisplay={candidate.leadB.category ?? "Not provided"}
-                />
-                <ComparisonRow
-                  label="Phone"
-                  leftValue={candidate.leadA.phone}
-                  rightValue={candidate.leadB.phone}
-                  leftDisplay={candidate.leadA.phone ?? "Not provided"}
-                  rightDisplay={candidate.leadB.phone ?? "Not provided"}
-                />
-                <ComparisonRow
-                  label="Email"
-                  leftValue={candidate.leadA.email}
-                  rightValue={candidate.leadB.email}
-                  leftDisplay={candidate.leadA.email ?? "Not provided"}
-                  rightDisplay={candidate.leadB.email ?? "Not provided"}
-                />
-                <ComparisonRow
-                  label="Website"
-                  leftValue={candidate.leadA.websiteUrl}
-                  rightValue={candidate.leadB.websiteUrl}
-                  leftDisplay={<LinkOrText href={candidate.leadA.websiteUrl} />}
-                  rightDisplay={<LinkOrText href={candidate.leadB.websiteUrl} />}
-                />
-                <ComparisonRow
-                  label="Instagram"
-                  leftValue={candidate.leadA.instagramUrl}
-                  rightValue={candidate.leadB.instagramUrl}
-                  leftDisplay={<LinkOrText href={candidate.leadA.instagramUrl} />}
-                  rightDisplay={<LinkOrText href={candidate.leadB.instagramUrl} />}
-                />
-                <ComparisonRow
-                  label="Facebook"
-                  leftValue={candidate.leadA.facebookUrl}
-                  rightValue={candidate.leadB.facebookUrl}
-                  leftDisplay={<LinkOrText href={candidate.leadA.facebookUrl} />}
-                  rightDisplay={<LinkOrText href={candidate.leadB.facebookUrl} />}
-                />
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href={`/leads/${candidate.leadA.id}`}
-              aria-label={`Open lead detail for ${candidate.leadA.businessName}`}
-              className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              Open lead detail for {candidate.leadA.businessName}
-            </Link>
-            <Link
-              href={`/leads/${candidate.leadB.id}`}
-              aria-label={`Open lead detail for ${candidate.leadB.businessName}`}
-              className="inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-            >
-              Open lead detail for {candidate.leadB.businessName}
-            </Link>
-          </div>
-        </section>
-
-        <div className="mb-4 grid gap-4 lg:grid-cols-2">
-          <TechnicalDetails title={`Technical details for ${candidate.leadA.businessName}`} lead={candidate.leadA} />
-          <TechnicalDetails title={`Technical details for ${candidate.leadB.businessName}`} lead={candidate.leadB} />
+          <ComparisonLegend />
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Review metadata</h2>
-          <dl className="mt-4 grid gap-4 md:grid-cols-3">
-            <Field
-              label="Candidate status"
-              value={
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusPill value={candidate.status} appearance="light" />
-                  <span>{DUPLICATE_STATUS_LABELS[candidate.status]}</span>
-                </div>
-              }
-            />
-            <Field label="Reviewed at" value={candidate.reviewedAt ? formatDate(candidate.reviewedAt) : "Not reviewed yet"} />
-            <Field label="Updated at" value={formatDate(candidate.updatedAt)} />
-          </dl>
-          {candidate.decisionNote ? (
-            <p className="mt-4 text-sm text-slate-600">{candidate.decisionNote}</p>
-          ) : null}
+        <TableSurface aria-label="Scrollable duplicate comparison table" className="mt-4">
+          <Table className="min-w-[980px]">
+            <caption className="sr-only">Side-by-side comparison for the selected duplicate candidate.</caption>
+            <TableHead>
+              <tr>
+                <TableHeadCell scope="col">Field</TableHeadCell>
+                <TableHeadCell scope="col">{candidate.leadA.businessName}</TableHeadCell>
+                <TableHeadCell scope="col">{candidate.leadB.businessName}</TableHeadCell>
+              </tr>
+            </TableHead>
+            <TableBody>
+              <ComparisonRow
+                label="Business name"
+                leftValue={candidate.leadA.businessName}
+                rightValue={candidate.leadB.businessName}
+                leftDisplay={candidate.leadA.businessName}
+                rightDisplay={candidate.leadB.businessName}
+              />
+              <ComparisonRow label="City" leftValue={candidate.leadA.city} rightValue={candidate.leadB.city} leftDisplay={candidate.leadA.city ?? "Not provided"} rightDisplay={candidate.leadB.city ?? "Not provided"} />
+              <ComparisonRow label="Category" leftValue={candidate.leadA.category} rightValue={candidate.leadB.category} leftDisplay={candidate.leadA.category ?? "Not provided"} rightDisplay={candidate.leadB.category ?? "Not provided"} />
+              <ComparisonRow label="Phone" leftValue={candidate.leadA.phone} rightValue={candidate.leadB.phone} leftDisplay={candidate.leadA.phone ?? "Not provided"} rightDisplay={candidate.leadB.phone ?? "Not provided"} />
+              <ComparisonRow label="Email" leftValue={candidate.leadA.email} rightValue={candidate.leadB.email} leftDisplay={candidate.leadA.email ?? "Not provided"} rightDisplay={candidate.leadB.email ?? "Not provided"} />
+              <ComparisonRow label="Website" leftValue={candidate.leadA.websiteUrl} rightValue={candidate.leadB.websiteUrl} leftDisplay={<LinkOrText href={candidate.leadA.websiteUrl} />} rightDisplay={<LinkOrText href={candidate.leadB.websiteUrl} />} />
+              <ComparisonRow label="Instagram" leftValue={candidate.leadA.instagramUrl} rightValue={candidate.leadB.instagramUrl} leftDisplay={<LinkOrText href={candidate.leadA.instagramUrl} />} rightDisplay={<LinkOrText href={candidate.leadB.instagramUrl} />} />
+              <ComparisonRow label="Facebook" leftValue={candidate.leadA.facebookUrl} rightValue={candidate.leadB.facebookUrl} leftDisplay={<LinkOrText href={candidate.leadA.facebookUrl} />} rightDisplay={<LinkOrText href={candidate.leadB.facebookUrl} />} />
+            </TableBody>
+          </Table>
+        </TableSurface>
 
-          <h3 className="mt-6 text-base font-semibold text-slate-950">Review action</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Keep the current status transitions, but choose the label that best describes the operator
-            intent for this pair.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.DISMISSED)}>
-              <button
-                type="submit"
-                className="whitespace-nowrap rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-              >
-                Keep both records separate
-              </button>
-            </form>
-            <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.NEEDS_REVIEW)}>
-              <button
-                type="submit"
-                className="whitespace-nowrap rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-              >
-                Flag for closer review
-              </button>
-            </form>
-            <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.RESOLVED)}>
-              <button
-                type="submit"
-                className="whitespace-nowrap rounded-xl bg-sky-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-              >
-                Mark review complete
-              </button>
-            </form>
-          </div>
-        </section>
+        <div className="mt-4 flex flex-wrap gap-3">
+            <ButtonLink href={`/leads/${candidate.leadA.id}`} aria-label={`Open lead detail for ${candidate.leadA.businessName}`}>
+              Open lead detail for {candidate.leadA.businessName}
+            </ButtonLink>
+            <ButtonLink href={`/leads/${candidate.leadB.id}`} aria-label={`Open lead detail for ${candidate.leadB.businessName}`}>
+              Open lead detail for {candidate.leadB.businessName}
+            </ButtonLink>
+        </div>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <TechnicalDisclosure title={`Technical details for ${candidate.leadA.businessName}`}>
+          <dl className="grid gap-4 md:grid-cols-2">
+            <Field label="Customer ID" value={candidate.leadA.customerId} />
+            <Field label="Google Place ID" value={candidate.leadA.googlePlaceId ?? "Not provided"} />
+            <Field label="Source" value={candidate.leadA.source ?? "Not provided"} />
+            <Field label="Source record ID" value={candidate.leadA.sourceRecordId ?? "Not provided"} />
+          </dl>
+        </TechnicalDisclosure>
+        <TechnicalDisclosure title={`Technical details for ${candidate.leadB.businessName}`}>
+          <dl className="grid gap-4 md:grid-cols-2">
+            <Field label="Customer ID" value={candidate.leadB.customerId} />
+            <Field label="Google Place ID" value={candidate.leadB.googlePlaceId ?? "Not provided"} />
+            <Field label="Source" value={candidate.leadB.source ?? "Not provided"} />
+            <Field label="Source record ID" value={candidate.leadB.sourceRecordId ?? "Not provided"} />
+          </dl>
+        </TechnicalDisclosure>
       </div>
-    </main>
+
+      <section className="rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]">
+        <h2 className="text-lg font-semibold text-[color:var(--cb-foreground)]">Review metadata</h2>
+        <dl className="mt-4 grid gap-4 md:grid-cols-3">
+          <Field
+            label="Candidate status"
+            value={
+              <DataQualityStatusBadge
+                label={DUPLICATE_STATUS_LABELS[candidate.status]}
+                tone={candidate.status === "OPEN" ? "information" : candidate.status === "NEEDS_REVIEW" ? "warning" : candidate.status === "DISMISSED" ? "neutral" : "success"}
+              />
+            }
+          />
+          <Field label="Reviewed at" value={candidate.reviewedAt ? formatDate(candidate.reviewedAt) : "Not reviewed yet"} />
+          <Field label="Updated at" value={formatDate(candidate.updatedAt)} />
+        </dl>
+        {candidate.decisionNote ? <p className="mt-4 text-sm text-[color:var(--cb-muted-foreground)]">Decision note: {candidate.decisionNote}</p> : null}
+
+        <h3 className="mt-6 text-base font-semibold text-[color:var(--cb-foreground)]">Review action</h3>
+        <p className="mt-2 text-sm leading-6 text-[color:var(--cb-muted-foreground)]">
+          Keep the current status transitions, but choose the label that best describes the operator intent for this pair.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.DISMISSED)}>
+            <Button type="submit" variant="secondary">
+              Keep both records separate
+            </Button>
+          </form>
+          <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.NEEDS_REVIEW)}>
+            <Button type="submit" variant="secondary">
+              Flag for closer review
+            </Button>
+          </form>
+          <form action={updateDuplicateCandidateAction.bind(null, candidate.id, DuplicateCandidateStatus.RESOLVED)}>
+            <Button type="submit" variant="primary">
+              Mark review complete
+            </Button>
+          </form>
+        </div>
+      </section>
+    </div>
   );
 }
