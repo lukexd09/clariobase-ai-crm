@@ -55,6 +55,9 @@ test("T013 proof owns exact-image identity, real auth restart, revocation, and c
   assert.match(proof, /e011-t013-security-scan\.ts/);
   assert.match(proof, /scripts\/e011-immutable-image\.ts/);
   assert.match(proof, /prove exact-image upgrade and rollback/);
+  const renderedRouteProof = read("tests/light-density-route-contracts.test.ts");
+  assert.match(renderedRouteProof, /CRM_AUTH_RUNTIME_MODE: "disposable-test"/g);
+  assert.match(renderedRouteProof, /CRM_ALLOW_INSECURE_AUTH_TESTS: "1"/g);
   const offlineBundle = read("scripts/e011-offline-bundle.ts");
   const offlineRestore = read("scripts/e011-offline-restore.ts");
   assert.match(offlineBundle, /pnpm-store\.tar\.gz/);
