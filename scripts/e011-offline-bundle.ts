@@ -4,7 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 
-import { createRuntimeArtifactName } from "./docker-test-support";
+import { createDockerRunId, createRuntimeArtifactName } from "./docker-test-support";
 
 const repoRoot = process.cwd();
 const baseImage = "node:24-bookworm-slim";
@@ -151,14 +151,14 @@ async function t013BundleMain() {
   const bundleRoot = path.join(repoRoot, ".codex-tmp", createRuntimeArtifactName("t013-offline-bundle"));
   const sourceDir = path.join(bundleRoot, "source");
   const rootContractDir = path.join(bundleRoot, "root-contract");
-  const storeDir = path.join(bundleRoot, "pnpm-store");
-  const fetchWorkspace = path.join(bundleRoot, "fetch-workspace");
+  const storeArchive = path.join(bundleRoot, "pnpm-store.tar.gz");
+  const storeVolume = createDockerRunId("t013-offline-store");
   const toolingDir = path.join(bundleRoot, "tooling");
   const retentionDir = path.join(bundleRoot, "source-retention");
   const imagesDir = path.join(bundleRoot, "images");
   await rm(bundleRoot, { recursive: true, force: true });
   pendingT013BundleRoot = bundleRoot;
-  for (const directory of [sourceDir, rootContractDir, storeDir, fetchWorkspace, toolingDir, retentionDir, imagesDir]) {
+  for (const directory of [sourceDir, rootContractDir, toolingDir, retentionDir, imagesDir]) {
     await mkdir(directory, { recursive: true });
   }
 
@@ -171,21 +171,30 @@ async function t013BundleMain() {
   await mkdir(path.join(rootContractDir, "config/private-https"), { recursive: true });
   await copyFile(path.join(repoRoot, "config/private-https/Caddyfile"), path.join(rootContractDir, "config/private-https/Caddyfile"));
 
-  await copyFile(path.join(repoRoot, "package.json"), path.join(fetchWorkspace, "package.json"));
-  await copyFile(path.join(repoRoot, "pnpm-lock.yaml"), path.join(fetchWorkspace, "pnpm-lock.yaml"));
-  const fetchResult = run("docker", [
-    "run", "--rm",
-    "-e", "CI=1",
-    "-e", "npm_config_registry=https://registry.npmjs.org/",
-    "-v", `${fetchWorkspace.replace(/\\/g, "/")}:/work`,
-    "-v", `${storeDir.replace(/\\/g, "/")}:/store`,
-    "-w", "/work",
-    t013NodeImage,
-    "bash", "-lc",
-    `corepack enable && corepack prepare pnpm@${pnpmVersion} --activate && pnpm fetch --frozen-lockfile --store-dir /store`
-  ]);
-  if (fetchResult.status !== 0) throw new Error("T013 root pnpm store preparation failed");
-  await rm(fetchWorkspace, { recursive: true, force: true });
+  await must("docker", ["volume", "create", storeVolume]);
+  try {
+    const fetchResult = run("docker", [
+      "run", "--rm",
+      "-e", "CI=1",
+      "-e", "npm_config_registry=https://registry.npmjs.org/",
+      "-v", `${repoRoot.replace(/\\/g, "/")}:/input:ro`,
+      "-v", `${storeVolume}:/store`,
+      t013NodeImage,
+      "bash", "-lc",
+      `mkdir -p /work && cp /input/package.json /input/pnpm-lock.yaml /work/ && cd /work && corepack enable && corepack prepare pnpm@${pnpmVersion} --activate && pnpm fetch --frozen-lockfile --store-dir /store`
+    ]);
+    if (fetchResult.status !== 0) throw new Error("T013 root pnpm store preparation failed");
+    await must("docker", [
+      "run", "--rm", "--network", "none",
+      "-v", `${storeVolume}:/store:ro`,
+      "-v", `${bundleRoot.replace(/\\/g, "/")}:/bundle`,
+      t013NodeImage,
+      "tar", "-czf", "/bundle/pnpm-store.tar.gz", "-C", "/store", "."
+    ]);
+    await stat(storeArchive);
+  } finally {
+    await must("docker", ["volume", "rm", "-f", storeVolume]);
+  }
 
   const pnpmTar = path.join(toolingDir, `pnpm-${pnpmVersion}.tgz`);
   await downloadTarball(`https://registry.npmjs.org/pnpm/-/pnpm-${pnpmVersion}.tgz`, pnpmTar);

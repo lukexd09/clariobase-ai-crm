@@ -98,6 +98,7 @@ async function t013RestoreMain() {
   const caPath = path.join(tmpRoot, "root.crt");
   const clientScript = path.join(tmpRoot, "offline-client.mjs");
   const sourceVolume = `${project}-source-work`;
+  const storeVolume = `${project}-pnpm-store`;
   const cleanup = createCleanupController("e011-offline-restore:t013");
   cleanup.installProcessHandlers();
   cleanup.addTask("application-image", () => {
@@ -107,6 +108,7 @@ async function t013RestoreMain() {
   cleanup.registerTempPath(tmpRoot);
   cleanup.registerDockerProject(project);
   cleanup.registerDockerVolume(sourceVolume);
+  cleanup.registerDockerVolume(storeVolume);
   fs.mkdirSync(sourceRoot, { recursive: true });
 
   let mainError: unknown;
@@ -131,6 +133,14 @@ async function t013RestoreMain() {
     }
 
     mustRun(runWith("docker", ["volume", "create", sourceVolume]), "create disposable offline source volume");
+    mustRun(runWith("docker", ["volume", "create", storeVolume]), "create disposable offline dependency-store volume");
+    mustRun(runWith("docker", [
+      "run", "--rm", "--network", "none",
+      "-v", `${resolvedBundle.replace(/\\/g, "/")}:/bundle:ro`,
+      "-v", `${storeVolume}:/store`,
+      manifest.nodeBaseImageId,
+      "tar", "-xzf", "/bundle/pnpm-store.tar.gz", "-C", "/store"
+    ]), "extract verified dependency store without network");
     mustRun(runWith("docker", [
       "run", "--rm", "--network", "none",
       "-v", `${sourceRoot.replace(/\\/g, "/")}:/source:ro`,
@@ -143,7 +153,7 @@ async function t013RestoreMain() {
       "run", "--rm", "--network", "none",
       "-e", "COREPACK_HOME=/empty-corepack", "-e", "npm_config_cache=/empty-npm-cache",
       "-v", `${sourceVolume}:/work`,
-      "-v", `${path.join(resolvedBundle, "pnpm-store").replace(/\\/g, "/")}:/store:ro`,
+      "-v", `${storeVolume}:/store:ro`,
       "-v", `${path.join(resolvedBundle, "tooling").replace(/\\/g, "/")}:/tooling:ro`,
       "-w", "/work", manifest.nodeBaseImageId,
       "bash", "-lc",

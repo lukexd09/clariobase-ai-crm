@@ -55,6 +55,13 @@ test("T013 proof owns exact-image identity, real auth restart, revocation, and c
   assert.match(proof, /e011-t013-security-scan\.ts/);
   assert.match(proof, /scripts\/e011-immutable-image\.ts/);
   assert.match(proof, /prove exact-image upgrade and rollback/);
+  const offlineBundle = read("scripts/e011-offline-bundle.ts");
+  const offlineRestore = read("scripts/e011-offline-restore.ts");
+  assert.match(offlineBundle, /pnpm-store\.tar\.gz/);
+  assert.match(offlineBundle, /pnpm fetch --frozen-lockfile --store-dir \/store/);
+  assert.match(offlineRestore, /extract verified dependency store without network/);
+  assert.match(offlineRestore, /--network", "none/);
+  assert.match(offlineRestore, /storeVolume}:+\/store:ro/);
   const offlineOverlay = read("compose.private-https.offline-proof.yaml");
   assert.match(offlineOverlay, /ports: !reset \[\]/);
   assert.match(offlineOverlay, /pull_policy: never/g);
