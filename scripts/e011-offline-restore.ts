@@ -54,6 +54,17 @@ function mustRun(result: ReturnType<typeof runWith>, phase: string) {
   return result.stdout.trim();
 }
 
+function safeFailureSummary(result: ReturnType<typeof runWith>) {
+  return `${result.stdout}\n${result.stderr}`
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /error|failed|cannot|unsupported|enoent|eacces|err_/i.test(line))
+    .slice(-4)
+    .join(" | ")
+    .replace(/postgresql:\/\/\S+/gi, "[redacted-database-url]")
+    .slice(0, 800);
+}
+
 async function sha256(filePath: string) {
   const hash = crypto.createHash("sha256");
   await new Promise<void>((resolve, reject) => {
@@ -157,9 +168,22 @@ async function t013RestoreMain() {
       "-v", `${path.join(resolvedBundle, "tooling").replace(/\\/g, "/")}:/tooling:ro`,
       "-w", "/work", manifest.nodeBaseImageId,
       "bash", "-lc",
-      "node /tooling/package/bin/pnpm.cjs install --offline --frozen-lockfile --store-dir /store && node ./node_modules/prisma/build/index.js generate"
+      "node /tooling/package/bin/pnpm.cjs install --offline --frozen-lockfile --store-dir /store"
     ]);
-    mustRun(offlineInstall, "network-disabled dependency restore and Prisma generation");
+    if (offlineInstall.status !== 0) {
+      const summary = safeFailureSummary(offlineInstall);
+      throw new Error(`network-disabled dependency restore failed with exit code ${offlineInstall.status ?? "unknown"}${summary ? `: ${summary}` : ""}`);
+    }
+    const prismaGenerate = runWith("docker", [
+      "run", "--rm", "--network", "none",
+      "-v", `${sourceVolume}:/work`,
+      "-w", "/work", manifest.nodeBaseImageId,
+      "node", "./node_modules/prisma/build/index.js", "generate"
+    ]);
+    if (prismaGenerate.status !== 0) {
+      const summary = safeFailureSummary(prismaGenerate);
+      throw new Error(`network-disabled Prisma generation failed with exit code ${prismaGenerate.status ?? "unknown"}${summary ? `: ${summary}` : ""}`);
+    }
 
     const hostname = `crm-offline-${crypto.randomBytes(6).toString("hex")}.home.arpa`;
     const postgresPassword = crypto.randomBytes(32).toString("base64url");
