@@ -15,6 +15,9 @@ function hasDocker() {
 test("Stop Preview declares a stop-only image placeholder", () => {
   const lines = fs.readFileSync(stopEnvFilePath, "utf8").split(/\r?\n/);
   assert.ok(lines.includes(`CRM_PREVIEW_IMAGE_REF=${stopOnlyImageRef}`));
+  assert.ok(lines.includes("CRM_AUTH_RUNTIME_MODE=localhost-dev"));
+  assert.ok(lines.includes("BETTER_AUTH_URL=http://127.0.0.1:3000"));
+  assert.ok(lines.includes("BETTER_AUTH_SECRET=unused-for-stop-only-compose-interpolation"));
 });
 
 test("Stop Preview compose config resolves without an inherited image ref", { skip: !hasDocker() }, () => {
