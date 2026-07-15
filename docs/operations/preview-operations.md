@@ -79,14 +79,24 @@ Preview Release is intentional and manual. A successful Fast CI run does not sta
 Run it from the repository default branch with:
 
 ```powershell
-gh workflow run preview-release.yml -f pr_number=112
+gh workflow run preview-release.yml -f source_mode=open_pr -f pr_number=112
 ```
 
 To require a specific current head SHA:
 
 ```powershell
 gh workflow run preview-release.yml `
+  -f source_mode=open_pr `
   -f pr_number=112 `
+  -f expected_sha=0123456789abcdef0123456789abcdef01234567
+```
+
+To rehearse a trusted post-merge commit from `main`:
+
+```powershell
+gh workflow run preview-release.yml `
+  -f source_mode=main `
+  -f pr_number= `
   -f expected_sha=0123456789abcdef0123456789abcdef01234567
 ```
 
@@ -96,15 +106,19 @@ The workflow must be dispatched from `main`. It rejects a workflow run selected 
 
 The resolver loaded from trusted workflow code must prove all of the following before image build begins:
 
-1. `pr_number` is a valid positive integer;
-2. the pull request exists and is open;
-3. the PR head belongs to `lukexd09/clariobase-ai-crm`;
-4. the current PR head is a full exact commit SHA;
-5. optional `expected_sha` matches that current head;
-6. the PR does not change protected preview control-plane files that must first be reviewed and merged to `main`;
-7. a completed successful `CI` run exists for the exact current head SHA;
-8. that exact CI run contains a non-expired `auto-preview-context` artifact;
-9. the artifact repository, PR number, branch, SHA and workflow run ID match the live PR and selected CI run.
+1. `source_mode=open_pr` requires a valid positive integer `pr_number`;
+2. `source_mode=open_pr` requires the pull request to exist and be open;
+3. `source_mode=open_pr` requires the PR head to belong to `lukexd09/clariobase-ai-crm`;
+4. `source_mode=open_pr` requires the current PR head to be a full exact commit SHA;
+5. optional `expected_sha` must match that current head;
+6. the PR must not change protected preview control-plane files that must first be reviewed and merged to `main`;
+7. a completed successful `CI` run must exist for the exact current head SHA;
+8. that exact CI run must contain a non-expired `auto-preview-context` artifact;
+9. the artifact repository, PR number, branch, SHA and workflow run ID must match the live PR and selected CI run;
+10. `source_mode=main` requires an empty `pr_number`;
+11. `source_mode=main` requires `expected_sha`, when present, to match the exact trusted `main` SHA;
+12. `source_mode=main` requires a completed successful `Full Integration` run for that exact SHA from a push to `main`;
+13. `source_mode=main` must not use the PR-only `auto-preview-context` artifact or PR comment APIs.
 
 A green CI run for an older SHA is not eligible. Push a new commit or rerun Fast CI for the current PR head before requesting Preview Release.
 
@@ -240,6 +254,7 @@ One comment identified by `<!-- clariobase-preview-status -->` is updated throug
 
 Each status contains:
 
+- source mode;
 - PR number;
 - exact commit;
 - branch;
@@ -316,3 +331,23 @@ docker network prune
 ```
 
 Production state is not an eligibility dependency. Safety comes from exact identities, isolated preview resources and narrowly scoped cleanup.
+
+## Post-merge validation
+
+After the trusted preview control-plane changes are merged to `main`, perform a manual rehearsal with `source_mode=main`:
+
+1. confirm the `main` workflow dispatch uses the exact trusted SHA selected from `main`;
+2. confirm the release passes only after the corresponding successful Full Integration run exists for that SHA;
+3. confirm the summary shows `source_mode=main`, the exact SHA, database mode, image identity and deployment result;
+4. confirm no PR comment API call occurs in `main` mode;
+5. confirm the deployed preview still reports readiness at `http://127.0.0.1:3001/api/ready`.
+
+Use `source_mode=open_pr` for ordinary pre-merge preview testing and `source_mode=main` for the post-merge rehearsal of trusted control-plane changes.
+
+## Application environment marker
+
+The app itself shows a watermark-only `TEST` overlay whenever `CRM_DEPLOYMENT_ENV` is not the exact literal `production`. The overlay is decorative, `aria-hidden`, `pointer-events: none`, and intentionally subtle enough to remain usable at normal zoom and 200% zoom.
+
+Preview operators should assume the repeated `TEST` marks will be visible in preview and other non-production runtimes, while exact raw `production` suppresses the overlay entirely.
+Production deployments must explicitly set `CRM_DEPLOYMENT_ENV=production`.
+The marker contract is server-side runtime configuration and must not use `NEXT_PUBLIC_*`.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ButtonLink } from "@/components/clariobase-ui";
 import { buildLeadUrl, type LeadSearchParamsInput } from "@/lib/lead-query";
 import { getLeadPaginationItems } from "@/lib/lead-pagination";
 
@@ -18,28 +19,19 @@ export function LeadPagination({
   const nextPage = page < totalPages ? page + 1 : null;
 
   return (
-    <nav
-      aria-label="Lead pagination"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-    >
-      <p className="text-sm text-slate-600">
-        Page <span className="tabular-nums font-medium text-slate-900">{page}</span> of{" "}
-        <span className="tabular-nums font-medium text-slate-900">{totalPages}</span>
+    <nav aria-label="Lead pagination" className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-3">
+      <p className="text-sm text-[color:var(--cb-muted-foreground)]">
+        Page <span className="tabular-nums font-medium text-[color:var(--cb-foreground)]">{page}</span> of{" "}
+        <span className="tabular-nums font-medium text-[color:var(--cb-foreground)]">{totalPages}</span>
       </p>
 
       <div className="flex flex-wrap items-center gap-1">
         {previousPage ? (
-          <Link
-            href={buildLeadUrl(pathname, searchParams, { page: previousPage })}
-            className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-          >
+          <ButtonLink href={buildLeadUrl(pathname, searchParams, { page: previousPage })} variant="secondary" className="min-h-9 px-3 py-1.5">
             Previous
-          </Link>
+          </ButtonLink>
         ) : (
-          <span
-            aria-disabled="true"
-            className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-400"
-          >
+          <span aria-disabled="true" className="inline-flex min-h-9 items-center rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 text-sm font-medium text-[color:var(--cb-muted-foreground)]">
             Previous
           </span>
         )}
@@ -50,7 +42,7 @@ export function LeadPagination({
               <span
                 key={item.page}
                 aria-current="page"
-                className="inline-flex h-9 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-semibold text-sky-800"
+                className="inline-flex min-h-9 items-center rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 text-sm font-semibold text-[color:var(--cb-foreground)]"
               >
                 {item.page}
               </span>
@@ -58,30 +50,24 @@ export function LeadPagination({
               <Link
                 key={item.page}
                 href={buildLeadUrl(pathname, searchParams, { page: item.page })}
-                className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                className="inline-flex min-h-9 items-center rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 text-sm font-medium text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)]/35 hover:bg-[color:var(--cb-surface)] hover:text-[color:var(--cb-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
               >
                 {item.page}
               </Link>
             )
           ) : (
-            <span key={item.key} className="px-1 text-sm text-slate-400">
+            <span key={item.key} className="px-1 text-sm text-[color:var(--cb-muted-foreground)]">
               ...
             </span>
           )
         )}
 
         {nextPage ? (
-          <Link
-            href={buildLeadUrl(pathname, searchParams, { page: nextPage })}
-            className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-          >
+          <ButtonLink href={buildLeadUrl(pathname, searchParams, { page: nextPage })} variant="secondary" className="min-h-9 px-3 py-1.5">
             Next
-          </Link>
+          </ButtonLink>
         ) : (
-          <span
-            aria-disabled="true"
-            className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-400"
-          >
+          <span aria-disabled="true" className="inline-flex min-h-9 items-center rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 text-sm font-medium text-[color:var(--cb-muted-foreground)]">
             Next
           </span>
         )}

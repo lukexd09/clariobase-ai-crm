@@ -6,9 +6,7 @@ import { saveOfferDraftAction } from "@/app/leads/offer-draft-actions";
 import { StatusPill } from "@/components/lead-status-pill";
 import {
   OFFER_DRAFT_STATUS_VALUES,
-  PACKAGE_FIT_VALUES,
   type OfferDraftStatusValue,
-  type PackageFitValue
 } from "@/lib/lead-values";
 import type { OfferDraftClientRecord } from "@/lib/offer-drafts";
 
@@ -23,7 +21,7 @@ const initialState: DraftState = {
 };
 
 const fieldInputClassName =
-  "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
+  "w-full rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-3 text-sm text-[color:var(--cb-foreground)] outline-none transition placeholder:text-[color:var(--cb-muted-foreground)] focus-visible:border-[color:var(--cb-accent)] focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]";
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -32,7 +30,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-full bg-sky-700 px-4 py-2 font-semibold text-white transition hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+      className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? "Saving..." : children}
     </button>
@@ -76,30 +74,30 @@ function OfferDraftEditor({
     <form
       action={formAction}
       aria-describedby={state.message ? feedbackId : undefined}
-      className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+      className="space-y-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-medium text-slate-950">
-            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create offer draft"}
+          <h3 className="text-base font-medium text-[color:var(--cb-foreground)]">
+            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create draft"}
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
-            {draft ? "Update the existing offer draft below." : "Create the first commercial offer draft for this lead."}
+          <p className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">
+            {draft ? "Update the existing draft below." : "Create the first draft for this lead."}
           </p>
         </div>
         {draft ? (
           <div className="flex flex-wrap gap-2">
             <StatusPill value={draft.status as OfferDraftStatusValue} appearance="light" />
-            <StatusPill value={draft.packageFit as PackageFitValue} appearance="light" />
           </div>
         ) : (
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700">
+          <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
             New draft
           </span>
         )}
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
+      <input type="hidden" name="packageFit" value={draft?.packageFit ?? "UNKNOWN"} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <DraftField
@@ -116,29 +114,12 @@ function OfferDraftEditor({
           hint="Set the current stage for this offer draft."
         />
         <DraftField
-          label="Package fit"
-          control={
-            <select
-              name="packageFit"
-              defaultValue={draft?.packageFit ?? "UNKNOWN"}
-              className={fieldInputClassName}
-            >
-              {PACKAGE_FIT_VALUES.map((value) => (
-                <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
-          }
-          hint="Record the package this offer currently targets."
-        />
-        <DraftField
           label="Title"
           control={<input name="title" defaultValue={draft?.title ?? ""} className={fieldInputClassName} />}
           hint="Required offer title."
         />
         <DraftField
-          label="Price net"
+          label="Price"
           control={
             <input
               name="priceNet"
@@ -157,7 +138,7 @@ function OfferDraftEditor({
           hint="Defaults to PLN."
         />
         <DraftField
-          label="Valid until"
+          label="Expires"
           control={
             <input
               name="validUntil"
@@ -255,7 +236,7 @@ function OfferDraftEditor({
       </div>
 
       <div className="flex items-center gap-4">
-        <SubmitButton>{draft ? "Save offer draft" : "Create offer draft"}</SubmitButton>
+        <SubmitButton>{draft ? "Save draft" : "Create draft"}</SubmitButton>
         {state.message ? (
           <p
             id={feedbackId}
@@ -282,11 +263,11 @@ function DraftField({
 }) {
   return (
     <label className="space-y-2 md:col-span-1">
-      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-slate-600">
+      <span className="block text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--cb-muted-foreground)]">
         {label}
       </span>
       {control}
-      <span className="block text-xs leading-5 text-slate-500">{hint}</span>
+      <span className="block text-xs leading-5 text-[color:var(--cb-muted-foreground)]">{hint}</span>
     </label>
   );
 }

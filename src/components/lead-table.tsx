@@ -1,19 +1,10 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { type Lead } from "@/generated/prisma/client";
 import { StatusPill } from "@/components/lead-status-pill";
+import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
 
-type LeadListItem = Pick<
-  Lead,
-  | "id"
-  | "businessName"
-  | "city"
-  | "category"
-  | "leadStatus"
-  | "priority"
-  | "packageFit"
-  | "scoreTotal"
-  | "nextActionAt"
->;
+type LeadListItem = Pick<Lead, "id" | "businessName" | "city" | "category" | "leadStatus" | "priority" | "packageFit" | "scoreTotal" | "nextActionAt">;
 
 function formatDate(value: Date | null) {
   return value ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(value) : "-";
@@ -24,71 +15,65 @@ export function LeadTable({
   filterControls
 }: {
   leads: LeadListItem[];
-  filterControls: React.ReactNode;
+  filterControls: ReactNode;
 }) {
   return (
     <div className="space-y-4">
       {filterControls}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <caption className="sr-only">Lead records matching the current filters</caption>
-            <thead className="bg-slate-50">
-              <tr className="text-left text-[11px] font-semibold text-slate-500">
-                <th scope="col" className="px-4 py-3">Business</th>
-                <th scope="col" className="px-4 py-3">City</th>
-                <th scope="col" className="px-4 py-3">Category</th>
-                <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3">Priority</th>
-                <th scope="col" className="px-4 py-3">Package</th>
-                <th scope="col" className="px-4 py-3">Score</th>
-                <th scope="col" className="px-4 py-3">Next action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {leads.map((lead) => (
-                <tr key={lead.id} className="transition hover:bg-slate-50">
-                  <td className="px-4 py-3 align-top">
-                    <Link
-                      href={`/leads/${lead.id}`}
-                      className="font-semibold text-slate-900 transition hover:text-sky-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                    >
-                      {lead.businessName}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 align-top text-slate-600">{lead.city ?? "-"}</td>
-                  <td className="px-4 py-3 align-top text-slate-600">{lead.category ?? "-"}</td>
-                  <td className="px-4 py-3 align-top">
-                    <StatusPill value={lead.leadStatus} appearance="light" />
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <StatusPill value={lead.priority} appearance="light" />
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <StatusPill value={lead.packageFit} appearance="light" />
-                  </td>
-                  <td className="px-4 py-3 align-top tabular-nums text-slate-700">
-                    <div className="space-y-1">
-                      <p className="font-medium tabular-nums text-slate-900">{lead.scoreTotal}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top tabular-nums text-slate-600">
-                    {formatDate(lead.nextActionAt)}
-                  </td>
-                </tr>
-              ))}
-              {leads.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={8}>
-                    No leads match the current filters.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <TableSurface aria-label="Lead records table">
+        <Table>
+          <caption className="sr-only">Records matching the current filters</caption>
+          <TableHead>
+            <tr>
+              <TableHeadCell scope="col">Business</TableHeadCell>
+              <TableHeadCell scope="col">City</TableHeadCell>
+              <TableHeadCell scope="col">Category</TableHeadCell>
+              <TableHeadCell scope="col">Status</TableHeadCell>
+              <TableHeadCell scope="col">Priority</TableHeadCell>
+              <TableHeadCell scope="col">Match</TableHeadCell>
+              <TableHeadCell scope="col">Score</TableHeadCell>
+              <TableHeadCell scope="col">Next task</TableHeadCell>
+            </tr>
+          </TableHead>
+          <TableBody>
+            {leads.map((lead) => (
+              <TableRow key={lead.id}>
+                <TableCell>
+                  <Link
+                    href={`/leads/${lead.id}`}
+                    className="font-semibold text-[color:var(--cb-foreground)] transition hover:text-[color:var(--cb-accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
+                  >
+                    {lead.businessName}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-[color:var(--cb-muted-foreground)]">{lead.city ?? "-"}</TableCell>
+                <TableCell className="text-[color:var(--cb-muted-foreground)]">{lead.category ?? "-"}</TableCell>
+                <TableCell>
+                  <StatusPill value={lead.leadStatus} appearance="foundation" />
+                </TableCell>
+                <TableCell>
+                  <StatusPill value={lead.priority} appearance="foundation" />
+                </TableCell>
+                <TableCell>
+                  <StatusPill value={lead.packageFit} appearance="foundation" />
+                </TableCell>
+                <TableCell className="tabular-nums">
+                  <p className="font-medium tabular-nums text-[color:var(--cb-foreground)]">{lead.scoreTotal}</p>
+                </TableCell>
+                <TableCell className="tabular-nums text-[color:var(--cb-muted-foreground)]">{formatDate(lead.nextActionAt)}</TableCell>
+              </TableRow>
+            ))}
+            {leads.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="py-8 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
+                  No records match the current filters.
+                </TableCell>
+              </TableRow>
+            ) : null}
+          </TableBody>
+        </Table>
+      </TableSurface>
     </div>
   );
 }

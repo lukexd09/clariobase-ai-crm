@@ -180,3 +180,9 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Install Chromium
+        run: pnpm exec playwright install chromium
+
+      - name: Playwright dashboard area
+        run: pnpm test:e2e:area dashboard

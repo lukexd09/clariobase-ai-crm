@@ -70,8 +70,10 @@ async function main() {
   const accessContext = await getAccessContext();
   assert.equal(accessContext, null);
 
+  const authSource = readFileSync("src/lib/auth.ts", "utf8");
+  assert(authSource.includes("createAppAuth()"));
+
   const authContextSource = readFileSync("src/lib/auth-context.ts", "utf8");
-  assert(authContextSource.includes("createAppAuth()"));
   assert(authContextSource.includes("auth.api.getSession"));
   assert(authContextSource.includes("organizationId: null"));
   assert(authContextSource.includes("workspaceId: null"));

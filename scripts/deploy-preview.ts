@@ -24,6 +24,7 @@ type Options = {
   dryRun: boolean;
   controlCheckoutPath: string | undefined;
   sourceCheckoutPath: string | undefined;
+  sourceMode: "open_pr" | "main" | "unknown";
   previewEnvFile: string | undefined;
   requestedRef: string;
   resolvedSha: string | undefined;
@@ -37,6 +38,7 @@ function parseArgs(argv: string[]): Options {
     dryRun: false,
     controlCheckoutPath: undefined,
     sourceCheckoutPath: undefined,
+    sourceMode: "unknown",
     previewEnvFile: undefined,
     requestedRef: "",
     resolvedSha: undefined,
@@ -67,6 +69,12 @@ function parseArgs(argv: string[]): Options {
 
     if (token === "--source-checkout-path") {
       parsed.sourceCheckoutPath = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (token === "--source-mode") {
+      parsed.sourceMode = (argv[index + 1] as Options["sourceMode"]) ?? "unknown";
       index += 1;
       continue;
     }
@@ -106,6 +114,10 @@ function parseArgs(argv: string[]): Options {
 
   if (!Number.isFinite(parsed.timeoutSeconds) || parsed.timeoutSeconds <= 0) {
     throw new Error(`Timeout seconds must be a positive number, got: ${parsed.timeoutSeconds}`);
+  }
+
+  if (!["open_pr", "main", "unknown"].includes(parsed.sourceMode)) {
+    throw new Error(`Source mode must be one of: open_pr, main, unknown`);
   }
 
   return parsed;
@@ -164,7 +176,7 @@ async function main() {
   }
 
   const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath, runtimeConfig.previewImageRef, databaseMode);
-  const summary = { ...createPreviewSummary(options.requestedRef, resolvedSha), databaseMode };
+  const summary = { ...createPreviewSummary(options.requestedRef, resolvedSha, options.sourceMode), databaseMode };
 
   fs.mkdirSync(runtimeConfig.previewAiExchangeAbsolutePath, { recursive: true });
 
@@ -182,6 +194,7 @@ async function main() {
           sourceCheckoutPath: explicitSourceCheckoutPath,
           sourceHeadSha,
           sourceCheckoutProvided: Boolean(explicitSourceCheckoutPath),
+          sourceMode: options.sourceMode,
           resolvedSha,
           previewVolumeName: PREVIEW_VOLUME_NAME,
           previewNetworkName: PREVIEW_NETWORK_NAME,
