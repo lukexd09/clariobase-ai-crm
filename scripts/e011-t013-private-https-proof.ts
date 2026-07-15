@@ -444,7 +444,13 @@ async function main() {
     "--t013",
     offlineBundleRoot
   ], { T013_DISPOSABLE_BUNDLE: "1" });
-  assertSuccess(offlineRestore, "restore source, dependencies, images, database, and HTTPS runtime offline");
+  if (offlineRestore.status !== 0) {
+    const safeError = offlineRestore.stderr
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.startsWith("Error:"));
+    throw new Error(`restore source, dependencies, images, database, and HTTPS runtime offline failed${safeError ? `: ${safeError}` : ""}`);
+  }
   const offlineEvidence = JSON.parse(offlineRestore.stdout.trim()) as {
     result: string;
     manifestSha256: string;

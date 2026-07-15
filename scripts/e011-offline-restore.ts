@@ -97,6 +97,7 @@ async function t013RestoreMain() {
   const envPath = path.join(tmpRoot, "offline.env");
   const caPath = path.join(tmpRoot, "root.crt");
   const clientScript = path.join(tmpRoot, "offline-client.mjs");
+  const sourceVolume = `${project}-source-work`;
   const cleanup = createCleanupController("e011-offline-restore:t013");
   cleanup.installProcessHandlers();
   cleanup.addTask("application-image", () => {
@@ -105,6 +106,7 @@ async function t013RestoreMain() {
   cleanup.registerTempPath(resolvedBundle);
   cleanup.registerTempPath(tmpRoot);
   cleanup.registerDockerProject(project);
+  cleanup.registerDockerVolume(sourceVolume);
   fs.mkdirSync(sourceRoot, { recursive: true });
 
   let mainError: unknown;
@@ -128,10 +130,19 @@ async function t013RestoreMain() {
       if (restoredId !== imageId) throw new Error(`Restored ${label} image identity mismatch`);
     }
 
+    mustRun(runWith("docker", ["volume", "create", sourceVolume]), "create disposable offline source volume");
+    mustRun(runWith("docker", [
+      "run", "--rm", "--network", "none",
+      "-v", `${sourceRoot.replace(/\\/g, "/")}:/source:ro`,
+      "-v", `${sourceVolume}:/work`,
+      manifest.nodeBaseImageId,
+      "bash", "-lc", "cp -a /source/. /work/"
+    ]), "copy exact source into isolated Linux volume");
+
     const offlineInstall = runWith("docker", [
       "run", "--rm", "--network", "none",
       "-e", "COREPACK_HOME=/empty-corepack", "-e", "npm_config_cache=/empty-npm-cache",
-      "-v", `${sourceRoot.replace(/\\/g, "/")}:/work`,
+      "-v", `${sourceVolume}:/work`,
       "-v", `${path.join(resolvedBundle, "pnpm-store").replace(/\\/g, "/")}:/store:ro`,
       "-v", `${path.join(resolvedBundle, "tooling").replace(/\\/g, "/")}:/tooling:ro`,
       "-w", "/work", manifest.nodeBaseImageId,
@@ -232,6 +243,10 @@ async function t013RestoreMain() {
   }
 
   const cleanupReport = cleanup.cleanup(mainError ? "failed offline proof" : "successful offline proof");
+  if (mainError && cleanupReport.failures.length > 0) {
+    const message = mainError instanceof Error ? mainError.message : String(mainError);
+    throw new Error(`${message}\n${formatCleanupFailures(cleanupReport.failures)}`);
+  }
   if (mainError) throw mainError;
   if (cleanupReport.failures.length > 0) throw new Error(formatCleanupFailures(cleanupReport.failures));
 }
