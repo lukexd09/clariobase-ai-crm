@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import path from "node:path";
 import process from "node:process";
 import { resolveE2ERuntimeContract, resolvePlaywrightBaseUrl } from "./scripts/e2e-guard";
 
@@ -18,7 +19,7 @@ export default defineConfig({
     video: "retain-on-failure"
   },
   webServer: {
-    command: `${JSON.stringify(process.execPath)} --import tsx scripts/dev-e2e-server.ts`,
+    command: `${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs"))} scripts/dev-e2e-server.ts`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000
