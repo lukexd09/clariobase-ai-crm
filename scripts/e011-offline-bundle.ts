@@ -17,6 +17,7 @@ const t013Mode = process.argv[2] === "--t013";
 const t013IngressImage = "caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d";
 const t013PostgresImage = "postgres:16@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54";
 const t013NodeImage = `${baseImage}@${baseDigest}`;
+let pendingT013BundleRoot: string | undefined;
 
 function run(command: string, args: string[], opts: { cwd?: string; env?: Record<string, string>; input?: string } = {}) {
   const result = spawnSync(command, args, {
@@ -151,11 +152,13 @@ async function t013BundleMain() {
   const sourceDir = path.join(bundleRoot, "source");
   const rootContractDir = path.join(bundleRoot, "root-contract");
   const storeDir = path.join(bundleRoot, "pnpm-store");
+  const fetchWorkspace = path.join(bundleRoot, "fetch-workspace");
   const toolingDir = path.join(bundleRoot, "tooling");
   const retentionDir = path.join(bundleRoot, "source-retention");
   const imagesDir = path.join(bundleRoot, "images");
   await rm(bundleRoot, { recursive: true, force: true });
-  for (const directory of [sourceDir, rootContractDir, storeDir, toolingDir, retentionDir, imagesDir]) {
+  pendingT013BundleRoot = bundleRoot;
+  for (const directory of [sourceDir, rootContractDir, storeDir, fetchWorkspace, toolingDir, retentionDir, imagesDir]) {
     await mkdir(directory, { recursive: true });
   }
 
@@ -168,10 +171,14 @@ async function t013BundleMain() {
   await mkdir(path.join(rootContractDir, "config/private-https"), { recursive: true });
   await copyFile(path.join(repoRoot, "config/private-https/Caddyfile"), path.join(rootContractDir, "config/private-https/Caddyfile"));
 
+  await copyFile(path.join(repoRoot, "package.json"), path.join(fetchWorkspace, "package.json"));
+  await copyFile(path.join(repoRoot, "pnpm-lock.yaml"), path.join(fetchWorkspace, "pnpm-lock.yaml"));
   const fetchResult = run("corepack", ["pnpm", "fetch", "--frozen-lockfile", "--store-dir", storeDir], {
+    cwd: fetchWorkspace,
     env: { npm_config_registry: "https://registry.npmjs.org/" }
   });
   if (fetchResult.status !== 0) throw new Error("T013 root pnpm store preparation failed");
+  await rm(fetchWorkspace, { recursive: true, force: true });
 
   const pnpmTar = path.join(toolingDir, `pnpm-${pnpmVersion}.tgz`);
   await downloadTarball(`https://registry.npmjs.org/pnpm/-/pnpm-${pnpmVersion}.tgz`, pnpmTar);
@@ -244,7 +251,12 @@ async function t013BundleMain() {
 
 async function main() {
   if (t013Mode) {
-    await t013BundleMain();
+    try {
+      await t013BundleMain();
+    } catch (error) {
+      if (pendingT013BundleRoot) await rm(pendingT013BundleRoot, { recursive: true, force: true });
+      throw error;
+    }
     return;
   }
   const bundleRoot = path.join(repoRoot, ".codex-tmp", `e011-offline-bundle-${Date.now()}`);
