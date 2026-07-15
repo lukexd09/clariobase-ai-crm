@@ -1,0 +1,11 @@
+services:
+  crm-postgres:
+    pull_policy: never
+
+  crm-private-ingress:
+    pull_policy: never
+    ports: !reset []
+    networks: !override
+      crm-edge:
+        aliases:
+          - ${CRM_PRIVATE_HOSTNAME:?Set_CRM_PRIVATE_HOSTNAME}

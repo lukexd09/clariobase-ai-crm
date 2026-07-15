@@ -36,9 +36,13 @@ test("Backup and restore verification script exercises disposable logical recove
   assert.match(verifierScript, /cleanup\.registerTempPath\(tmpRoot\)/);
   assert.match(verifierScript, /const project = createDockerRunId\("backup-restore"\)/);
   assert.match(verifierScript, /pg_dump -U .*POSTGRES_USER.*POSTGRES_DB/);
-  assert.match(verifierScript, /dropdb -U .*db_user.*--force --if-exists .*db_name/);
-  assert.match(verifierScript, /TRUNCATE TABLE leads CASCADE;/);
+  assert.match(verifierScript, /down", "-v", "--remove-orphans/);
+  assert.match(verifierScript, /start fresh disposable restore target/);
   assert.match(verifierScript, /SELECT business_name FROM leads ORDER BY business_name/);
+  assert.match(verifierScript, /activeSessionRestored: true/);
+  assert.match(verifierScript, /revokedSessionRemainedRevoked: true/);
+  assert.match(verifierScript, /backupSha256/);
+  assert.match(verifierScript, /admin_audit_events/);
   assert.match(verifierScript, /reportVerificationStatus\("PASS", `docker:test-backup-restore completed/);
 
   assert.match(operationsRunbook, /corepack pnpm docker:test-backup-restore/);
