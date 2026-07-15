@@ -176,6 +176,7 @@ async function t013RestoreMain() {
     }
     const prismaGenerate = runWith("docker", [
       "run", "--rm", "--network", "none",
+      "-e", "DATABASE_URL=postgresql://offline:offline@127.0.0.1:5432/offline?schema=public",
       "-v", `${sourceVolume}:/work`,
       "-w", "/work", manifest.nodeBaseImageId,
       "node", "./node_modules/prisma/build/index.js", "generate"
