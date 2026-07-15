@@ -56,7 +56,9 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(imageDoc, /PostgreSQL 16/);
   assert.match(imageDoc, /\/imports/);
 
-  assert.match(dockerfile, /FROM node:24-bookworm-slim AS base/);
+  assert.match(dockerfile, /FROM node:24-bookworm-slim@sha256:[a-f0-9]{64} AS base/);
+  assert.match(dockerfile, /ARG CRM_SOURCE_SHA=unknown/);
+  assert.match(dockerfile, /LABEL io\.clariobase\.source-sha=\$CRM_SOURCE_SHA/);
   assert.match(dockerfile, /apt-get install -y --no-install-recommends openssl/);
   assert.match(dockerfile, /corepack prepare pnpm@9\.15\.0 --activate/);
   assert.match(dockerfile, /pnpm install --frozen-lockfile/);

@@ -18,6 +18,9 @@ async function main() {
   assert.equal(authOptions.emailAndPassword.disableSignUp, true);
   assert.equal(authOptions.telemetry.enabled, false);
   assert.equal(authOptions.telemetry.debug, false);
+  assert.equal(authOptions.advanced.useSecureCookies, false);
+  assert.equal(authOptions.advanced.trustedProxyHeaders, false);
+  assert.deepEqual(authOptions.disabledPaths, ["/sign-up/email"]);
 
   const { admin } = await import("better-auth/plugins/admin");
   const plugin = admin({ defaultRole: "user", adminRoles: ["admin"] });
@@ -62,7 +65,8 @@ async function main() {
   const currentSchemaMissingAdminFields = requiredSchemaFields.filter((field) => !schema.includes(field));
 
   const authRoute = read("src/app/api/auth/[...all]/route.ts");
-  assert(authRoute.includes("toNextJsHandler(createAppAuth())"));
+  assert(authRoute.includes("toNextJsHandler(auth)"));
+  assert(authRoute.includes("withAuthProxyContract"));
 
   const appAuth = read("src/lib/auth.ts");
   assert(appAuth.includes("disableSignUp: true"));

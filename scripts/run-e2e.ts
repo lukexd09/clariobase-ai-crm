@@ -240,6 +240,8 @@ async function main() {
     BETTER_AUTH_URL: playwrightBaseUrl,
     BETTER_AUTH_SECRET: authSecret,
     BETTER_AUTH_TELEMETRY: "0",
+    CRM_AUTH_RUNTIME_MODE: "disposable-test",
+    CRM_ALLOW_INSECURE_AUTH_TESTS: "1",
     CLARIOBASE_BOOTSTRAP_ENABLED: "1",
     CLARIOBASE_BOOTSTRAP_ADMIN_EMAIL: bootstrapEmail,
     CLARIOBASE_BOOTSTRAP_ADMIN_NAME: "Disposable E2E Admin",
@@ -315,6 +317,8 @@ async function main() {
     process.env.BETTER_AUTH_URL = playwrightBaseUrl;
     process.env.BETTER_AUTH_SECRET = authSecret;
     process.env.BETTER_AUTH_TELEMETRY = "0";
+    process.env.CRM_AUTH_RUNTIME_MODE = "disposable-test";
+    process.env.CRM_ALLOW_INSECURE_AUTH_TESTS = "1";
     process.env.CRM_DEPLOYMENT_ENV = "preview";
 
     const { createAppAuth } = await import("@/lib/auth");

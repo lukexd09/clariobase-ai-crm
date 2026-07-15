@@ -35,6 +35,9 @@ export type PreviewEnv = {
   CRM_POSTGRES_USER: string;
   CRM_POSTGRES_PASSWORD: string;
   CRM_DATABASE_URL: string;
+  CRM_AUTH_RUNTIME_MODE: string;
+  BETTER_AUTH_URL: string;
+  BETTER_AUTH_SECRET: string;
 };
 
 export type PreviewRuntimeConfig = {
@@ -194,7 +197,10 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
     CRM_POSTGRES_DB: parsedEnv.get("CRM_POSTGRES_DB") ?? "",
     CRM_POSTGRES_USER: parsedEnv.get("CRM_POSTGRES_USER") ?? "",
     CRM_POSTGRES_PASSWORD: parsedEnv.get("CRM_POSTGRES_PASSWORD") ?? "",
-    CRM_DATABASE_URL: parsedEnv.get("CRM_DATABASE_URL") ?? ""
+    CRM_DATABASE_URL: parsedEnv.get("CRM_DATABASE_URL") ?? "",
+    CRM_AUTH_RUNTIME_MODE: parsedEnv.get("CRM_AUTH_RUNTIME_MODE") ?? "",
+    BETTER_AUTH_URL: parsedEnv.get("BETTER_AUTH_URL") ?? "",
+    BETTER_AUTH_SECRET: parsedEnv.get("BETTER_AUTH_SECRET") ?? ""
   };
 
   assertNonEmpty(env.CRM_BIND_ADDRESS, "CRM_BIND_ADDRESS");
@@ -203,6 +209,15 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
   assertNonEmpty(env.CRM_POSTGRES_DB, "CRM_POSTGRES_DB");
   assertNonEmpty(env.CRM_POSTGRES_USER, "CRM_POSTGRES_USER");
   assertNonEmpty(env.CRM_POSTGRES_PASSWORD, "CRM_POSTGRES_PASSWORD");
+  assertNonEmpty(env.CRM_AUTH_RUNTIME_MODE, "CRM_AUTH_RUNTIME_MODE");
+  assertNonEmpty(env.BETTER_AUTH_URL, "BETTER_AUTH_URL");
+  assertNonEmpty(env.BETTER_AUTH_SECRET, "BETTER_AUTH_SECRET");
+
+  assert.equal(env.CRM_AUTH_RUNTIME_MODE, "localhost-dev", "Preview auth mode must remain the isolated localhost exception.");
+  assert.equal(env.BETTER_AUTH_URL, "http://127.0.0.1:3000", "Preview Better Auth URL must remain internal loopback HTTP.");
+  if (env.BETTER_AUTH_SECRET.length < 32) {
+    throw new Error("Preview BETTER_AUTH_SECRET must be at least 32 characters long.");
+  }
 
   assert.equal(
     env.CRM_HOST_PORT,

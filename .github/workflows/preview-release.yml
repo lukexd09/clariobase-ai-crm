@@ -853,14 +853,20 @@ jobs:
         working-directory: control
         env:
           CRM_PREVIEW_POSTGRES_PASSWORD: ${{ secrets.CRM_PREVIEW_POSTGRES_PASSWORD }}
+          CRM_PREVIEW_BETTER_AUTH_SECRET: ${{ secrets.CRM_PREVIEW_BETTER_AUTH_SECRET }}
         run: |
           if (-not $env:CRM_PREVIEW_POSTGRES_PASSWORD) {
             throw "Missing required secret CRM_PREVIEW_POSTGRES_PASSWORD."
           }
 
+          if (-not $env:CRM_PREVIEW_BETTER_AUTH_SECRET -or $env:CRM_PREVIEW_BETTER_AUTH_SECRET.Length -lt 32) {
+            throw "Missing or short required secret CRM_PREVIEW_BETTER_AUTH_SECRET."
+          }
+
           Copy-Item .env.compose.preview.example .env.compose.preview.local -Force
           $content = Get-Content .env.compose.preview.local
           $updated = $content -replace '^CRM_POSTGRES_PASSWORD=$', "CRM_POSTGRES_PASSWORD=$env:CRM_PREVIEW_POSTGRES_PASSWORD"
+          $updated = $updated -replace '^BETTER_AUTH_SECRET=$', "BETTER_AUTH_SECRET=$env:CRM_PREVIEW_BETTER_AUTH_SECRET"
           Set-Content .env.compose.preview.local $updated
 
       - name: Deploy preview

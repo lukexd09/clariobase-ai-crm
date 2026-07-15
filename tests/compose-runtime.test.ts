@@ -37,18 +37,16 @@ test("Compose runtime assets enforce the E014 local topology contract", () => {
 
   assert.match(composeFile, /crm-app:/);
   assert.match(composeFile, /crm-postgres:/);
-  assert.match(composeFile, /image: postgres:16/);
+  assert.match(composeFile, /CRM_POSTGRES_IMAGE:-postgres:16@sha256:[a-f0-9]{64}/);
   assert.match(composeFile, /restart: unless-stopped/g);
   assert.match(composeFile, /pg_isready/);
   assert.match(composeFile, /condition: service_healthy/);
   assert.match(composeFile, /crm-postgres-data:\/var\/lib\/postgresql\/data/);
   assert.match(composeFile, /POSTGRES_PASSWORD: \$\{CRM_POSTGRES_PASSWORD:\?Set_CRM_POSTGRES_PASSWORD\}/);
   assert.match(composeFile, /DATABASE_URL: \$\{CRM_DATABASE_URL:-postgresql:\/\/\$\{CRM_POSTGRES_USER:-clariobase_crm_user\}:\$\{CRM_POSTGRES_PASSWORD:\?Set_CRM_POSTGRES_PASSWORD\}@crm-postgres:5432\/\$\{CRM_POSTGRES_DB:-clariobase_crm\}\?schema=public\}/);
-  assert.match(composeFile, /BETTER_AUTH_URL: \$\{BETTER_AUTH_URL:-http:\/\/127\.0\.0\.1:3000\}/);
-  assert.match(
-    composeFile,
-    /BETTER_AUTH_SECRET: \$\{BETTER_AUTH_SECRET:-clariobase-local-better-auth-secret-clariobase-local-better-auth-secret\}/
-  );
+  assert.match(composeFile, /BETTER_AUTH_URL: \$\{BETTER_AUTH_URL:\?Set_BETTER_AUTH_URL\}/);
+  assert.match(composeFile, /BETTER_AUTH_SECRET: \$\{BETTER_AUTH_SECRET:\?Set_BETTER_AUTH_SECRET\}/);
+  assert.doesNotMatch(composeFile, /clariobase-local-better-auth-secret/);
   assert.match(composeFile, /crm-app:[\s\S]*healthcheck:[\s\S]*\/api\/ready/);
   assert.match(composeFile, /\$\{CRM_BIND_ADDRESS:-127\.0\.0\.1\}:\$\{CRM_HOST_PORT:-3000\}:3000/);
   assert.match(composeFile, /source: \$\{AI_EXCHANGE_HOST_PATH:-\.\/data\/ai-exchange\}/);

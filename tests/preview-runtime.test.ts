@@ -71,6 +71,9 @@ function writePreviewEnv(rootDir: string, values?: Partial<Record<string, string
     CRM_POSTGRES_USER: "clariobase_crm_preview_user",
     CRM_POSTGRES_PASSWORD: "preview-password",
     CRM_DATABASE_URL: "postgresql://clariobase_crm_preview_user:preview-password@crm-postgres:5432/clariobase_crm_preview?schema=public",
+    CRM_AUTH_RUNTIME_MODE: "localhost-dev",
+    BETTER_AUTH_URL: "http://127.0.0.1:3000",
+    BETTER_AUTH_SECRET: "preview-test-better-auth-secret-preview-test-better-auth-secret",
     ...values
   };
 
@@ -237,6 +240,9 @@ test("preview runtime assets pin the approved preview identity", () => {
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_DB=clariobase_crm_preview$/m);
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_USER=clariobase_crm_preview_user$/m);
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_PASSWORD=$/m);
+  assert.match(composePreviewEnvExample, /^CRM_AUTH_RUNTIME_MODE=localhost-dev$/m);
+  assert.match(composePreviewEnvExample, /^BETTER_AUTH_URL=http:\/\/127\.0\.0\.1:3000$/m);
+  assert.match(composePreviewEnvExample, /^BETTER_AUTH_SECRET=$/m);
   assert.match(previewRunbook, /document_id: DOC-E016-PREVIEW-OPERATIONS/);
   assert.match(previewRunbook, /scripts\/deploy-preview\.ps1/);
   assert.match(previewRunbook, /scripts\/stop-preview\.ps1/);
