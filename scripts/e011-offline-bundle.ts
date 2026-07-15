@@ -173,10 +173,17 @@ async function t013BundleMain() {
 
   await copyFile(path.join(repoRoot, "package.json"), path.join(fetchWorkspace, "package.json"));
   await copyFile(path.join(repoRoot, "pnpm-lock.yaml"), path.join(fetchWorkspace, "pnpm-lock.yaml"));
-  const fetchResult = run("corepack", ["pnpm", "fetch", "--frozen-lockfile", "--store-dir", storeDir], {
-    cwd: fetchWorkspace,
-    env: { npm_config_registry: "https://registry.npmjs.org/" }
-  });
+  const fetchResult = run("docker", [
+    "run", "--rm",
+    "-e", "CI=1",
+    "-e", "npm_config_registry=https://registry.npmjs.org/",
+    "-v", `${fetchWorkspace.replace(/\\/g, "/")}:/work`,
+    "-v", `${storeDir.replace(/\\/g, "/")}:/store`,
+    "-w", "/work",
+    t013NodeImage,
+    "bash", "-lc",
+    `corepack enable && corepack prepare pnpm@${pnpmVersion} --activate && pnpm fetch --frozen-lockfile --store-dir /store`
+  ]);
   if (fetchResult.status !== 0) throw new Error("T013 root pnpm store preparation failed");
   await rm(fetchWorkspace, { recursive: true, force: true });
 
