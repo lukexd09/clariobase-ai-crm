@@ -239,6 +239,10 @@ async function main() {
         `BETTER_AUTH_URL=http://127.0.0.1:${hostPort}`,
         "-e",
         "BETTER_AUTH_SECRET=better-auth-image-test-secret-better-auth-image-test-secret",
+        "-e",
+        "CRM_AUTH_RUNTIME_MODE=disposable-test",
+        "-e",
+        "CRM_ALLOW_INSECURE_AUTH_TESTS=1",
         imageTag
       ],
       { stdio: "inherit" }

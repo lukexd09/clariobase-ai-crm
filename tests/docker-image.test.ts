@@ -80,6 +80,8 @@ test("Docker image assets enforce the E014 image contract", () => {
   assert.match(verifierScript, /ensureDockerOrReportSkip\("docker:test-image"\)/);
   assert.match(verifierScript, /const imageTag = `clariobase-ai-crm:test-verify-\$\{runId\}`/);
   assert.match(verifierScript, /hostPort = await reserveFreePort\(\)/);
+  assert.match(verifierScript, /CRM_AUTH_RUNTIME_MODE=disposable-test/);
+  assert.match(verifierScript, /CRM_ALLOW_INSECURE_AUTH_TESTS=1/);
   assert.match(verifierScript, /reportVerificationStatus\("PASS", `docker:test-image completed/);
   assert.doesNotMatch(verifierScript, /const hostPort = "3015"/);
   assert.doesNotMatch(verifierScript, /clariobase-ai-crm:test-verify";/);
