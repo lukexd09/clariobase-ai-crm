@@ -2,18 +2,24 @@
 
 ## Retained artifacts
 
+- exact root `package.json` and `pnpm-lock.yaml`
+- integrity-addressed exact source archive, Dockerfile, checked-in migrations, and private HTTPS assets
+- complete root pnpm store and `pnpm@9.15.0` runtime
 - `better-auth@1.6.23` tarball
 - `@better-auth/prisma-adapter@1.6.23` tarball
 - `@better-auth/cli@1.4.21` tarball
 - bundled `pnpm@9.15.0`
 - bundled Prisma Schema Engine binary for the target platform
-- recovery workspace lockfile
-- proof schema snapshot
+- Prisma engines for the accepted Linux target
+- exact validated application image archive
+- digest-pinned Caddy, PostgreSQL, and Node base image archives
+- manifest and SHA-256 checksums for every retained file
 
 ## Recovery contract
 
-- Offline restore runs in a disposable container network with disposable PostgreSQL.
-- The proof workspace installs from the bundled store and retained tarballs.
+- T013 source dependency restore runs with `--network none`, an empty external cache, the root lockfile, and the supplied store.
+- T013 exact-image restore runs on internal disposable networks with fresh PostgreSQL and the accepted HTTPS ingress.
+- The older proof workspace remains only a pinned diagnostic for the T008 schema boundary.
 - Generated proof client output lives under a temporary directory only.
 - The temporary proof root is removed in `finally`.
 
@@ -70,6 +76,7 @@
 
 ## Limits
 
-- This documents the proven offline restore path only.
-- Fresh offline rebuild from source remains a separate recovery exercise.
-- Immutable image recovery is deferred.
+- Source dependency restore plus offline Prisma generation and exact-image restore are distinct recovery paths.
+- A rebuilt source image is not the same immutable artifact and requires complete revalidation.
+- Emergency upstream forks remain owner-gated and are never part of the accepted runtime.
+- See `docs/operations/private-https-auth-recovery.md` for recovery order, CA handling, rollback, and secret continuity.
