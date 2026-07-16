@@ -56,7 +56,8 @@ Never export the CA private key. Never enable router forwarding, public DNS, a P
 - Backup/restore rehearsal: `corepack pnpm docker:test-backup-restore` uses only disposable resources.
 - Runtime-only security/restart/rollback proof: `corepack pnpm e011:t013:runtime-proof`.
 - Preview HTTPS auth proof alias: `corepack pnpm preview:https-auth-proof`.
-- Full disposable security/restart/rollback proof with offline recovery: `corepack pnpm e011:t013:proof`.
+
+Full offline rebuild/restore is not an operated ClarioBase capability. Do not run `corepack pnpm e011:t013:proof` as an operator recovery or T014 assurance command. Its unused implementation remains unchanged and deferred for removal in issue `#200`.
 
 Commands that omit the env and file arguments are illustrative. Operators must use the same explicit project/env/overlay selection throughout one operation.
 
@@ -74,19 +75,11 @@ Record the application source SHA, exact image ID/repository digest, Caddy diges
 
 Do not push or retag GHCR images as part of the local proof. Mutable tags are labels for cleanup only, never rollback authority.
 
-## Offline recovery order
+## Unsupported offline implementation
 
-1. Verify `manifest.sha256` and every artifact checksum before execution.
-2. Restore the exact source archive, root `package.json`, root lockfile, migrations, Dockerfile, Caddy config, pnpm runtime/store, Better Auth archives, Prisma engines, and image archives.
-3. Prefer exact-image restore for the validated incident image. Load the saved application, Caddy, PostgreSQL, and Node images without pulling.
-4. Restore PostgreSQL into a fresh instance and validate the logical backup checksum and server version.
-5. Start PostgreSQL, run checked-in migrations, start the exact app image, then start Caddy.
-6. Verify readiness, HTTPS trust, sign-in, active/revoked sessions, account linkage, CRM rows, and admin audit events.
-7. Keep the recovery networks internal until the owner explicitly opens the private bind boundary.
+Repository T013 offline bundle/restore files are retained technical debt, not operator instructions or a supported recovery path. T014 does not execute, extend, repair or remove them. Issue `#200` owns their later removal in a separate owner-approved change.
 
-The source-rebuild path performs an offline frozen install from the retained root pnpm store and regenerates Prisma. A source rebuild creates a new image identity and therefore requires the full validation gate before use. Exact-image restore preserves the already validated identity and is the preferred fast recovery path.
-
-The emergency upstream fork procedure is owner-gated: verify retained Better Auth source archives and licenses, create a private fork from the checksum-pinned archive, record provenance, review every patch, rebuild the entire application, and run all T009–T013 plus full CI. Never silently replace the package or contact Better Auth managed infrastructure.
+Operated recovery in this runbook is limited to checked-in migrations, disposable logical backup/restore rehearsal, secret rotation, private HTTPS restart and immutable-image rollback. Any proposal to add full offline rebuild/restore requires a new owner architecture decision.
 
 ## Backup sensitivity and disaster notes
 

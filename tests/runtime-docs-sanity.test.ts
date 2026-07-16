@@ -151,3 +151,31 @@ test("container runtime docs stay canonical and discoverable", () => {
   assert.doesNotMatch(auditReport, /final whole-epic review remains the next required gate/i);
   assert.doesNotMatch(auditReport, /draft PR creation is a later epic step/i);
 });
+
+test("E011 security and recovery docs keep the operated scope explicit and RAG-ready", () => {
+  const authSecurity = read("docs/security/better-auth-authentication.md");
+  const authDependency = read("docs/operations/auth-dependency-recovery.md");
+  const privateHttps = read("docs/operations/private-https-auth-recovery.md");
+  const authAdr = read("docs/decisions/adr-e011-better-auth.md");
+  const audit = read("docs/verification/e011-epic-quality-audit.md");
+  const historicalProof = read("docs/verification/e011-t008-better-auth-proof.md");
+  const notices = read("THIRD_PARTY_NOTICES.md");
+
+  assert.match(authSecurity, /document_id: DOC-E011-BETTER-AUTH-SECURITY/);
+  assert.match(authDependency, /document_id: DOC-E011-AUTH-DEPENDENCY-PROVENANCE/);
+  assert.match(privateHttps, /document_id: DOC-E011-PRIVATE-HTTPS-AUTH-RECOVERY/);
+  assert.match(authAdr, /document_id: ADR-E011-BETTER-AUTH/);
+  assert.match(audit, /document_id: DOC-E011-EPIC-QUALITY-AUDIT/);
+  assert.match(historicalProof, /document_id: DOC-E011-T008-BETTER-AUTH-PROOF/);
+  assert.match(historicalProof, /status: historical/);
+  assert.match(historicalProof, /not an operated ClarioBase capability/i);
+  for (const document of [authSecurity, authDependency, privateHttps, authAdr, audit]) {
+    assert.match(document, /not an operated ClarioBase capability/i);
+    assert.match(document, /#200|issue `#200`/i);
+  }
+  assert.doesNotMatch(privateHttps, /^## Offline recovery order$/m);
+  assert.doesNotMatch(privateHttps, /Full disposable security\/restart\/rollback proof with offline recovery/);
+  assert.match(audit, /Acceptance-criteria evidence matrix/);
+  assert.match(notices, /`better-auth` `1\.6\.23`[\s\S]*license: MIT/);
+  assert.match(notices, /`@better-auth\/prisma-adapter` `1\.6\.23`[\s\S]*license: MIT/);
+});

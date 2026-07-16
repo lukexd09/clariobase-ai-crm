@@ -1,4 +1,29 @@
-# Auth Dependency Recovery
+---
+title: Better Auth dependency provenance and deferred offline implementation
+document_id: DOC-E011-AUTH-DEPENDENCY-PROVENANCE
+document_type: operations-reference
+status: active
+scope: clariobase-ai-crm
+owner: project
+last_updated: 2026-07-16
+related_epic: E011
+related_tasks:
+  - E011.T008
+  - E011.T013
+  - E011.T014
+related_issues:
+  - 161
+  - 200
+tags:
+  - auth
+  - dependencies
+  - provenance
+  - historical-evidence
+---
+
+# Better Auth dependency provenance and deferred offline implementation
+
+Full offline rebuild/restore is not an operated ClarioBase capability. Files described below are historical proof artifacts retained unchanged until separate issue `#200`; they are not operator recovery instructions and must not be run by T014.
 
 ## Retained artifacts
 
@@ -15,10 +40,10 @@
 - digest-pinned Caddy, PostgreSQL, and Node base image archives
 - manifest and SHA-256 checksums for every retained file
 
-## Recovery contract
+## Historical implementation record
 
-- T013 source dependency restore runs with `--network none`, an empty external cache, the root lockfile, and the supplied store.
-- T013 exact-image restore runs on internal disposable networks with fresh PostgreSQL and the accepted HTTPS ingress.
+- T013 source dependency code was designed for `--network none`, an empty external cache, the root lockfile, and the supplied store.
+- T013 exact-image restore code used internal disposable networks with fresh PostgreSQL and the accepted HTTPS ingress.
 - The older proof workspace remains only a pinned diagnostic for the T008 schema boundary.
 - Generated proof client output lives under a temporary directory only.
 - The temporary proof root is removed in `finally`.
@@ -31,11 +56,11 @@
 - Canonical proof schema is the source of truth for E011 proof and later reviewed Prisma migration work.
 - Better Auth CLI is an optional online diagnostic and regeneration helper.
 - Better Auth CLI is not part of the accepted authentication runtime.
-- Better Auth CLI is not part of the offline runtime recovery closure.
+- Better Auth CLI is not part of any accepted operated recovery path.
 - Better Auth CLI is not accepted as an unmodified canonical Prisma 7 schema generator.
 - Schema lifecycle is owned by ClarioBase and Prisma migrations.
 
-## CLI Boundary
+## Historical T008 proof record
 
 - Runtime authentication proof: PASS
 - Prisma 7 and PostgreSQL proof: PASS
@@ -76,7 +101,8 @@
 
 ## Limits
 
-- Source dependency restore plus offline Prisma generation and exact-image restore are distinct recovery paths.
-- A rebuilt source image is not the same immutable artifact and requires complete revalidation.
+- Historical source dependency restore, offline Prisma generation and exact-image restore code does not establish an operated capability.
+- A rebuilt source image would not be the same immutable artifact and would require a new owner-approved validation gate.
 - Emergency upstream forks remain owner-gated and are never part of the accepted runtime.
-- See `docs/operations/private-https-auth-recovery.md` for recovery order, CA handling, rollback, and secret continuity.
+- See `docs/operations/private-https-auth-recovery.md` for supported CA handling, runtime rollback and secret continuity.
+- Removal of unused offline files remains deferred to issue `#200`.
