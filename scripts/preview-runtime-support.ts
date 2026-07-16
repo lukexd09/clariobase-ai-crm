@@ -3,15 +3,19 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 
+import { parseAuthRuntimeConfig } from "@/lib/auth-runtime-config";
+
 import { PROTECTED_DOCKER_PROJECT } from "./docker-test-support";
 
 export const PREVIEW_PROJECT_NAME = "clariobase-crm-preview";
+export const PREVIEW_PRIVATE_HOSTNAME = "clariobase-crm-preview.home.arpa";
 export const PREVIEW_HOST_PORT = "3001";
 export const PREVIEW_DB_NAME = "clariobase_crm_preview";
 export const PREVIEW_DB_USER = "clariobase_crm_preview_user";
-export const PREVIEW_URL = "http://Serwer:3001";
+export const PREVIEW_URL = `https://${PREVIEW_PRIVATE_HOSTNAME}:${PREVIEW_HOST_PORT}`;
 export const PREVIEW_VOLUME_NAME = "clariobase-crm-preview-postgres-data";
 export const PREVIEW_NETWORK_NAME = "clariobase-crm-preview-network";
+export const PREVIEW_PRIVATE_HTTPS_OVERLAY_FILE = "compose.preview.private-https.yaml";
 export const PROTECTED_ENV_FILE_NAME = ".env.compose.local";
 export const PREVIEW_ENV_FILE_NAME = ".env.compose.preview.local";
 export const PREVIEW_ENV_EXAMPLE_FILE = ".env.compose.preview.example";
@@ -28,22 +32,24 @@ const protectedEnvFilePath = path.join(repoRoot, PROTECTED_ENV_FILE_NAME);
 const protectedAiExchangeAbsolutePath = path.resolve(repoRoot, PROTECTED_AI_EXCHANGE_PATH);
 
 export type PreviewEnv = {
-  CRM_BIND_ADDRESS: string;
-  CRM_HOST_PORT: string;
+  CRM_PRIVATE_BIND_ADDRESS: string;
+  CRM_PRIVATE_HOSTNAME: string;
+  CRM_PRIVATE_HTTPS_PORT: string;
+  CRM_AUTH_RUNTIME_MODE: string;
+  CRM_AUTH_TRUSTED_ORIGINS: string;
+  BETTER_AUTH_URL: string;
+  BETTER_AUTH_SECRET: string;
   AI_EXCHANGE_HOST_PATH: string;
   CRM_POSTGRES_DB: string;
   CRM_POSTGRES_USER: string;
   CRM_POSTGRES_PASSWORD: string;
   CRM_DATABASE_URL: string;
-  CRM_AUTH_RUNTIME_MODE: string;
-  BETTER_AUTH_URL: string;
-  BETTER_AUTH_SECRET: string;
 };
 
 export type PreviewRuntimeConfig = {
   previewEnvFilePath: string;
   previewAiExchangeAbsolutePath: string;
-  previewLocalReadyUrl: string;
+  previewReadyUrl: string;
   previewUrl: string;
   previewImageRef: string;
   env: PreviewEnv;
@@ -63,6 +69,16 @@ export type PreviewSummary = {
 export type PreviewLifecycleDecision = {
   mode: PreviewDatabaseLifecycleMode;
   removeVolume: boolean;
+};
+
+type ComposeService = {
+  image?: unknown;
+  build?: unknown;
+  pull_policy?: unknown;
+  ports?: Array<{
+    published?: string | number;
+    target?: number;
+  }>;
 };
 
 export function getRepoRoot() {
@@ -157,6 +173,31 @@ function assertPreviewDatabaseUrl(databaseUrl: string) {
   }
 }
 
+function assertNoPublishedPorts(serviceName: string, service: ComposeService | undefined) {
+  if (!service) {
+    throw new Error(`Preview compose model must define ${serviceName}.`);
+  }
+
+  if ((service.ports ?? []).length !== 0) {
+    throw new Error(`Preview compose model must not publish any host ports for ${serviceName}.`);
+  }
+}
+
+function assertIngressPorts(service: ComposeService | undefined) {
+  if (!service) {
+    throw new Error("Preview compose model must define crm-private-ingress.");
+  }
+
+  const ports = service.ports ?? [];
+  if (ports.length === 0) {
+    throw new Error("Preview compose model must publish crm-private-ingress on the HTTPS ingress port.");
+  }
+
+  if (!ports.some((port) => port.target === 443)) {
+    throw new Error("Preview compose model must forward crm-private-ingress to container port 443.");
+  }
+}
+
 export function parsePreviewDatabaseLifecycleMode(value: string | undefined | null): PreviewDatabaseLifecycleMode {
   if (value === "preserve" || value === "reset") {
     return value;
@@ -191,48 +232,58 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
 
   const parsedEnv = parseEnvFileContent(readText(previewEnvFilePath));
   const env: PreviewEnv = {
-    CRM_BIND_ADDRESS: parsedEnv.get("CRM_BIND_ADDRESS") ?? "",
-    CRM_HOST_PORT: parsedEnv.get("CRM_HOST_PORT") ?? "",
+    CRM_PRIVATE_BIND_ADDRESS: parsedEnv.get("CRM_PRIVATE_BIND_ADDRESS") ?? "",
+    CRM_PRIVATE_HOSTNAME: parsedEnv.get("CRM_PRIVATE_HOSTNAME") ?? "",
+    CRM_PRIVATE_HTTPS_PORT: parsedEnv.get("CRM_PRIVATE_HTTPS_PORT") ?? "",
+    CRM_AUTH_RUNTIME_MODE: parsedEnv.get("CRM_AUTH_RUNTIME_MODE") ?? "",
+    CRM_AUTH_TRUSTED_ORIGINS: parsedEnv.get("CRM_AUTH_TRUSTED_ORIGINS") ?? "",
+    BETTER_AUTH_URL: parsedEnv.get("BETTER_AUTH_URL") ?? "",
+    BETTER_AUTH_SECRET: parsedEnv.get("BETTER_AUTH_SECRET") ?? "",
     AI_EXCHANGE_HOST_PATH: parsedEnv.get("AI_EXCHANGE_HOST_PATH") ?? "",
     CRM_POSTGRES_DB: parsedEnv.get("CRM_POSTGRES_DB") ?? "",
     CRM_POSTGRES_USER: parsedEnv.get("CRM_POSTGRES_USER") ?? "",
     CRM_POSTGRES_PASSWORD: parsedEnv.get("CRM_POSTGRES_PASSWORD") ?? "",
-    CRM_DATABASE_URL: parsedEnv.get("CRM_DATABASE_URL") ?? "",
-    CRM_AUTH_RUNTIME_MODE: parsedEnv.get("CRM_AUTH_RUNTIME_MODE") ?? "",
-    BETTER_AUTH_URL: parsedEnv.get("BETTER_AUTH_URL") ?? "",
-    BETTER_AUTH_SECRET: parsedEnv.get("BETTER_AUTH_SECRET") ?? ""
+    CRM_DATABASE_URL: parsedEnv.get("CRM_DATABASE_URL") ?? ""
   };
 
-  assertNonEmpty(env.CRM_BIND_ADDRESS, "CRM_BIND_ADDRESS");
-  assertNonEmpty(env.CRM_HOST_PORT, "CRM_HOST_PORT");
+  assertNonEmpty(env.CRM_PRIVATE_BIND_ADDRESS, "CRM_PRIVATE_BIND_ADDRESS");
+  assertNonEmpty(env.CRM_PRIVATE_HOSTNAME, "CRM_PRIVATE_HOSTNAME");
+  assertNonEmpty(env.CRM_PRIVATE_HTTPS_PORT, "CRM_PRIVATE_HTTPS_PORT");
+  assertNonEmpty(env.CRM_AUTH_RUNTIME_MODE, "CRM_AUTH_RUNTIME_MODE");
+  assertNonEmpty(env.CRM_AUTH_TRUSTED_ORIGINS, "CRM_AUTH_TRUSTED_ORIGINS");
+  assertNonEmpty(env.BETTER_AUTH_URL, "BETTER_AUTH_URL");
+  assertNonEmpty(env.BETTER_AUTH_SECRET, "BETTER_AUTH_SECRET");
   assertNonEmpty(env.AI_EXCHANGE_HOST_PATH, "AI_EXCHANGE_HOST_PATH");
   assertNonEmpty(env.CRM_POSTGRES_DB, "CRM_POSTGRES_DB");
   assertNonEmpty(env.CRM_POSTGRES_USER, "CRM_POSTGRES_USER");
   assertNonEmpty(env.CRM_POSTGRES_PASSWORD, "CRM_POSTGRES_PASSWORD");
-  assertNonEmpty(env.CRM_AUTH_RUNTIME_MODE, "CRM_AUTH_RUNTIME_MODE");
-  assertNonEmpty(env.BETTER_AUTH_URL, "BETTER_AUTH_URL");
-  assertNonEmpty(env.BETTER_AUTH_SECRET, "BETTER_AUTH_SECRET");
 
-  assert.equal(env.CRM_AUTH_RUNTIME_MODE, "localhost-dev", "Preview auth mode must remain the isolated localhost exception.");
-  assert.equal(env.BETTER_AUTH_URL, "http://127.0.0.1:3000", "Preview Better Auth URL must remain internal loopback HTTP.");
-  if (env.BETTER_AUTH_SECRET.length < 32) {
-    throw new Error("Preview BETTER_AUTH_SECRET must be at least 32 characters long.");
+  if (env.CRM_PRIVATE_BIND_ADDRESS !== "0.0.0.0") {
+    throw new Error("Preview HTTPS bind address must stay pinned to 0.0.0.0.");
   }
 
-  assert.equal(
-    env.CRM_HOST_PORT,
-    PREVIEW_HOST_PORT,
-    `Preview host port must stay pinned to ${PREVIEW_HOST_PORT}.`
-  );
-  assert.equal(env.CRM_POSTGRES_DB, PREVIEW_DB_NAME, `Preview database must stay pinned to ${PREVIEW_DB_NAME}.`);
-  assert.equal(env.CRM_POSTGRES_USER, PREVIEW_DB_USER, `Preview PostgreSQL user must stay pinned to ${PREVIEW_DB_USER}.`);
+  if (env.CRM_PRIVATE_HOSTNAME !== PREVIEW_PRIVATE_HOSTNAME) {
+    throw new Error(`Preview private hostname must stay pinned to ${PREVIEW_PRIVATE_HOSTNAME}.`);
+  }
 
-  if (env.CRM_BIND_ADDRESS !== "0.0.0.0") {
-    throw new Error("Preview bind address must stay pinned to 0.0.0.0 for the approved LAN preview contract.");
+  if (env.CRM_PRIVATE_HTTPS_PORT !== PREVIEW_HOST_PORT) {
+    throw new Error(`Preview HTTPS port must stay pinned to ${PREVIEW_HOST_PORT}.`);
   }
 
   if (env.AI_EXCHANGE_HOST_PATH !== PREVIEW_AI_EXCHANGE_PATH) {
     throw new Error(`Preview AI exchange path must stay pinned to ${PREVIEW_AI_EXCHANGE_PATH}.`);
+  }
+
+  if (env.CRM_POSTGRES_DB !== PREVIEW_DB_NAME) {
+    throw new Error(`Preview database must stay pinned to ${PREVIEW_DB_NAME}.`);
+  }
+
+  if (env.CRM_POSTGRES_USER !== PREVIEW_DB_USER) {
+    throw new Error(`Preview PostgreSQL user must stay pinned to ${PREVIEW_DB_USER}.`);
+  }
+
+  if (env.CRM_AUTH_RUNTIME_MODE !== "private-https") {
+    throw new Error("Preview auth mode must remain private-https.");
   }
 
   const previewImageRef = process.env.CRM_PREVIEW_IMAGE_REF ?? "";
@@ -247,6 +298,7 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
     );
   }
 
+  const authRuntime = parseAuthRuntimeConfig(env);
   const previewAiExchangeAbsolutePath = path.resolve(repoRoot, env.AI_EXCHANGE_HOST_PATH);
 
   assertDistinctComparablePath(
@@ -259,8 +311,8 @@ export function loadPreviewEnv(previewEnvFilePath = defaultPreviewEnvFilePath): 
   return {
     previewEnvFilePath: path.resolve(previewEnvFilePath),
     previewAiExchangeAbsolutePath,
-    previewLocalReadyUrl: `http://127.0.0.1:${PREVIEW_HOST_PORT}/api/ready`,
-    previewUrl: PREVIEW_URL,
+    previewReadyUrl: authRuntime.origin,
+    previewUrl: authRuntime.origin,
     previewImageRef,
     env
   };
@@ -312,17 +364,26 @@ export function buildComposeArgs(previewEnvFilePath: string, composeArgs: string
     "compose.yaml",
     "-f",
     "compose.preview.yaml",
+    "-f",
+    PREVIEW_PRIVATE_HTTPS_OVERLAY_FILE,
     ...composeArgs
   ];
 }
 
-export function buildDeployPlan(previewEnvFilePath: string, previewImageRef: string, lifecycleMode: PreviewDatabaseLifecycleMode = "preserve") {
+export function buildDeployPlan(
+  previewEnvFilePath: string,
+  previewImageRef: string,
+  lifecycleMode: PreviewDatabaseLifecycleMode = "preserve"
+) {
   const lifecycle = resolvePreviewDatabaseLifecycle(lifecycleMode);
   const pullExactImage = ["pull", previewImageRef];
   return {
     validateComposeModel: buildComposeArgs(previewEnvFilePath, ["config", "--format", "json"]),
     pullExactImage,
-    replaceExistingPreview: buildComposeArgs(previewEnvFilePath, lifecycle.removeVolume ? ["down", "-v", "--remove-orphans"] : ["down", "--remove-orphans"]),
+    replaceExistingPreview: buildComposeArgs(
+      previewEnvFilePath,
+      lifecycle.removeVolume ? ["down", "-v", "--remove-orphans"] : ["down", "--remove-orphans"]
+    ),
     startDatabase: buildComposeArgs(previewEnvFilePath, ["up", "-d", "crm-postgres"]),
     migrate: buildComposeArgs(previewEnvFilePath, [
       "run",
@@ -335,6 +396,10 @@ export function buildDeployPlan(previewEnvFilePath: string, previewImageRef: str
       "node ./node_modules/prisma/build/index.js migrate deploy"
     ]),
     startApplication: buildComposeArgs(previewEnvFilePath, ["up", "-d", "--no-build", "--pull", "never", "crm-app"]),
+    startIngress: buildComposeArgs(
+      previewEnvFilePath,
+      ["up", "-d", "--no-build", "--pull", "never", "crm-private-ingress"]
+    ),
     databaseLifecycleMode: lifecycle.mode,
     databaseVolumeAction: lifecycle.removeVolume ? "reset" : "preserve"
   };
@@ -343,7 +408,10 @@ export function buildDeployPlan(previewEnvFilePath: string, previewImageRef: str
 export function buildStopPlan(previewEnvFilePath: string, lifecycleMode: PreviewDatabaseLifecycleMode = "preserve") {
   const lifecycle = resolvePreviewDatabaseLifecycle(lifecycleMode);
   return {
-    down: buildComposeArgs(previewEnvFilePath, lifecycle.removeVolume ? ["down", "-v", "--remove-orphans"] : ["down", "--remove-orphans"]),
+    down: buildComposeArgs(
+      previewEnvFilePath,
+      lifecycle.removeVolume ? ["down", "-v", "--remove-orphans"] : ["down", "--remove-orphans"]
+    ),
     databaseLifecycleMode: lifecycle.mode,
     databaseVolumeAction: lifecycle.removeVolume ? "reset" : "preserve"
   };
@@ -352,14 +420,15 @@ export function buildStopPlan(previewEnvFilePath: string, lifecycleMode: Preview
 export function createPreviewSummary(
   requestedRef: string,
   resolvedSha: string,
-  sourceMode: "open_pr" | "main" | "unknown" = "unknown"
+  sourceMode: "open_pr" | "main" | "unknown" = "unknown",
+  previewUrl: string = PREVIEW_URL
 ): PreviewSummary {
   return {
     sourceMode,
     requestedRef,
     resolvedSha,
     databaseMode: "preserve",
-    previewUrl: PREVIEW_URL,
+    previewUrl,
     projectName: PREVIEW_PROJECT_NAME,
     volumeName: PREVIEW_VOLUME_NAME,
     networkName: PREVIEW_NETWORK_NAME
@@ -367,9 +436,8 @@ export function createPreviewSummary(
 }
 
 export function validatePreviewComposeModel(configJson: string, expectedImageRef: string) {
-  type PreviewComposeService = { image?: unknown; build?: unknown; pull_policy?: unknown };
   type PreviewComposeConfig = {
-    services?: Record<string, PreviewComposeService>;
+    services?: Record<string, ComposeService>;
   };
 
   let parsed: PreviewComposeConfig;
@@ -381,7 +449,9 @@ export function validatePreviewComposeModel(configJson: string, expectedImageRef
   }
 
   const services = parsed.services;
-  const app: PreviewComposeService | undefined = services?.["crm-app"];
+  const app = services?.["crm-app"];
+  const postgres = services?.["crm-postgres"];
+  const ingress = services?.["crm-private-ingress"];
 
   if (!app) {
     throw new Error("Preview compose model must define crm-app.");
@@ -398,6 +468,10 @@ export function validatePreviewComposeModel(configJson: string, expectedImageRef
   if (app.pull_policy !== "never") {
     throw new Error("Preview compose model must set crm-app.pull_policy to never.");
   }
+
+  assertNoPublishedPorts("crm-app", app);
+  assertNoPublishedPorts("crm-postgres", postgres);
+  assertIngressPorts(ingress);
 }
 
 export function runCommand(command: string, args: string[]) {
@@ -461,10 +535,7 @@ export function getHeadSha(checkoutPath: string) {
   return result.stdout.trim();
 }
 
-export function assertSuccessfulCommand(
-  result: SpawnSyncReturns<string>,
-  description: string
-) {
+export function assertSuccessfulCommand(result: SpawnSyncReturns<string>, description: string) {
   assert.equal(result.status, 0, `${description} should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 }
 
@@ -483,7 +554,8 @@ export function executeDeployPlanWithEnv(
     ["replace existing preview stack", deployPlan.replaceExistingPreview],
     ["docker compose up -d crm-postgres", deployPlan.startDatabase],
     ["preview prisma migrate deploy", deployPlan.migrate],
-    ["docker compose up -d crm-app", deployPlan.startApplication]
+    ["docker compose up -d crm-app", deployPlan.startApplication],
+    ["docker compose up -d crm-private-ingress", deployPlan.startIngress]
   ] as const;
 
   for (const [description, args] of steps) {

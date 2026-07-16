@@ -33,6 +33,8 @@ const caPath = path.join(tmpRoot, "root.crt");
 const imageTag = `${VERIFY_IMAGE_TAG_PREFIX}${project}`;
 const cleanup = createCleanupController("e011:t013:proof");
 let offlineBundleRoot: string | undefined;
+const argv = process.argv.slice(2);
+const runtimeOnly = argv.includes("--runtime-only");
 const hostname = `crm-${crypto.randomBytes(6).toString("hex")}.home.arpa`;
 const postgresPassword = crypto.randomBytes(32).toString("base64url");
 const authSecret = crypto.randomBytes(48).toString("base64url");
@@ -413,6 +415,37 @@ async function main() {
   const egress = runCompose(["exec", "-T", "crm-app", "node", "-e", "fetch('https://better-auth.com',{signal:AbortSignal.timeout(3000)}).then(()=>process.exit(1)).catch(()=>process.exit(0))"]);
   assertSuccess(egress, "observe blocked external runtime connectivity");
 
+  const runtimeEvidence = {
+    result: "PASS",
+    sourceSha,
+    applicationImageId: imageId,
+    upgradeImageId: imageId,
+    rollbackImageId: imageId,
+    ingressImage: "caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+    privateHostname: "generated .home.arpa proof hostname",
+    httpsPort,
+    tls: { trustedClients: 2, untrustedCaRejected: true, wrongHostnameRejected: true },
+    bindings: { ingress: "127.0.0.1 only", application: "none", postgres: "none" },
+    sessions: { appRestart: true, ingressRestart: true, databaseRestart: true, revocationPersisted: true },
+    publicSignup: false,
+    managedBetterAuthInfrastructure: false,
+    securityScan: "PASS",
+    externalConnectivity: "blocked by internal Docker networks"
+  } as const;
+
+  if (runtimeOnly) {
+    console.log(JSON.stringify({
+      ...runtimeEvidence,
+      upgradeImageId: immutableEvidence.upgradeImageId,
+      rollbackImageId: immutableEvidence.rollbackImageId,
+      offlineRecovery: { result: "SKIPPED", reason: "runtime-only mode" }
+    }, null, 2));
+    const cleanupReport = cleanup.cleanup("successful runtime-only verification");
+    if (cleanupReport.failures.length > 0) throw new Error(formatCleanupFailures(cleanupReport.failures));
+    reportVerificationStatus("PASS", "e011:t013 runtime-only private HTTPS runtime verification completed.");
+    return;
+  }
+
   const offlineBundle = run("node", [
     "./node_modules/tsx/dist/cli.mjs",
     "scripts/e011-offline-bundle.ts",
@@ -468,21 +501,9 @@ async function main() {
   offlineBundleRoot = undefined;
 
   console.log(JSON.stringify({
-    result: "PASS",
-    sourceSha,
-    applicationImageId: imageId,
+    ...runtimeEvidence,
     upgradeImageId: immutableEvidence.upgradeImageId,
     rollbackImageId: immutableEvidence.rollbackImageId,
-    ingressImage: "caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
-    privateHostname: "generated .home.arpa proof hostname",
-    httpsPort,
-    tls: { trustedClients: 2, untrustedCaRejected: true, wrongHostnameRejected: true },
-    bindings: { ingress: "127.0.0.1 only", application: "none", postgres: "none" },
-    sessions: { appRestart: true, ingressRestart: true, databaseRestart: true, revocationPersisted: true },
-    publicSignup: false,
-    managedBetterAuthInfrastructure: false,
-    securityScan: "PASS",
-    externalConnectivity: "blocked by internal Docker networks",
     offlineRecovery: {
       manifestSha256: bundleEvidence.manifestSha256,
       exactHeadSource: sourceSha,

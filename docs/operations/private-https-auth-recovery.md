@@ -27,6 +27,7 @@ Generate secrets with an owner-controlled cryptographic password manager or OS C
 Start only after hostname resolution and CA trust are intentionally planned:
 
 ```powershell
+corepack pnpm private-https:preflight -- --env-file .\.env.compose.private-https.local --expected-source-sha <exact source sha>
 docker compose --env-file .env.compose.private-https.local -f compose.yaml -f compose.private-https.yaml config --quiet
 docker compose --env-file .env.compose.private-https.local -f compose.yaml -f compose.private-https.yaml up -d --no-build --pull never
 ```
@@ -53,7 +54,9 @@ Never export the CA private key. Never enable router forwarding, public DNS, a P
 - Ingress restart: `docker compose ... restart crm-private-ingress`.
 - Disable safely: `docker compose ... down --remove-orphans` without `-v`.
 - Backup/restore rehearsal: `corepack pnpm docker:test-backup-restore` uses only disposable resources.
-- Full disposable security/restart/rollback proof: `corepack pnpm e011:t013:proof`.
+- Runtime-only security/restart/rollback proof: `corepack pnpm e011:t013:runtime-proof`.
+- Preview HTTPS auth proof alias: `corepack pnpm preview:https-auth-proof`.
+- Full disposable security/restart/rollback proof with offline recovery: `corepack pnpm e011:t013:proof`.
 
 Commands that omit the env and file arguments are illustrative. Operators must use the same explicit project/env/overlay selection throughout one operation.
 

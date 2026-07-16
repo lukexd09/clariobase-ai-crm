@@ -1,3 +1,5 @@
+import { parseAuthRuntimeConfig } from "@/lib/auth-runtime-config";
+
 export const runtimeServiceName = "clariobase-ai-crm";
 
 export type RuntimeReadinessBody = {
@@ -6,6 +8,7 @@ export type RuntimeReadinessBody = {
   timestamp: string;
   checks: {
     database: "ok" | "unavailable";
+    authentication: "ok" | "misconfigured";
   };
 };
 
@@ -14,7 +17,9 @@ export type RuntimeReadinessResult = {
   httpStatus: 200 | 503;
 };
 
-async function defaultProbe() {
+type ReadinessProbe = () => Promise<unknown>;
+
+async function defaultDatabaseProbe() {
   const { prisma } = await import("@/lib/prisma");
   await prisma.importBatch.findFirst({
     select: {
@@ -23,35 +28,44 @@ async function defaultProbe() {
   });
 }
 
+async function defaultAuthenticationProbe() {
+  parseAuthRuntimeConfig();
+}
+
 export async function getRuntimeReadiness(
-  probe: () => Promise<unknown> = defaultProbe,
+  probeDatabase: ReadinessProbe = defaultDatabaseProbe,
+  probeAuthentication: ReadinessProbe = defaultAuthenticationProbe,
   timestampFactory: () => string = () => new Date().toISOString()
 ): Promise<RuntimeReadinessResult> {
-  try {
-    await probe();
+  let database: "ok" | "unavailable" = "unavailable";
+  let authentication: "ok" | "misconfigured" = "misconfigured";
 
-    return {
-      httpStatus: 200,
-      body: {
-        service: runtimeServiceName,
-        status: "ready",
-        timestamp: timestampFactory(),
-        checks: {
-          database: "ok"
-        }
-      }
-    };
+  try {
+    await probeDatabase();
+    database = "ok";
   } catch {
-    return {
-      httpStatus: 503,
-      body: {
-        service: runtimeServiceName,
-        status: "not_ready",
-        timestamp: timestampFactory(),
-        checks: {
-          database: "unavailable"
-        }
-      }
-    };
+    database = "unavailable";
   }
+
+  try {
+    await probeAuthentication();
+    authentication = "ok";
+  } catch {
+    authentication = "misconfigured";
+  }
+
+  const ready = database === "ok" && authentication === "ok";
+
+  return {
+    httpStatus: ready ? 200 : 503,
+    body: {
+      service: runtimeServiceName,
+      status: ready ? "ready" : "not_ready",
+      timestamp: timestampFactory(),
+      checks: {
+        database,
+        authentication
+      }
+    }
+  };
 }

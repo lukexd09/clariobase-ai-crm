@@ -39,11 +39,16 @@ test("T013 proof owns exact-image identity, real auth restart, revocation, and c
   const packageJson = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
   const proof = read("scripts/e011-t013-private-https-proof.ts");
   assert.equal(packageJson.scripts["e011:t013:proof"], "tsx scripts/e011-t013-private-https-proof.ts");
+  assert.equal(packageJson.scripts["e011:t013:runtime-proof"], "tsx scripts/e011-t013-private-https-proof.ts --runtime-only");
+  assert.equal(packageJson.scripts["preview:https-auth-proof"], "tsx scripts/e011-t013-private-https-proof.ts --runtime-only");
+  assert.equal(packageJson.scripts["private-https:preflight"], "tsx scripts/private-https-preflight.ts");
   assert.match(proof, /createCleanupController\("e011:t013:proof"\)/);
   assert.match(proof, /cleanup\.installProcessHandlers\(\)/);
   assert.match(proof, /cleanup\.registerDockerProject\(project\)/);
   assert.match(proof, /cleanup\.registerDockerImage\(imageTag\)/);
   assert.match(proof, /cleanup\.registerTempPath\(tmpRoot\)/);
+  assert.match(proof, /runtimeOnly/);
+  assert.match(proof, /runtime-only verification/);
   assert.match(proof, /CRM_SOURCE_SHA/);
   assert.match(proof, /bootstrap disposable administrator through controlled path/);
   assert.match(proof, /create disposable user through admin gateway/);

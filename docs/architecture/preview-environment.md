@@ -5,7 +5,7 @@ document_type: architecture
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-26
+last_updated: 2026-07-15
 related_epic: E016
 related_tasks:
   - E016.T001
@@ -48,7 +48,7 @@ Preview
   Compose project: clariobase-crm-preview
   Port:            3001
   Database:        clariobase_crm_preview
-  URL:             http://Serwer:3001
+  URL:             https://clariobase-crm-preview.home.arpa:3001
 ```
 
 Preview is one replaceable slot. E016 does not implement one environment per PR and does not change production release behavior.
@@ -126,7 +126,7 @@ crm-postgres
 Approved preview identity:
 
 - project name: `clariobase-crm-preview`;
-- application URL: `http://Serwer:3001`;
+- application URL: `https://clariobase-crm-preview.home.arpa:3001`;
 - application bind port: `3001`;
 - database name: `clariobase_crm_preview`;
 - PostgreSQL host port: not published;
@@ -220,6 +220,7 @@ Deployment succeeds only when `/api/ready` returns HTTP 200 and:
 service = clariobase-ai-crm
 status = ready
 checks.database = ok
+checks.authentication = ok
 ```
 
 ## Production-protection invariants

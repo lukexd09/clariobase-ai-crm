@@ -151,7 +151,7 @@ test("container runtime docs stay canonical and discoverable", () => {
 
   assert.match(previewContract, /document_id: DOC-E016-PREVIEW-ENVIRONMENT/);
   assert.match(previewContract, /clariobase-crm-preview/);
-  assert.match(previewContract, /http:\/\/Serwer:3001/);
+  assert.match(previewContract, /https:\/\/clariobase-crm-preview\.home\.arpa:3001/);
   assert.match(previewContract, /clariobase_crm_preview/);
   assert.match(previewContract, /trusted repository ref/i);
   assert.match(previewContract, /must never reuse production `?\.env\.compose\.local`?/i);
