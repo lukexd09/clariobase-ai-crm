@@ -27,8 +27,19 @@ test.describe("Anonymous sign-in surface", () => {
 
       const watermark = page.getByTestId("environment-watermark");
       const marks = page.getByTestId("environment-watermark-mark");
+      const email = page.getByLabel("Email");
+      const password = page.getByLabel("Password");
+      const submit = page.locator('button[type="submit"]');
 
       await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+      await expect(email).toHaveAttribute("autocomplete", "email");
+      await expect(password).toHaveAttribute("autocomplete", "current-password");
+      await email.focus();
+      await expect(email).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(password).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(submit).toBeFocused();
       await expect(page.getByRole("heading", { name: "Dashboard" })).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Today's priorities" })).toHaveCount(0);
       await expect(page.getByRole("heading", { name: "Pipeline snapshot" })).toHaveCount(0);

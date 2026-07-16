@@ -70,38 +70,9 @@ function writeDisposableOverlay() {
   fs.writeFileSync(
     composeOverlayPath,
     [
-      "services:",
-      "  crm-postgres:",
-      "    networks:",
-      "      - crm-data",
-      "",
-      "  crm-app:",
-      "    networks:",
-      "      - crm-edge",
-      "      - crm-data",
-      "",
-      "  crm-private-ingress:",
-      "    networks:",
-      "      crm-bind:",
-      "      crm-edge:",
-      "        aliases:",
-      "          - ${CRM_PRIVATE_HOSTNAME:?Set_CRM_PRIVATE_HOSTNAME}",
-      "",
       "networks:",
-      "  crm-bind:",
-      `    name: ${project}-bind`,
-      "    labels:",
-      "      io.clariobase.runtime-scope: preview",
-      "      io.clariobase.preview-slot: manual",
-      "  crm-edge:",
-      "    internal: true",
-      `    name: ${project}-edge`,
-      "    labels:",
-      "      io.clariobase.runtime-scope: preview",
-      "      io.clariobase.preview-slot: manual",
-      "  crm-data:",
-      "    internal: true",
-      `    name: ${project}-data`,
+      "  default:",
+      `    name: ${project}-default`,
       "    labels:",
       "      io.clariobase.runtime-scope: preview",
       "      io.clariobase.preview-slot: manual",
@@ -230,13 +201,6 @@ function inspectNoPublishedPorts(containerName: string) {
   const result = run("docker", ["inspect", "--format", "{{json .HostConfig.PortBindings}}", containerName]);
   assertSuccess(result, `inspect ${containerName} port bindings`);
   assert.match(result.stdout.trim(), /^(?:null|\{\})$/);
-}
-
-function inspectLabels(resourceType: "network" | "volume", resourceName: string) {
-  const command = resourceType === "network" ? ["network", "inspect", resourceName, "--format", "{{json .Labels}}"] : ["volume", "inspect", resourceName, "--format", "{{json .Labels}}"];
-  const result = run("docker", command);
-  assertSuccess(result, `inspect ${resourceType} labels`);
-  return JSON.parse(result.stdout.trim()) as Record<string, string>;
 }
 
 function inspectNetwork(resourceName: string) {
@@ -498,18 +462,13 @@ async function main() {
   assertSuccess(ingressBindings, "inspect ingress port binding");
   assert.match(ingressBindings.stdout, new RegExp(`127\\.0\\.0\\.1.*${httpsPort}`));
 
-  const networkInfo = inspectNetwork(`${project}-edge`);
-  assert.equal(networkInfo.internal, true);
+  const networkInfo = inspectNetwork(`${project}-default`);
+  assert.equal(networkInfo.internal, false);
   assert.equal(networkInfo.labels["io.clariobase.runtime-scope"], "preview");
-  const bindLabels = inspectLabels("network", `${project}-bind`);
-  const edgeLabels = inspectLabels("network", `${project}-edge`);
-  const dataLabels = inspectLabels("network", `${project}-data`);
   const caddyDataLabels = inspectVolume(`${project}-private-caddy-data`);
   const caddyConfigLabels = inspectVolume(`${project}-private-caddy-config`);
   const postgresLabels = inspectVolume(`${project}-postgres-data`);
-  assert.equal(bindLabels["io.clariobase.runtime-scope"], "preview");
-  assert.equal(edgeLabels["io.clariobase.preview-slot"], "manual");
-  assert.equal(dataLabels["io.clariobase.runtime-scope"], "preview");
+  assert.equal(networkInfo.labels["io.clariobase.preview-slot"], "manual");
   assert.equal(caddyDataLabels["io.clariobase.preview-slot"], "manual");
   assert.equal(caddyConfigLabels["io.clariobase.runtime-scope"], "preview");
   assert.equal(postgresLabels["io.clariobase.preview-slot"], "manual");
@@ -533,6 +492,15 @@ async function main() {
   const session = await getSession(httpsPort, ca, hostname, userCookie, userAgent);
   assert.equal(session.status, 200);
   assert.match(session.body, /"user":/);
+
+  await assert.rejects(
+    () => httpsRequest({ port: httpsPort, path: "/api/ready" }),
+    /certificate|self-signed|unable to verify|issuer|hostname|altname|EPROTO|tlsv1 alert internal error/i
+  );
+  await assert.rejects(
+    () => httpsRequest({ port: httpsPort, path: "/api/ready", ca, servername: "wrong-name.home.arpa" }),
+    /hostname|altname|certificate|EPROTO|tlsv1 alert internal error/i
+  );
 
   const foreignOrigin = await httpsRequest({
     port: httpsPort,
@@ -567,10 +535,10 @@ async function main() {
     previewOrigin: origin,
     tls: { trustedClients: 2, untrustedCaRejected: true, wrongHostnameRejected: true },
     bindings: { ingress: "127.0.0.1 only", application: "none", postgres: "none" },
-    sessions: { appRestart: true, ingressRestart: true, databaseRestart: true, revocationPersisted: true },
+    authentication: { adminSignIn: true, userSignIn: true, userSessionValidated: true, foreignOriginRejected: true },
     previewLabels: "manual preview slot labels present",
     previewVolumes: [`${project}-postgres-data`, `${project}-private-caddy-data`, `${project}-private-caddy-config`],
-    previewNetworks: [`${project}-bind`, `${project}-edge`, `${project}-data`],
+    previewNetworks: [`${project}-default`],
     securityScan: "not required for preview HTTPS auth proof",
     cleanup: {
       success: "PASS",

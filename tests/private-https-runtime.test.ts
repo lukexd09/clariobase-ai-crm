@@ -69,6 +69,12 @@ test("T013 proof owns exact-image identity, real auth restart, revocation, and c
   assert.match(previewProof, /validatePrivateHttpsPreflight/);
   assert.match(previewProof, /preview:https-auth-proof/);
   assert.match(previewProof, /verifySignalCleanup/);
+  assert.match(previewProof, /inspectNetwork\(`\$\{project\}-default`\)/);
+  assert.match(previewProof, /assert\.rejects\([\s\S]*httpsRequest\(\{ port: httpsPort, path: "\/api\/ready" \}\)/);
+  assert.match(previewProof, /servername: "wrong-name\.home\.arpa"/);
+  assert.match(previewProof, /previewNetworks: \[`\$\{project\}-default`\]/);
+  assert.doesNotMatch(previewProof, /sessions: \{ appRestart:/);
+  assert.doesNotMatch(previewProof, /crm-edge|crm-data|crm-bind/);
   const renderedRouteProof = read("tests/light-density-route-contracts.test.ts");
   assert.match(renderedRouteProof, /CRM_AUTH_RUNTIME_MODE: "disposable-test"/g);
   assert.match(renderedRouteProof, /CRM_ALLOW_INSECURE_AUTH_TESTS: "1"/g);

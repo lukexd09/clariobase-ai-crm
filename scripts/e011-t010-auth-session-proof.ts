@@ -221,6 +221,36 @@ async function main() {
     `;
     assert.equal(Number(sessionCount[0]?.count ?? 0n), 1);
 
+    const expiringSignIn = await appRestartAuth.api.signInEmail({
+      body: {
+        email: proofEmail,
+        password: proofPassword,
+        rememberMe: true
+      },
+      returnHeaders: true
+    });
+    const expiringHeaders = (expiringSignIn as { headers?: Headers }).headers;
+    assert(expiringHeaders);
+    const expiringSetCookie = expiringHeaders.get("set-cookie");
+    assert(expiringSetCookie);
+    const expiringCookie = expiringSetCookie.split(";", 1)[0];
+    const expiringSessionHeaders = new Headers({ cookie: expiringCookie });
+    const expiringSession = await appRestartAuth.api.getSession({ headers: expiringSessionHeaders });
+    assert(expiringSession?.session?.id);
+    await proofDb.session.update({
+      where: { id: expiringSession.session.id },
+      data: { expiresAt: new Date(0) }
+    });
+    const expiredSession = await createAppAuth().api.getSession({ headers: expiringSessionHeaders });
+    assert.equal(expiredSession, null);
+    await proofDb.session.deleteMany({ where: { id: expiringSession.session.id } });
+
+    const sessionCookieName = sessionCookie.split("=", 1)[0];
+    const malformedSession = await createAppAuth().api.getSession({
+      headers: new Headers({ cookie: `${sessionCookieName}=malformed-session-token` })
+    });
+    assert.equal(malformedSession, null);
+
     const signOutRestartAuth = createAppAuth();
     const afterRestartSignOut = await signOutRestartAuth.api.getSession({ headers: sessionHeaders });
     assert.equal(afterRestartSignOut, null);
