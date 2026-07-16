@@ -1,13 +1,15 @@
-import { spawnSync } from "node:child_process";
+import assert from "node:assert/strict";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { parseAuthRuntimeConfig } from "@/lib/auth-runtime-config";
 
 import { parseEnvFileContent, readText, validateFullCommitSha } from "./preview-runtime-support";
 
-type PrivateHttpsEnv = {
+export type PrivateHttpsEnv = {
   CRM_PRIVATE_BIND_ADDRESS: string;
   CRM_PRIVATE_HOSTNAME: string;
   CRM_PRIVATE_HTTPS_PORT: string;
@@ -25,14 +27,14 @@ type PrivateHttpsEnv = {
   CRM_POSTGRES_IMAGE: string;
 };
 
-type ComposePort = {
+export type ComposePort = {
   published?: string | number;
   target?: number;
   host_ip?: string;
   protocol?: string;
 };
 
-type ComposeService = {
+export type ComposeService = {
   image?: unknown;
   build?: unknown;
   pull_policy?: unknown;
@@ -42,8 +44,47 @@ type ComposeService = {
   volumes?: unknown[];
 };
 
-type ComposeConfig = {
+export type ComposeConfig = {
   services?: Record<string, ComposeService>;
+};
+
+export type PrivateHttpsImageLabels = {
+  sourceSha: string;
+  imageVariant: string;
+};
+
+export type PrivateHttpsComposeTopology = {
+  app: ComposeService;
+  postgres: ComposeService;
+  ingress: ComposeService;
+  ingressPort: ComposePort;
+};
+
+export type PrivateHttpsPreflightSummary = {
+  previewOrigin: string;
+  bindAddress: string;
+  bindAddressMode: "loopback" | "rfc1918";
+  privateHostname: string;
+  privateHttpsPort: string;
+  sourceSha: string;
+  imageVariant: string;
+  appImage: string;
+  ingressImage: string;
+  postgresImage: string;
+  compose: {
+    appPorts: number;
+    postgresPorts: number;
+    ingressPort: {
+      published?: string | number;
+      target?: number;
+    };
+  };
+};
+
+export type PrivateHttpsPreflightDeps = {
+  runComposeConfig: (envFilePath: string, env: Record<string, string>) => SpawnSyncReturns<string>;
+  inspectImageLabels: (imageRef: string) => Record<string, string>;
+  logger?: (message: string) => void;
 };
 
 const repoRoot = path.resolve(__dirname, "..");
@@ -124,13 +165,19 @@ function requireEnv(env: Map<string, string>, name: keyof PrivateHttpsEnv) {
 
 function isRfc1918Ipv4(address: string) {
   const [a, b] = address.split(".").map((part) => Number(part));
-  if (!Number.isInteger(a) || !Number.isInteger(b)) return false;
-  if (a === 10) return true;
-  if (a === 192 && b === 168) return true;
+  if (!Number.isInteger(a) || !Number.isInteger(b)) {
+    return false;
+  }
+  if (a === 10) {
+    return true;
+  }
+  if (a === 192 && b === 168) {
+    return true;
+  }
   return a === 172 && b >= 16 && b <= 31;
 }
 
-function classifyBindAddress(address: string) {
+export function classifyBindAddress(address: string) {
   const normalized = address.trim();
   if (!normalized || normalized !== address) {
     throw new Error("CRM_PRIVATE_BIND_ADDRESS must be a trimmed explicit address.");
@@ -142,44 +189,32 @@ function classifyBindAddress(address: string) {
 
   const kind = net.isIP(normalized);
   if (kind === 4) {
-    if (normalized.startsWith("127.")) return "loopback";
-    if (isRfc1918Ipv4(normalized)) return "rfc1918";
+    if (normalized.startsWith("127.")) {
+      return "loopback" as const;
+    }
+
+    if (isRfc1918Ipv4(normalized)) {
+      return "rfc1918" as const;
+    }
+
     throw new Error("CRM_PRIVATE_BIND_ADDRESS must be an explicit loopback or RFC1918 IPv4 address.");
   }
 
   if (kind === 6) {
-    if (normalized === "::1") return "loopback";
+    if (normalized === "::1") {
+      return "loopback" as const;
+    }
+
     throw new Error("CRM_PRIVATE_BIND_ADDRESS must be an explicit loopback or RFC1918 IPv4 address.");
   }
 
   throw new Error("CRM_PRIVATE_BIND_ADDRESS must be a valid loopback or RFC1918 IP address.");
 }
 
-function assertImmutableImageReference(imageRef: string, fieldName: string) {
+export function assertImmutableImageReference(imageRef: string, fieldName: string) {
   if (!immutableImageReferencePattern.test(imageRef)) {
     throw new Error(`${fieldName} must use an immutable image reference or full image ID.`);
   }
-}
-
-function inspectImageLabels(imageRef: string) {
-  const result = spawnSync("docker", ["image", "inspect", imageRef, "--format", "{{json .Config.Labels}}"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: "pipe"
-  });
-
-  if (result.status !== 0) {
-    throw new Error(`Unable to inspect ${imageRef} for immutable label validation: ${(result.stderr ?? result.stdout ?? "").trim()}`);
-  }
-
-  let labels: Record<string, string> | null;
-  try {
-    labels = JSON.parse(String(result.stdout ?? "").trim()) as Record<string, string> | null;
-  } catch {
-    throw new Error(`Unable to parse labels for ${imageRef}.`);
-  }
-
-  return labels ?? {};
 }
 
 function validateDatabaseUrl(env: PrivateHttpsEnv) {
@@ -216,7 +251,141 @@ function validateDatabaseUrl(env: PrivateHttpsEnv) {
   }
 }
 
-function loadPrivateHttpsEnv(envFilePath: string) {
+function validateDockerSocket(serviceName: string, service: ComposeService | undefined) {
+  const volumeString = JSON.stringify(service?.volumes ?? []);
+  if (/docker\.sock/i.test(volumeString)) {
+    throw new Error(`Private HTTPS compose model must not mount the Docker socket in ${serviceName}.`);
+  }
+}
+
+function validatePrivilegedAndHostNetwork(serviceName: string, service: ComposeService | undefined) {
+  if (!service) {
+    throw new Error(`Private HTTPS compose model must define ${serviceName}.`);
+  }
+
+  if (service.privileged === true) {
+    throw new Error(`Private HTTPS compose model must not enable privileged mode for ${serviceName}.`);
+  }
+
+  if (service.network_mode === "host") {
+    throw new Error(`Private HTTPS compose model must not use host networking for ${serviceName}.`);
+  }
+}
+
+export function validateComposeModel(config: ComposeConfig, env: PrivateHttpsEnv): PrivateHttpsComposeTopology {
+  const services = config.services ?? {};
+  const app = services["crm-app"];
+  const postgres = services["crm-postgres"];
+  const ingress = services["crm-private-ingress"];
+
+  if (!app) {
+    throw new Error("Private HTTPS compose model must define crm-app.");
+  }
+
+  if (!postgres) {
+    throw new Error("Private HTTPS compose model must define crm-postgres.");
+  }
+
+  if (!ingress) {
+    throw new Error("Private HTTPS compose model must define crm-private-ingress.");
+  }
+
+  if (app.build !== undefined) {
+    throw new Error("Private HTTPS compose model must not include crm-app.build.");
+  }
+
+  if (app.pull_policy !== "never") {
+    throw new Error("Private HTTPS compose model must set crm-app.pull_policy to never.");
+  }
+
+  assertImmutableImageReference(String(app.image ?? ""), "CRM_PRIVATE_APP_IMAGE");
+  assertImmutableImageReference(String(ingress.image ?? ""), "CRM_PRIVATE_INGRESS_IMAGE");
+  assertImmutableImageReference(String(postgres.image ?? ""), "CRM_POSTGRES_IMAGE");
+
+  if (String(app.image ?? "") !== env.CRM_PRIVATE_APP_IMAGE) {
+    throw new Error("CRM_PRIVATE_APP_IMAGE must match the application image in the compose model.");
+  }
+
+  if (String(ingress.image ?? "") !== env.CRM_PRIVATE_INGRESS_IMAGE) {
+    throw new Error("CRM_PRIVATE_INGRESS_IMAGE must match the ingress image in the compose model.");
+  }
+
+  if (String(postgres.image ?? "") !== env.CRM_POSTGRES_IMAGE) {
+    throw new Error("CRM_POSTGRES_IMAGE must match the PostgreSQL image in the compose model.");
+  }
+
+  if ((app.ports ?? []).length !== 0) {
+    throw new Error("Private HTTPS compose model must not publish any host ports for crm-app.");
+  }
+
+  if ((postgres.ports ?? []).length !== 0) {
+    throw new Error("Private HTTPS compose model must not publish any host ports for crm-postgres.");
+  }
+
+  const ingressPorts = ingress.ports ?? [];
+  if (ingressPorts.length === 0) {
+    throw new Error("Private HTTPS compose model must define a published ingress port.");
+  }
+
+  if (ingressPorts.length !== 1) {
+    throw new Error("Private HTTPS compose model must publish exactly one ingress port.");
+  }
+
+  const ingressPort = ingressPorts[0];
+  if (String(ingressPort.published ?? "") !== env.CRM_PRIVATE_HTTPS_PORT) {
+    throw new Error("Private HTTPS ingress must publish the configured HTTPS port.");
+  }
+
+  if (ingressPort.target !== 443) {
+    throw new Error("Private HTTPS ingress must target container port 443.");
+  }
+
+  if (String(ingressPort.host_ip ?? "") !== env.CRM_PRIVATE_BIND_ADDRESS) {
+    throw new Error("Private HTTPS ingress must bind to the configured host address.");
+  }
+
+  validatePrivilegedAndHostNetwork("crm-app", app);
+  validatePrivilegedAndHostNetwork("crm-postgres", postgres);
+  validatePrivilegedAndHostNetwork("crm-private-ingress", ingress);
+  validateDockerSocket("crm-app", app);
+  validateDockerSocket("crm-postgres", postgres);
+  validateDockerSocket("crm-private-ingress", ingress);
+
+  return {
+    app,
+    postgres,
+    ingress,
+    ingressPort
+  };
+}
+
+export function validateImageLabels(labels: Record<string, string>, expectedSourceSha: string): PrivateHttpsImageLabels {
+  const sourceShaLabel = labels["io.clariobase.source-sha"] ?? "";
+  if (!sourceShaLabel.trim()) {
+    throw new Error("io.clariobase.source-sha label must be present.");
+  }
+
+  const sourceSha = validateFullCommitSha(sourceShaLabel, "io.clariobase.source-sha");
+  if (sourceSha !== expectedSourceSha) {
+    throw new Error("io.clariobase.source-sha must equal the explicit expected source SHA.");
+  }
+
+  const imageVariant = labels["io.clariobase.image-variant"] ?? "";
+  if (!imageVariant.trim()) {
+    throw new Error("io.clariobase.image-variant label must be present.");
+  }
+
+  if (imageVariant !== "validated") {
+    throw new Error("io.clariobase.image-variant must equal validated.");
+  }
+
+  return {
+    sourceSha,
+    imageVariant
+  };
+}
+
+export function loadPrivateHttpsEnv(envFilePath: string) {
   const rawEnv = parseEnvFileContent(readText(envFilePath));
   const env: PrivateHttpsEnv = {
     CRM_PRIVATE_BIND_ADDRESS: requireEnv(rawEnv, "CRM_PRIVATE_BIND_ADDRESS"),
@@ -232,25 +401,22 @@ function loadPrivateHttpsEnv(envFilePath: string) {
     CRM_POSTGRES_PASSWORD: requireEnv(rawEnv, "CRM_POSTGRES_PASSWORD"),
     CRM_DATABASE_URL: rawEnv.get("CRM_DATABASE_URL") ?? "",
     CRM_PRIVATE_APP_IMAGE: requireEnv(rawEnv, "CRM_PRIVATE_APP_IMAGE"),
-    CRM_PRIVATE_INGRESS_IMAGE: rawEnv.get("CRM_PRIVATE_INGRESS_IMAGE") ?? "",
-    CRM_POSTGRES_IMAGE: rawEnv.get("CRM_POSTGRES_IMAGE") ?? ""
+    CRM_PRIVATE_INGRESS_IMAGE: requireEnv(rawEnv, "CRM_PRIVATE_INGRESS_IMAGE"),
+    CRM_POSTGRES_IMAGE: requireEnv(rawEnv, "CRM_POSTGRES_IMAGE")
   };
 
-  if (env.CRM_AUTH_RUNTIME_MODE !== "private-https") {
-    throw new Error("CRM_AUTH_RUNTIME_MODE must be private-https for private HTTPS preflight.");
-  }
-
+  assert.equal(env.CRM_AUTH_RUNTIME_MODE, "private-https", "CRM_AUTH_RUNTIME_MODE must be private-https for private HTTPS preflight.");
   classifyBindAddress(env.CRM_PRIVATE_BIND_ADDRESS);
+  assertImmutableImageReference(env.CRM_PRIVATE_APP_IMAGE, "CRM_PRIVATE_APP_IMAGE");
+  assertImmutableImageReference(env.CRM_PRIVATE_INGRESS_IMAGE, "CRM_PRIVATE_INGRESS_IMAGE");
+  assertImmutableImageReference(env.CRM_POSTGRES_IMAGE, "CRM_POSTGRES_IMAGE");
   validateDatabaseUrl(env);
   parseAuthRuntimeConfig(env);
 
-  return {
-    env,
-    rawEnv
-  };
+  return env;
 }
 
-function runComposeConfig(envFilePath: string, env: Record<string, string>) {
+export function runComposeConfig(envFilePath: string, env: Record<string, string>) {
   return spawnSync(
     "docker",
     [
@@ -277,108 +443,63 @@ function runComposeConfig(envFilePath: string, env: Record<string, string>) {
   );
 }
 
-function validatePorts(serviceName: string, service: ComposeService | undefined) {
-  if (!service) {
-    throw new Error(`Private HTTPS compose model must define ${serviceName}.`);
+export function inspectImageLabels(imageRef: string) {
+  const result = spawnSync("docker", ["image", "inspect", imageRef, "--format", "{{json .Config.Labels}}"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: "pipe"
+  });
+
+  if (result.status !== 0) {
+    throw new Error(`Unable to inspect ${imageRef} for immutable label validation: ${(result.stderr ?? result.stdout ?? "").trim()}`);
   }
 
-  const ports = service.ports ?? [];
-  return ports;
+  let labels: Record<string, string> | null;
+  try {
+    labels = JSON.parse(String(result.stdout ?? "").trim()) as Record<string, string> | null;
+  } catch {
+    throw new Error(`Unable to parse labels for ${imageRef}.`);
+  }
+
+  return labels ?? {};
 }
 
-function assertNoDockerSocket(serviceName: string, service: ComposeService | undefined) {
-  const volumeString = JSON.stringify(service?.volumes ?? []);
-  if (/docker\.sock/i.test(volumeString)) {
-    throw new Error(`Private HTTPS compose model must not mount the Docker socket in ${serviceName}.`);
-  }
+export function validatePrivateHttpsPreflight(args: {
+  env: PrivateHttpsEnv;
+  composeConfigJson: string;
+  imageLabels: Record<string, string>;
+  expectedSourceSha: string;
+}) {
+  classifyBindAddress(args.env.CRM_PRIVATE_BIND_ADDRESS);
+  validateDatabaseUrl(args.env);
+  const authRuntime = parseAuthRuntimeConfig(args.env);
+  const topology = validateComposeModel(JSON.parse(args.composeConfigJson) as ComposeConfig, args.env);
+  const imageLabels = validateImageLabels(args.imageLabels, args.expectedSourceSha);
+
+  return {
+    previewOrigin: authRuntime.origin,
+    bindAddress: args.env.CRM_PRIVATE_BIND_ADDRESS,
+    bindAddressMode: classifyBindAddress(args.env.CRM_PRIVATE_BIND_ADDRESS),
+    privateHostname: args.env.CRM_PRIVATE_HOSTNAME,
+    privateHttpsPort: args.env.CRM_PRIVATE_HTTPS_PORT,
+    sourceSha: imageLabels.sourceSha,
+    imageVariant: imageLabels.imageVariant,
+    appImage: args.env.CRM_PRIVATE_APP_IMAGE,
+    ingressImage: String(topology.ingress.image ?? ""),
+    postgresImage: String(topology.postgres.image ?? ""),
+    compose: {
+      appPorts: topology.app.ports?.length ?? 0,
+      postgresPorts: topology.postgres.ports?.length ?? 0,
+      ingressPort: {
+        published: topology.ingressPort.published,
+        target: topology.ingressPort.target
+      }
+    }
+  } satisfies PrivateHttpsPreflightSummary;
 }
 
-function assertNoPrivilegedOrHostNetwork(serviceName: string, service: ComposeService | undefined) {
-  if (!service) {
-    throw new Error(`Private HTTPS compose model must define ${serviceName}.`);
-  }
-
-  if (service.privileged === true) {
-    throw new Error(`Private HTTPS compose model must not enable privileged mode for ${serviceName}.`);
-  }
-
-  if (service.network_mode === "host") {
-    throw new Error(`Private HTTPS compose model must not use host networking for ${serviceName}.`);
-  }
-}
-
-function validateComposeModel(config: ComposeConfig, env: PrivateHttpsEnv) {
-  const services = config.services ?? {};
-  const app = services["crm-app"];
-  const postgres = services["crm-postgres"];
-  const ingress = services["crm-private-ingress"];
-
-  if (!app) {
-    throw new Error("Private HTTPS compose model must define crm-app.");
-  }
-
-  if (!postgres) {
-    throw new Error("Private HTTPS compose model must define crm-postgres.");
-  }
-
-  if (!ingress) {
-    throw new Error("Private HTTPS compose model must define crm-private-ingress.");
-  }
-
-  if (app.build !== undefined) {
-    throw new Error("Private HTTPS compose model must not include crm-app.build.");
-  }
-
-  if (app.pull_policy !== "never") {
-    throw new Error("Private HTTPS compose model must set crm-app.pull_policy to never.");
-  }
-
-  assertImmutableImageReference(String(app.image ?? ""), "crm-app.image");
-  assertImmutableImageReference(String(postgres.image ?? ""), "crm-postgres.image");
-  assertImmutableImageReference(String(ingress.image ?? ""), "crm-private-ingress.image");
-
-  if (String(app.image ?? "") !== env.CRM_PRIVATE_APP_IMAGE) {
-    throw new Error("crm-app.image must equal CRM_PRIVATE_APP_IMAGE.");
-  }
-
-  if ((validatePorts("crm-app", app)).length !== 0) {
-    throw new Error("Private HTTPS compose model must not publish any host ports for crm-app.");
-  }
-
-  if ((validatePorts("crm-postgres", postgres)).length !== 0) {
-    throw new Error("Private HTTPS compose model must not publish any host ports for crm-postgres.");
-  }
-
-  const ingressPorts = validatePorts("crm-private-ingress", ingress);
-  if (ingressPorts.length !== 1) {
-    throw new Error("Private HTTPS compose model must publish exactly one ingress port.");
-  }
-
-  const ingressPort = ingressPorts[0];
-  if (String(ingressPort.published ?? "") !== env.CRM_PRIVATE_HTTPS_PORT) {
-    throw new Error("Private HTTPS ingress must publish the configured HTTPS port.");
-  }
-
-  if (ingressPort.target !== 443) {
-    throw new Error("Private HTTPS ingress must target container port 443.");
-  }
-
-  if (String(ingressPort.host_ip ?? "") !== env.CRM_PRIVATE_BIND_ADDRESS) {
-    throw new Error("Private HTTPS ingress must bind to the configured host address.");
-  }
-
-  assertNoPrivilegedOrHostNetwork("crm-app", app);
-  assertNoPrivilegedOrHostNetwork("crm-postgres", postgres);
-  assertNoPrivilegedOrHostNetwork("crm-private-ingress", ingress);
-  assertNoDockerSocket("crm-app", app);
-  assertNoDockerSocket("crm-postgres", postgres);
-  assertNoDockerSocket("crm-private-ingress", ingress);
-
-  return { app, postgres, ingress, ingressPort };
-}
-
-function printSuccess(summary: Record<string, unknown>) {
-  console.log(JSON.stringify(summary, null, 2));
+function printSuccess(summary: PrivateHttpsPreflightSummary) {
+  console.log(JSON.stringify({ result: "PASS", ...summary }, null, 2));
 }
 
 function main() {
@@ -402,62 +523,32 @@ function main() {
   }
 
   const validatedExpectedSourceSha = validateFullCommitSha(expectedSourceSha, "Expected source SHA");
-  const { env, rawEnv } = loadPrivateHttpsEnv(envFilePath);
-  const composeResult = runComposeConfig(envFilePath, {
-    ...asRecord(rawEnv),
-    CRM_PRIVATE_APP_IMAGE: env.CRM_PRIVATE_APP_IMAGE
-  });
+  const env = loadPrivateHttpsEnv(envFilePath);
+  const composeResult = runComposeConfig(envFilePath, asRecord(parseEnvFileContent(readText(envFilePath))));
 
   if (composeResult.status !== 0) {
     throw new Error(`docker compose config failed: ${(composeResult.stderr ?? composeResult.stdout ?? "").trim()}`);
   }
 
-  let composeConfig: ComposeConfig;
-  try {
-    composeConfig = JSON.parse(String(composeResult.stdout ?? "")) as ComposeConfig;
-  } catch (error) {
-    throw new Error(`Failed to parse docker compose config JSON: ${(error as Error).message}`);
-  }
-
-  const topology = validateComposeModel(composeConfig, env);
-  const labels = inspectImageLabels(env.CRM_PRIVATE_APP_IMAGE);
-  const sourceSha = validateFullCommitSha(String(labels["io.clariobase.source-sha"] ?? ""), "io.clariobase.source-sha");
-  const imageVariant = String(labels["io.clariobase.image-variant"] ?? "");
-
-  if (sourceSha !== validatedExpectedSourceSha) {
-    throw new Error("io.clariobase.source-sha must equal the explicit expected source SHA.");
-  }
-
-  if (imageVariant !== "validated") {
-    throw new Error("io.clariobase.image-variant must equal validated.");
-  }
+  const imageLabels = inspectImageLabels(env.CRM_PRIVATE_APP_IMAGE);
+  const summary = validatePrivateHttpsPreflight({
+    env,
+    composeConfigJson: String(composeResult.stdout ?? ""),
+    imageLabels,
+    expectedSourceSha: validatedExpectedSourceSha
+  });
 
   printSuccess({
-    result: "PASS",
-    envFile: envFilePath,
-    bindAddress: env.CRM_PRIVATE_BIND_ADDRESS,
-    bindAddressMode: classifyBindAddress(env.CRM_PRIVATE_BIND_ADDRESS),
-    privateHostname: env.CRM_PRIVATE_HOSTNAME,
-    privateHttpsPort: env.CRM_PRIVATE_HTTPS_PORT,
-    sourceSha,
-    imageVariant,
-    appImage: env.CRM_PRIVATE_APP_IMAGE,
-    ingressImage: String(topology.ingress.image ?? ""),
-    postgresImage: String(topology.postgres.image ?? ""),
-    compose: {
-      appPorts: topology.app.ports?.length ?? 0,
-      postgresPorts: topology.postgres.ports?.length ?? 0,
-      ingressPort: {
-        published: topology.ingressPort.published,
-        target: topology.ingressPort.target
-      }
-    }
+    ...summary,
+    previewOrigin: summary.previewOrigin
   });
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }

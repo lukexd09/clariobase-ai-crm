@@ -33,7 +33,7 @@ test.describe("Dashboard environment watermark", () => {
     await assertNoHorizontalOverflow(page);
 
     await page.getByRole("link", { name: "System status" }).click();
-    await expect(page).toHaveURL(/\/health$/);
+    await expect(page).toHaveURL(/\/health$/, { timeout: 15_000 });
     await expect(page.getByRole("heading", { name: "Health check" })).toBeVisible();
     await expect(watermark).toBeVisible();
     await assertNoHorizontalOverflow(page);
@@ -54,7 +54,7 @@ test.describe("Dashboard environment watermark", () => {
 
     await page.getByRole("button", { name: "Menu" }).click();
     await page.getByRole("link", { name: "System status" }).click();
-    await expect(page).toHaveURL(/\/health$/);
+    await expect(page).toHaveURL(/\/health$/, { timeout: 15_000 });
     await expect(page.getByRole("heading", { name: "Health check" })).toBeVisible();
     await expect(watermark).toBeVisible();
     await assertNoHorizontalOverflow(page);

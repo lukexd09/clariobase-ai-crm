@@ -47,7 +47,6 @@ concurrency:
 env:
   PREVIEW_PRIVATE_HOSTNAME: clariobase-crm-preview.home.arpa
   PREVIEW_PRIVATE_HTTPS_PORT: "3001"
-  PREVIEW_URL: https://clariobase-crm-preview.home.arpa:3001
 
 jobs:
   resolve-preview-release:
@@ -128,7 +127,7 @@ jobs:
               skip_reason: "BLOCKED: ambiguous preview release request",
               ci_run_id: "",
               ci_run_url: "",
-              preview_url: process.env.PREVIEW_URL || ""
+              preview_url: `https://${process.env.PREVIEW_PRIVATE_HOSTNAME || ""}:${process.env.PREVIEW_PRIVATE_HTTPS_PORT || ""}`
             };
 
             const finish = (overrides = {}) => {
@@ -343,7 +342,7 @@ jobs:
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
           DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
           BLOCK_REASON: ${{ needs.resolve-preview-release.outputs.skip_reason }}
-          PREVIEW_URL: ${{ needs.resolve-preview-release.outputs.preview_url }}
+          PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview_url }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
@@ -893,7 +892,6 @@ jobs:
           CRM_PREVIEW_IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
           DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
           RESET_CONFIRMATION: ${{ needs.resolve-preview-release.outputs.reset_confirmation }}
-          PREVIEW_URL: ${{ env.PREVIEW_URL }}
         run: |
           powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\deploy-preview.ps1 `
             -SourceMode $env:SOURCE_MODE `
@@ -909,27 +907,62 @@ jobs:
             throw "Deploy preview script failed with exit code $deployExitCode."
           }
 
-          "preview_url=$env:PREVIEW_URL" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
       - name: Verify preview readiness
         if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
         env:
-          PREVIEW_URL: ${{ env.PREVIEW_URL }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
         run: |
-          $response = Invoke-WebRequest -Method Get -SkipCertificateCheck -Uri "$($env:PREVIEW_URL)/api/ready"
-          if ($response.StatusCode -ne 200) {
-            throw "Preview readiness HTTP status was $($response.StatusCode)."
-          }
+          $previewUrl = [Uri]$env:PREVIEW_URL
+          $previewHost = $previewUrl.DnsSafeHost
+          $previewPort = $previewUrl.Port
+          $previewCaPath = Join-Path $env:RUNNER_TEMP "preview-root.crt"
 
-          $preview = $response.Content | ConvertFrom-Json
-          if ($preview.service -ne "clariobase-ai-crm" -or $preview.status -ne "ready" -or $preview.checks.database -ne "ok" -or $preview.checks.authentication -ne "ok") {
-            $service = if ($null -ne $preview.service) { $preview.service } else { "null" }
-            $status = if ($null -ne $preview.status) { $preview.status } else { "null" }
-            $database = if ($preview.checks -and $null -ne $preview.checks.database) { $preview.checks.database } else { "null" }
-            $authentication = if ($preview.checks -and $null -ne $preview.checks.authentication) { $preview.checks.authentication } else { "null" }
-            throw "Preview readiness failed: service=$service, status=$status, database=$database, authentication=$authentication."
-          }
+          docker compose --env-file .\.env.compose.preview.local -f compose.yaml -f compose.preview.yaml -f compose.preview.private-https.yaml cp crm-private-ingress:/data/caddy/pki/authorities/local/root.crt $previewCaPath
+
+          node -e @"
+const fs = require('node:fs');
+const https = require('node:https');
+const caPath = process.argv[1];
+const previewHost = process.argv[2];
+const previewPort = Number(process.argv[3]);
+const ca = fs.readFileSync(caPath);
+const request = https.request({
+  hostname: '127.0.0.1',
+  port: previewPort,
+  path: '/api/ready',
+  method: 'GET',
+  servername: previewHost,
+  ca,
+  rejectUnauthorized: true,
+  headers: {
+    host: `${previewHost}:${previewPort}`,
+    'Cache-Control': 'no-store'
+  }
+}, (response) => {
+  const chunks = [];
+  response.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+  response.on('end', () => {
+    if (response.statusCode !== 200) {
+      console.error(`Preview readiness HTTP status was ${response.statusCode}.`);
+      process.exit(1);
+    }
+    const preview = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if (preview.service !== 'clariobase-ai-crm' || preview.status !== 'ready' || preview.checks?.database !== 'ok' || preview.checks?.authentication !== 'ok') {
+      console.error(`Preview readiness failed: service=${preview.service ?? 'null'}, status=${preview.status ?? 'null'}, database=${preview.checks?.database ?? 'null'}, authentication=${preview.checks?.authentication ?? 'null'}.`);
+      process.exit(1);
+    }
+    process.exit(0);
+  });
+});
+request.on('error', (error) => {
+  console.error(error.message);
+  process.exit(1);
+});
+request.end();
+"@ $previewCaPath $previewHost $previewPort
+
+          Remove-Item $previewCaPath -Force -ErrorAction SilentlyContinue
 
       - name: Write deployment summary
         if: success() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'

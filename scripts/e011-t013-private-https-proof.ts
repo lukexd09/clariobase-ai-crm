@@ -232,6 +232,8 @@ async function main() {
     `BETTER_AUTH_URL=${origin}`,
     `BETTER_AUTH_SECRET=${authSecret}`,
     `CRM_PRIVATE_APP_IMAGE=${imageId}`,
+    "CRM_PRIVATE_INGRESS_IMAGE=caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+    "CRM_POSTGRES_IMAGE=postgres:16@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54",
     `AI_EXCHANGE_HOST_PATH=${path.join(tmpRoot, "ai-exchange").replace(/\\/g, "/")}`,
     "CRM_POSTGRES_DB=clariobase_t013",
     "CRM_POSTGRES_USER=clariobase_t013_user",
@@ -240,6 +242,20 @@ async function main() {
     "CRM_DEPLOYMENT_ENV=production"
   ].join("\n"), { encoding: "utf8", mode: 0o600 });
   fs.mkdirSync(path.join(tmpRoot, "ai-exchange"), { recursive: true });
+
+  const preflight = run("node", [
+    "./node_modules/tsx/dist/cli.mjs",
+    "scripts/private-https-preflight.ts",
+    "--env-file",
+    envPath,
+    "--expected-source-sha",
+    sourceSha
+  ], {
+    CRM_PRIVATE_APP_IMAGE: imageId,
+    CRM_PRIVATE_INGRESS_IMAGE: "caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+    CRM_POSTGRES_IMAGE: "postgres:16@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54",
+  });
+  assertSuccess(preflight, "run private HTTPS preflight against exact runtime image");
 
   let result = runCompose(["config", "--quiet"]);
   assertSuccess(result, "validate private HTTPS Compose model");

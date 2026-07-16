@@ -5,7 +5,7 @@ document_type: operations-runbook
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-07-15
+last_updated: 2026-07-16
 related_epic: E011
 related_tasks:
   - E011.T013
@@ -59,6 +59,8 @@ Never export the CA private key. Never enable router forwarding, public DNS, a P
 - Full disposable security/restart/rollback proof with offline recovery: `corepack pnpm e011:t013:proof`.
 
 Commands that omit the env and file arguments are illustrative. Operators must use the same explicit project/env/overlay selection throughout one operation.
+
+The local preview env file owns the effective preview hostname, HTTPS port and origin. Do not rebuild those values independently in automation when the resolved preview URL is already available from the loaded env.
 
 ## Rotation
 

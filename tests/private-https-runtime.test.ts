@@ -38,9 +38,10 @@ test("base Compose authentication secret and URL fail closed", () => {
 test("T013 proof owns exact-image identity, real auth restart, revocation, and cleanup", () => {
   const packageJson = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
   const proof = read("scripts/e011-t013-private-https-proof.ts");
+  const previewProof = read("scripts/preview-https-auth-proof.ts");
   assert.equal(packageJson.scripts["e011:t013:proof"], "tsx scripts/e011-t013-private-https-proof.ts");
   assert.equal(packageJson.scripts["e011:t013:runtime-proof"], "tsx scripts/e011-t013-private-https-proof.ts --runtime-only");
-  assert.equal(packageJson.scripts["preview:https-auth-proof"], "tsx scripts/e011-t013-private-https-proof.ts --runtime-only");
+  assert.equal(packageJson.scripts["preview:https-auth-proof"], "tsx scripts/preview-https-auth-proof.ts");
   assert.equal(packageJson.scripts["private-https:preflight"], "tsx scripts/private-https-preflight.ts");
   assert.match(proof, /createCleanupController\("e011:t013:proof"\)/);
   assert.match(proof, /cleanup\.installProcessHandlers\(\)/);
@@ -50,6 +51,8 @@ test("T013 proof owns exact-image identity, real auth restart, revocation, and c
   assert.match(proof, /runtimeOnly/);
   assert.match(proof, /runtime-only verification/);
   assert.match(proof, /CRM_SOURCE_SHA/);
+  assert.match(proof, /private-https-preflight\.ts/);
+  assert.match(proof, /--expected-source-sha/);
   assert.match(proof, /bootstrap disposable administrator through controlled path/);
   assert.match(proof, /create disposable user through admin gateway/);
   assert.match(proof, /restart application/);
@@ -60,6 +63,12 @@ test("T013 proof owns exact-image identity, real auth restart, revocation, and c
   assert.match(proof, /e011-t013-security-scan\.ts/);
   assert.match(proof, /scripts\/e011-immutable-image\.ts/);
   assert.match(proof, /prove exact-image upgrade and rollback/);
+  assert.match(previewProof, /createDockerRunId\("preview-https-auth"\)/);
+  assert.match(previewProof, /compose\.preview\.yaml/);
+  assert.match(previewProof, /compose\.preview\.private-https\.yaml/);
+  assert.match(previewProof, /validatePrivateHttpsPreflight/);
+  assert.match(previewProof, /preview:https-auth-proof/);
+  assert.match(previewProof, /verifySignalCleanup/);
   const renderedRouteProof = read("tests/light-density-route-contracts.test.ts");
   assert.match(renderedRouteProof, /CRM_AUTH_RUNTIME_MODE: "disposable-test"/g);
   assert.match(renderedRouteProof, /CRM_ALLOW_INSECURE_AUTH_TESTS: "1"/g);

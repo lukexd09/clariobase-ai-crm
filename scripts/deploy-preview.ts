@@ -145,20 +145,21 @@ function runDockerCompose(args: string[], env: Record<string, string>) {
   });
 }
 
-function readHttpsJson(origin: string, ca: Buffer) {
-  const target = new URL("/api/ready", origin);
+function readHttpsJson(options: { connectHost: string; servername: string; port: number; ca: Buffer }) {
+  const target = new URL(`https://${options.servername}:${options.port}/api/ready`);
 
   return new Promise<{ status: number; payload: ReadyPayload }>((resolve, reject) => {
     const request = https.request(
       {
-        hostname: target.hostname,
-        port: target.port || 443,
+        hostname: options.connectHost,
+        port: options.port,
         path: target.pathname + target.search,
         method: "GET",
-        servername: target.hostname,
-        ca,
+        servername: options.servername,
+        ca: options.ca,
         rejectUnauthorized: true,
         headers: {
+          host: `${options.servername}:${options.port}`,
           "Cache-Control": "no-store"
         }
       },
@@ -184,10 +185,16 @@ function readHttpsJson(origin: string, ca: Buffer) {
   });
 }
 
-async function waitForPrivateHttpsReady(previewUrl: string, previewEnvFilePath: string, previewImageRef: string, timeoutSeconds: number) {
+async function waitForPrivateHttpsReady(
+  previewUrl: string,
+  previewEnvFilePath: string,
+  previewImageRef: string,
+  timeoutSeconds: number
+) {
   const deadline = Date.now() + timeoutSeconds * 1000;
   const caRootDir = fs.mkdtempSync(path.join(os.tmpdir(), "clariobase-preview-ca-"));
   const caPath = path.join(caRootDir, "root.crt");
+  const target = new URL(previewUrl);
 
   try {
     while (Date.now() < deadline) {
@@ -209,7 +216,12 @@ async function waitForPrivateHttpsReady(previewUrl: string, previewEnvFilePath: 
 
       try {
         const ca = fs.readFileSync(caPath);
-        const response = await readHttpsJson(previewUrl, ca);
+        const response = await readHttpsJson({
+          connectHost: "127.0.0.1",
+          servername: target.hostname,
+          port: Number(target.port || "443"),
+          ca
+        });
         if (response.status === 200) {
           const database = response.payload.checks?.database;
           const authentication = response.payload.checks?.authentication;

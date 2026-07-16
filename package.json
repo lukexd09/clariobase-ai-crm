@@ -30,7 +30,7 @@
     "e011:t012:admin-proof": "node --env-file=.env.example ./node_modules/tsx/dist/cli.mjs scripts/admin-user-access-proof.ts",
     "e011:t013:proof": "tsx scripts/e011-t013-private-https-proof.ts",
     "e011:t013:runtime-proof": "tsx scripts/e011-t013-private-https-proof.ts --runtime-only",
-    "preview:https-auth-proof": "tsx scripts/e011-t013-private-https-proof.ts --runtime-only",
+    "preview:https-auth-proof": "tsx scripts/preview-https-auth-proof.ts",
     "private-https:preflight": "tsx scripts/private-https-preflight.ts",
     "e011:t013:security-scan": "tsx scripts/e011-t013-security-scan.ts",
     "admin:bootstrap": "node --env-file=.env.local ./node_modules/tsx/dist/cli.mjs scripts/bootstrap-admin.ts",

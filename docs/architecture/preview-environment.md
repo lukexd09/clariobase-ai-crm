@@ -5,7 +5,7 @@ document_type: architecture
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-07-15
+last_updated: 2026-07-16
 related_epic: E016
 related_tasks:
   - E016.T001
@@ -110,6 +110,7 @@ The owner-approved preview UX is watermark-only: no top banner, no layout shift,
 Preview operators should expect subtle repeated `TEST` watermarks before doing destructive or manual testing.
 Production deployment must explicitly declare `CRM_DEPLOYMENT_ENV=production`.
 Do not use `NEXT_PUBLIC_*` for this contract.
+The materialized preview env file is the executable source of truth for the preview hostname, HTTPS port and origin; documentation may show the canonical default, but workflows and proofs must consume the resolved value rather than rebuilding it independently.
 
 Preview must never reuse production `.env.compose.local`, production AI exchange paths, production containers or production database identifiers.
 Preview deployment does not query production health and must not depend on production being reachable from the preview host.

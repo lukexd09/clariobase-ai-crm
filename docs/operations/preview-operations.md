@@ -5,7 +5,7 @@ document_type: operations-runbook
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-07-15
+last_updated: 2026-07-16
 related_epic: E016
 related_tasks:
   - E016.T002
@@ -188,6 +188,7 @@ Required preview values:
 - `CRM_PRIVATE_BIND_ADDRESS=0.0.0.0`;
 - `CRM_PRIVATE_HOSTNAME=clariobase-crm-preview.home.arpa`;
 - `CRM_PRIVATE_HTTPS_PORT=3001`;
+- `CRM_DEPLOYMENT_ENV=preview`;
 - `CRM_AUTH_RUNTIME_MODE=private-https`;
 - `CRM_AUTH_TRUSTED_ORIGINS=https://clariobase-crm-preview.home.arpa:3001`;
 - `BETTER_AUTH_URL=https://clariobase-crm-preview.home.arpa:3001`;
@@ -202,6 +203,7 @@ Rules:
 - do not reuse the production AI exchange path `./data/ai-exchange`;
 - do not point `CRM_DATABASE_URL` at `clariobase_crm`;
 - keep preview secrets local or inject them through the workflow secret at runtime.
+- treat the copied local preview env file as the executable source of truth for hostname, port and origin.
 
 ## Immutable deployment contract
 
