@@ -1,53 +1,55 @@
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
+import { createAccessControl } from "better-auth/plugins/access";
 import { admin } from "better-auth/plugins/admin";
 
 import { prisma } from "@/lib/prisma";
+import { parseAuthRuntimeConfig } from "@/lib/auth-runtime-config";
 
-function readAuthSecret() {
-  const secret = process.env.BETTER_AUTH_SECRET;
-
-  if (!secret) {
-    throw new Error("BETTER_AUTH_SECRET is required for Better Auth");
-  }
-
-  if (secret.length < 32) {
-    throw new Error("BETTER_AUTH_SECRET must be at least 32 characters long");
-  }
-
-  return secret;
-}
-
-function readAuthBaseUrl() {
-  const baseURL = process.env.BETTER_AUTH_URL;
-
-  if (!baseURL) {
-    throw new Error("BETTER_AUTH_URL is required for Better Auth");
-  }
-
-  const parsed = new URL(baseURL);
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    throw new Error("BETTER_AUTH_URL must use http or https");
-  }
-
-  return baseURL;
-}
+const adminStatements = {
+  user: ["create", "list", "set-role", "ban", "set-password", "set-email", "get", "update"],
+  session: ["list", "revoke", "delete"]
+} as const;
+const adminAccessControl = createAccessControl(adminStatements);
+const adminRoles = {
+  admin: adminAccessControl.newRole(adminStatements),
+  user: adminAccessControl.newRole({ user: [], session: [] })
+};
 
 type AuthDatabaseClient = Parameters<typeof prismaAdapter>[0];
 
-export function buildAuthOptions(databaseClient: AuthDatabaseClient = prisma) {
-  const baseURL = readAuthBaseUrl();
+export function buildAuthOptions(
+  databaseClient: AuthDatabaseClient = prisma,
+  environment: Record<string, string | undefined> = process.env
+) {
+  const runtime = parseAuthRuntimeConfig(environment);
 
   return {
     appName: "ClarioBase",
-    baseURL,
+    baseURL: runtime.baseURL,
     database: prismaAdapter(databaseClient, {
       provider: "postgresql"
     }),
-    plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] })],
-    trustedOrigins: [new URL(baseURL).origin],
+    plugins: [admin({
+      defaultRole: "user",
+      adminRoles: ["admin"],
+      ac: adminAccessControl,
+      roles: adminRoles
+    })],
+    trustedOrigins: runtime.trustedOrigins,
     emailAndPassword: { enabled: true, disableSignUp: true },
-    secret: readAuthSecret(),
+    disabledPaths: ["/sign-up/email"],
+    secret: runtime.secret,
+    advanced: {
+      useSecureCookies: runtime.secureCookies,
+      trustedProxyHeaders: false,
+      defaultCookieAttributes: {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        secure: runtime.secureCookies,
+        path: "/"
+      }
+    },
     telemetry: {
       enabled: false,
       debug: false

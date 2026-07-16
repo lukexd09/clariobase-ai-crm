@@ -27,6 +27,8 @@ function buildProductionApp() {
       BETTER_AUTH_SECRET:
         process.env.BETTER_AUTH_SECRET ?? "test-only-better-auth-secret-32-chars-minimum",
       BETTER_AUTH_TELEMETRY: "0",
+      CRM_AUTH_RUNTIME_MODE: "disposable-test",
+      CRM_ALLOW_INSECURE_AUTH_TESTS: "1",
       DATABASE_URL:
         process.env.DATABASE_URL ??
         "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"
@@ -74,6 +76,8 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
       BETTER_AUTH_SECRET:
         process.env.BETTER_AUTH_SECRET ?? "test-only-better-auth-secret-32-chars-minimum",
       BETTER_AUTH_TELEMETRY: "0",
+      CRM_AUTH_RUNTIME_MODE: "disposable-test",
+      CRM_ALLOW_INSECURE_AUTH_TESTS: "1",
       DATABASE_URL:
         process.env.DATABASE_URL ??
         "postgresql://clariobase_crm_user:clariobase_test_password@localhost:5432/clariobase_crm?schema=public"

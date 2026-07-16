@@ -64,8 +64,13 @@ function writePreviewEnv(rootDir: string, values?: Partial<Record<string, string
   const envDir = path.join(rootDir, "env");
   const envPath = path.join(envDir, PREVIEW_ENV_FILE_NAME);
   const defaults = {
-    CRM_BIND_ADDRESS: "0.0.0.0",
-    CRM_HOST_PORT: "3001",
+    CRM_PRIVATE_BIND_ADDRESS: "0.0.0.0",
+    CRM_PRIVATE_HOSTNAME: "clariobase-crm-preview.home.arpa",
+    CRM_PRIVATE_HTTPS_PORT: PREVIEW_HOST_PORT,
+    CRM_AUTH_RUNTIME_MODE: "private-https",
+    CRM_AUTH_TRUSTED_ORIGINS: PREVIEW_URL,
+    BETTER_AUTH_URL: PREVIEW_URL,
+    BETTER_AUTH_SECRET: "preview-test-better-auth-secret-preview-test-better-auth-secret",
     AI_EXCHANGE_HOST_PATH: "./data/ai-exchange-preview",
     CRM_POSTGRES_DB: "clariobase_crm_preview",
     CRM_POSTGRES_USER: "clariobase_crm_preview_user",
@@ -204,6 +209,8 @@ function runPreviewComposeConfig(previewEnvFilePath: string, formatJson = false)
       "compose.yaml",
       "-f",
       "compose.preview.yaml",
+      "-f",
+      "compose.preview.private-https.yaml",
       "config",
       ...(formatJson ? ["--format", "json"] : [])
     ],
@@ -231,12 +238,17 @@ test("preview runtime assets pin the approved preview identity", () => {
   assert.match(composePreviewFile, /clariobase-crm-preview-network/);
   assert.match(composePreviewFile, /clariobase-crm-preview-postgres-data/);
   assert.match(composePreviewFile, /io\.clariobase\.runtime-scope: preview/);
-  assert.match(composePreviewEnvExample, /^CRM_BIND_ADDRESS=0\.0\.0\.0$/m);
-  assert.match(composePreviewEnvExample, /^CRM_HOST_PORT=3001$/m);
+  assert.match(composePreviewEnvExample, /^CRM_PRIVATE_BIND_ADDRESS=0\.0\.0\.0$/m);
+  assert.match(composePreviewEnvExample, /^CRM_PRIVATE_HOSTNAME=clariobase-crm-preview\.home\.arpa$/m);
+  assert.match(composePreviewEnvExample, /^CRM_PRIVATE_HTTPS_PORT=3001$/m);
   assert.match(composePreviewEnvExample, /^AI_EXCHANGE_HOST_PATH=\.\/data\/ai-exchange-preview$/m);
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_DB=clariobase_crm_preview$/m);
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_USER=clariobase_crm_preview_user$/m);
   assert.match(composePreviewEnvExample, /^CRM_POSTGRES_PASSWORD=$/m);
+  assert.match(composePreviewEnvExample, /^CRM_AUTH_RUNTIME_MODE=private-https$/m);
+  assert.match(composePreviewEnvExample, /^CRM_AUTH_TRUSTED_ORIGINS=https:\/\/clariobase-crm-preview\.home\.arpa:3001$/m);
+  assert.match(composePreviewEnvExample, /^BETTER_AUTH_URL=https:\/\/clariobase-crm-preview\.home\.arpa:3001$/m);
+  assert.match(composePreviewEnvExample, /^BETTER_AUTH_SECRET=$/m);
   assert.match(previewRunbook, /document_id: DOC-E016-PREVIEW-OPERATIONS/);
   assert.match(previewRunbook, /scripts\/deploy-preview\.ps1/);
   assert.match(previewRunbook, /scripts\/stop-preview\.ps1/);
@@ -255,13 +267,14 @@ test("preview runtime support validates a safe preview env file", () => {
     process.env.CRM_PREVIEW_IMAGE_REF = previewImageRef;
     const config = loadPreviewEnv(previewEnvFilePath);
 
-    assert.equal(config.env.CRM_BIND_ADDRESS, "0.0.0.0");
-    assert.equal(config.env.CRM_HOST_PORT, PREVIEW_HOST_PORT);
+    assert.equal(config.env.CRM_PRIVATE_BIND_ADDRESS, "0.0.0.0");
+    assert.equal(config.env.CRM_PRIVATE_HOSTNAME, "clariobase-crm-preview.home.arpa");
+    assert.equal(config.env.CRM_PRIVATE_HTTPS_PORT, PREVIEW_HOST_PORT);
     assert.equal(config.previewUrl, PREVIEW_URL);
     assert.equal(config.env.AI_EXCHANGE_HOST_PATH, PREVIEW_AI_EXCHANGE_PATH);
     assert.equal(config.env.CRM_DATABASE_URL, `postgresql://${PREVIEW_DB_USER}:preview-password@crm-postgres:5432/${PREVIEW_DB_NAME}?schema=public`);
     assert.equal(config.previewAiExchangeAbsolutePath.replace(/\\/g, "/").endsWith("/data/ai-exchange-preview"), true);
-    assert.match(config.previewLocalReadyUrl, /127\.0\.0\.1:3001\/api\/ready/);
+    assert.equal(config.previewReadyUrl, PREVIEW_URL);
   } finally {
     delete process.env.CRM_PREVIEW_IMAGE_REF;
     fs.rmSync(tmpRoot, { recursive: true, force: true });
@@ -270,25 +283,32 @@ test("preview runtime support validates a safe preview env file", () => {
 
 test("preview runtime support rejects production collisions", () => {
   const previewEnv = parseEnvFileContent([
-    "CRM_BIND_ADDRESS=0.0.0.0",
-    "CRM_HOST_PORT=3000",
+    "CRM_PRIVATE_BIND_ADDRESS=0.0.0.0",
+    "CRM_PRIVATE_HOSTNAME=clariobase-crm-preview.home.arpa",
+    "CRM_PRIVATE_HTTPS_PORT=3000",
+    "CRM_AUTH_RUNTIME_MODE=private-https",
+    "CRM_AUTH_TRUSTED_ORIGINS=https://clariobase-crm-preview.home.arpa:3000",
+    "BETTER_AUTH_URL=https://clariobase-crm-preview.home.arpa:3000",
     "AI_EXCHANGE_HOST_PATH=./data/ai-exchange",
     "CRM_POSTGRES_DB=clariobase_crm",
     "CRM_POSTGRES_USER=clariobase_crm_user",
     "CRM_POSTGRES_PASSWORD=preview-password"
   ].join("\n"));
-  assert.equal(previewEnv.get("CRM_HOST_PORT"), "3000");
+  assert.equal(previewEnv.get("CRM_PRIVATE_HTTPS_PORT"), "3000");
 
   const tmpRoot = createRepoTmpDir(repoRoot, "preview-runtime-unsafe-");
   const previewEnvFilePath = writePreviewEnv(tmpRoot, {
-    CRM_HOST_PORT: "3000",
+    CRM_PRIVATE_HTTPS_PORT: "3000",
     AI_EXCHANGE_HOST_PATH: "./data/ai-exchange",
     CRM_POSTGRES_DB: "clariobase_crm"
   });
 
   try {
     process.env.CRM_PREVIEW_IMAGE_REF = previewImageRef;
-    assert.throws(() => loadPreviewEnv(previewEnvFilePath), /Preview host port must stay pinned to 3001|protected production path|preview database/i);
+    assert.throws(
+      () => loadPreviewEnv(previewEnvFilePath),
+      /Preview HTTPS port must stay pinned to 3001|protected production path|Preview database|Preview private hostname/i
+    );
   } finally {
     delete process.env.CRM_PREVIEW_IMAGE_REF;
     fs.rmSync(tmpRoot, { recursive: true, force: true });
@@ -300,7 +320,12 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   const resetDeployPlan = buildDeployPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), previewImageRef, "reset");
   const stopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME));
   const resetStopPlan = buildStopPlan(path.join(repoRoot, PREVIEW_ENV_FILE_NAME), "reset");
-  const summary = createPreviewSummary("epic/e016-manual-preview", "0123456789abcdef0123456789abcdef01234567", "open_pr");
+  const summary = createPreviewSummary(
+    "epic/e016-manual-preview",
+    "0123456789abcdef0123456789abcdef01234567",
+    "open_pr",
+    PREVIEW_URL
+  );
 
   assert.match(deployPlan.validateComposeModel.join(" "), /config --format json/);
   assert.deepEqual(deployPlan.pullExactImage, ["pull", previewImageRef]);
@@ -308,6 +333,7 @@ test("preview deploy and stop plans stay scoped to the approved preview stack", 
   assert.match(deployPlan.startDatabase.join(" "), /up -d crm-postgres/);
   assert.match(deployPlan.migrate.join(" "), /run --rm --pull never crm-app/);
   assert.match(deployPlan.startApplication.join(" "), /up -d --no-build --pull never crm-app/);
+  assert.match(deployPlan.startIngress.join(" "), /up -d --no-build --pull never crm-private-ingress/);
   assert.match(stopPlan.down.join(" "), /down --remove-orphans/);
   assert.match(resetDeployPlan.replaceExistingPreview.join(" "), /down -v --remove-orphans/);
   assert.match(resetStopPlan.down.join(" "), /down -v --remove-orphans/);
@@ -342,7 +368,15 @@ test("preview identity validation separates control and source checkout identiti
 });
 
 test("preview compose model validation fails closed for malformed or unsafe models", () => {
-  const baseModel = { services: { "crm-app": { image: previewImageRef, pull_policy: "never" } } };
+  const baseModel = {
+    services: {
+      "crm-app": { image: previewImageRef, pull_policy: "never" },
+      "crm-postgres": {},
+      "crm-private-ingress": {
+        ports: [{ target: 443 }]
+      }
+    }
+  };
 
   assert.throws(() => validatePreviewComposeModel("{", previewImageRef), /Failed to parse preview compose model as JSON/);
   assert.throws(() => validatePreviewComposeModel("{}", previewImageRef), /must define crm-app/);
@@ -498,14 +532,15 @@ test("deploy preview propagates the immutable image ref to the preview commands"
     return { pid: 1, output: ["", ""], stdout: "", stderr: "", status: 0, signal: null };
   });
 
-  assert.equal(observed.length, 6);
-  assert.deepEqual(observed.map((entry) => entry.previewImageRef), Array(6).fill(previewImageRef));
+  assert.equal(observed.length, 7);
+  assert.deepEqual(observed.map((entry) => entry.previewImageRef), Array(7).fill(previewImageRef));
   assert.match(observed[0].description, /config --format json/);
   assert.match(observed[1].description, /pull ghcr\.io/);
   assert.match(observed[2].description, /down --remove-orphans/);
   assert.match(observed[3].description, /up -d crm-postgres/);
   assert.match(observed[4].description, /migrate deploy/);
   assert.match(observed[5].description, /up -d --no-build --pull never crm-app/);
+  assert.match(observed[6].description, /up -d --no-build --pull never crm-private-ingress/);
 });
 
 test("deploy preview dry-run propagates reset confirmation only through validated inputs", () => {
@@ -644,6 +679,7 @@ test("preview compose config removes app build and keeps the immutable digest co
         build?: unknown;
         pull_policy?: string;
         ports?: Array<{ published?: string; target?: number }>;
+        environment?: Record<string, string>;
       }>;
       networks: Record<string, unknown>;
       volumes: Record<string, unknown>;
@@ -651,11 +687,19 @@ test("preview compose config removes app build and keeps the immutable digest co
     assert.equal(config.services["crm-app"].image, process.env.CRM_PREVIEW_IMAGE_REF);
     assert.equal(Object.prototype.hasOwnProperty.call(config.services["crm-app"], "build"), false);
     assert.equal(config.services["crm-app"].pull_policy, "never");
-    assert.equal(config.services["crm-app"].ports?.[0]?.published, "3001");
-    assert.equal(config.services["crm-app"].ports?.[0]?.target, 3000);
+    assert.equal((config.services["crm-app"].ports ?? []).length, 0);
+    assert.equal(config.services["crm-app"].environment?.CRM_AUTH_RUNTIME_MODE, "private-https");
+    assert.equal(config.services["crm-app"].environment?.CRM_PRIVATE_HOSTNAME, "clariobase-crm-preview.home.arpa");
+    assert.equal(config.services["crm-app"].environment?.CRM_PRIVATE_HTTPS_PORT, "3001");
+    assert.equal(config.services["crm-app"].environment?.CRM_AUTH_TRUSTED_ORIGINS, PREVIEW_URL);
+    assert.equal(config.services["crm-app"].environment?.BETTER_AUTH_URL, PREVIEW_URL);
     assert.equal(config.services["crm-postgres"].ports, undefined);
+    assert.equal(config.services["crm-private-ingress"].ports?.[0]?.published, "3001");
+    assert.equal(config.services["crm-private-ingress"].ports?.[0]?.target, 443);
     assert.match(result.stdout, /clariobase-crm-preview-network/);
     assert.match(result.stdout, /clariobase-crm-preview-postgres-data/);
+    assert.match(result.stdout, /clariobase-crm-preview-private-caddy-data/);
+    assert.match(result.stdout, /clariobase-crm-preview-private-caddy-config/);
   } finally {
     delete process.env.CRM_PREVIEW_IMAGE_REF;
     fs.rmSync(tmpRoot, { recursive: true, force: true });
@@ -680,7 +724,7 @@ test("secret-free stop preview config stays on preview-only resources", { skip: 
   }
 });
 
-test("preview compose config keeps the app on port 3001 and does not publish PostgreSQL", { skip: !dockerAvailable }, () => {
+test("preview compose config keeps the app private, publishes HTTPS ingress, and does not publish PostgreSQL", { skip: !dockerAvailable }, () => {
   const tmpRoot = createRepoTmpDir(repoRoot, "preview-compose-config-");
   const previewEnvFilePath = writePreviewEnv(tmpRoot, { CRM_DATABASE_URL: "" });
 
@@ -689,8 +733,11 @@ test("preview compose config keeps the app on port 3001 and does not publish Pos
     assert.equal(result.status, 0, `preview docker compose config should pass: ${result.stderr}`);
     assert.match(result.stdout, /published: "3001"/);
     assert.match(result.stdout, /host_ip: 0\.0\.0\.0/);
-    const postgresSection = result.stdout.split("\n  crm-postgres:\n")[1]?.split("\nnetworks:\n")[0] ?? "";
+    assert.match(result.stdout, /target: 443/);
+    const appSection = result.stdout.split("\n  crm-app:\n")[1]?.split("\n  crm-postgres:\n")[0] ?? "";
+    const postgresSection = result.stdout.split("\n  crm-postgres:\n")[1]?.split("\n  crm-private-ingress:\n")[0] ?? "";
     assert.ok(postgresSection.length > 0, "crm-postgres section should exist in preview compose config");
+    assert.doesNotMatch(appSection, /\n\s+ports:/);
     assert.doesNotMatch(postgresSection, /\n\s+ports:/);
     assert.match(result.stdout, /clariobase-crm-preview-network/);
     assert.match(result.stdout, /clariobase-crm-preview-postgres-data/);

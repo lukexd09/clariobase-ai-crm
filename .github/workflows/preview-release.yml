@@ -44,6 +44,10 @@ concurrency:
   group: clariobase-preview-slot
   cancel-in-progress: false
 
+env:
+  PREVIEW_PRIVATE_HOSTNAME: clariobase-crm-preview.home.arpa
+  PREVIEW_PRIVATE_HTTPS_PORT: "3001"
+
 jobs:
   resolve-preview-release:
     runs-on: ubuntu-latest
@@ -67,6 +71,7 @@ jobs:
       skip_reason: ${{ steps.resolve.outputs.skip_reason }}
       ci_run_id: ${{ steps.resolve.outputs.ci_run_id }}
       ci_run_url: ${{ steps.resolve.outputs.ci_run_url }}
+      preview_url: ${{ steps.resolve.outputs.preview_url }}
 
     steps:
       - name: Check out trusted workflow revision
@@ -121,7 +126,8 @@ jobs:
               reset_confirmation: "",
               skip_reason: "BLOCKED: ambiguous preview release request",
               ci_run_id: "",
-              ci_run_url: ""
+              ci_run_url: "",
+              preview_url: `https://${process.env.PREVIEW_PRIVATE_HOSTNAME || ""}:${process.env.PREVIEW_PRIVATE_HTTPS_PORT || ""}`
             };
 
             const finish = (overrides = {}) => {
@@ -336,6 +342,7 @@ jobs:
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
           DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
           BLOCK_REASON: ${{ needs.resolve-preview-release.outputs.skip_reason }}
+          PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview_url }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
@@ -359,7 +366,7 @@ jobs:
               "Image build run: n/a",
               "Immutable image: n/a",
               `Deployment run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              "Preview URL: http://Serwer:3001",
+              `Preview URL: ${process.env.PREVIEW_URL || "n/a"}`,
               `Timestamp: ${new Date().toISOString()}`
             ].join("\n");
             const comments = await github.paginate(github.rest.issues.listComments, {
@@ -402,6 +409,7 @@ jobs:
           HEAD_REF: ${{ needs.resolve-preview-release.outputs.head_ref }}
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
           DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
+          PREVIEW_URL: ${{ needs.resolve-preview-release.outputs.preview_url }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
@@ -423,7 +431,7 @@ jobs:
               `Image build run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
               "Immutable image: pending",
               `Deployment run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-              "Preview URL: http://Serwer:3001",
+              `Preview URL: ${process.env.PREVIEW_URL || "n/a"}`,
               `Timestamp: ${new Date().toISOString()}`
             ].join("\n");
             const comments = await github.paginate(github.rest.issues.listComments, {
@@ -642,6 +650,7 @@ jobs:
           IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
           DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
           RESET_CONFIRMATION: ${{ needs.resolve-preview-release.outputs.reset_confirmation }}
+          PREVIEW_URL: ${{ needs.resolve-preview-release.outputs.preview_url }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
@@ -664,7 +673,7 @@ jobs:
               `Image build run: ${runUrl}`,
               `Immutable image: ${process.env.IMAGE_REF}`,
               `Deployment run: ${runUrl}`,
-              "Preview URL: http://Serwer:3001",
+              `Preview URL: ${process.env.PREVIEW_URL || "n/a"}`,
               `Timestamp: ${new Date().toISOString()}`
             ].join("\n");
             const comments = await github.paginate(github.rest.issues.listComments, {
@@ -699,6 +708,7 @@ jobs:
     outputs:
       runner_revalidation_result: ${{ steps.revalidate.outputs.runner_revalidation_result }}
       runner_revalidation_reason: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
+      preview_url: ${{ steps.deploy.outputs.preview_url }}
 
     steps:
       - name: Check out trusted control checkout
@@ -805,12 +815,13 @@ jobs:
         shell: pwsh
         env:
           BLOCK_REASON: ${{ steps.revalidate.outputs.runner_revalidation_reason }}
+          PREVIEW_URL: ${{ needs.resolve-preview-release.outputs.preview_url }}
         run: |
           @"
           Result: BLOCKED
 
           Reason: $env:BLOCK_REASON
-          Preview URL: http://Serwer:3001
+          Preview URL: $env:PREVIEW_URL
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
       - name: Validate immutable image handoff
@@ -853,14 +864,20 @@ jobs:
         working-directory: control
         env:
           CRM_PREVIEW_POSTGRES_PASSWORD: ${{ secrets.CRM_PREVIEW_POSTGRES_PASSWORD }}
+          CRM_PREVIEW_BETTER_AUTH_SECRET: ${{ secrets.CRM_PREVIEW_BETTER_AUTH_SECRET }}
         run: |
           if (-not $env:CRM_PREVIEW_POSTGRES_PASSWORD) {
             throw "Missing required secret CRM_PREVIEW_POSTGRES_PASSWORD."
           }
 
+          if (-not $env:CRM_PREVIEW_BETTER_AUTH_SECRET -or $env:CRM_PREVIEW_BETTER_AUTH_SECRET.Length -lt 32) {
+            throw "Missing or short required secret CRM_PREVIEW_BETTER_AUTH_SECRET."
+          }
+
           Copy-Item .env.compose.preview.example .env.compose.preview.local -Force
           $content = Get-Content .env.compose.preview.local
           $updated = $content -replace '^CRM_POSTGRES_PASSWORD=$', "CRM_POSTGRES_PASSWORD=$env:CRM_PREVIEW_POSTGRES_PASSWORD"
+          $updated = $updated -replace '^BETTER_AUTH_SECRET=$', "BETTER_AUTH_SECRET=$env:CRM_PREVIEW_BETTER_AUTH_SECRET"
           Set-Content .env.compose.preview.local $updated
 
       - name: Deploy preview
@@ -890,24 +907,62 @@ jobs:
             throw "Deploy preview script failed with exit code $deployExitCode."
           }
 
-          "preview_url=http://Serwer:3001" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-
       - name: Verify preview readiness
         if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
         run: |
-          $response = Invoke-WebRequest -Method Get -Uri "http://127.0.0.1:3001/api/ready"
-          if ($response.StatusCode -ne 200) {
-            throw "Preview readiness HTTP status was $($response.StatusCode)."
-          }
+          $previewUrl = [Uri]$env:PREVIEW_URL
+          $previewHost = $previewUrl.DnsSafeHost
+          $previewPort = $previewUrl.Port
+          $previewCaPath = Join-Path $env:RUNNER_TEMP "preview-root.crt"
 
-          $preview = $response.Content | ConvertFrom-Json
-          if ($preview.service -ne "clariobase-ai-crm" -or $preview.status -ne "ready" -or $preview.checks.database -ne "ok") {
-            $service = if ($null -ne $preview.service) { $preview.service } else { "null" }
-            $status = if ($null -ne $preview.status) { $preview.status } else { "null" }
-            $database = if ($preview.checks -and $null -ne $preview.checks.database) { $preview.checks.database } else { "null" }
-            throw "Preview readiness failed: service=$service, status=$status, database=$database."
-          }
+          docker compose --env-file .\.env.compose.preview.local -f compose.yaml -f compose.preview.yaml -f compose.preview.private-https.yaml cp crm-private-ingress:/data/caddy/pki/authorities/local/root.crt $previewCaPath
+
+          node -e @"
+const fs = require('node:fs');
+const https = require('node:https');
+const caPath = process.argv[1];
+const previewHost = process.argv[2];
+const previewPort = Number(process.argv[3]);
+const ca = fs.readFileSync(caPath);
+const request = https.request({
+  hostname: '127.0.0.1',
+  port: previewPort,
+  path: '/api/ready',
+  method: 'GET',
+  servername: previewHost,
+  ca,
+  rejectUnauthorized: true,
+  headers: {
+    host: `${previewHost}:${previewPort}`,
+    'Cache-Control': 'no-store'
+  }
+}, (response) => {
+  const chunks = [];
+  response.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+  response.on('end', () => {
+    if (response.statusCode !== 200) {
+      console.error(`Preview readiness HTTP status was ${response.statusCode}.`);
+      process.exit(1);
+    }
+    const preview = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if (preview.service !== 'clariobase-ai-crm' || preview.status !== 'ready' || preview.checks?.database !== 'ok' || preview.checks?.authentication !== 'ok') {
+      console.error(`Preview readiness failed: service=${preview.service ?? 'null'}, status=${preview.status ?? 'null'}, database=${preview.checks?.database ?? 'null'}, authentication=${preview.checks?.authentication ?? 'null'}.`);
+      process.exit(1);
+    }
+    process.exit(0);
+  });
+});
+request.on('error', (error) => {
+  console.error(error.message);
+  process.exit(1);
+});
+request.end();
+"@ $previewCaPath $previewHost $previewPort
+
+          Remove-Item $previewCaPath -Force -ErrorAction SilentlyContinue
 
       - name: Write deployment summary
         if: success() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'
@@ -937,7 +992,7 @@ jobs:
           Validated SHA: $env:VALIDATED_SHA
           Database mode: $env:DATABASE_MODE
           Database volume: $databaseVolume
-          Preview URL: http://Serwer:3001
+          Preview URL: $env:PREVIEW_URL
           Deployment result: PASS
           Preview readiness: PASS
           Image identity: $env:IMAGE_REF
@@ -995,6 +1050,7 @@ jobs:
           RUNNER_REVALIDATION_RESULT: ${{ needs.deploy-preview.outputs.runner_revalidation_result }}
           RUNNER_REVALIDATION_REASON: ${{ needs.deploy-preview.outputs.runner_revalidation_reason }}
           DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
+          PREVIEW_URL: ${{ needs.resolve-preview-release.outputs.preview_url }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
@@ -1027,7 +1083,7 @@ jobs:
               `Image build run: ${runUrl}`,
               `Immutable image: ${process.env.IMAGE_REF || "n/a"}`,
               `Deployment run: ${runUrl}`,
-              "Preview URL: http://Serwer:3001",
+              `Preview URL: ${process.env.PREVIEW_URL || "n/a"}`,
               `Timestamp: ${new Date().toISOString()}`
             );
             const body = lines.join("\n");

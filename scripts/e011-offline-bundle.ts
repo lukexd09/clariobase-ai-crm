@@ -1,7 +1,10 @@
-import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
+
+import { createDockerRunId, createRuntimeArtifactName } from "./docker-test-support";
 
 const repoRoot = process.cwd();
 const baseImage = "node:24-bookworm-slim";
@@ -10,6 +13,11 @@ const pnpmVersion = "9.15.0";
 const recoveryPackageJson = path.join(repoRoot, "tools/e011-auth-recovery/package.json");
 const recoveryLockfile = path.join(repoRoot, "tools/e011-auth-recovery/pnpm-lock.yaml");
 const recoverySchema = path.join(repoRoot, "scripts/fixtures/e011/better-auth-core.schema.prisma");
+const t013Mode = process.argv[2] === "--t013";
+const t013IngressImage = "caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d";
+const t013PostgresImage = "postgres:16@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54";
+const t013NodeImage = `${baseImage}@${baseDigest}`;
+let pendingT013BundleRoot: string | undefined;
 
 function run(command: string, args: string[], opts: { cwd?: string; env?: Record<string, string>; input?: string } = {}) {
   const result = spawnSync(command, args, {
@@ -32,7 +40,14 @@ async function must(command: string, args: string[], opts: { cwd?: string; env?:
 }
 
 async function sha256(filePath: string) {
-  return crypto.createHash("sha256").update(await readFile(filePath)).digest("hex");
+  const hash = crypto.createHash("sha256");
+  await new Promise<void>((resolve, reject) => {
+    const stream = createReadStream(filePath);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("error", reject);
+    stream.on("end", resolve);
+  });
+  return hash.digest("hex");
 }
 
 async function manifestFor(root: string) {
@@ -121,7 +136,145 @@ async function downloadTarball(url: string, destination: string) {
   await writeFile(destination, Buffer.from(await response.arrayBuffer()));
 }
 
+async function t013BundleMain() {
+  const applicationImageId = process.argv[3];
+  const sourceSha = process.argv[4];
+  if (!applicationImageId || !sourceSha) throw new Error("T013 application image ID and source SHA are required");
+  if (!/^sha256:[a-f0-9]{64}$/.test(applicationImageId)) throw new Error("T013 application image ID is invalid");
+  if (!/^[a-f0-9]{40}$/.test(sourceSha)) throw new Error("T013 source SHA is invalid");
+
+  const status = await must("git", ["status", "--porcelain"]);
+  if (status.stdout.trim()) throw new Error("T013 offline bundle requires a clean exact-head worktree");
+  const head = (await must("git", ["rev-parse", "HEAD"])).stdout.trim();
+  if (head !== sourceSha) throw new Error("T013 source SHA must equal the clean worktree HEAD");
+
+  const bundleRoot = path.join(repoRoot, ".codex-tmp", createRuntimeArtifactName("t013-offline-bundle"));
+  const sourceDir = path.join(bundleRoot, "source");
+  const rootContractDir = path.join(bundleRoot, "root-contract");
+  const storeArchive = path.join(bundleRoot, "pnpm-store.tar.gz");
+  const storeVolume = createDockerRunId("t013-offline-store");
+  const toolingDir = path.join(bundleRoot, "tooling");
+  const retentionDir = path.join(bundleRoot, "source-retention");
+  const imagesDir = path.join(bundleRoot, "images");
+  await rm(bundleRoot, { recursive: true, force: true });
+  pendingT013BundleRoot = bundleRoot;
+  for (const directory of [sourceDir, rootContractDir, toolingDir, retentionDir, imagesDir]) {
+    await mkdir(directory, { recursive: true });
+  }
+
+  const sourceArchive = path.join(sourceDir, `clariobase-${sourceSha}.tar.gz`);
+  await must("git", ["archive", "--format=tar.gz", "-o", sourceArchive, sourceSha]);
+  for (const file of ["package.json", "pnpm-lock.yaml", "Dockerfile", "compose.yaml", "compose.private-https.yaml", "compose.private-https.offline-proof.yaml", ".env.compose.private-https.example"]) {
+    await copyFile(path.join(repoRoot, file), path.join(rootContractDir, path.basename(file)));
+  }
+  await cp(path.join(repoRoot, "prisma/migrations"), path.join(rootContractDir, "migrations"), { recursive: true });
+  await mkdir(path.join(rootContractDir, "config/private-https"), { recursive: true });
+  await copyFile(path.join(repoRoot, "config/private-https/Caddyfile"), path.join(rootContractDir, "config/private-https/Caddyfile"));
+
+  await must("docker", ["volume", "create", storeVolume]);
+  try {
+    const fetchResult = run("docker", [
+      "run", "--rm",
+      "-e", "CI=1",
+      "-e", "npm_config_registry=https://registry.npmjs.org/",
+      "-v", `${repoRoot.replace(/\\/g, "/")}:/input:ro`,
+      "-v", `${storeVolume}:/store`,
+      t013NodeImage,
+      "bash", "-lc",
+      `mkdir -p /work && cp /input/package.json /input/pnpm-lock.yaml /work/ && cd /work && corepack enable && corepack prepare pnpm@${pnpmVersion} --activate && pnpm fetch --frozen-lockfile --store-dir /store`
+    ]);
+    if (fetchResult.status !== 0) throw new Error("T013 root pnpm store preparation failed");
+    await must("docker", [
+      "run", "--rm", "--network", "none",
+      "-v", `${storeVolume}:/store:ro`,
+      "-v", `${bundleRoot.replace(/\\/g, "/")}:/bundle`,
+      t013NodeImage,
+      "tar", "-czf", "/bundle/pnpm-store.tar.gz", "-C", "/store", "."
+    ]);
+    await stat(storeArchive);
+  } finally {
+    await must("docker", ["volume", "rm", "-f", storeVolume]);
+  }
+
+  const pnpmTar = path.join(toolingDir, `pnpm-${pnpmVersion}.tgz`);
+  await downloadTarball(`https://registry.npmjs.org/pnpm/-/pnpm-${pnpmVersion}.tgz`, pnpmTar);
+  await must("tar", ["-xzf", pnpmTar, "-C", toolingDir]);
+  await downloadTarball("https://registry.npmjs.org/better-auth/-/better-auth-1.6.23.tgz", path.join(retentionDir, "better-auth-1.6.23.tgz"));
+  await downloadTarball("https://registry.npmjs.org/@better-auth%2Fprisma-adapter/-/prisma-adapter-1.6.23.tgz", path.join(retentionDir, "@better-auth-prisma-adapter-1.6.23.tgz"));
+  await downloadTarball("https://registry.npmjs.org/@better-auth%2Fcli/-/cli-1.4.21.tgz", path.join(retentionDir, "@better-auth-cli-1.4.21.tgz"));
+  const sourceRetention = await writeSourceRetentionManifest(retentionDir);
+
+  for (const image of [applicationImageId, t013IngressImage, t013PostgresImage, t013NodeImage]) {
+    const inspect = run("docker", ["image", "inspect", image]);
+    if (inspect.status !== 0) throw new Error("T013 required recovery image is unavailable");
+  }
+  const inspectImageId = async (image: string) => {
+    const inspected = await must("docker", ["image", "inspect", image, "--format", "{{.Id}}"]);
+    return inspected.stdout.trim();
+  };
+  const ingressImageId = await inspectImageId(t013IngressImage);
+  const postgresImageId = await inspectImageId(t013PostgresImage);
+  const nodeBaseImageId = await inspectImageId(t013NodeImage);
+  for (const imageId of [ingressImageId, postgresImageId, nodeBaseImageId]) {
+    if (!/^sha256:[a-f0-9]{64}$/.test(imageId)) throw new Error("T013 recovery image ID is invalid");
+  }
+  const imageArchives = [
+    { name: "application.tar", image: applicationImageId },
+    { name: "ingress.tar", image: t013IngressImage },
+    { name: "postgres.tar", image: t013PostgresImage },
+    { name: "node-base.tar", image: t013NodeImage }
+  ];
+  for (const archive of imageArchives) {
+    const saved = run("docker", ["save", "-o", path.join(imagesDir, archive.name), archive.image]);
+    if (saved.status !== 0) throw new Error(`T013 ${archive.name} export failed`);
+  }
+
+  const artifactManifest = await manifestFor(bundleRoot);
+  const manifest = {
+    bundleFormatVersion: 2,
+    recoveryKind: "E011.T013 full application source and exact-image recovery",
+    sourceSha,
+    sourceArchive: path.relative(bundleRoot, sourceArchive).replace(/\\/g, "/"),
+    sourceArchiveSha256: await sha256(sourceArchive),
+    applicationImageId,
+    ingressImage: t013IngressImage,
+    ingressImageId,
+    postgresImage: t013PostgresImage,
+    postgresImageId,
+    nodeBaseImage: t013NodeImage,
+    nodeBaseImageId,
+    pnpmVersion,
+    rootPackageJsonSha256: await sha256(path.join(rootContractDir, "package.json")),
+    rootLockfileSha256: await sha256(path.join(rootContractDir, "pnpm-lock.yaml")),
+    sourceRetentionManifestSha256: sourceRetention.manifestSha256,
+    sourceRetentionArtifactCount: sourceRetention.artifactCount,
+    prismaEngines: "retained in the complete root pnpm store and exact application image",
+    recoveryPaths: {
+      sourceRebuild: "offline install plus Prisma generation from the exact source archive",
+      exactImageRestore: "load images/application.tar and run the accepted private HTTPS stack",
+      emergencyFork: "owner-gated procedure documented in docs/operations/auth-dependency-recovery.md"
+    },
+    artifacts: artifactManifest,
+    preparationNetwork: "upstream available",
+    overallBundleResult: "PASS"
+  };
+  const manifestPath = path.join(bundleRoot, "manifest.json");
+  await writeJson(manifestPath, manifest);
+  const manifestSha256 = await sha256(manifestPath);
+  await writeFile(path.join(bundleRoot, "manifest.sha256"), `${manifestSha256}\n`, "utf8");
+  console.log(JSON.stringify({ bundleRoot, manifestSha256, sourceSha, applicationImageId }));
+}
+
 async function main() {
+  if (t013Mode) {
+    try {
+      await t013BundleMain();
+    } catch (error) {
+      if (pendingT013BundleRoot) await rm(pendingT013BundleRoot, { recursive: true, force: true });
+      throw error;
+    }
+    return;
+  }
   const bundleRoot = path.join(repoRoot, ".codex-tmp", `e011-offline-bundle-${Date.now()}`);
   const workspaceRoot = path.join(bundleRoot, "workspace");
   const storeDir = path.join(bundleRoot, "pnpm-store");
