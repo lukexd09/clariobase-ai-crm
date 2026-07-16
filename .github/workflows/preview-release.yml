@@ -976,6 +976,7 @@ request.end();
           RESET_CONFIRMATION: ${{ needs.resolve-preview-release.outputs.reset_confirmation }}
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
           IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
         run: |
           if ($env:DATABASE_MODE -eq "reset") {
             $databaseVolume = "reset"
