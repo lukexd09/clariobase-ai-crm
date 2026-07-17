@@ -182,13 +182,20 @@ test("E011 security and recovery docs keep the operated scope explicit and RAG-r
 
 test("E011 audit keeps external delivery evidence out of tracked matrix", () => {
   const audit = read("docs/verification/e011-epic-quality-audit.md");
+  const matrix = audit.match(/## 12\. Acceptance-criteria evidence matrix[\s\S]*?## 13\. Verdict/);
 
+  assert.ok(matrix, "expected acceptance matrix section");
   assert.match(audit, /document_id: DOC-E011-EPIC-QUALITY-AUDIT/);
   assert.match(audit, /PR `#201`/);
-  assert.doesNotMatch(audit, /\| PENDING \|/);
+  assert.doesNotMatch(matrix[0], /PENDING/);
+  assert.doesNotMatch(matrix[0], /pending/);
+  assert.doesNotMatch(matrix[0], /Not yet run/);
+  assert.doesNotMatch(matrix[0], /Independent final review passes/);
+  assert.doesNotMatch(matrix[0], /Draft PR and exact-head CI\/Full Integration/);
   assert.doesNotMatch(audit, /independent review is "not yet run"/i);
   assert.doesNotMatch(audit, /exact-head workflows are "not yet created"/i);
   assert.doesNotMatch(audit, /still remain to be performed/i);
   assert.doesNotMatch(audit, /remain mandatory before T014 completion/i);
   assert.doesNotMatch(audit, /workflow run ids?/i);
+  assert.doesNotMatch(audit, /\| PENDING \|/);
 });

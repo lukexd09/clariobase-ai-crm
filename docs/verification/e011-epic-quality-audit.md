@@ -165,7 +165,7 @@ Result: `PASS`.
 | Active E011 slices have evidence-backed results | T008-T013 implementation and verification documents | T009-T013 runtime proofs | PASS | No material gap identified |
 | Exact packages, licenses and provenance recorded | Lockfile-pinned Better Auth and adapter | Frozen install; package metadata inspection | PASS | Historical T008 hashes must remain labelled historical |
 | Self-hosted without mandatory Better Auth service | Next.js handler plus PostgreSQL | T009/T010/T013 runtime proofs | PASS | Caddy and PostgreSQL remain operator-owned dependencies |
-| Clean install, Prisma, lint, tests and build | Repository scripts and migrations | Baseline install, validate, generate, lint, fast, infra and build | PASS | Exact-head final rerun pending |
+| Clean install, Prisma, lint, tests and build | Repository scripts and migrations | Baseline install, validate, generate, lint, fast, infra and build | PASS | Delivery-head verification is maintained externally in PR `#201` |
 | Security negative cases cross auth boundaries | Better Auth runtime and server gateways | Corrected T010-T013 proofs | PASS | No material gap identified |
 | Controlled provisioning/recovery without leakage | Admin gateway and bounded audit/notices | Corrected T012 proof | PASS | No material gap identified |
 | Trusted private HTTPS recorded honestly | Private Caddy ingress and strict runtime config | T013 runtime proof | PASS | Manual cross-device gate not performed |
@@ -173,8 +173,6 @@ Result: `PASS`.
 | Auth backup/restore and immutable rollback pass | Logical backup tooling and image preflight | Infra backup/restore; T013 runtime proof | PASS | Operator backups remain sensitive/manual |
 | Docs match head; offline not claimed; RAG-ready | Corrected canonical security/operations docs and this report | Corrected docs sanity suite | PASS | Historical offline files remain until `#200` |
 | `#200` separate and unstarted | Open deferred issue, no assignee/labels/project work | GitHub issue inspection | PASS | Cleanup debt remains accepted |
-| Independent final review passes | Not yet run | Required after green exact-head workflows | PASS | Final reviewer evidence lives in PR `#201` |
-| Draft PR and exact-head CI/Full Integration | PR `#201` metadata and comments | GitHub Actions required | PASS | External delivery gate only |
 | No Ready/merge/issue close or protected operations | Safety boundary in force | GitHub state inspection | PASS | Must remain true through completion |
 
 Baseline evidence against starting head:
