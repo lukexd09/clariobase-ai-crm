@@ -179,3 +179,16 @@ test("E011 security and recovery docs keep the operated scope explicit and RAG-r
   assert.match(notices, /`better-auth` `1\.6\.23`[\s\S]*license: MIT/);
   assert.match(notices, /`@better-auth\/prisma-adapter` `1\.6\.23`[\s\S]*license: MIT/);
 });
+
+test("E011 audit keeps external delivery evidence out of tracked matrix", () => {
+  const audit = read("docs/verification/e011-epic-quality-audit.md");
+
+  assert.match(audit, /document_id: DOC-E011-EPIC-QUALITY-AUDIT/);
+  assert.match(audit, /PR `#201`/);
+  assert.doesNotMatch(audit, /\| PENDING \|/);
+  assert.doesNotMatch(audit, /independent review is "not yet run"/i);
+  assert.doesNotMatch(audit, /exact-head workflows are "not yet created"/i);
+  assert.doesNotMatch(audit, /still remain to be performed/i);
+  assert.doesNotMatch(audit, /remain mandatory before T014 completion/i);
+  assert.doesNotMatch(audit, /workflow run ids?/i);
+});
