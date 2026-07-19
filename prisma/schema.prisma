@@ -106,6 +106,21 @@ enum OutreachChannel {
   OTHER
 }
 
+enum AdminAuditOperation {
+  BOOTSTRAP_FIRST_ADMIN
+  CREATE_CONTROLLED_USER
+  UPDATE_BASIC_IDENTITY
+  DISABLE_USER
+  REACTIVATE_USER
+  RESET_USER_PASSWORD
+  REVOKE_USER_SESSION
+  REVOKE_USER_SESSIONS
+}
+
+enum AdminAuditOutcome {
+  SUCCESS
+}
+
 model Lead {
   id             String       @id @default(cuid())
   customerId     String       @unique @map("customer_id")
@@ -309,4 +324,85 @@ model OfferDraft {
   @@index([leadId, updatedAt])
   @@index([status, updatedAt])
   @@map("offer_drafts")
+}
+
+model AdminAuditEvent {
+  id           String             @id @default(cuid())
+  actorUserId  String?            @map("actor_user_id")
+  targetUserId String             @map("target_user_id")
+  operation    AdminAuditOperation
+  outcome      AdminAuditOutcome   @default(SUCCESS)
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  @@index([actorUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([operation, createdAt])
+  @@map("admin_audit_events")
+}
+
+model user {
+  id            String    @id
+  name          String?
+  email         String?   @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          String    @default("user")
+  banned        Boolean   @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      account[]
+  sessions      session[]
+
+  @@map("user")
+}
+
+model session {
+  id        String   @id
+  token     String   @unique
+  userId    String
+  impersonatedBy String?
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model account {
+  id                    String   @id
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([providerId, accountId])
+  @@map("account")
+}
+
+model verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
 }

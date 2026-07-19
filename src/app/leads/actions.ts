@@ -2,10 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createLeadActivity, buildLeadUpdateActivityBody } from "@/lib/activities";
+import { requireUser, unauthorizedResult } from "@/lib/auth-context";
 import { leadUpdateSchema } from "@/lib/lead-form";
 import { getLeadById, updateLeadOperationalFields } from "@/lib/leads";
 
 export async function updateLeadAction(leadId: string, formData: FormData) {
+  try {
+    await requireUser();
+  } catch {
+    return unauthorizedResult();
+  }
+
   const parsed = leadUpdateSchema.safeParse({
     leadStatus: formData.get("leadStatus"),
     priority: formData.get("priority"),

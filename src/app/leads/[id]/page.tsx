@@ -18,6 +18,7 @@ import { getLeadMiniAuditDrafts, type MiniAuditDraftRecord } from "@/lib/mini-au
 import { getLeadOfferDrafts, toOfferDraftClientRecord } from "@/lib/offer-drafts";
 import { getLeadOutreachDrafts, type OutreachDraftRecord } from "@/lib/outreach-drafts";
 import { type OfferDraftClientRecord } from "@/lib/offer-drafts";
+import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,7 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireUser({ mode: "redirect", returnTo: `/leads/${id}` });
   const [lead, activities, miniAuditDrafts, outreachDrafts, offerDrafts] = await Promise.all([
     getLeadById(id),
     getLeadActivities(id),

@@ -2,6 +2,7 @@ import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, Tabl
 import { DataQualityPageHeader, DataQualityStatusBadge } from "@/components/data-quality-primitives";
 import { getImportBatches } from "@/lib/imports";
 import { type ImportBatchStatusValue, type ImportSourceTypeValue } from "@/lib/lead-values";
+import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ function CountChip({
 }
 
 export default async function ImportsPage() {
+  await requireUser({ mode: "redirect", returnTo: "/imports" });
   const batches = await getImportBatches();
 
   return (

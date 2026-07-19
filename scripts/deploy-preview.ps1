@@ -54,5 +54,19 @@ if ($DryRun) {
   $args += "--dry-run"
 }
 
-node @args
-exit $LASTEXITCODE
+$output = node @args
+$exitCode = $LASTEXITCODE
+
+if ($exitCode -eq 0 -and $env:GITHUB_OUTPUT) {
+  try {
+    $payload = ($output -join "`n") | ConvertFrom-Json
+    if ($null -ne $payload.previewUrl) {
+      "preview_url=$($payload.previewUrl)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+    }
+  } catch {
+    Write-Warning "Unable to parse deploy preview JSON output for preview_url export."
+  }
+}
+
+$output
+exit $exitCode

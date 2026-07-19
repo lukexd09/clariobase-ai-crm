@@ -11,6 +11,7 @@ function read(filePath: string) {
 
 test("core CRM work screens use the light shell baseline", () => {
   const homepage = read("src/app/page.tsx");
+  const dashboardPage = read("src/components/dashboard-page.tsx");
   const appShell = read("src/components/app-shell.tsx");
   const workPage = read("src/app/work/page.tsx");
   const leadsPage = read("src/app/leads/page.tsx");
@@ -18,10 +19,13 @@ test("core CRM work screens use the light shell baseline", () => {
   const corePrimitives = read("src/components/core-work-primitives.tsx");
 
   assert.doesNotMatch(homepage, /radial-gradient/);
-  assert.match(homepage, /DashboardDataQualityAlert/);
-  assert.match(homepage, /aria-label="Dashboard metrics"/);
-  assert.match(homepage, /PipelineSnapshot items=\{pipeline\}/);
-  assert.doesNotMatch(homepage, /text-\[0\.68rem\]/);
+  assert.match(homepage, /from "@\/components\/dashboard-page"/);
+  assert.match(homepage, /SignInForm/);
+  assert.match(homepage, /getCurrentUser/);
+  assert.match(dashboardPage, /DashboardDataQualityAlert/);
+  assert.match(dashboardPage, /aria-label="Dashboard metrics"/);
+  assert.match(dashboardPage, /PipelineSnapshot items=\{pipeline\}/);
+  assert.doesNotMatch(dashboardPage, /text-\[0\.68rem\]/);
   assert.match(appShell, /nav aria-label="Primary navigation"/);
   assert.match(appShell, /SheetTrigger/);
   assert.match(appShell, /SheetContent/);
@@ -44,7 +48,7 @@ test("core CRM work screens use the light shell baseline", () => {
 });
 
 test("core CRM work screens keep semantic light status pills and accessible tables", () => {
-  const homepage = read("src/app/page.tsx");
+  const dashboardPage = read("src/components/dashboard-page.tsx");
   const workPage = read("src/app/work/page.tsx");
   const leadsPage = read("src/app/leads/page.tsx");
   const salesReportPage = read("src/app/reports/sales/page.tsx");
@@ -106,8 +110,8 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(workPage, /text-left sm:text-center/);
   assert.match(workPage, /No records in this bucket\./);
 
-  assert.match(homepage, /Today's priorities|Today&apos;s priorities|Today&#x27;s priorities/);
-  assert.match(homepage, /DashboardDataQualityAlert/);
+  assert.match(dashboardPage, /Today's priorities|Today&apos;s priorities|Today&#x27;s priorities/);
+  assert.match(dashboardPage, /DashboardDataQualityAlert/);
 });
 
 test("leads screen keeps a compact operational header and active filter chips", () => {

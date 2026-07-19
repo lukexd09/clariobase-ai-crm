@@ -2,6 +2,7 @@ import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, Tabl
 import { ConfidenceBadge, DataQualityPageHeader, DataQualityStatusBadge } from "@/components/data-quality-primitives";
 import { getDuplicateCandidates, type DuplicateReason } from "@/lib/duplicates";
 import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
+import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ function getReasonPreview(reasons: unknown) {
 }
 
 export default async function DuplicatesPage() {
+  await requireUser({ mode: "redirect", returnTo: "/duplicates" });
   const candidates = await getDuplicateCandidates();
 
   return (

@@ -30,6 +30,14 @@ This project includes adapted source-derived boundaries from:
 
 ## Direct Dependencies
 
+- `better-auth` `1.6.23`
+  - license: MIT
+  - current consumer: `src/lib/auth.ts` and application auth routes
+
+- `@better-auth/prisma-adapter` `1.6.23`
+  - license: MIT
+  - current consumer: `src/lib/auth.ts`
+
 - `@radix-ui/react-dialog` `1.1.3`
   - license: MIT
   - commercial use: allowed

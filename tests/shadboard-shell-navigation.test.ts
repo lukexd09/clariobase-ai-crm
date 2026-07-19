@@ -74,6 +74,8 @@ test("sheet primitive exposes the project-owned dialog boundary and accessible r
 
 test("shell contract keeps the shared shell and /leads integration minimal", () => {
   const shellSource = read("src/components/app-shell.tsx");
+  const accountChip = read("src/components/auth/account-chip.tsx");
+  const signOutButton = read("src/components/auth/sign-out-button.tsx");
   const leadsPage = read("src/app/leads/page.tsx");
   const notices = read("THIRD_PARTY_NOTICES.md");
   const decision = read("docs/architecture/shadboard-adoption-decision.md");
@@ -87,10 +89,11 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.match(shellSource, /SheetTrigger/);
   assert.match(shellSource, /SheetContent/);
   assert.match(shellSource, /SheetClose/);
+  assert.match(shellSource, /AccountChip/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(shellSource, /Creator workspace/);
-  assert.match(shellSource, /Łukasz Chmiel/);
-  assert.match(shellSource, /Operator/);
+  assert.doesNotMatch(shellSource, /Łukasz Chmiel/);
+  assert.doesNotMatch(shellSource, /Operator/);
   assert.doesNotMatch(shellSource, /pathname === "\/leads"/);
   assert.doesNotMatch(shellSource, /<details>/);
   assert.doesNotMatch(shellSource, /<summary>/);
@@ -117,6 +120,12 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.match(globalsSource, /html\s*\{\s*scrollbar-gutter:\s*stable;\s*\}/s);
 
   assert.match(shellSource, /aria-hidden="true"/);
+  assert.match(accountChip, /authClient\.useSession\(\)/);
+  assert.match(accountChip, /SignOutButton/);
+  assert.match(accountChip, /router\.push\("\/sign-in"\)/);
+  assert.match(accountChip, /Sign in/);
+  assert.match(signOutButton, /authClient\.signOut/);
+  assert.match(signOutButton, /router\.push\("\/sign-in"\)/);
 
   assert.match(leadsPage, /getLeadPage/);
   assert.match(leadsPage, /getLeadFilterOptions/);

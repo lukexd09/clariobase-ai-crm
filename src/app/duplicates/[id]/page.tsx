@@ -6,6 +6,7 @@ import { Button, ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCe
 import { ConfidenceBadge, DataQualityPageHeader, DataQualityStatusBadge, TechnicalDisclosure } from "@/components/data-quality-primitives";
 import { getDuplicateCandidateById } from "@/lib/duplicates";
 import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
+import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -199,6 +200,7 @@ export default async function DuplicateCandidateDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireUser({ mode: "redirect", returnTo: `/duplicates/${id}` });
   const candidate = await getDuplicateCandidateById(id);
 
   if (!candidate) notFound();

@@ -59,54 +59,101 @@ test("playwright target guard rejects every protected loopback variant", () => {
 test("e2e runtime contract requires the approved marker and synthetic database identity", () => {
   const safeEnv = {
     CLARIOBASE_E2E_RUNTIME: "local-proof",
-    CLARIOBASE_E2E_DATABASE_URL: "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public"
+    CLARIOBASE_E2E_DATABASE_URL: "postgresql://postgres:0123456789abcdef0123456789abcdef0123456789abcdef@127.0.0.1:65535/clariobase_e2e_ab12cd34?schema=public",
+    DATABASE_URL: "postgresql://postgres:0123456789abcdef0123456789abcdef0123456789abcdef@127.0.0.1:65535/clariobase_e2e_ab12cd34?schema=public",
+    BETTER_AUTH_URL: "http://127.0.0.1:3011",
+    BETTER_AUTH_SECRET: "local-proof-better-auth-secret-local-proof-better-auth-secret"
   } as const;
 
   assert.equal(resolveE2ERuntimeContract(safeEnv).databaseUrl, safeEnv.CLARIOBASE_E2E_DATABASE_URL);
   assert.equal(
     buildE2EChildEnv({
-      DATABASE_URL: "postgresql://localhost:5432/clariobase_crm?schema=public",
-      CLARIOBASE_E2E_RUNTIME: "local-proof"
+      DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      CLARIOBASE_E2E_RUNTIME: "local-proof",
+      BETTER_AUTH_URL: safeEnv.BETTER_AUTH_URL,
+      BETTER_AUTH_SECRET: safeEnv.BETTER_AUTH_SECRET
     }).DATABASE_URL,
     safeEnv.CLARIOBASE_E2E_DATABASE_URL
   );
   assert.equal(
     buildE2EChildEnv({
-      DATABASE_URL: "postgresql://localhost:5432/clariobase_crm?schema=public",
-      CLARIOBASE_E2E_RUNTIME: "local-proof"
+      DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      CLARIOBASE_E2E_RUNTIME: "local-proof",
+      BETTER_AUTH_URL: safeEnv.BETTER_AUTH_URL,
+      BETTER_AUTH_SECRET: safeEnv.BETTER_AUTH_SECRET
     }).CRM_DEPLOYMENT_ENV,
     "preview"
   );
+  assert.equal(
+    buildE2EChildEnv({
+      DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      CLARIOBASE_E2E_RUNTIME: "local-proof",
+      BETTER_AUTH_URL: safeEnv.BETTER_AUTH_URL,
+      BETTER_AUTH_SECRET: safeEnv.BETTER_AUTH_SECRET,
+      PLAYWRIGHT_STORAGE_STATE: "C:/Serwer/Projekty/Clariobase/worktrees/e011-main-reconcile/.codex-tmp/clariobase-e014-runtime-e2e-123-storage-state.json"
+    }).PLAYWRIGHT_STORAGE_STATE,
+    "C:/Serwer/Projekty/Clariobase/worktrees/e011-main-reconcile/.codex-tmp/clariobase-e014-runtime-e2e-123-storage-state.json"
+  );
   assert.throws(() => resolveE2ERuntimeContract({} as NodeJS.ProcessEnv), /CLARIOBASE_E2E_RUNTIME must be local-proof/i);
   assert.throws(
-    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "wrong", CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL } as NodeJS.ProcessEnv),
+    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "wrong", CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL, DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL } as NodeJS.ProcessEnv),
     /CLARIOBASE_E2E_RUNTIME must be local-proof/i
   );
   assert.throws(
-    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof" } as NodeJS.ProcessEnv),
-    /CLARIOBASE_E2E_DATABASE_URL is required/i
+    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL } as NodeJS.ProcessEnv),
+    /DATABASE_URL is required/i
   );
   assert.throws(
-    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: "postgresql://localhost:5432/clariobase_crm?schema=public" } as NodeJS.ProcessEnv),
-    /must be exactly/i
+    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL, DATABASE_URL: "postgresql://127.0.0.1:5432/clariobase_e2e_ab12cd34?schema=public" } as NodeJS.ProcessEnv),
+    /must match exactly/i
   );
   assert.throws(
-    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: "postgresql://127.0.0.1:5432/clariobase_e2e_proof?schema=public" } as NodeJS.ProcessEnv),
-    /must be exactly/i
+    () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: "postgresql://localhost:5432/clariobase_e2e_ab12cd34?schema=public", DATABASE_URL: "postgresql://localhost:5432/clariobase_e2e_ab12cd34?schema=public" } as NodeJS.ProcessEnv),
+    /must use 127\.0\.0\.1/i
   );
   for (const invalid of [
-    "postgresql://localhost:65535/clariobase_e2e_proof?schema=public",
-    "http://127.0.0.1:65535/clariobase_e2e_proof?schema=public",
+    "postgresql://localhost:65535/clariobase_e2e_ab12cd34?schema=public",
+    "postgresql://crm-postgres:5432/clariobase_e2e_ab12cd34?schema=public",
+    "http://127.0.0.1:65535/clariobase_e2e_ab12cd34?schema=public",
+    "postgresql://127.0.0.1:5432/clariobase_e2e_ab12cd34?schema=public",
     "postgresql://127.0.0.1:65535/clariobase_crm?schema=public",
-    "postgresql://127.0.0.1:65535/clariobase_e2e_proof",
-    "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=test",
-    "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public&extra=1",
-    "postgresql://user:password@127.0.0.1:65535/clariobase_e2e_proof?schema=public",
-    "postgresql://127.0.0.1:65535/clariobase_e2e_proof?schema=public#unsafe"
+    "postgresql://127.0.0.1:65535/clariobase_e2e_ab12cd34",
+    "postgresql://127.0.0.1:65535/clariobase_e2e_ab12cd34?schema=test",
+    "postgresql://127.0.0.1:65535/clariobase_e2e_ab12cd34?schema=public&extra=1",
+    "postgresql://user:password@127.0.0.1:65535/clariobase_e2e_ab12cd34?schema=public",
+    "postgresql://postgres:short@127.0.0.1:65535/clariobase_e2e_ab12cd34?schema=public",
+    "postgresql://127.0.0.1:65535/clariobase_e2e_ab12cd34?schema=public#unsafe"
   ]) {
     assert.throws(
-      () => resolveE2ERuntimeContract({ CLARIOBASE_E2E_RUNTIME: "local-proof", CLARIOBASE_E2E_DATABASE_URL: invalid } as NodeJS.ProcessEnv),
-      /must be exactly/i
+      () => resolveE2ERuntimeContract({
+        CLARIOBASE_E2E_RUNTIME: "local-proof",
+        CLARIOBASE_E2E_DATABASE_URL: invalid,
+        DATABASE_URL: invalid
+      } as NodeJS.ProcessEnv),
+      /must use|must target schema=public only|generated hexadecimal password/i
     );
   }
+  assert.throws(
+    () => buildE2EChildEnv({
+      CLARIOBASE_E2E_RUNTIME: "local-proof",
+      CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      BETTER_AUTH_URL: "http://localhost:3011",
+      BETTER_AUTH_SECRET: safeEnv.BETTER_AUTH_SECRET
+    }),
+    /BETTER_AUTH_URL must use 127\.0\.0\.1/i
+  );
+  assert.throws(
+    () => buildE2EChildEnv({
+      CLARIOBASE_E2E_RUNTIME: "local-proof",
+      CLARIOBASE_E2E_DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      DATABASE_URL: safeEnv.CLARIOBASE_E2E_DATABASE_URL,
+      BETTER_AUTH_URL: safeEnv.BETTER_AUTH_URL,
+      BETTER_AUTH_SECRET: "short"
+    }),
+    /BETTER_AUTH_SECRET must be at least 32 characters long/i
+  );
 });

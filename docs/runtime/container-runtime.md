@@ -106,6 +106,8 @@ The approved runtime contract uses the following exact variables.
 | `CRM_POSTGRES_DB` | `crm-postgres` | yes | CRM-only database name. Recommended default: `clariobase_crm`. |
 | `CRM_POSTGRES_USER` | `crm-postgres` | yes | CRM-only PostgreSQL username. |
 | `CRM_POSTGRES_PASSWORD` | `crm-postgres` | yes | CRM-only PostgreSQL password. Runtime secret only. |
+| `BETTER_AUTH_URL` | `crm-app` | yes | Canonical public app URL used by Better Auth for redirects and origin checks. |
+| `BETTER_AUTH_SECRET` | `crm-app` | yes | Better Auth signing secret. Runtime secret only. |
 
 Supporting runtime rules:
 
@@ -113,6 +115,8 @@ Supporting runtime rules:
 - `CRM_BIND_ADDRESS` and `CRM_HOST_PORT` control host exposure, not application code behavior;
 - the default contract keeps PostgreSQL private to the Compose network instead of exposing it publicly;
 - `compose.yaml` carries safe inline defaults for non-secret values, while `CRM_POSTGRES_PASSWORD` remains a required runtime secret supplied through the operator environment or a copied local env file;
+- `BETTER_AUTH_SECRET` is a runtime secret. The inline `compose.yaml` fallback is for local disposable verification and developer-only machine setups, not for shared LAN, staging, production-like, or production deployments;
+- operators must provide a real `BETTER_AUTH_SECRET` outside local disposable verification, and the fallback must not be reused across shared or deployed environments;
 - `CRM_DATABASE_URL` may override the derived DSN when the username, password, or database name must be URI-encoded explicitly;
 - `.env.example` remains sanitized and may be used only for safe placeholders, not real runtime secrets.
 

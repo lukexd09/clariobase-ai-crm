@@ -5,7 +5,7 @@ document_type: architecture
 status: active
 scope: clariobase-ai-crm
 owner: project
-last_updated: 2026-06-26
+last_updated: 2026-07-16
 related_epic: E016
 related_tasks:
   - E016.T001
@@ -48,7 +48,7 @@ Preview
   Compose project: clariobase-crm-preview
   Port:            3001
   Database:        clariobase_crm_preview
-  URL:             http://Serwer:3001
+  URL:             https://clariobase-crm-preview.home.arpa:3001
 ```
 
 Preview is one replaceable slot. E016 does not implement one environment per PR and does not change production release behavior.
@@ -110,6 +110,7 @@ The owner-approved preview UX is watermark-only: no top banner, no layout shift,
 Preview operators should expect subtle repeated `TEST` watermarks before doing destructive or manual testing.
 Production deployment must explicitly declare `CRM_DEPLOYMENT_ENV=production`.
 Do not use `NEXT_PUBLIC_*` for this contract.
+The materialized preview env file is the executable source of truth for the preview hostname, HTTPS port and origin; documentation may show the canonical default, but workflows and proofs must consume the resolved value rather than rebuilding it independently.
 
 Preview must never reuse production `.env.compose.local`, production AI exchange paths, production containers or production database identifiers.
 Preview deployment does not query production health and must not depend on production being reachable from the preview host.
@@ -126,7 +127,7 @@ crm-postgres
 Approved preview identity:
 
 - project name: `clariobase-crm-preview`;
-- application URL: `http://Serwer:3001`;
+- application URL: `https://clariobase-crm-preview.home.arpa:3001`;
 - application bind port: `3001`;
 - database name: `clariobase_crm_preview`;
 - PostgreSQL host port: not published;
@@ -220,6 +221,7 @@ Deployment succeeds only when `/api/ready` returns HTTP 200 and:
 service = clariobase-ai-crm
 status = ready
 checks.database = ok
+checks.authentication = ok
 ```
 
 ## Production-protection invariants

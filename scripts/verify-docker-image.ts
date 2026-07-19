@@ -66,16 +66,28 @@ async function waitForHealth() {
 
 async function waitForImportsPage() {
   const importsUrl = `http://127.0.0.1:${hostPort}/imports`;
+  const readyBaseUrl = `http://127.0.0.1:${hostPort}`;
 
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+  for (let attempt = 0; attempt < 45; attempt += 1) {
     try {
-      const response = await fetch(importsUrl, {
+      const manualResponse = await fetch(importsUrl, {
+        redirect: "manual",
         headers: {
           "Cache-Control": "no-store"
         }
       });
 
-      if (response.status === 200) {
+      if ([302, 303, 307, 308].includes(manualResponse.status)) {
+        const location = manualResponse.headers.get("location") ?? "";
+        const resolvedLocation = new URL(location, readyBaseUrl).pathname;
+        assert.equal(resolvedLocation, "/sign-in");
+        return;
+      }
+
+      if (manualResponse.status === 200) {
+        const body = await manualResponse.text();
+        assert.doesNotMatch(body, /Lead CRM|Import batches|Duplicate review|Sales reporting/i);
+        assert.match(body, /sign in|sign-in|protected by better auth/i);
         return;
       }
     } catch {
@@ -85,7 +97,7 @@ async function waitForImportsPage() {
     await delay(1000);
   }
 
-  throw new Error("The Dockerized app did not return HTTP 200 from /imports in time.");
+  throw new Error("The Dockerized app did not satisfy the protected /imports contract in time.");
 }
 
 async function waitForDatabase() {
@@ -223,6 +235,14 @@ async function main() {
         `127.0.0.1:${hostPort}:3000`,
         "-e",
         `DATABASE_URL=${databaseUrl}`,
+        "-e",
+        `BETTER_AUTH_URL=http://127.0.0.1:${hostPort}`,
+        "-e",
+        "BETTER_AUTH_SECRET=better-auth-image-test-secret-better-auth-image-test-secret",
+        "-e",
+        "CRM_AUTH_RUNTIME_MODE=disposable-test",
+        "-e",
+        "CRM_ALLOW_INSECURE_AUTH_TESTS=1",
         imageTag
       ],
       { stdio: "inherit" }

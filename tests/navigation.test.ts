@@ -38,7 +38,8 @@ test("navigation activity helper handles dashboard and nested routes", () => {
 
 test("app shell source uses semantic primary and compact navigation", () => {
   const shellSource = fs.readFileSync(path.join(repoRoot, "src", "components", "app-shell.tsx"), "utf8");
-  const leadsPage = fs.readFileSync(path.join(repoRoot, "src", "app", "leads", "page.tsx"), "utf8");
+  const accountChip = fs.readFileSync(path.join(repoRoot, "src", "components", "auth", "account-chip.tsx"), "utf8");
+  const signOutButton = fs.readFileSync(path.join(repoRoot, "src", "components", "auth", "sign-out-button.tsx"), "utf8");
 
   assert.match(shellSource, /min-\[1024px\]:grid-cols-\[240px_minmax\(0,1fr\)\]/);
   assert.match(shellSource, /min-\[1024px\]:flex/);
@@ -49,14 +50,15 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.match(shellSource, /SheetTrigger/);
   assert.match(shellSource, /SheetContent/);
   assert.match(shellSource, /SheetClose/);
+  assert.match(shellSource, /AccountChip/);
   assert.match(shellSource, /aria-label="Close navigation"/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(shellSource, /aria-hidden="true"/);
   assert.match(shellSource, /bg-\[color:var\(--cb-accent\)\]/);
   assert.match(shellSource, /focus-visible:ring-\[color:var\(--cb-focus-ring\)\]/);
   assert.doesNotMatch(shellSource, /--cb-ui-/);
-  assert.match(shellSource, /Łukasz Chmiel/);
-  assert.match(shellSource, /Operator/);
+  assert.doesNotMatch(shellSource, /Łukasz Chmiel/);
+  assert.doesNotMatch(shellSource, /Operator/);
   assert.doesNotMatch(shellSource, /Support/);
   assert.doesNotMatch(shellSource, /Settings/);
   assert.doesNotMatch(shellSource, /notifications/i);
@@ -68,11 +70,10 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.doesNotMatch(shellSource, /ProofShell/);
   assert.doesNotMatch(shellSource, /pathname === "\/leads"/);
   assert.doesNotMatch(shellSource, /<main className="min-h-screen/);
-  assert.match(leadsPage, /LeadTable/);
-  assert.match(leadsPage, /LeadFilters/);
-  assert.match(leadsPage, /LeadPagination/);
-  assert.doesNotMatch(leadsPage, /ProofShell/);
-  assert.match(leadsPage, /PageSurface/);
-  assert.match(leadsPage, /Workspace/);
-  assert.doesNotMatch(leadsPage, /<main className=/);
+  assert.match(accountChip, /authClient\.useSession\(\)/);
+  assert.match(accountChip, /SignOutButton/);
+  assert.match(accountChip, /router\.push\("\/sign-in"\)/);
+  assert.match(accountChip, /Sign in/);
+  assert.match(signOutButton, /authClient\.signOut/);
+  assert.match(signOutButton, /router\.push\("\/sign-in"\)/);
 });

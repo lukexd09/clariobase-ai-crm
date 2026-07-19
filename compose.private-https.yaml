@@ -1,0 +1,58 @@
+services:
+  crm-postgres:
+    networks:
+      - crm-data
+
+  crm-app:
+    build: !reset null
+    image: ${CRM_PRIVATE_APP_IMAGE:?Set_CRM_PRIVATE_APP_IMAGE}
+    pull_policy: never
+    ports: !reset []
+    environment:
+      CRM_AUTH_RUNTIME_MODE: private-https
+      CRM_PRIVATE_HOSTNAME: ${CRM_PRIVATE_HOSTNAME:?Set_CRM_PRIVATE_HOSTNAME}
+      CRM_PRIVATE_HTTPS_PORT: ${CRM_PRIVATE_HTTPS_PORT:?Set_CRM_PRIVATE_HTTPS_PORT}
+      CRM_AUTH_TRUSTED_ORIGINS: ${CRM_AUTH_TRUSTED_ORIGINS:?Set_CRM_AUTH_TRUSTED_ORIGINS}
+    networks:
+      - crm-edge
+      - crm-data
+
+  crm-private-ingress:
+    image: ${CRM_PRIVATE_INGRESS_IMAGE:-caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d}
+    restart: unless-stopped
+    depends_on:
+      crm-app:
+        condition: service_healthy
+    environment:
+      CRM_PRIVATE_HOSTNAME: ${CRM_PRIVATE_HOSTNAME:?Set_CRM_PRIVATE_HOSTNAME}
+    ports:
+      - "${CRM_PRIVATE_BIND_ADDRESS:?Set_CRM_PRIVATE_BIND_ADDRESS}:${CRM_PRIVATE_HTTPS_PORT:?Set_CRM_PRIVATE_HTTPS_PORT}:443"
+    networks:
+      crm-bind:
+      crm-edge:
+        aliases:
+          - ${CRM_PRIVATE_HOSTNAME:?Set_CRM_PRIVATE_HOSTNAME}
+    volumes:
+      - type: bind
+        source: ./config/private-https/Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+      - type: volume
+        source: crm-private-caddy-data
+        target: /data
+      - type: volume
+        source: crm-private-caddy-config
+        target: /config
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  crm-bind:
+  crm-edge:
+    internal: true
+  crm-data:
+    internal: true
+
+volumes:
+  crm-private-caddy-data:
+  crm-private-caddy-config:

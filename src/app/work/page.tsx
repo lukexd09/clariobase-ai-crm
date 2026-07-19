@@ -4,6 +4,7 @@ import { getWorkBuckets } from "@/lib/work-view";
 import { StatusPill } from "@/components/lead-status-pill";
 import { ButtonLink, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
 import { WorkIndicator } from "@/components/core-work-primitives";
+import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ function formatDate(value: Date | null) {
 }
 
 export default async function WorkPage() {
+  await requireUser({ mode: "redirect", returnTo: "/work" });
   const leads = await getLeads();
   const buckets = getWorkBuckets(leads);
   const indicatorLabels: Record<string, string> = {

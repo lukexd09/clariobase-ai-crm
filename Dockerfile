@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS base
+FROM node:24-bookworm-slim@sha256:b31e7a42fdf8b8aa5f5ed477c72d694301273f1069c5a2f71d53c6482e99a2fc AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
@@ -35,8 +35,13 @@ RUN pnpm build
 
 FROM base AS runtime
 
+ARG CRM_SOURCE_SHA=unknown
+ARG CRM_IMAGE_VARIANT=validated
 ENV NODE_ENV=production
 ENV PORT=3000
+
+LABEL io.clariobase.source-sha=$CRM_SOURCE_SHA
+LABEL io.clariobase.image-variant=$CRM_IMAGE_VARIANT
 
 COPY --chown=node:node package.json pnpm-lock.yaml ./
 COPY --chown=node:node next.config.ts prisma.config.ts tsconfig.json ./

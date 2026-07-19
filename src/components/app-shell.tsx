@@ -15,6 +15,7 @@ import {
 import type { ComponentType } from "react";
 import { useState } from "react";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/clariobase-ui";
+import { AccountChip } from "@/components/auth/account-chip";
 import { cn } from "@/lib/utils";
 import { isNavigationItemActive, NAVIGATION_GROUPS, type NavigationIconKey } from "@/lib/navigation";
 
@@ -134,15 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavigationLinks pathname={pathname} />
           </nav>
           <div className="border-t border-[color:var(--cb-border)] px-4 py-5">
-            <div className="flex items-center gap-3 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-2.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--cb-accent)]/12 text-sm font-semibold text-[color:var(--cb-accent)]" aria-hidden="true">
-                ŁC
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">Łukasz Chmiel</span>
-                <span className="block text-xs uppercase tracking-[0.14em] text-[color:var(--cb-muted-foreground)]">Operator</span>
-              </span>
-            </div>
+            <AccountChip />
           </div>
         </aside>
 
@@ -189,15 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </nav>
                   </div>
                   <div className="border-t border-[color:var(--cb-border)] px-4 py-4">
-                    <div className="flex items-center gap-3 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color:var(--cb-accent)]/12 text-sm font-semibold text-[color:var(--cb-accent)]" aria-hidden="true">
-                        ŁC
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold">Łukasz Chmiel</span>
-                        <span className="block text-xs uppercase tracking-[0.14em] text-[color:var(--cb-muted-foreground)]">Operator</span>
-                      </span>
-                    </div>
+                    <AccountChip />
                   </div>
                 </SheetContent>
               </Sheet>

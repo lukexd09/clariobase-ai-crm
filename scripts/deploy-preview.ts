@@ -1,11 +1,14 @@
-import process from "node:process";
 import fs from "node:fs";
+import https from "node:https";
+import os from "node:os";
 import path from "node:path";
+import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 import {
   assertRequestedRef,
+  buildComposeArgs,
   buildDeployPlan,
   createPreviewSummary,
   executeDeployPlanWithEnv,
@@ -14,8 +17,8 @@ import {
   PREVIEW_NETWORK_NAME,
   PREVIEW_VOLUME_NAME,
   parsePreviewDatabaseLifecycleMode,
-  validatePreviewComposeModel,
   validateFullCommitSha,
+  validatePreviewComposeModel,
   validateResolvedSha,
   validateResetConfirmation
 } from "./preview-runtime-support";
@@ -31,6 +34,13 @@ type Options = {
   databaseMode: string;
   resetConfirmation: string;
   timeoutSeconds: number;
+};
+
+type ReadyPayload = {
+  checks?: {
+    database?: string;
+    authentication?: string;
+  };
 };
 
 function parseArgs(argv: string[]): Options {
@@ -117,40 +127,119 @@ function parseArgs(argv: string[]): Options {
   }
 
   if (!["open_pr", "main", "unknown"].includes(parsed.sourceMode)) {
-    throw new Error(`Source mode must be one of: open_pr, main, unknown`);
+    throw new Error("Source mode must be one of: open_pr, main, unknown");
   }
 
   return parsed;
 }
 
-async function waitForHttpReady(url: string, timeoutSeconds: number) {
-  const deadline = Date.now() + timeoutSeconds * 1000;
+function runDockerCompose(args: string[], env: Record<string, string>) {
+  return spawnSync("docker", args, {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    stdio: "pipe",
+    env: {
+      ...process.env,
+      ...env
+    }
+  });
+}
 
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url, {
+function readHttpsJson(options: { connectHost: string; servername: string; port: number; ca: Buffer }) {
+  const target = new URL(`https://${options.servername}:${options.port}/api/ready`);
+
+  return new Promise<{ status: number; payload: ReadyPayload }>((resolve, reject) => {
+    const request = https.request(
+      {
+        hostname: options.connectHost,
+        port: options.port,
+        path: target.pathname + target.search,
+        method: "GET",
+        servername: options.servername,
+        ca: options.ca,
+        rejectUnauthorized: true,
         headers: {
+          host: `${options.servername}:${options.port}`,
           "Cache-Control": "no-store"
         }
-      });
-
-      if (response.status === 200) {
-        const payload = await response.json() as {
-          checks?: { database?: string };
-        };
-
-        if (payload.checks?.database === "ok") {
-          return;
-        }
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+        response.on("end", () => {
+          const body = Buffer.concat(chunks).toString("utf8");
+          try {
+            resolve({
+              status: response.statusCode ?? 0,
+              payload: body ? (JSON.parse(body) as ReadyPayload) : {}
+            });
+          } catch (error) {
+            reject(error);
+          }
+        });
       }
-    } catch {
-      // Retry until timeout.
+    );
+
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+async function waitForPrivateHttpsReady(
+  previewUrl: string,
+  previewEnvFilePath: string,
+  previewImageRef: string,
+  timeoutSeconds: number
+) {
+  const deadline = Date.now() + timeoutSeconds * 1000;
+  const caRootDir = fs.mkdtempSync(path.join(os.tmpdir(), "clariobase-preview-ca-"));
+  const caPath = path.join(caRootDir, "root.crt");
+  const target = new URL(previewUrl);
+
+  try {
+    while (Date.now() < deadline) {
+      const copyResult = runDockerCompose(
+        buildComposeArgs(previewEnvFilePath, [
+          "cp",
+          "crm-private-ingress:/data/caddy/pki/authorities/local/root.crt",
+          caPath
+        ]),
+        {
+          CRM_PREVIEW_IMAGE_REF: previewImageRef
+        }
+      );
+
+      if (copyResult.status !== 0 || !fs.existsSync(caPath)) {
+        await delay(1000);
+        continue;
+      }
+
+      try {
+        const ca = fs.readFileSync(caPath);
+        const response = await readHttpsJson({
+          connectHost: "127.0.0.1",
+          servername: target.hostname,
+          port: Number(target.port || "443"),
+          ca
+        });
+        if (response.status === 200) {
+          const database = response.payload.checks?.database;
+          const authentication = response.payload.checks?.authentication;
+          if (database === "ok" && authentication === "ok") {
+            return;
+          }
+        }
+      } catch {
+        // Retry until timeout.
+      }
+
+      await delay(1000);
     }
 
-    await delay(1000);
+    throw new Error(`${previewUrl} did not reach HTTPS readiness within ${timeoutSeconds} seconds.`);
+  } finally {
+    fs.rmSync(caRootDir, { recursive: true, force: true });
   }
-
-  throw new Error(`${url} did not reach HTTP 200 with database: ok within ${timeoutSeconds} seconds.`);
 }
 
 async function main() {
@@ -176,7 +265,10 @@ async function main() {
   }
 
   const deployPlan = buildDeployPlan(runtimeConfig.previewEnvFilePath, runtimeConfig.previewImageRef, databaseMode);
-  const summary = { ...createPreviewSummary(options.requestedRef, resolvedSha, options.sourceMode), databaseMode };
+  const summary = {
+    ...createPreviewSummary(options.requestedRef, resolvedSha, options.sourceMode, runtimeConfig.previewUrl),
+    databaseMode
+  };
 
   fs.mkdirSync(runtimeConfig.previewAiExchangeAbsolutePath, { recursive: true });
 
@@ -208,14 +300,8 @@ async function main() {
     return;
   }
 
-  const validationResult = spawnSync("docker", deployPlan.validateComposeModel, {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    stdio: "pipe",
-    env: {
-      ...process.env,
-      CRM_PREVIEW_IMAGE_REF: runtimeConfig.previewImageRef
-    }
+  const validationResult = runDockerCompose(deployPlan.validateComposeModel, {
+    CRM_PREVIEW_IMAGE_REF: runtimeConfig.previewImageRef
   });
 
   if (validationResult.status !== 0) {
@@ -228,7 +314,7 @@ async function main() {
     CRM_PREVIEW_IMAGE_REF: runtimeConfig.previewImageRef
   });
 
-  await waitForHttpReady(runtimeConfig.previewLocalReadyUrl, options.timeoutSeconds);
+  await waitForPrivateHttpsReady(runtimeConfig.previewUrl, runtimeConfig.previewEnvFilePath, runtimeConfig.previewImageRef, options.timeoutSeconds);
 
   console.log(
     JSON.stringify(

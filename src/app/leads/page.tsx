@@ -5,6 +5,7 @@ import { LeadPagination } from "@/components/lead-pagination";
 import { formatLeadResultSummary, normalizeLeadFilters } from "@/lib/lead-query";
 import { parseLeadPage } from "@/lib/lead-pagination";
 import { PageSurface } from "@/components/core-work-primitives";
+import { requireUser } from "@/lib/auth-context";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default async function LeadsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireUser({ mode: "redirect", returnTo: "/leads" });
   const params = await searchParams;
   const filters = normalizeLeadFilters(params);
   const requestedPage = parseLeadPage(params.page);

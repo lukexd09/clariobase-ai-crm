@@ -5,7 +5,7 @@ import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import DashboardPage from "@/app/page";
+import { DashboardPage } from "@/components/dashboard-page";
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -67,11 +67,15 @@ test("dashboard renders the exact business contract", () => {
 });
 
 test("dashboard source only uses approved primitives and canonical tokens", () => {
-  const page = read("src/app/page.tsx");
+  const page = read("src/components/dashboard-page.tsx");
+  const route = read("src/app/page.tsx");
   const primitives = read("src/components/dashboard-primitives.tsx");
   const globalsCss = read("src/app/globals.css");
   const packageJson = JSON.parse(read("package.json")) as { dependencies: Record<string, string> };
 
+  assert.match(route, /from "@\/components\/dashboard-page"/);
+  assert.match(route, /SignInForm/);
+  assert.match(route, /getCurrentUser/);
   assert.match(page, /from "@\/components\/dashboard-primitives"/);
   assert.match(page, /from "@\/components\/clariobase-ui"/);
   assert.match(primitives, /from "@\/components\/clariobase-ui"/);

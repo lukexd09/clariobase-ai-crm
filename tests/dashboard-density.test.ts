@@ -10,7 +10,7 @@ function read(filePath: string) {
 }
 
 test("dashboard density contracts keep business values and link-based priorities", () => {
-  const page = read("src/app/page.tsx");
+  const page = read("src/components/dashboard-page.tsx");
   const primitives = read("src/components/dashboard-primitives.tsx");
 
   assert.match(page, /<MetricCard label="Overdue" value="2" tone="danger" \/>/);

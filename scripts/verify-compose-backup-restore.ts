@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -23,6 +24,8 @@ const envPath = path.join(tmpRoot, "compose.env");
 const backupDir = path.join(tmpRoot, "backups");
 const backupFilePath = path.join(backupDir, "clariobase_crm.sql");
 const cleanup = createCleanupController("docker:test-backup-restore");
+const databaseName = "clariobase_crm_backup_restore_test";
+const databaseUser = "clariobase_crm_user";
 
 fs.mkdirSync(path.dirname(tmpRoot), { recursive: true });
 
@@ -30,11 +33,12 @@ function read(filePath: string) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
-function runDocker(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
+function runDocker(args: string[], options?: { stdio?: "inherit" | "pipe"; env?: Record<string, string> }) {
   return spawnSync("docker", args, {
     cwd: repoRoot,
     encoding: "utf8",
-    stdio: options?.stdio ?? "pipe"
+    stdio: options?.stdio ?? "pipe",
+    env: { ...process.env, ...options?.env }
   });
 }
 
@@ -45,7 +49,7 @@ function assertDockerSuccess(
   assert.equal(result.status, 0, `${description} should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
 }
 
-function runCompose(args: string[], options?: { stdio?: "inherit" | "pipe" }) {
+function runCompose(args: string[], options?: { stdio?: "inherit" | "pipe"; env?: Record<string, string> }) {
   return runDocker(["compose", "--project-name", project, "--env-file", envPath, ...args], options);
 }
 
@@ -108,6 +112,41 @@ function runSql(command: string, description: string) {
   assert.equal(result.status, 0, `${description} should pass`);
 }
 
+function queryScalar(query: string) {
+  const result = runCompose([
+    "exec", "-T", "crm-postgres", "psql", "-U", databaseUser, "-d", databaseName, "-At", "-c", query
+  ]);
+  assertDockerSuccess(result, "database scalar query");
+  return result.stdout.trim();
+}
+
+async function requestAuth(hostPort: string, pathName: string, options?: {
+  body?: Record<string, unknown>;
+  cookie?: string;
+}) {
+  const response = await fetch(`http://127.0.0.1:${hostPort}${pathName}`, {
+    method: options?.body ? "POST" : "GET",
+    headers: {
+      origin: `http://127.0.0.1:${hostPort}`,
+      ...(options?.cookie ? { cookie: options.cookie } : {}),
+      ...(options?.body ? { "content-type": "application/json" } : {})
+    },
+    body: options?.body ? JSON.stringify(options.body) : undefined
+  });
+  return {
+    status: response.status,
+    body: await response.text(),
+    setCookie: response.headers.get("set-cookie")
+  };
+}
+
+function readSessionCookie(setCookie: string | null) {
+  assert(setCookie, "authentication response should set a session cookie");
+  const match = setCookie.match(/(?:^|,\s*)(?:__Secure-)?better-auth\.session_token=[^;,]+/);
+  assert(match, "authentication response should contain the Better Auth session token cookie");
+  return match[0].replace(/^,\s*/, "");
+}
+
 function makePathWritable(targetPath: string) {
   try {
     fs.chmodSync(targetPath, 0o777);
@@ -128,6 +167,12 @@ async function main() {
   const preparedImportPath = path.join(aiPath, "inbox", "prepared-leads.json");
   const outboxDir = path.join(aiPath, "outbox");
   const hostPort = await reserveFreePort();
+  const postgresPassword = crypto.randomBytes(32).toString("base64url");
+  const authSecret = crypto.randomBytes(48).toString("base64url");
+  const adminEmail = `backup-admin-${crypto.randomUUID()}@example.test`;
+  const adminPassword = crypto.randomBytes(24).toString("base64url");
+  const userEmail = `backup-user-${crypto.randomUUID()}@example.test`;
+  const userPassword = crypto.randomBytes(24).toString("base64url");
 
   fs.mkdirSync(path.dirname(preparedImportPath), { recursive: true });
   fs.mkdirSync(outboxDir, { recursive: true });
@@ -143,10 +188,13 @@ async function main() {
       "CRM_BIND_ADDRESS=127.0.0.1",
       `CRM_HOST_PORT=${hostPort}`,
       `AI_EXCHANGE_HOST_PATH=${aiPath.replace(/\\/g, "/")}`,
-      "CRM_POSTGRES_DB=clariobase_crm_backup_restore_test",
-      "CRM_POSTGRES_USER=clariobase_crm_user",
-      "CRM_POSTGRES_PASSWORD=clariobase_test_password",
-      "CRM_DATABASE_URL=postgresql://clariobase_crm_user:clariobase_test_password@crm-postgres:5432/clariobase_crm_backup_restore_test?schema=public"
+      `CRM_POSTGRES_DB=${databaseName}`,
+      `CRM_POSTGRES_USER=${databaseUser}`,
+      `CRM_POSTGRES_PASSWORD=${postgresPassword}`,
+      `CRM_DATABASE_URL=postgresql://${databaseUser}:${postgresPassword}@crm-postgres:5432/${databaseName}?schema=public`,
+      `BETTER_AUTH_URL=http://127.0.0.1:${hostPort}`,
+      `BETTER_AUTH_SECRET=${authSecret}`,
+      "CRM_AUTH_RUNTIME_MODE=localhost-dev"
     ].join("\n")
   );
 
@@ -176,6 +224,81 @@ async function main() {
       "Velvet Brows & Lashes"
     ]);
 
+    result = runCompose(["up", "-d", "crm-app"]);
+    assertDockerSuccess(result, "start application for authentication backup fixtures");
+    await waitForDockerHealth(`${project}-crm-app-1`);
+
+    result = runCompose([
+      "run", "--rm",
+      "-v", `${path.join(repoRoot, "scripts/fixtures/e011/t013-bootstrap-admin.ts").replace(/\\/g, "/")}:/proof/bootstrap.ts:ro`,
+      "-e", "CLARIOBASE_BOOTSTRAP_ENABLED", "-e", "CLARIOBASE_BOOTSTRAP_ADMIN_EMAIL", "-e", "CLARIOBASE_BOOTSTRAP_ADMIN_PASSWORD",
+      "crm-app", "node", "./node_modules/tsx/dist/cli.mjs", "/proof/bootstrap.ts"
+    ], {
+      stdio: "pipe",
+      env: {
+        CLARIOBASE_BOOTSTRAP_ENABLED: "1",
+        CLARIOBASE_BOOTSTRAP_ADMIN_EMAIL: adminEmail,
+        CLARIOBASE_BOOTSTRAP_ADMIN_PASSWORD: adminPassword
+      }
+    });
+    assert.equal(result.status, 0, "controlled admin bootstrap should pass");
+
+    const adminSignIn = await requestAuth(hostPort, "/api/auth/sign-in/email", {
+      body: { email: adminEmail, password: adminPassword, rememberMe: true }
+    });
+    assert.equal(adminSignIn.status, 200);
+    const adminCookie = readSessionCookie(adminSignIn.setCookie);
+
+    result = runCompose([
+      "run", "--rm",
+      "-v", `${path.join(repoRoot, "scripts/fixtures/e011/t013-admin-gateway.ts").replace(/\\/g, "/")}:/proof/gateway.ts:ro`,
+      "-e", "T013_GATEWAY_ACTION", "-e", "T013_ADMIN_COOKIE", "-e", "T013_USER_EMAIL", "-e", "T013_USER_PASSWORD",
+      "crm-app", "node", "./node_modules/tsx/dist/cli.mjs", "/proof/gateway.ts"
+    ], {
+      stdio: "pipe",
+      env: {
+        T013_GATEWAY_ACTION: "create",
+        T013_ADMIN_COOKIE: adminCookie,
+        T013_USER_EMAIL: userEmail,
+        T013_USER_PASSWORD: userPassword
+      }
+    });
+    assert.equal(result.status, 0, "controlled user creation should pass");
+
+    const activeSignIn = await requestAuth(hostPort, "/api/auth/sign-in/email", {
+      body: { email: userEmail, password: userPassword, rememberMe: true }
+    });
+    assert.equal(activeSignIn.status, 200);
+    const activeCookie = readSessionCookie(activeSignIn.setCookie);
+    const revokedSignIn = await requestAuth(hostPort, "/api/auth/sign-in/email", {
+      body: { email: userEmail, password: userPassword, rememberMe: true }
+    });
+    assert.equal(revokedSignIn.status, 200);
+    const revokedCookie = readSessionCookie(revokedSignIn.setCookie);
+    assert.notEqual(activeCookie, revokedCookie);
+
+    const signOut = await requestAuth(hostPort, "/api/auth/sign-out", { body: {}, cookie: revokedCookie });
+    assert.equal(signOut.status, 200);
+    const revokedBeforeBackup = await requestAuth(hostPort, "/api/auth/get-session", { cookie: revokedCookie });
+    assert.equal(JSON.parse(revokedBeforeBackup.body), null);
+
+    const sourceCounts = {
+      users: Number(queryScalar('SELECT count(*) FROM "user";')),
+      accounts: Number(queryScalar('SELECT count(*) FROM "account";')),
+      sessions: Number(queryScalar('SELECT count(*) FROM "session";')),
+      verifications: Number(queryScalar('SELECT count(*) FROM "verification";')),
+      audits: Number(queryScalar('SELECT count(*) FROM "admin_audit_events";')),
+      linkedCredentials: Number(queryScalar('SELECT count(*) FROM "account" a JOIN "user" u ON u.id = a."userId" WHERE a."providerId" = \'credential\';'))
+    };
+    assert.equal(sourceCounts.users, 2);
+    assert.equal(sourceCounts.accounts, 2);
+    assert.equal(sourceCounts.sessions, 2);
+    assert.equal(sourceCounts.verifications, 0);
+    assert.ok(sourceCounts.audits >= 2);
+    assert.equal(sourceCounts.linkedCredentials, 2);
+
+    const postgresVersion = queryScalar("SHOW server_version;");
+
     runSql(
       "mkdir -p /tmp/backups && pg_dump -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" > /tmp/backups/clariobase_crm.sql",
       "logical backup command"
@@ -186,12 +309,19 @@ async function main() {
     });
     assertDockerSuccess(result, "docker compose cp backup to host");
     assert.ok(fs.existsSync(backupFilePath), "backup file should be copied to the host");
+    const backupChecksum = crypto.createHash("sha256").update(fs.readFileSync(backupFilePath)).digest("hex");
+    assert.match(backupChecksum, /^[a-f0-9]{64}$/);
+    const sourceContainerId = runCompose(["ps", "-q", "crm-postgres"]).stdout.trim();
+    assert.match(sourceContainerId, /^[a-f0-9]{64}$/);
 
-    runSql(
-      "psql -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" -c 'TRUNCATE TABLE leads CASCADE;'",
-      "lead truncation command"
-    );
-    assert.deepEqual(queryLeadSnapshot(), []);
+    result = runCompose(["down", "-v", "--remove-orphans"], { stdio: "inherit" });
+    assertDockerSuccess(result, "destroy disposable source database");
+    result = runCompose(["up", "-d", "crm-postgres"], { stdio: "inherit" });
+    assertDockerSuccess(result, "start fresh disposable restore target");
+    await waitForDockerHealth(`${project}-crm-postgres-1`);
+    const restoreContainerId = runCompose(["ps", "-q", "crm-postgres"]).stdout.trim();
+    assert.match(restoreContainerId, /^[a-f0-9]{64}$/);
+    assert.notEqual(restoreContainerId, sourceContainerId);
 
     result = runCompose(["cp", backupFilePath, "crm-postgres:/tmp/clariobase_crm.sql"], {
       stdio: "inherit"
@@ -199,10 +329,28 @@ async function main() {
     assertDockerSuccess(result, "docker compose cp backup back to container");
 
     runSql(
-      "db_name=\"$POSTGRES_DB\"; db_user=\"$POSTGRES_USER\"; dropdb -U \"$db_user\" --force --if-exists \"$db_name\" && createdb -U \"$db_user\" \"$db_name\" && psql -U \"$db_user\" \"$db_name\" < /tmp/clariobase_crm.sql",
+      "psql -U \"$POSTGRES_USER\" \"$POSTGRES_DB\" < /tmp/clariobase_crm.sql",
       "logical restore command"
     );
     assert.deepEqual(queryLeadSnapshot(), initialSnapshot);
+
+    const restoredCounts = {
+      users: Number(queryScalar('SELECT count(*) FROM "user";')),
+      accounts: Number(queryScalar('SELECT count(*) FROM "account";')),
+      sessions: Number(queryScalar('SELECT count(*) FROM "session";')),
+      verifications: Number(queryScalar('SELECT count(*) FROM "verification";')),
+      audits: Number(queryScalar('SELECT count(*) FROM "admin_audit_events";')),
+      linkedCredentials: Number(queryScalar('SELECT count(*) FROM "account" a JOIN "user" u ON u.id = a."userId" WHERE a."providerId" = \'credential\';'))
+    };
+    assert.deepEqual(restoredCounts, sourceCounts);
+
+    result = runCompose(["up", "-d", "crm-app"]);
+    assertDockerSuccess(result, "start restored application");
+    await waitForDockerHealth(`${project}-crm-app-1`);
+    const restoredActive = await requestAuth(hostPort, "/api/auth/get-session", { cookie: activeCookie });
+    assert.ok(JSON.parse(restoredActive.body)?.user?.id);
+    const restoredRevoked = await requestAuth(hostPort, "/api/auth/get-session", { cookie: revokedCookie });
+    assert.equal(JSON.parse(restoredRevoked.body), null);
 
     result = runComposeNodeScript("export-ai-leads.ts");
     assert.equal(result.status, 0, `compose export after restore should pass: ${(result.stderr ?? result.stdout ?? "").trim()}`);
@@ -211,6 +359,18 @@ async function main() {
     }
     makePathWritable(backupDir);
     assert.match(result.stdout, /row count: 2/);
+    console.log(JSON.stringify({
+      backupFormat: "PostgreSQL plain SQL logical dump",
+      postgresVersion,
+      backupSha256: backupChecksum,
+      restoreTarget: "fresh disposable PostgreSQL container and volume",
+      activeSessionRestored: true,
+      revokedSessionRemainedRevoked: true,
+      credentialAccountsLinked: true,
+      auditEventsRestored: true,
+      verificationRecords: "not applicable; zero preserved",
+      sensitiveValuesLogged: false
+    }, null, 2));
   } catch (error) {
     mainError = error;
   }

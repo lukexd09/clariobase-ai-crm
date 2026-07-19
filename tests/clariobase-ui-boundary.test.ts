@@ -51,9 +51,11 @@ test("package inventory stays aligned with the dependency gate", () => {
   };
 
   assert.deepEqual(Object.keys(packageJson.dependencies).sort(), [
+    "@better-auth/prisma-adapter",
     "@prisma/adapter-pg",
     "@prisma/client",
     "@radix-ui/react-dialog",
+    "better-auth",
     "lucide-react",
     "next",
     "react",

@@ -3,11 +3,18 @@
 import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { createLeadActivity } from "@/lib/activities";
+import { requireUser, unauthorizedResult } from "@/lib/auth-context";
 import { offerDraftFormSchema } from "@/lib/offer-draft-form";
 import { createOfferDraft, updateOfferDraft } from "@/lib/offer-drafts";
 import { prisma } from "@/lib/prisma";
 
 export async function saveOfferDraftAction(leadId: string, formData: FormData) {
+  try {
+    await requireUser();
+  } catch {
+    return unauthorizedResult();
+  }
+
   const parsed = offerDraftFormSchema.safeParse({
     draftId: formData.get("draftId"),
     status: formData.get("status"),

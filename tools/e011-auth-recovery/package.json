@@ -1,0 +1,22 @@
+{
+  "name": "e011-auth-recovery",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "prisma:validate": "node ../../node_modules/prisma/build/index.js validate",
+    "prisma:generate": "node ../../node_modules/prisma/build/index.js generate",
+    "prisma:db-push": "node ../../node_modules/prisma/build/index.js db push --accept-data-loss",
+    "auth:proof": "tsx ../../scripts/better-auth-proof.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.8.0",
+    "@prisma/client": "7.8.0",
+    "better-auth": "1.6.23",
+    "@better-auth/prisma-adapter": "1.6.23",
+    "pg": "8.16.3"
+  },
+  "devDependencies": {
+    "prisma": "7.8.0",
+    "tsx": "4.22.4"
+  }
+}
