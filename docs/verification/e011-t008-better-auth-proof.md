@@ -1,4 +1,26 @@
-# E011.T008 Better Auth Proof
+---
+title: E011.T008 Better Auth historical proof
+document_id: DOC-E011-T008-BETTER-AUTH-PROOF
+document_type: historical-verification-report
+status: historical
+scope: clariobase-ai-crm
+owner: project
+last_updated: 2026-07-16
+related_epic: E011
+related_tasks:
+  - E011.T008
+related_issues:
+  - 161
+  - 200
+tags:
+  - verification
+  - auth
+  - historical-evidence
+---
+
+# E011.T008 Better Auth historical proof
+
+This file records historical T008 proof output and immutable identifiers. Full offline rebuild/restore is not an operated ClarioBase capability; these results are not operator instructions or current capability evidence. Unused offline implementation remains deferred to issue `#200`.
 
 ## Results
 

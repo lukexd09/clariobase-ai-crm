@@ -1,8 +1,35 @@
-# Better Auth Authentication
+---
+title: Better Auth authentication security contract
+document_id: DOC-E011-BETTER-AUTH-SECURITY
+document_type: security-reference
+status: active
+scope: clariobase-ai-crm
+owner: project
+last_updated: 2026-07-16
+related_epic: E011
+related_tasks:
+  - E011.T008
+  - E011.T009
+  - E011.T010
+  - E011.T014
+related_issues:
+  - 161
+  - 200
+tags:
+  - auth
+  - security
+  - sessions
+  - provenance
+---
+
+# Better Auth authentication security contract
 
 - Exact proof version: `better-auth@1.6.23`
 - Adapter: `@better-auth/prisma-adapter@1.6.23`
+- License: MIT for both direct packages
 - Helper CLI used for schema regeneration diagnostics: `@better-auth/cli@1.4.21`
+
+Full offline rebuild/restore is not an operated ClarioBase capability. Historical offline proof artifacts remain unused and deferred to issue `#200`; they are not part of this security contract.
 
 ## Schema Contract
 
@@ -12,7 +39,7 @@
 - Canonical proof schema is the source of truth for E011 proof and later reviewed Prisma migration work.
 - Better Auth CLI is an optional online diagnostic and regeneration helper.
 - Better Auth CLI is not part of the accepted authentication runtime.
-- Better Auth CLI is not part of the offline runtime recovery closure.
+- Better Auth CLI is not part of any accepted operated recovery path.
 - Better Auth CLI is not accepted as an unmodified canonical Prisma 7 schema generator.
 - Schema lifecycle is owned by ClarioBase and Prisma migrations.
 
@@ -38,7 +65,7 @@
 - Trusted origins are explicitly set in the proof runtime.
 - Origin and redirect protection remain enabled.
 
-## CLI Boundary
+## Historical T008 CLI boundary
 
 - Runtime authentication proof: PASS
 - Prisma 7 and PostgreSQL proof: PASS
@@ -81,4 +108,5 @@
 
 - The proof harness is isolated and is not the production CRM auth flow.
 - The proof schema is a reviewable snapshot for E011.T008 only.
-- Offline source rebuild was not proven here; only the offline restore path was proven.
+- Historical offline evidence does not establish a supported or operated rebuild/restore capability.
+- Unused offline implementation removal remains deferred to issue `#200`.

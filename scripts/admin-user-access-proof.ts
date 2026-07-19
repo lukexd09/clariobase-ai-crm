@@ -417,6 +417,22 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   assert.equal(selfDisable.ok, false);
   if (!selfDisable.ok) assert.equal(selfDisable.code, "self_lockout");
 
+  const ownSessions = await gateway.listUserSessions({ headers: adminHeaders }, adminId);
+  assert.equal(ownSessions.ok, true);
+  if (!ownSessions.ok || ownSessions.data.length === 0) throw new Error("administrator session fixture missing");
+  const selfSessionRevoke = await gateway.revokeUserSession({ headers: adminHeaders }, ownSessions.data[0].id);
+  assert.equal(selfSessionRevoke.ok, false);
+  if (!selfSessionRevoke.ok) assert.equal(selfSessionRevoke.code, "self_lockout");
+  const selfAllSessionsRevoke = await gateway.revokeUserSessions({ headers: adminHeaders }, adminId);
+  assert.equal(selfAllSessionsRevoke.ok, false);
+  if (!selfAllSessionsRevoke.ok) assert.equal(selfAllSessionsRevoke.code, "self_lockout");
+  const selfPasswordReset = await gateway.setUserPassword(
+    { headers: adminHeaders },
+    { userId: adminId, newPassword }
+  );
+  assert.equal(selfPasswordReset.ok, false);
+  if (!selfPasswordReset.ok) assert.equal(selfPasswordReset.code, "self_lockout");
+
   const secondAdminEmail = `admin-two-${randomUUID()}@example.test`;
   const secondAdminPassword = "admin-two-password-123456";
   sensitiveProofValues.push(secondAdminEmail, secondAdminPassword);

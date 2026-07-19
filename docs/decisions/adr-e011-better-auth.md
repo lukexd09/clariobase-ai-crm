@@ -1,3 +1,23 @@
+---
+title: ADR E011 Better Auth foundation
+document_id: ADR-E011-BETTER-AUTH
+document_type: architecture-decision
+status: accepted
+scope: clariobase-ai-crm
+owner: project
+last_updated: 2026-07-16
+related_epic: E011
+related_issues:
+  - 56
+  - 161
+  - 200
+tags:
+  - adr
+  - auth
+  - better-auth
+  - prisma
+---
+
 # ADR E011: Better Auth Foundation
 
 ## Context
@@ -6,7 +26,7 @@ ClarioBase needs a self-hosted authentication foundation with Prisma 7, PostgreS
 
 ## Decision
 
-Adopt Better Auth `1.6.23` with `@better-auth/prisma-adapter@1.6.23` for the proof boundary only.
+Adopt MIT-licensed Better Auth `1.6.23` with `@better-auth/prisma-adapter@1.6.23` for the self-hosted ClarioBase authentication foundation.
 
 ## Schema Contract
 
@@ -16,7 +36,7 @@ Adopt Better Auth `1.6.23` with `@better-auth/prisma-adapter@1.6.23` for the pro
 - Canonical proof schema is the source of truth for E011 proof and later reviewed Prisma migration work.
 - Better Auth CLI is an optional online diagnostic and regeneration helper.
 - Better Auth CLI is not part of the accepted authentication runtime.
-- Better Auth CLI is not part of the offline runtime recovery closure.
+- Better Auth CLI is not part of any accepted operated recovery path.
 - Better Auth CLI is not accepted as an unmodified canonical Prisma 7 schema generator.
 - Schema lifecycle is owned by ClarioBase and Prisma migrations.
 
@@ -35,12 +55,13 @@ Adopt Better Auth `1.6.23` with `@better-auth/prisma-adapter@1.6.23` for the pro
 - The organization plugin remains deferred.
 - The proof schema stays small and reviewable.
 
-## Offline survivability
+## Historical offline implementation decision
 
-- Proven offline restore used retained package tarballs, a bundled pnpm runtime, and a bundled Prisma Schema Engine.
-- Fresh offline source rebuild was not proven in this step.
+- Full offline rebuild/restore is not an operated ClarioBase capability or E011 acceptance requirement.
+- Historical proof artifacts remain unchanged until separate issue `#200` removes them with owner approval.
+- T014 must not run, extend or repair the offline path.
 
-## CLI Boundary
+## Historical T008 CLI boundary
 
 - Runtime authentication proof: PASS
 - Prisma 7 and PostgreSQL proof: PASS
@@ -81,4 +102,4 @@ Adopt Better Auth `1.6.23` with `@better-auth/prisma-adapter@1.6.23` for the pro
 
 ## Verdict
 
-This ADR supports the E011.T008 proof boundary, but it does not authorize production auth integration yet.
+This ADR accepts the self-hosted E011 authentication foundation. It does not authorize public exposure, managed Better Auth Infrastructure, dependency upgrades or full offline rebuild/restore.

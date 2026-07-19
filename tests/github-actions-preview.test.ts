@@ -382,6 +382,8 @@ test("Preview Release summary and final comment include source mode and immutabl
   assert.match(summary, /Deployment result:/);
   assert.match(deploymentSummary, /Source mode: \$env:SOURCE_MODE/);
   assert.match(deploymentSummary, /Image identity: \$env:IMAGE_REF/);
+  assert.match(deploymentSummary, /PREVIEW_URL: \$\{\{ steps\.deploy\.outputs\.preview_url \}\}/);
+  assert.match(deploymentSummary, /Preview URL: \$env:PREVIEW_URL/);
   assert.match(finalComment, /Source mode:/);
   assert.match(finalComment, /Immutable image:/);
 });
