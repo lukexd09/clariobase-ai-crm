@@ -44,14 +44,27 @@ Issue `#203` asked for a post-merge audit of active E011 documentation, regressi
 
 ## 2. Baseline and delivery state
 
-- Baseline SHA: `3efc4e0cfef533cdbb2fcb7e969f87b85ea69a21`
-- Final SHA: `pending final delivery commit`
+- Audited repository baseline: `3efc4e0cfef533cdbb2fcb7e969f87b85ea69a21`
+- Initial report commit: `001a88264f6a477f55af5e7d018525b217069fe9`
+- Final PR head: exact-head closure evidence recorded externally in PR `#204` after the last documentation commit.
 - Branch: `feature/e011-doc-test-audit`
-- Worktree: `C:\Serwer\Projekty\Clariobase\worktrees\e011-doc-test-audit`
-- Commit(s): `pending`
-- Draft PR: `pending push`
+- Draft PR: `#204`
 
-## 3. Documentation inventory
+Exact final PR head, final workflow run IDs and reviewer verdict are recorded in the PR closure comment rather than embedded into the committed report, because updating those values would itself create a new head requiring new exact-head validation.
+
+## 3. Delivery evidence model
+
+- Initial report commit head: `001a88264f6a477f55af5e7d018525b217069fe9`
+- CI `29731765661`: `SUCCESS`
+- Full Integration `29731765666`: `SUCCESS`
+- `classify`: `SUCCESS`
+- `gate`: `SUCCESS`
+- `integration`: `SKIPPED` because PR changed documentation only
+- Preview-release run `29731751834`: `unresolved workflow-level failure with zero jobs; no deployment evidence`
+- Preview-release metadata: event `push`, actor `lukexd09`, workflow path `.github/workflows/preview-release.yml`, head SHA `001a88264f6a477f55af5e7d018525b217069fe9`, head branch `feature/e011-doc-test-audit`, created_at `2026-07-20T09:31:13Z`, run attempt `1`, jobs `0`, preview deployment `NO`, preview state changed `NO`, persistent data changed `NO`, artifact/deployment created `NO`, inputs not exposed in run metadata
+- Local runtime/proof validation was executed separately and recorded in section 8.
+
+## 4. Documentation inventory
 
 ### Canonical sources
 
@@ -72,7 +85,7 @@ Issue `#203` asked for a post-merge audit of active E011 documentation, regressi
 - `docs/operations/preview-operations.md`
 - `docs/operations/container-operations.md`
 - `docs/verification/e011-t008-better-auth-proof.md`
-- `docs/verification/e011-t010-auth-session-proof.ts`
+- `scripts/e011-t010-auth-session-proof.ts`
 
 ### Current inventory result
 
@@ -80,14 +93,15 @@ Issue `#203` asked for a post-merge audit of active E011 documentation, regressi
 - No active doc or script still references `e011:t013:proof`.
 - No active doc or script still references `e011-offline`, `offline-proof`, or `tools/e011-auth-recovery` as a current capability.
 - References to full offline rebuild/restore are consistently framed as historical or unsupported, not operated capability.
-- `#200` is still used only as deferred cleanup/history, not as current capability.
+- `#200` is completed; PR `#202` removed unsupported offline implementation.
+- Remaining `#200` mentions are historical evidence of completed cleanup and decision.
 
-## 4. Stale and contradictory findings
+## 5. Stale and contradictory findings
 
 ### Kept on purpose
 
 - Historical offline-proof references remain in historical evidence docs only.
-- `#200` remains as deferred cleanup evidence in supported security and recovery docs.
+- `#200` remains completed historical evidence in supported security and recovery docs.
 - Old proof and audit files still preserve historical state for RAG and traceability.
 
 ### Corrected or absent
@@ -106,7 +120,7 @@ Issue `#203` asked for a post-merge audit of active E011 documentation, regressi
 - Historical evidence is separated from current operator contract.
 - No secrets, credentials, or host-specific sensitive paths are present in the audited docs.
 
-## 5. Evidence matrix
+## 6. Evidence matrix
 
 Legend:
 
@@ -150,7 +164,7 @@ Legend:
 | Cleanup of containers, networks, volumes, images, certs, temp DB | `scripts/cleanup-test-runtime.ts`, `scripts/preview-https-auth-proof.ts`, `scripts/e011-t013-private-https-proof.ts` | integration/runtime | covered |
 | Workflow path classification for E011-owned files | `.github/workflows/ci.yml`, `.github/workflows/full-integration.yml`, `.github/workflows/preview-release.yml`, `.github/workflows/stop-preview.yml`, `tests/github-actions-preview.test.ts`, `tests/test-suite-classification.test.ts` | contract/source-shape | covered |
 
-## 6. Gap review
+## 7. Gap review
 
 ### Confirmed gaps fixed earlier or already absent
 
@@ -161,11 +175,11 @@ Legend:
 
 ### Residual gaps
 
-- No executable browser-based assistive-technology rehearsal exists for the whole E011 auth surface.
+- Assistive-technology rehearsal is still a manual residual gap; it is not a new regression, it does not block current backend/runtime E011 assurance, it is not a claim of full WCAG/AT certification, and it belongs in a future browser/accessibility epic or auth UI change.
 - No new product/runtime regression was exposed by the baseline audit.
 - No Prisma schema, migration, dependency, or production-code fix was required.
 
-## 7. Validation commands and results
+## 8. Validation commands and results
 
 - `corepack pnpm install --frozen-lockfile`: PASS
 - `corepack pnpm prisma:validate`: PASS
@@ -178,21 +192,20 @@ Legend:
 - `corepack pnpm preview:https-auth-proof`: PASS
 - `git diff --check`: PASS
 
-## 8. Cleanup residue
+## 9. Cleanup residue
 
 - Temporary generated artifact `stop-preview-result.json` appeared during validation and was removed.
 - No remaining untracked generated files in the worktree after cleanup.
 - No leftover containers, networks, volumes, certs, temporary databases, or listeners were left by the final validation run.
 - Repo cleanup of branches/worktrees was not performed.
 
-## 9. Deferred scope
+## 10. Historical scope
 
-- `#200` remains deferred cleanup/history only.
+- `#200` is completed historical evidence, not an active follow-up.
 - No offline rebuild/restore capability was added.
 - No dependency upgrade, Prisma migration, or production-code refactor was required.
-- `CI run ID/status`: pending push and exact-head workflow completion.
-- `Full Integration run ID/status`: pending push and exact-head workflow completion.
+- Exact-head workflow run IDs after the final documentation commit are recorded in the PR `#204` closure comment, not in this committed report.
 
-## 10. Final note
+## 11. Final note
 
 This audit is truthful to the current repository state at report creation. Final delivery metadata will be captured after push and exact-head workflow completion.
