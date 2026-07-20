@@ -57,7 +57,7 @@ Never export the CA private key. Never enable router forwarding, public DNS, a P
 - Runtime-only security/restart/rollback proof: `corepack pnpm e011:t013:runtime-proof`.
 - Preview HTTPS auth proof alias: `corepack pnpm preview:https-auth-proof`.
 
-Full offline rebuild/restore is not an operated ClarioBase capability. Do not run `corepack pnpm e011:t013:proof` as an operator recovery or T014 assurance command. Its unused implementation remains unchanged and deferred for removal in issue `#200`.
+Full offline rebuild/restore is not an operated ClarioBase capability. The removed full-offline command no longer exists; operator recovery stays limited to private HTTPS restart, session persistence, PostgreSQL backup/restore, and immutable-image rollback.
 
 Commands that omit the env and file arguments are illustrative. Operators must use the same explicit project/env/overlay selection throughout one operation.
 
@@ -75,9 +75,9 @@ Record the application source SHA, exact image ID/repository digest, Caddy diges
 
 Do not push or retag GHCR images as part of the local proof. Mutable tags are labels for cleanup only, never rollback authority.
 
-## Unsupported offline implementation
+## Removed offline implementation
 
-Repository T013 offline bundle/restore files are retained technical debt, not operator instructions or a supported recovery path. T014 does not execute, extend, repair or remove them. Issue `#200` owns their later removal in a separate owner-approved change.
+Repository T013 offline bundle/restore files were historical technical debt, not operator instructions or a supported recovery path. Issue `#200` removed them in a separate owner-approved cleanup.
 
 Operated recovery in this runbook is limited to checked-in migrations, disposable logical backup/restore rehearsal, secret rotation, private HTTPS restart and immutable-image rollback. Any proposal to add full offline rebuild/restore requires a new owner architecture decision.
 
