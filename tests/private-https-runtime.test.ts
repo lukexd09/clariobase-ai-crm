@@ -35,21 +35,19 @@ test("base Compose authentication secret and URL fail closed", () => {
   assert.doesNotMatch(compose, /clariobase-local-better-auth-secret/);
 });
 
-test("T013 proof owns exact-image identity, real auth restart, revocation, and cleanup", () => {
+test("T013 runtime proof owns exact-image identity, real auth restart, revocation, and cleanup", () => {
   const packageJson = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
   const proof = read("scripts/e011-t013-private-https-proof.ts");
   const previewProof = read("scripts/preview-https-auth-proof.ts");
-  assert.equal(packageJson.scripts["e011:t013:proof"], "tsx scripts/e011-t013-private-https-proof.ts");
-  assert.equal(packageJson.scripts["e011:t013:runtime-proof"], "tsx scripts/e011-t013-private-https-proof.ts --runtime-only");
+  assert.equal(packageJson.scripts["e011:t013:proof"], undefined);
+  assert.equal(packageJson.scripts["e011:t013:runtime-proof"], "tsx scripts/e011-t013-private-https-proof.ts");
   assert.equal(packageJson.scripts["preview:https-auth-proof"], "tsx scripts/preview-https-auth-proof.ts");
   assert.equal(packageJson.scripts["private-https:preflight"], "tsx scripts/private-https-preflight.ts");
-  assert.match(proof, /createCleanupController\("e011:t013:proof"\)/);
+  assert.match(proof, /createCleanupController\("e011:t013:runtime-proof"\)/);
   assert.match(proof, /cleanup\.installProcessHandlers\(\)/);
   assert.match(proof, /cleanup\.registerDockerProject\(project\)/);
   assert.match(proof, /cleanup\.registerDockerImage\(imageTag\)/);
   assert.match(proof, /cleanup\.registerTempPath\(tmpRoot\)/);
-  assert.match(proof, /runtimeOnly/);
-  assert.match(proof, /runtime-only verification/);
   assert.match(proof, /CRM_SOURCE_SHA/);
   assert.match(proof, /private-https-preflight\.ts/);
   assert.match(proof, /--expected-source-sha/);
@@ -63,6 +61,7 @@ test("T013 proof owns exact-image identity, real auth restart, revocation, and c
   assert.match(proof, /e011-t013-security-scan\.ts/);
   assert.match(proof, /scripts\/e011-immutable-image\.ts/);
   assert.match(proof, /prove exact-image upgrade and rollback/);
+  assert.doesNotMatch(proof, /e011-offline-bundle|e011-offline-restore|compose\.private-https\.offline-proof|--runtime-only|offlineRecovery/);
   assert.match(previewProof, /createDockerRunId\("preview-https-auth"\)/);
   assert.match(previewProof, /compose\.preview\.yaml/);
   assert.match(previewProof, /compose\.preview\.private-https\.yaml/);
@@ -78,16 +77,8 @@ test("T013 proof owns exact-image identity, real auth restart, revocation, and c
   const renderedRouteProof = read("tests/light-density-route-contracts.test.ts");
   assert.match(renderedRouteProof, /CRM_AUTH_RUNTIME_MODE: "disposable-test"/g);
   assert.match(renderedRouteProof, /CRM_ALLOW_INSECURE_AUTH_TESTS: "1"/g);
-  const offlineBundle = read("scripts/e011-offline-bundle.ts");
-  const offlineRestore = read("scripts/e011-offline-restore.ts");
-  assert.match(offlineBundle, /pnpm-store\.tar\.gz/);
-  assert.match(offlineBundle, /pnpm fetch --frozen-lockfile --store-dir \/store/);
-  assert.match(offlineRestore, /extract verified dependency store without network/);
-  assert.match(offlineRestore, /--network", "none/);
-  assert.match(offlineRestore, /storeVolume}:+\/store:ro/);
-  const offlineOverlay = read("compose.private-https.offline-proof.yaml");
-  assert.match(offlineOverlay, /ports: !reset \[\]/);
-  assert.match(offlineOverlay, /pull_policy: never/g);
-  assert.match(offlineOverlay, /networks: !override/);
-  assert.doesNotMatch(offlineOverlay, /crm-bind/);
+  const immutableImage = read("scripts/e011-immutable-image.ts");
+  assert.match(immutableImage, /t013ImmutableRollbackMain/);
+  assert.match(immutableImage, /prove exact-image upgrade and rollback/);
+  assert.doesNotMatch(immutableImage, /e011-offline-bundle|e011-offline-restore|tools\/e011-auth-recovery|compose\.private-https\.offline-proof/);
 });

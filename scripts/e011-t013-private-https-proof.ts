@@ -31,10 +31,7 @@ const tmpRoot = path.join(repoRoot, ".codex-tmp", createRuntimeArtifactName("t01
 const envPath = path.join(tmpRoot, "private-https.env");
 const caPath = path.join(tmpRoot, "root.crt");
 const imageTag = `${VERIFY_IMAGE_TAG_PREFIX}${project}`;
-const cleanup = createCleanupController("e011:t013:proof");
-let offlineBundleRoot: string | undefined;
-const argv = process.argv.slice(2);
-const runtimeOnly = argv.includes("--runtime-only");
+const cleanup = createCleanupController("e011:t013:runtime-proof");
 const hostname = `crm-${crypto.randomBytes(6).toString("hex")}.home.arpa`;
 const postgresPassword = crypto.randomBytes(32).toString("base64url");
 const authSecret = crypto.randomBytes(48).toString("base64url");
@@ -188,7 +185,7 @@ async function waitForHttps(port: number, ca: Buffer) {
 }
 
 async function main() {
-  if (!ensureDockerOrReportSkip("e011:t013:proof")) return;
+  if (!ensureDockerOrReportSkip("e011:t013:runtime-proof")) return;
 
   const securityScan = run("node", ["./node_modules/tsx/dist/cli.mjs", "scripts/e011-t013-security-scan.ts"]);
   assertSuccess(securityScan, "run T013 security and managed-infrastructure scan");
@@ -449,95 +446,19 @@ async function main() {
     externalConnectivity: "blocked by internal Docker networks"
   } as const;
 
-  if (runtimeOnly) {
-    console.log(JSON.stringify({
-      ...runtimeEvidence,
-      upgradeImageId: immutableEvidence.upgradeImageId,
-      rollbackImageId: immutableEvidence.rollbackImageId,
-      offlineRecovery: { result: "SKIPPED", reason: "runtime-only mode" }
-    }, null, 2));
-    const cleanupReport = cleanup.cleanup("successful runtime-only verification");
-    if (cleanupReport.failures.length > 0) throw new Error(formatCleanupFailures(cleanupReport.failures));
-    reportVerificationStatus("PASS", "e011:t013 runtime-only private HTTPS runtime verification completed.");
-    return;
-  }
-
-  const offlineBundle = run("node", [
-    "./node_modules/tsx/dist/cli.mjs",
-    "scripts/e011-offline-bundle.ts",
-    "--t013",
-    imageId,
-    sourceSha
-  ]);
-  assertSuccess(offlineBundle, "prepare complete exact-head offline recovery bundle");
-  const bundleEvidence = JSON.parse(offlineBundle.stdout.trim()) as {
-    bundleRoot: string;
-    manifestSha256: string;
-    sourceSha: string;
-    applicationImageId: string;
-  };
-  offlineBundleRoot = path.resolve(bundleEvidence.bundleRoot);
-  assert.ok(offlineBundleRoot.startsWith(`${path.join(repoRoot, ".codex-tmp")}${path.sep}`));
-  assert.equal(bundleEvidence.sourceSha, sourceSha);
-  assert.equal(bundleEvidence.applicationImageId, imageId);
-  assert.match(bundleEvidence.manifestSha256, /^[a-f0-9]{64}$/);
-
-  const cleanupReport = cleanup.cleanup("successful online verification");
-  if (cleanupReport.failures.length > 0) throw new Error(formatCleanupFailures(cleanupReport.failures));
-  result = runDocker(["image", "rm", "-f", imageId]);
-  assertSuccess(result, "remove online application image before offline restore");
-
-  const offlineRestore = run("node", [
-    "./node_modules/tsx/dist/cli.mjs",
-    "scripts/e011-offline-restore.ts",
-    "--t013",
-    offlineBundleRoot
-  ], { T013_DISPOSABLE_BUNDLE: "1" });
-  if (offlineRestore.status !== 0) {
-    const safeError = offlineRestore.stderr
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => line.startsWith("Error:"));
-    throw new Error(`restore source, dependencies, images, database, and HTTPS runtime offline failed${safeError ? `: ${safeError}` : ""}`);
-  }
-  const offlineEvidence = JSON.parse(offlineRestore.stdout.trim()) as {
-    result: string;
-    manifestSha256: string;
-    sourceSha: string;
-    applicationImageId: string;
-    dependencyRestoreNetwork: string;
-    offlineHttpsSignIn: string;
-  };
-  assert.equal(offlineEvidence.result, "PASS");
-  assert.equal(offlineEvidence.manifestSha256, bundleEvidence.manifestSha256);
-  assert.equal(offlineEvidence.sourceSha, sourceSha);
-  assert.equal(offlineEvidence.applicationImageId, imageId);
-  assert.equal(offlineEvidence.dependencyRestoreNetwork, "none");
-  assert.equal(offlineEvidence.offlineHttpsSignIn, "PASS");
-  offlineBundleRoot = undefined;
-
   console.log(JSON.stringify({
     ...runtimeEvidence,
     upgradeImageId: immutableEvidence.upgradeImageId,
-    rollbackImageId: immutableEvidence.rollbackImageId,
-    offlineRecovery: {
-      manifestSha256: bundleEvidence.manifestSha256,
-      exactHeadSource: sourceSha,
-      exactApplicationImage: imageId,
-      dependencyInstallNetwork: "none",
-      prismaGenerate: "PASS",
-      httpsSignIn: "PASS"
-    }
+    rollbackImageId: immutableEvidence.rollbackImageId
   }, null, 2));
 
-  reportVerificationStatus("PASS", "e011:t013:proof completed disposable private HTTPS runtime verification.");
+  const cleanupReport = cleanup.cleanup("successful runtime verification");
+  if (cleanupReport.failures.length > 0) throw new Error(formatCleanupFailures(cleanupReport.failures));
+  reportVerificationStatus("PASS", "e011:t013 runtime private HTTPS runtime verification completed.");
 }
 
 main().catch((error) => {
   const cleanupReport = cleanup.cleanup("failed verification");
-  if (offlineBundleRoot && offlineBundleRoot.startsWith(`${path.join(repoRoot, ".codex-tmp")}${path.sep}`)) {
-    fs.rmSync(offlineBundleRoot, { recursive: true, force: true });
-  }
-  console.error(createVerificationFailure(error, cleanupReport.failures, "e011:t013:proof").message);
+  console.error(createVerificationFailure(error, cleanupReport.failures, "e011:t013:runtime-proof").message);
   process.exitCode = 1;
 });
