@@ -39,5 +39,8 @@ data/ai-exchange/error/*.md
 !data/ai-exchange/inbox/sample-prepared-leads.json
 coverage/
 .codex-tmp/
+.turbo/
+.pytest_cache/
+*.tsbuildinfo
 playwright-report/
 test-results/
