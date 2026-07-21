@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { URL } from "node:url";
 
-const supportedAreas = new Set(["dashboard"]);
+const supportedAreas = new Set(["dashboard", "i18n"]);
 const approvedE2ERuntime = "local-proof";
 const approvedE2EDatabasePrefix = "clariobase_e2e_";
 const approvedPlaywrightBaseUrl = "http://127.0.0.1:3011";
