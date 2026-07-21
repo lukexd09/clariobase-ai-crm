@@ -34,7 +34,7 @@ const optionalPriceNet = z
 const currencySchema = z.preprocess((value) => {
   if (value === "" || value === null || value === undefined) return "PLN";
   return value;
-}, z.string().trim().regex(/^[A-Za-z]{3}$/, "validation.offer.currency_invalid").transform((value) => value.toUpperCase()));
+}, z.string().trim().min(3, "validation.offer.currency_invalid").max(3, "validation.offer.currency_invalid").transform((value) => value.toUpperCase()));
 
 export const offerDraftFormSchema = z.object({
   draftId: z.string().trim().min(1).optional(),

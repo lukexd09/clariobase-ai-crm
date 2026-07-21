@@ -138,6 +138,41 @@ test.describe("E010 request locale runtime", () => {
     }
   });
 
+  test("@area:i18n admin route denies anonymous and ordinary users without locale drift", async ({ browser }) => {
+    const email = process.env.PLAYWRIGHT_E010_USER_EMAIL;
+    const password = process.env.PLAYWRIGHT_E010_USER_PASSWORD;
+    expect(email).toBeTruthy();
+    expect(password).toBeTruthy();
+    if (!email || !password) throw new Error("Missing disposable non-admin fixture");
+
+    const context = await browser.newContext({
+      storageState: undefined,
+      locale: "pl-PL",
+      extraHTTPHeaders: { "Accept-Language": "pl-PL" }
+    });
+    const page = await context.newPage();
+
+    try {
+      await page.goto("/admin/users");
+      await expect(page).toHaveURL((url) => url.pathname === "/sign-in");
+      await expect(page.locator("html")).toHaveAttribute("lang", "pl-PL");
+      await expect(page.getByRole("heading", { name: "Zaloguj się" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Dostęp użytkowników" })).toHaveCount(0);
+
+      await page.getByLabel("E-mail").fill(email);
+      await page.getByLabel("Hasło").fill(password);
+      await page.locator('button[type="submit"]').click();
+      await page.waitForURL((url) => url.pathname === "/admin/users" || url.pathname === "/");
+      await page.goto("/admin/users");
+      await expect(page).toHaveURL((url) => url.pathname === "/");
+      await expect(page.locator("html")).toHaveAttribute("lang", "pl-PL");
+      await expect(page.getByRole("heading", { name: "Pulpit" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Dostęp użytkowników" })).toHaveCount(0);
+    } finally {
+      await context.close();
+    }
+  });
+
   test("@area:i18n core workflow stays localized and preserves imported content", async ({ browser }) => {
     test.setTimeout(120_000);
     const email = process.env.CLARIOBASE_BOOTSTRAP_ADMIN_EMAIL;

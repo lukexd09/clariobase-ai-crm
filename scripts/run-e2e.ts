@@ -232,6 +232,8 @@ async function main() {
   const authSecret = randomBytes(32).toString("hex");
   const bootstrapEmail = `clariobase-e2e-${randomUUID()}@example.test`;
   const bootstrapPassword = randomBytes(16).toString("hex");
+  const ordinaryUserEmail = `clariobase-e2e-user-${randomUUID()}@example.test`;
+  const ordinaryUserPassword = randomBytes(16).toString("hex");
   const postgresPort = await reserveFreePort();
   const databaseUrl = `postgresql://postgres:${postgresPassword}@127.0.0.1:${postgresPort}/${databaseName}?schema=public`;
   const bootstrapEnv: NodeJS.ProcessEnv = {
@@ -248,7 +250,15 @@ async function main() {
     CLARIOBASE_BOOTSTRAP_ADMIN_PASSWORD: bootstrapPassword
   };
 
-  sensitiveValues.push(databaseUrl, postgresPassword, authSecret, bootstrapEmail, bootstrapPassword);
+  sensitiveValues.push(
+    databaseUrl,
+    postgresPassword,
+    authSecret,
+    bootstrapEmail,
+    bootstrapPassword,
+    ordinaryUserEmail,
+    ordinaryUserPassword
+  );
 
   cleanup.registerDockerContainer(postgresContainerName);
   cleanup.registerTempPath(storageStatePath);
@@ -345,6 +355,18 @@ async function main() {
     const session = await auth.api.getSession({ headers: sessionHeaders });
 
     assert(session?.user?.id, "Better Auth session could not be resolved from the disposable cookie");
+    const { createControlledUser } = await import("@/lib/user-admin-gateway");
+    const ordinaryUser = await createControlledUser(
+      { headers: sessionHeaders },
+      {
+        email: ordinaryUserEmail,
+        name: "Disposable E2E User",
+        password: ordinaryUserPassword
+      }
+    );
+    assert(ordinaryUser.ok, "Disposable non-admin user could not be created");
+    childEnv.PLAYWRIGHT_E010_USER_EMAIL = ordinaryUserEmail;
+    childEnv.PLAYWRIGHT_E010_USER_PASSWORD = ordinaryUserPassword;
     writeStorageState(storageStatePath, parsedCookies);
 
     if (mode === "area" && selectedArea === "i18n") {

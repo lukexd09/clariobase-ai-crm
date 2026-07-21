@@ -26,7 +26,8 @@ export function formatPercent(locale: Locale, value: number, options?: Intl.Numb
 }
 
 export function formatCurrency(locale: Locale, value: number, currency: string, options?: Intl.NumberFormatOptions) {
-  if (!/^[A-Za-z]{3}$/.test(currency)) return unavailable(locale);
+  if (!Number.isFinite(value) || currency.length !== 3) return unavailable(locale);
+  if (!/^[A-Za-z]{3}$/.test(currency)) return `${formatNumber(locale, value, options)} ${currency}`;
   return formatNumber(locale, value, { style: "currency", currency, ...options });
 }
 

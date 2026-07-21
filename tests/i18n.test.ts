@@ -63,7 +63,8 @@ test("formatters use locale conventions and deterministic Warsaw time", () => {
     formatPercent("en-US", 0.255, { maximumFractionDigits: 1 })
   );
   assert.match(formatCurrency("pl-PL", 1234.5, "PLN"), /1[\s\u00a0]?234,50/);
-  assert.equal(formatCurrency("pl-PL", 1234.5, "123"), "Niedostępne");
+  assert.match(formatCurrency("pl-PL", 1234.5, "123"), /1[\s\u00a0]?234,5[\s\u00a0]123/);
+  assert.equal(formatCurrency("pl-PL", 1234.5, "12"), "Niedostępne");
   assert.equal(formatDateTimeLocalInput(new Date("2026-01-15T12:00:00.000Z")), "2026-01-15T13:00");
   assert.equal(formatDateTimeLocalInput(new Date("2026-07-15T12:00:00.000Z")), "2026-07-15T14:00");
   assert.equal(formatDate("pl-PL", "invalid"), "Niedostępne");

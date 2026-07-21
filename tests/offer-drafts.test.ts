@@ -44,3 +44,17 @@ test("offer draft schema rejects invalid prices and empty titles", () => {
 
   assert.equal(result.success, false);
 });
+
+test("offer draft schema preserves the baseline three-character currency contract", () => {
+  const result = offerDraftFormSchema.safeParse({
+    status: "DRAFT",
+    title: "Existing custom currency offer",
+    packageFit: "BASE",
+    priceNet: "10",
+    currency: "123"
+  });
+
+  assert.equal(result.success, true);
+  if (!result.success) return;
+  assert.equal(result.data.currency, "123");
+});
