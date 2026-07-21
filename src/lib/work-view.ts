@@ -1,5 +1,6 @@
 import type { LeadPriority, LeadStatus, PackageFit } from "@/generated/prisma/client";
 import type { TranslationKey } from "@/i18n/types";
+import { getPresentationDayBounds } from "@/lib/presentation-day";
 
 export type WorkLead = {
   id: string;
@@ -48,20 +49,17 @@ export function isActionableLead(lead: Pick<WorkLead, "leadStatus">) {
 }
 
 export function getWorkBuckets(leads: WorkLead[], now = new Date()): WorkBucket[] {
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-  const startOfTomorrow = new Date(startOfToday);
-  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const { startOfPresentationDay, startOfNextPresentationDay } = getPresentationDayBounds(now);
 
   const actionableLeads = leads.filter(isActionableLead);
   const overdue = actionableLeads.filter(
-    (lead) => lead.nextActionAt && lead.nextActionAt < startOfToday
+    (lead) => lead.nextActionAt && lead.nextActionAt < startOfPresentationDay
   );
   const dueToday = actionableLeads.filter(
-    (lead) => lead.nextActionAt && lead.nextActionAt >= startOfToday && lead.nextActionAt < startOfTomorrow
+    (lead) => lead.nextActionAt && lead.nextActionAt >= startOfPresentationDay && lead.nextActionAt < startOfNextPresentationDay
   );
   const upcoming = actionableLeads.filter(
-    (lead) => lead.nextActionAt && lead.nextActionAt >= startOfTomorrow
+    (lead) => lead.nextActionAt && lead.nextActionAt >= startOfNextPresentationDay
   );
   const noAction = actionableLeads.filter((lead) => !lead.nextActionAt);
 

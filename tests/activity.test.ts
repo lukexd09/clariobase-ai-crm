@@ -25,6 +25,17 @@ test("activity schema rejects invalid timestamps", () => {
   assert.equal(result.success, false);
 });
 
+test("activity schema rejects ambiguous new DST fold timestamps", () => {
+  const result = activityCreateSchema.safeParse({
+    type: "CALL",
+    title: "Call",
+    body: "",
+    occurredAt: "2026-10-25T02:30"
+  });
+
+  assert.equal(result.success, false);
+});
+
 test("activity summary helper joins changed fields", () => {
   assert.equal(
     buildLeadUpdateActivityBody(["lead status", "priority"]),

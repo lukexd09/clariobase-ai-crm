@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createLeadActivity } from "@/lib/activities";
 import { requireUser } from "@/lib/auth-context";
-import { outreachDraftFormSchema } from "@/lib/outreach-draft-form";
+import { createOutreachDraftFormSchema } from "@/lib/outreach-draft-form";
 import { createOutreachDraft, updateOutreachDraft } from "@/lib/outreach-drafts";
 import { normalizeLeadNoticeCode } from "@/lib/lead-notices";
+import { prisma } from "@/lib/prisma";
 
 export async function saveOutreachDraftAction(leadId: string, formData: FormData) {
   try {
@@ -14,8 +15,16 @@ export async function saveOutreachDraftAction(leadId: string, formData: FormData
     return { ok: false, code: "unauthorized", status: 401 as const };
   }
 
-  const parsed = outreachDraftFormSchema.safeParse({
-    draftId: formData.get("draftId"),
+  const draftId = formData.get("draftId");
+  const existingDraft = typeof draftId === "string" && draftId.trim()
+    ? await prisma.outreachDraft.findFirst({
+        where: { id: draftId, leadId },
+        select: { sentAt: true }
+      })
+    : null;
+
+  const parsed = createOutreachDraftFormSchema({ sentAt: existingDraft?.sentAt ?? null }).safeParse({
+    draftId,
     status: formData.get("status"),
     channel: formData.get("channel"),
     subject: formData.get("subject"),
@@ -24,6 +33,7 @@ export async function saveOutreachDraftAction(leadId: string, formData: FormData
     callToAction: formData.get("callToAction"),
     notes: formData.get("notes"),
     sentAt: formData.get("sentAt"),
+    sentAtOriginal: formData.get("sentAtOriginal"),
     miniAuditDraftId: formData.get("miniAuditDraftId")
   });
 

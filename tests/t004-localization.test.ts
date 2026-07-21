@@ -4,9 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { createTranslator } from "../src/i18n/translate";
 import { getLeadNoticeTranslationKey, LEAD_NOTICE_KEYS } from "../src/lib/lead-notices";
-import { leadUpdateSchema } from "../src/lib/lead-form";
+import { createLeadUpdateSchema, leadUpdateSchema } from "../src/lib/lead-form";
 import { activityCreateSchema } from "../src/lib/activity-form";
 import { parseFormDateTime } from "../src/lib/form-date-time";
+import { formatDateTimeLocalInput } from "../src/i18n/format";
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -49,11 +50,75 @@ test("core workflow notices use stable codes with Polish and English UI copy", (
   }
 });
 
-test("datetime-local values round-trip through the fixed Warsaw presentation zone", () => {
+test("datetime-local values parse through the fixed Warsaw presentation zone", () => {
   assert.equal((parseFormDateTime("2026-01-15T13:00") as Date).toISOString(), "2026-01-15T12:00:00.000Z");
   assert.equal((parseFormDateTime("2026-07-15T14:00") as Date).toISOString(), "2026-07-15T12:00:00.000Z");
-  assert.equal((parseFormDateTime("2026-10-25T02:30") as Date).toISOString(), "2026-10-25T00:30:00.000Z");
   assert.equal(Number.isNaN((parseFormDateTime("2026-03-29T02:30") as Date).getTime()), true);
+  assert.equal(Number.isNaN((parseFormDateTime("2026-10-25T02:30") as Date).getTime()), true);
+  assert.equal(Number.isNaN((parseFormDateTime("2026-02-31T00:00:00Z") as Date).getTime()), true);
+  assert.equal((parseFormDateTime("2026-10-25T01:30:00.000Z") as Date).toISOString(), "2026-10-25T01:30:00.000Z");
+  assert.equal((parseFormDateTime("2026-10-25T02:30:00+01:00") as Date).toISOString(), "2026-10-25T01:30:00.000Z");
+});
+
+test("datetime-local preserves both autumn DST fold instants when submitted unchanged", () => {
+  const first = new Date("2026-10-25T00:30:00.000Z");
+  const second = new Date("2026-10-25T01:30:00.000Z");
+  const visible = "2026-10-25T02:30";
+
+  assert.equal(formatDateTimeLocalInput(first), visible);
+  assert.equal(formatDateTimeLocalInput(second), visible);
+  assert.equal(
+    (parseFormDateTime(visible, { originalInstant: first.toISOString(), expectedOriginalInstant: first }) as Date).toISOString(),
+    first.toISOString()
+  );
+  assert.equal(
+    (parseFormDateTime(visible, { originalInstant: second.toISOString(), expectedOriginalInstant: second }) as Date).toISOString(),
+    second.toISOString()
+  );
+});
+
+test("datetime-local rejects tampered original instants and changed ambiguous values", () => {
+  const second = new Date("2026-10-25T01:30:00.000Z");
+  const tampered = parseFormDateTime("2026-10-25T02:30", {
+    originalInstant: "2026-10-25T00:30:00.000Z",
+    expectedOriginalInstant: second
+  }) as Date;
+  const changedAmbiguous = parseFormDateTime("2026-10-25T02:45", {
+    originalInstant: second.toISOString(),
+    expectedOriginalInstant: second
+  }) as Date;
+
+  assert.equal(Number.isNaN(tampered.getTime()), true);
+  assert.equal(Number.isNaN(changedAmbiguous.getTime()), true);
+});
+
+test("lead update schema preserves unchanged existing fold instant and rejects new ambiguous value", () => {
+  const existing = new Date("2026-10-25T01:30:00.000Z");
+  const unchanged = createLeadUpdateSchema({ nextActionAt: existing }).safeParse({
+    leadStatus: "NEW",
+    priority: "LOW",
+    packageFit: "UNKNOWN",
+    nextActionAt: "2026-10-25T02:30",
+    nextActionAtOriginal: existing.toISOString()
+  });
+  const changedAmbiguous = createLeadUpdateSchema({ nextActionAt: existing }).safeParse({
+    leadStatus: "NEW",
+    priority: "LOW",
+    packageFit: "UNKNOWN",
+    nextActionAt: "2026-10-25T02:45",
+    nextActionAtOriginal: existing.toISOString()
+  });
+  const newAmbiguous = leadUpdateSchema.safeParse({
+    leadStatus: "NEW",
+    priority: "LOW",
+    packageFit: "UNKNOWN",
+    nextActionAt: "2026-10-25T02:30"
+  });
+
+  assert.equal(unchanged.success, true);
+  if (unchanged.success) assert.equal(unchanged.data.nextActionAt?.toISOString(), existing.toISOString());
+  assert.equal(changedAmbiguous.success, false);
+  assert.equal(newAmbiguous.success, false);
 });
 
 test("core workflow localizes application copy without translating stored content", () => {

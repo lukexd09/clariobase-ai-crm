@@ -48,6 +48,7 @@ export function LeadUpdateForm({
   priority,
   packageFit,
   nextActionAt,
+  nextActionAtOriginal,
   nextActionDisplay
 }: {
   leadId: string;
@@ -55,6 +56,7 @@ export function LeadUpdateForm({
   priority: LeadPriorityValue;
   packageFit: PackageFitValue;
   nextActionAt: string;
+  nextActionAtOriginal: string;
   nextActionDisplay: string;
 }) {
   const { t } = useI18n();
@@ -117,6 +119,7 @@ export function LeadUpdateForm({
       </div>
 
       <input type="hidden" name="packageFit" value={packageFit} />
+      <input type="hidden" name="nextActionAtOriginal" value={nextActionAtOriginal} />
 
       <div className="flex items-center gap-4">
         <SubmitButton />

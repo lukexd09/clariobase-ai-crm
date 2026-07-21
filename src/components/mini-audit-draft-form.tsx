@@ -13,6 +13,7 @@ import { useI18n } from "@/i18n/provider";
 import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
 import { getLeadNoticeTranslationKey } from "@/lib/lead-notices";
 import { formatDateTimeLocalInput } from "@/i18n/format";
+import { formatFormDateTimeOriginalInput } from "@/lib/form-date-time";
 
 type DraftState = {
   ok: boolean;
@@ -103,6 +104,7 @@ function MiniAuditDraftEditor({
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
+      {draft ? <input type="hidden" name="approvedAtOriginal" value={formatFormDateTimeOriginalInput(draft.approvedAt)} /> : null}
       <input type="hidden" name="suggestedPackage" value={draft?.suggestedPackage ?? "UNKNOWN"} />
 
       <div className="grid gap-4 md:grid-cols-2">

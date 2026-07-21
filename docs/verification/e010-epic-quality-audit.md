@@ -118,6 +118,17 @@ The focused Playwright area contains 10 scenarios: five exact request contexts, 
 
 Correction cycles used: two. One T007 focused correction commit was created; no extra branch or worktree was used.
 
+## External formal CR findings
+
+Formal review `4748019314` on Draft PR #212 changed the external verdict to **CHANGES REQUIRED** after the earlier local PASS. The review scope was `f4bd93aba1f5ed1e41e0611586c6f11585ffa767...e27808cbed4b0e8eea56d9d3ad8b7d9c16cfb37e`.
+
+| Finding | Severity | Root cause | Correction | Test proof | Correction commit | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `datetime-local` autumn DST fold could shift an unchanged existing timestamp by one hour | P1 data integrity | `formatDateTimeLocalInput()` maps both Warsaw fold instants to the same visible `2026-10-25T02:30`; the parser chose the earlier candidate when no disambiguation was available | Local ambiguous values now fail validation unless an edit form submits a canonical hidden original ISO that matches the server-loaded existing instant; unchanged existing first/second fold instants return the exact DB instant; changed ambiguous values, spring gaps and tampered originals fail through existing stable `validation.*_invalid` codes | `corepack pnpm exec tsx --test tests/i18n.test.ts tests/t004-localization.test.ts`; `corepack pnpm exec tsx --test tests/t004-localization.test.ts tests/work-view.test.ts tests/activity.test.ts tests/lead-drafts.test.ts tests/offer-drafts.test.ts` | Current correction commit; exact SHA recorded in #211 and PR #212 after commit creation because a commit cannot contain its own hash | fixed, ready for re-review |
+| Workbench `overdue / due today / upcoming` used Node process time zone while presentation used `Europe/Warsaw` | P1 operational correctness | `getWorkBuckets()` derived day boundaries with host-local `Date#setHours()` / `setDate()` | Workbench now gets `startOfPresentationDay` and `startOfNextPresentationDay` from explicit Warsaw calendar parts and existing Warsaw local parser; status exclusions, sort order, tie-breaks and preview limits are unchanged | `tests/work-view.test.ts` covers summer and winter near-midnight UTC hosts plus 23-hour spring and 25-hour autumn DST days; focused command above PASS | Current correction commit; exact SHA recorded in #211 and PR #212 after commit creation because a commit cannot contain its own hash | fixed, ready for re-review |
+
+Scope guard: no Prisma schema change, no migration, no timezone persistence, no organization/user timezone setting, no new timezone library, no E017 KPI expansion, no production/preview/persistent data change.
+
 ## Verification evidence
 
 | Command | Result |

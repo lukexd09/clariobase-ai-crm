@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createLeadActivity } from "@/lib/activities";
 import { requireUser } from "@/lib/auth-context";
-import { miniAuditDraftFormSchema } from "@/lib/mini-audit-form";
+import { createMiniAuditDraftFormSchema } from "@/lib/mini-audit-form";
 import { createMiniAuditDraft, updateMiniAuditDraft } from "@/lib/mini-audits";
 import { normalizeLeadNoticeCode } from "@/lib/lead-notices";
+import { prisma } from "@/lib/prisma";
 
 export async function saveMiniAuditDraftAction(leadId: string, formData: FormData) {
   try {
@@ -14,8 +15,16 @@ export async function saveMiniAuditDraftAction(leadId: string, formData: FormDat
     return { ok: false, code: "unauthorized", status: 401 as const };
   }
 
-  const parsed = miniAuditDraftFormSchema.safeParse({
-    draftId: formData.get("draftId"),
+  const draftId = formData.get("draftId");
+  const existingDraft = typeof draftId === "string" && draftId.trim()
+    ? await prisma.miniAuditDraft.findFirst({
+        where: { id: draftId, leadId },
+        select: { approvedAt: true }
+      })
+    : null;
+
+  const parsed = createMiniAuditDraftFormSchema({ approvedAt: existingDraft?.approvedAt ?? null }).safeParse({
+    draftId,
     status: formData.get("status"),
     problem1: formData.get("problem1"),
     problem2: formData.get("problem2"),
@@ -25,7 +34,8 @@ export async function saveMiniAuditDraftAction(leadId: string, formData: FormDat
     outreachAngle: formData.get("outreachAngle"),
     draftMessage: formData.get("draftMessage"),
     riskNotes: formData.get("riskNotes"),
-    approvedAt: formData.get("approvedAt")
+    approvedAt: formData.get("approvedAt"),
+    approvedAtOriginal: formData.get("approvedAtOriginal")
   });
 
   if (!parsed.success) {

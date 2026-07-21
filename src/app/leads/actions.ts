@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createLeadActivity, buildLeadUpdateActivityBody } from "@/lib/activities";
 import { requireUser } from "@/lib/auth-context";
-import { leadUpdateSchema } from "@/lib/lead-form";
+import { createLeadUpdateSchema } from "@/lib/lead-form";
 import { getLeadById, updateLeadOperationalFields } from "@/lib/leads";
 import { normalizeLeadNoticeCode } from "@/lib/lead-notices";
 
@@ -14,11 +14,13 @@ export async function updateLeadAction(leadId: string, formData: FormData) {
     return { ok: false, code: "unauthorized", status: 401 as const };
   }
 
-  const parsed = leadUpdateSchema.safeParse({
+  const existingLead = await getLeadById(leadId);
+  const parsed = createLeadUpdateSchema({ nextActionAt: existingLead?.nextActionAt ?? null }).safeParse({
     leadStatus: formData.get("leadStatus"),
     priority: formData.get("priority"),
     packageFit: formData.get("packageFit"),
-    nextActionAt: formData.get("nextActionAt")
+    nextActionAt: formData.get("nextActionAt"),
+    nextActionAtOriginal: formData.get("nextActionAtOriginal")
   });
 
   if (!parsed.success) {
@@ -28,7 +30,6 @@ export async function updateLeadAction(leadId: string, formData: FormData) {
     };
   }
 
-  const existingLead = await getLeadById(leadId);
   const changedFields: string[] = [];
 
   if (existingLead) {

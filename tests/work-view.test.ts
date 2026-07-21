@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getWorkBuckets, isActionableLead, type WorkLead } from "../src/lib/work-view";
+import { getPresentationDayBounds } from "../src/lib/presentation-day";
 
 function lead(overrides: Partial<WorkLead>): WorkLead {
   return {
@@ -64,3 +65,68 @@ test("excluded statuses are not actionable", () => {
   assert.equal(isActionableLead({ leadStatus: "ARCHIVED" }), false);
   assert.equal(isActionableLead({ leadStatus: "DO_NOT_CONTACT" }), false);
 });
+
+test("bucket classification uses Warsaw day boundaries in summer regardless of host time zone", () => {
+  const classify = () => bucketLeadNames(new Date("2026-07-21T22:30:00.000Z"), [
+    lead({ businessName: "Before Warsaw midnight", nextActionAt: new Date("2026-07-21T21:59:59.999Z") }),
+    lead({ businessName: "At Warsaw midnight", nextActionAt: new Date("2026-07-21T22:00:00.000Z") }),
+    lead({ businessName: "Before next Warsaw midnight", nextActionAt: new Date("2026-07-22T21:59:59.999Z") }),
+    lead({ businessName: "After next Warsaw midnight", nextActionAt: new Date("2026-07-22T22:00:00.000Z") })
+  ]);
+
+  assert.deepEqual(withProcessTimeZone("UTC", classify), {
+    overdue: ["Before Warsaw midnight"],
+    dueToday: ["At Warsaw midnight", "Before next Warsaw midnight"],
+    upcoming: ["After next Warsaw midnight"],
+    noAction: []
+  });
+  assert.deepEqual(withProcessTimeZone("America/New_York", classify), withProcessTimeZone("UTC", classify));
+});
+
+test("bucket classification uses Warsaw day boundaries in winter regardless of host time zone", () => {
+  const classify = () => bucketLeadNames(new Date("2026-01-15T23:30:00.000Z"), [
+    lead({ businessName: "Before Warsaw midnight", nextActionAt: new Date("2026-01-15T22:59:59.999Z") }),
+    lead({ businessName: "At Warsaw midnight", nextActionAt: new Date("2026-01-15T23:00:00.000Z") }),
+    lead({ businessName: "After next Warsaw midnight", nextActionAt: new Date("2026-01-16T23:00:00.000Z") })
+  ]);
+
+  assert.deepEqual(withProcessTimeZone("UTC", classify), {
+    overdue: ["Before Warsaw midnight"],
+    dueToday: ["At Warsaw midnight"],
+    upcoming: ["After next Warsaw midnight"],
+    noAction: []
+  });
+  assert.deepEqual(withProcessTimeZone("Pacific/Honolulu", classify), withProcessTimeZone("UTC", classify));
+});
+
+test("presentation day bounds preserve DST transition day lengths", () => {
+  const spring = getPresentationDayBounds(new Date("2026-03-29T12:00:00.000Z"));
+  const autumn = getPresentationDayBounds(new Date("2026-10-25T12:00:00.000Z"));
+
+  assert.equal(spring.startOfPresentationDay.toISOString(), "2026-03-28T23:00:00.000Z");
+  assert.equal(spring.startOfNextPresentationDay.toISOString(), "2026-03-29T22:00:00.000Z");
+  assert.equal(spring.startOfNextPresentationDay.getTime() - spring.startOfPresentationDay.getTime(), 23 * 60 * 60 * 1000);
+  assert.equal(autumn.startOfPresentationDay.toISOString(), "2026-10-24T22:00:00.000Z");
+  assert.equal(autumn.startOfNextPresentationDay.toISOString(), "2026-10-25T23:00:00.000Z");
+  assert.equal(autumn.startOfNextPresentationDay.getTime() - autumn.startOfPresentationDay.getTime(), 25 * 60 * 60 * 1000);
+});
+
+function bucketLeadNames(now: Date, leads: WorkLead[]) {
+  return Object.fromEntries(
+    getWorkBuckets(leads, now).map((bucket) => [bucket.key, bucket.leads.map((item) => item.businessName)])
+  );
+}
+
+function withProcessTimeZone<T>(timeZone: string, callback: () => T) {
+  const previous = process.env.TZ;
+  process.env.TZ = timeZone;
+  try {
+    return callback();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = previous;
+    }
+  }
+}

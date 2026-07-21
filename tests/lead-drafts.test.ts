@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { miniAuditDraftFormSchema } from "../src/lib/mini-audit-form";
-import { outreachDraftFormSchema } from "../src/lib/outreach-draft-form";
+import { createMiniAuditDraftFormSchema, miniAuditDraftFormSchema } from "../src/lib/mini-audit-form";
+import { createOutreachDraftFormSchema, outreachDraftFormSchema } from "../src/lib/outreach-draft-form";
 
 test("mini-audit draft schema accepts a complete draft", () => {
   const result = miniAuditDraftFormSchema.safeParse({
@@ -35,6 +35,27 @@ test("mini-audit draft schema rejects empty content", () => {
   });
 
   assert.equal(result.success, false);
+});
+
+test("mini-audit draft schema preserves unchanged existing fold instant", () => {
+  const existing = new Date("2026-10-25T01:30:00.000Z");
+  const result = createMiniAuditDraftFormSchema({ approvedAt: existing }).safeParse({
+    draftId: "mini_123",
+    status: "READY_FOR_REVIEW",
+    problem1: "Weak presence",
+    problem2: "",
+    problem3: "",
+    recommendation: "",
+    suggestedPackage: "CLARITY",
+    outreachAngle: "",
+    draftMessage: "",
+    riskNotes: "",
+    approvedAt: "2026-10-25T02:30",
+    approvedAtOriginal: existing.toISOString()
+  });
+
+  assert.equal(result.success, true);
+  if (result.success) assert.equal(result.data.approvedAt?.toISOString(), existing.toISOString());
 });
 
 test("outreach draft schema accepts a complete draft", () => {
@@ -98,6 +119,24 @@ test("outreach draft schema rejects empty messages", () => {
     callToAction: "Reply if interested",
     notes: "",
     sentAt: ""
+  });
+
+  assert.equal(result.success, false);
+});
+
+test("outreach draft schema rejects tampered original fold instant", () => {
+  const existing = new Date("2026-10-25T01:30:00.000Z");
+  const result = createOutreachDraftFormSchema({ sentAt: existing }).safeParse({
+    draftId: "outreach_123",
+    status: "READY",
+    channel: "EMAIL",
+    subject: "Follow up",
+    openingHook: "Hello",
+    message: "I had a look at your profile...",
+    callToAction: "Reply if interested",
+    notes: "",
+    sentAt: "2026-10-25T02:30",
+    sentAtOriginal: "2026-10-25T00:30:00.000Z"
   });
 
   assert.equal(result.success, false);

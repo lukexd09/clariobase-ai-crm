@@ -4,7 +4,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { createLeadActivity } from "@/lib/activities";
 import { requireUser } from "@/lib/auth-context";
-import { offerDraftFormSchema } from "@/lib/offer-draft-form";
+import { createOfferDraftFormSchema } from "@/lib/offer-draft-form";
 import { createOfferDraft, updateOfferDraft } from "@/lib/offer-drafts";
 import { prisma } from "@/lib/prisma";
 import { normalizeLeadNoticeCode } from "@/lib/lead-notices";
@@ -16,8 +16,28 @@ export async function saveOfferDraftAction(leadId: string, formData: FormData) {
     return { ok: false, code: "unauthorized", status: 401 as const };
   }
 
-  const parsed = offerDraftFormSchema.safeParse({
-    draftId: formData.get("draftId"),
+  const draftId = formData.get("draftId");
+  const existingDraft = typeof draftId === "string" && draftId.trim()
+    ? await prisma.offerDraft.findFirst({
+        where: { id: draftId, leadId },
+        select: {
+          id: true,
+          status: true,
+          validUntil: true,
+          sentAt: true,
+          acceptedAt: true,
+          rejectedAt: true
+        }
+      })
+    : null;
+
+  const parsed = createOfferDraftFormSchema({
+    validUntil: existingDraft?.validUntil ?? null,
+    sentAt: existingDraft?.sentAt ?? null,
+    acceptedAt: existingDraft?.acceptedAt ?? null,
+    rejectedAt: existingDraft?.rejectedAt ?? null
+  }).safeParse({
+    draftId,
     status: formData.get("status"),
     title: formData.get("title"),
     packageFit: formData.get("packageFit"),
@@ -27,9 +47,13 @@ export async function saveOfferDraftAction(leadId: string, formData: FormData) {
     assumptions: formData.get("assumptions"),
     nextStep: formData.get("nextStep"),
     validUntil: formData.get("validUntil"),
+    validUntilOriginal: formData.get("validUntilOriginal"),
     sentAt: formData.get("sentAt"),
+    sentAtOriginal: formData.get("sentAtOriginal"),
     acceptedAt: formData.get("acceptedAt"),
+    acceptedAtOriginal: formData.get("acceptedAtOriginal"),
     rejectedAt: formData.get("rejectedAt"),
+    rejectedAtOriginal: formData.get("rejectedAtOriginal"),
     rejectionReason: formData.get("rejectionReason")
   });
 
@@ -56,13 +80,6 @@ export async function saveOfferDraftAction(leadId: string, formData: FormData) {
     rejectedAt: parsed.data.rejectedAt,
     rejectionReason: parsed.data.rejectionReason
   };
-
-  const existingDraft = parsed.data.draftId
-    ? await prisma.offerDraft.findFirst({
-        where: { id: parsed.data.draftId, leadId },
-        select: { id: true, status: true }
-      })
-    : null;
 
   const savedDraft = parsed.data.draftId
     ? await updateOfferDraft(parsed.data.draftId, leadId, draftPayload)

@@ -63,6 +63,17 @@ Active presentation code has no fixed `en-GB`/`en-US` formatter and no direct `t
 
 No storage value, report calculation, currency value or machine timestamp was changed.
 
+## External formal CR findings
+
+Formal PR #212 review `4748019314` found two additional P1 time issues after the earlier T006/T007 PASS evidence. This section preserves that history and records the correction boundary for re-review.
+
+| Finding | Severity | Root cause | Correction | Test proof | Correction commit | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Autumn DST fold `datetime-local` could silently move unchanged existing values | P1 data integrity | The visible Warsaw value loses offset/disambiguation for `2026-10-25T02:30`, and the old parser selected the earlier candidate | Edit forms for lead `nextActionAt`, mini-audit `approvedAt`, outreach `sentAt`, and offer `validUntil`/`sentAt`/`acceptedAt`/`rejectedAt` submit canonical hidden original ISO values; server actions compare those hidden values to DB-loaded originals before preserving exact instants; new or changed ambiguous local values are rejected with existing stable validation codes | Focused parser/form tests cover winter, summer, spring gap, ambiguous new fold, both fold instants preserved, mismatched original rejected, changed ambiguous rejected, explicit `Z`, explicit offset, and all affected form families | Current correction commit; exact SHA recorded in #211 and PR #212 after commit creation because a commit cannot contain its own hash | fixed, ready for re-review |
+| Workbench day buckets used host-local Node boundaries instead of Warsaw presentation day | P1 operational correctness | `Date#setHours(0,0,0,0)` and `setDate()` used the process time zone, not `Europe/Warsaw` | `getWorkBuckets()` now classifies against explicit Warsaw `startOfPresentationDay` / `startOfNextPresentationDay` derived without host-local setters | `tests/work-view.test.ts` covers summer and winter near-midnight boundaries under multiple `process.env.TZ` values plus spring/autumn DST day lengths | Current correction commit; exact SHA recorded in #211 and PR #212 after commit creation because a commit cannot contain its own hash | fixed, ready for re-review |
+
+The correction does not add organization timezone, user timezone, timezone persistence, migrations, new columns, a timezone library, broader KPI definitions, or E017 business semantics.
+
 ## Metadata and accessibility audit
 
 Root metadata, document `lang`, navigation names, mobile sheet controls, table captions, form labels/placeholders/hints, live feedback, action notices, empty states, health and not-found copy use the request-resolved locale. The product deliberately uses root-only metadata; active pages inherit that localized title/description rather than defining divergent route metadata.

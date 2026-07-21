@@ -23,6 +23,7 @@ import { getI18n } from "@/i18n/server";
 import type { Translate } from "@/i18n/types";
 import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
 import { formatDateTimeLocalInput } from "@/i18n/format";
+import { formatFormDateTimeOriginalInput } from "@/lib/form-date-time";
 
 export const dynamic = "force-dynamic";
 
@@ -349,6 +350,7 @@ export default async function LeadDetailPage({
                   priority={lead.priority}
                   packageFit={lead.packageFit}
                   nextActionAt={formatDateTimeLocalInput(lead.nextActionAt)}
+                  nextActionAtOriginal={formatFormDateTimeOriginalInput(lead.nextActionAt)}
                   nextActionDisplay={nextActionDisplay}
                 />
               </div>
