@@ -13,13 +13,15 @@ const watermarkMarks = [
   { left: "40%", top: "86%" }
 ] as const;
 
-export function EnvironmentIndicator() {
+export function EnvironmentIndicator({ description }: { description: string }) {
   if (!shouldShowEnvironmentIndicator(process.env.CRM_DEPLOYMENT_ENV)) {
     return null;
   }
 
   return (
-    <div
+    <>
+      <span className="sr-only">{description}</span>
+      <div
       aria-hidden="true"
       data-testid="environment-watermark"
       className="pointer-events-none fixed inset-0 z-40 overflow-hidden select-none"
@@ -40,6 +42,7 @@ export function EnvironmentIndicator() {
           </span>
         ))}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

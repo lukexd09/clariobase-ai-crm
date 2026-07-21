@@ -15,13 +15,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { locale, messages } = await getI18n();
+  const { locale, messages, t } = await getI18n();
 
   return (
     <html lang={locale}>
       <body>
         <I18nProvider locale={locale} messages={messages}>
-          <EnvironmentIndicator />
+          <EnvironmentIndicator description={t("environment.testDescription")} />
           <AppShell>{children}</AppShell>
         </I18nProvider>
       </body>

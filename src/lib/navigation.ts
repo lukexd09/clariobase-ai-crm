@@ -1,12 +1,13 @@
+import type { TranslationKey } from "@/i18n/types";
+
 export type NavigationItem = {
   href: string;
-  label: string;
-  description?: string;
+  labelKey: TranslationKey;
   icon: NavigationIconKey;
 };
 
 export type NavigationGroup = {
-  title: string;
+  titleKey: TranslationKey;
   items: readonly NavigationItem[];
 };
 
@@ -21,24 +22,24 @@ export type NavigationIconKey =
 
 export const NAVIGATION_GROUPS = [
   {
-    title: "Workspace",
+    titleKey: "navigation.group.workspace",
     items: [
-      { href: "/", label: "Dashboard", icon: "dashboard" },
-      { href: "/work", label: "Daily work", icon: "work" },
-      { href: "/leads", label: "Leads", icon: "leads" },
-      { href: "/reports/sales", label: "Operations", icon: "sales" }
+      { href: "/", labelKey: "navigation.dashboard", icon: "dashboard" },
+      { href: "/work", labelKey: "navigation.work", icon: "work" },
+      { href: "/leads", labelKey: "navigation.leads", icon: "leads" },
+      { href: "/reports/sales", labelKey: "navigation.sales", icon: "sales" }
     ]
   },
   {
-    title: "Data quality",
+    titleKey: "navigation.group.dataQuality",
     items: [
-      { href: "/imports", label: "Imports", icon: "imports" },
-      { href: "/duplicates", label: "Possible duplicates", icon: "duplicates" }
+      { href: "/imports", labelKey: "navigation.imports", icon: "imports" },
+      { href: "/duplicates", labelKey: "navigation.duplicates", icon: "duplicates" }
     ]
   },
   {
-    title: "System",
-    items: [{ href: "/health", label: "System status", icon: "health" }]
+    titleKey: "navigation.group.system",
+    items: [{ href: "/health", labelKey: "navigation.health", icon: "health" }]
   }
 ] as const satisfies readonly NavigationGroup[];
 

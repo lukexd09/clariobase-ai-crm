@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth-context";
-import { resolveAdminUserNoticeMessage } from "@/lib/admin-user-notices";
+import { getAdminUserNoticeTranslationKey } from "@/lib/admin-user-notices";
+import { getI18n } from "@/i18n/server";
 import { listUsers, listUserSessions } from "@/lib/user-admin-gateway";
 import {
   createUserAction,
@@ -30,6 +31,7 @@ export default async function AdminUsersPage({
   if (currentUser.role !== "admin" || currentUser.banned !== false) redirect("/");
 
   const requestHeaders = await headers();
+  const { t } = await getI18n(requestHeaders);
   const query = await searchParams;
   const usersResult = await listUsers({ headers: requestHeaders });
   if (!usersResult.ok) redirect("/");
@@ -55,7 +57,7 @@ export default async function AdminUsersPage({
             role={query.tone === "success" ? "status" : "alert"}
             className={`mt-4 rounded-xl border px-4 py-3 text-sm ${query.tone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}
           >
-            {resolveAdminUserNoticeMessage(query.noticeCode)}
+            {t(getAdminUserNoticeTranslationKey(query.noticeCode))}
           </div>
         ) : null}
 

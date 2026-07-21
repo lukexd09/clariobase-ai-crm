@@ -35,6 +35,6 @@ export function Skeleton({ className = "", ...props }: ComponentProps<"div">) {
   return <div aria-hidden="true" className={cn("animate-pulse rounded-[var(--cb-radius-md)] bg-[color:var(--cb-surface)]", className)} {...props} />;
 }
 
-export function PaginationControls({ className = "", ...props }: ComponentProps<"nav">) {
-  return <nav aria-label="Pagination" className={cn("flex items-center justify-between gap-3 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-3", className)} {...props} />;
+export function PaginationControls({ className = "", "aria-label": ariaLabel, ...props }: Omit<ComponentProps<"nav">, "aria-label"> & { "aria-label": string }) {
+  return <nav aria-label={ariaLabel} className={cn("flex items-center justify-between gap-3 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-3", className)} {...props} />;
 }

@@ -13,7 +13,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { PrismaClient } from "@/generated/prisma/client";
 import { ADMIN_AUDIT_OPERATIONS, ADMIN_AUDIT_OUTCOMES } from "@/lib/admin-audit";
-import { resolveAdminUserNoticeMessage } from "@/lib/admin-user-notices";
+import { getAdminUserNoticeTranslationKey } from "@/lib/admin-user-notices";
+import { createTranslator } from "@/i18n/translate";
 
 const containerName = `clariobase-auth-t012-${process.pid}`;
 const databaseName = "clariobase_auth_t012";
@@ -202,7 +203,8 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
   assert.equal(bootstrapAudit[0].operation, ADMIN_AUDIT_OPERATIONS[0]);
   assert.equal(bootstrapAudit[0].outcome, ADMIN_AUDIT_OUTCOMES[0]);
 
-  const approvedNotice = resolveAdminUserNoticeMessage("user_created");
+  const translateEnglish = createTranslator("en-US");
+  const approvedNotice = translateEnglish(getAdminUserNoticeTranslationKey("user_created"));
   assert.equal(approvedNotice, "User created");
   assert.equal(
     renderToStaticMarkup(createElement("div", { role: "alert" }, approvedNotice)),
@@ -218,7 +220,7 @@ async function proveCompleteAdminFlow(prisma: PrismaClient) {
     "",
     "unknown_notice_code"
   ]) {
-    const resolvedNotice = resolveAdminUserNoticeMessage(noticeCode);
+    const resolvedNotice = translateEnglish(getAdminUserNoticeTranslationKey(noticeCode));
     const renderedNotice = renderToStaticMarkup(createElement("div", { role: "alert" }, resolvedNotice));
     assert.equal(typeof resolvedNotice, "string");
     assert.equal(resolvedNotice, "Administrator operation failed");

@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { NAVIGATION_GROUPS, isNavigationItemActive } from "../src/lib/navigation";
+import { createTranslator } from "../src/i18n/translate";
 
 const repoRoot = path.resolve(__dirname, "..");
 
 test("navigation config keeps canonical production groups", () => {
   assert.deepEqual(
-    NAVIGATION_GROUPS.map((group) => group.title),
-    ["Workspace", "Data quality", "System"]
+    NAVIGATION_GROUPS.map((group) => group.titleKey),
+    ["navigation.group.workspace", "navigation.group.dataQuality", "navigation.group.system"]
   );
   assert.deepEqual(
     NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => item.href),
@@ -20,11 +21,13 @@ test("navigation config keeps canonical production groups", () => {
     ["dashboard", "work", "leads", "sales", "imports", "duplicates", "health"]
   );
   assert.deepEqual(
-    NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => item.label),
-    ["Dashboard", "Daily work", "Leads", "Operations", "Imports", "Possible duplicates", "System status"]
+    NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => item.labelKey),
+    ["navigation.dashboard", "navigation.work", "navigation.leads", "navigation.sales", "navigation.imports", "navigation.duplicates", "navigation.health"]
   );
-  assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.label === "Support"));
-  assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.label === "Settings"));
+  const english = createTranslator("en-US");
+  const polish = createTranslator("pl-PL");
+  assert.deepEqual(NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => english(item.labelKey)), ["Dashboard", "Daily work", "Leads", "Operations", "Imports", "Possible duplicates", "System status"]);
+  assert.deepEqual(NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => polish(item.labelKey)), ["Pulpit", "Panel pracy", "Leady", "Operacje", "Importy", "Potencjalne duplikaty", "Stan systemu"]);
   assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.href.startsWith("/ux-prototype")));
 });
 
@@ -45,13 +48,14 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.match(shellSource, /min-\[1024px\]:flex/);
   assert.match(shellSource, /min-\[1024px\]:hidden/);
   assert.match(shellSource, /ClarioBase/);
-  assert.match(shellSource, /Creator workspace/);
-  assert.match(shellSource, /Menu/);
+  assert.match(shellSource, /useI18n/);
+  assert.match(shellSource, /shell\.workspace/);
+  assert.match(shellSource, /shell\.menu/);
   assert.match(shellSource, /SheetTrigger/);
   assert.match(shellSource, /SheetContent/);
   assert.match(shellSource, /SheetClose/);
   assert.match(shellSource, /AccountChip/);
-  assert.match(shellSource, /aria-label="Close navigation"/);
+  assert.match(shellSource, /shell\.closeNavigation/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(shellSource, /aria-hidden="true"/);
   assert.match(shellSource, /bg-\[color:var\(--cb-accent\)\]/);
@@ -73,7 +77,7 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.match(accountChip, /authClient\.useSession\(\)/);
   assert.match(accountChip, /SignOutButton/);
   assert.match(accountChip, /router\.push\("\/sign-in"\)/);
-  assert.match(accountChip, /Sign in/);
+  assert.match(accountChip, /auth\.account\.signIn/);
   assert.match(signOutButton, /authClient\.signOut/);
   assert.match(signOutButton, /router\.push\("\/sign-in"\)/);
 });

@@ -91,7 +91,7 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.match(shellSource, /SheetClose/);
   assert.match(shellSource, /AccountChip/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
-  assert.match(shellSource, /Creator workspace/);
+  assert.match(shellSource, /t\("shell\.workspace"\)/);
   assert.doesNotMatch(shellSource, /Łukasz Chmiel/);
   assert.doesNotMatch(shellSource, /Operator/);
   assert.doesNotMatch(shellSource, /pathname === "\/leads"/);
@@ -123,7 +123,7 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.match(accountChip, /authClient\.useSession\(\)/);
   assert.match(accountChip, /SignOutButton/);
   assert.match(accountChip, /router\.push\("\/sign-in"\)/);
-  assert.match(accountChip, /Sign in/);
+  assert.match(accountChip, /auth\.account\.signIn/);
   assert.match(signOutButton, /authClient\.signOut/);
   assert.match(signOutButton, /router\.push\("\/sign-in"\)/);
 
