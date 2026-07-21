@@ -1,5 +1,26 @@
 # E010 active copy inventory
 
+## T006 integrated refresh
+
+Refreshed on the integrated epic branch after T005 (`fe4fcb981009c9b61a25f366dc7f6641559254fd`) and verified by T006. The older T001 baseline below remains as historical discovery context; this section is authoritative for the implemented branch.
+
+| Surface | Active implementation boundary | Automated proof | Browser proof | Status |
+| --- | --- | --- | --- | --- |
+| `/`, `/work`, `/leads`, `/leads/[id]` | localized Server/Client Components, typed taxonomy/notices, shared formatters; stored business/activity/draft content remains data | `i18n*.test.ts`, `t004-localization.test.ts`, T006 AST audit | PL/EN authenticated shell and representative lead workflow | complete |
+| `/sign-in` | root-resolved provider plus localized client form/loading/error/a11y | auth and shared i18n tests | PL, EN, unsupported and weighted anonymous contexts | complete |
+| `/imports`, `/imports/[id]` | localized server presentation; raw row/source/validation content bypasses translator | `t005-localization.test.ts`, T006 AST audit | PL/EN list and detail with raw fixture | complete |
+| `/duplicates`, `/duplicates/[id]` | localized status, known stable signals and action notices; unknown evidence remains verbatim | duplicate notice/signal tests, T006 AST audit | PL/EN list/detail and disposable decision mutation | complete |
+| `/reports/sales` | localized status catalogue/taxonomy and locale-formatted counts; calculations unchanged | sales report and T005/T006 tests | PL/EN authorized route | complete |
+| `/admin/users` | localized protected UI and stable notice maps; Better Auth/admin gateway unchanged | admin notice and auth regression tests | PL/EN authorized disposable admin | complete |
+| `/health`, `not-found` | localized human presentation; health machine values/ISO remain unchanged | health contracts and T006 audit | PL/EN health and direct 404 | complete |
+| root metadata, `<html lang>`, shell/navigation/account/environment | one request resolver supplies metadata, SSR, provider and client navigation; `TEST` is invariant with localized accessible context | resolver/provider/layout/a11y tests and AST audit | exact context matrix, no hydration error or locale flash | complete |
+| shared forms, tables, dialogs, feedback, pagination | caller/provider translations, localized aria/live/empty/error states | shared component and route suites | representative PL/EN form feedback and mobile/client navigation | complete |
+| dictionaries, taxonomy, notices, formatting | canonical English schema; exact Polish parity; typed maps; Warsaw presentation zone | `verify-localization.ts`, `t006-localization-completeness.test.ts` | raw-key and locale-format browser assertions | complete |
+
+Unassigned active surfaces: none.
+
+Inactive `src/lib/homepage.ts` constants are not imported anywhere under `src` and are excluded from the active presentation inventory. Persisted activity/audit titles and bodies are stored domain history, not render-time application copy; the renderer preserves them verbatim.
+
 ## Snapshot
 
 Inventory taken from `origin/main` at `f4bd93aba1f5ed1e41e0611586c6f11585ffa767` for E010.T001/#46. It covers all active App Router presentation routes plus shared server/client surfaces. API auth and readiness routes are listed only to preserve their machine contracts.

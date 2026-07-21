@@ -1,7 +1,9 @@
 import { expect, test, type Browser } from "@playwright/test";
+import { enUS } from "../../src/i18n/dictionaries/en-US";
 
 async function verifyRequestLocale(
   browser: Browser,
+  browserLocale: "pl-PL" | "en-US" | "de-DE" | undefined,
   acceptLanguage: string,
   expectedLocale: "pl-PL" | "en-US",
   expectedDescription: string,
@@ -10,10 +12,14 @@ async function verifyRequestLocale(
 ) {
   const context = await browser.newContext({
     storageState: undefined,
-    locale: acceptLanguage,
+    ...(browserLocale ? { locale: browserLocale } : {}),
     extraHTTPHeaders: { "Accept-Language": acceptLanguage }
   });
   const page = await context.newPage();
+  await page.route("**/*", async (route) => {
+    if (route.request().resourceType() !== "document") return route.continue();
+    await route.continue({ headers: { ...route.request().headers(), "accept-language": acceptLanguage } });
+  });
   const hydrationErrors: string[] = [];
 
   page.on("console", (message) => {
@@ -38,6 +44,9 @@ async function verifyRequestLocale(
 
     const html = await response?.text();
     expect(html).toContain(`<html lang="${expectedLocale}">`);
+    expect(html).toContain(expectedSignIn);
+    const visibleText = await page.locator("body").innerText();
+    for (const key of Object.keys(enUS)) expect(visibleText).not.toContain(key);
   } finally {
     await context.close();
   }
@@ -45,11 +54,40 @@ async function verifyRequestLocale(
 
 test.describe("E010 request locale runtime", () => {
   test("@area:i18n Polish SSR and hydration share pl-PL", async ({ browser }) => {
-    await verifyRequestLocale(browser, "pl-PL", "pl-PL", "Produkcyjny obszar pracy CRM ClarioBase", "Zaloguj się", "Pulpit");
+    await verifyRequestLocale(browser, "pl-PL", "pl-PL", "pl-PL", "Produkcyjny obszar pracy CRM ClarioBase", "Zaloguj się", "Pulpit");
+  });
+
+  test("@area:i18n English SSR and hydration share en-US", async ({ browser }) => {
+    await verifyRequestLocale(browser, "en-US", "en-US", "en-US", "ClarioBase production CRM workspace", "Sign in", "Dashboard");
   });
 
   test("@area:i18n unsupported browser language falls back to English", async ({ browser }) => {
-    await verifyRequestLocale(browser, "de-DE", "en-US", "ClarioBase production CRM workspace", "Sign in", "Dashboard");
+    await verifyRequestLocale(browser, "de-DE", "de-DE", "en-US", "ClarioBase production CRM workspace", "Sign in", "Dashboard");
+  });
+
+  test("@area:i18n weighted header preferring Polish resolves Polish", async ({ browser }) => {
+    await verifyRequestLocale(browser, undefined, "en-US;q=0.8,pl-PL;q=0.9", "pl-PL", "Produkcyjny obszar pracy CRM ClarioBase", "Zaloguj się", "Pulpit");
+  });
+
+  test("@area:i18n weighted header preferring English resolves English", async ({ browser }) => {
+    await verifyRequestLocale(browser, undefined, "pl-PL;q=0.8,en-US;q=0.9", "en-US", "ClarioBase production CRM workspace", "Sign in", "Dashboard");
+  });
+
+  test("@area:i18n mobile navigation controls stay localized", async ({ browser }) => {
+    for (const [locale, closeLabel] of [["pl-PL", "Zamknij nawigację"], ["en-US", "Close navigation"]] as const) {
+      const context = await browser.newContext({ storageState: undefined, locale, viewport: { width: 390, height: 844 }, extraHTTPHeaders: { "Accept-Language": locale } });
+      const page = await context.newPage();
+      try {
+        await page.goto("/sign-in");
+        await page.getByRole("button", { name: "Menu" }).click();
+        const close = page.getByRole("button", { name: closeLabel });
+        await expect(close).toBeVisible();
+        await close.click();
+        await expect(close).toBeHidden();
+      } finally {
+        await context.close();
+      }
+    }
   });
 
   test("@area:i18n Polish sign-in loading and error states stay localized", async ({ browser }) => {
@@ -140,9 +178,19 @@ test.describe("E010 request locale runtime", () => {
       await expect(page.getByRole("heading", { name: "Pulpit" })).toBeVisible();
       await expect(page.getByText("Dzisiejsze priorytety", { exact: true })).toBeVisible();
 
-      await page.goto("/work");
+      await page.evaluate(() => {
+        (window as Window & { __e010ClientNavigationMarker?: string }).__e010ClientNavigationMarker = "preserved";
+      });
+      await page.getByRole("link", { name: "Panel pracy" }).first().click();
+      await page.waitForURL(/\/work$/);
       await expect(page.getByRole("heading", { name: "Kolejka pracy" })).toBeVisible();
       await expect(page.getByText(businessName, { exact: true })).toBeVisible();
+      await expect(page.locator("html")).toHaveAttribute("lang", "pl-PL");
+      expect(
+        await page.evaluate(
+          () => (window as Window & { __e010ClientNavigationMarker?: string }).__e010ClientNavigationMarker
+        )
+      ).toBe("preserved");
 
       await page.goto("/leads");
       await expect(page.getByRole("heading", { name: "Leady" })).toBeVisible();
@@ -177,6 +225,11 @@ test.describe("E010 request locale runtime", () => {
       await page.goto("/health");
       await expect(page.getByRole("heading", { name: "Kontrola działania" })).toBeVisible();
       await expect(page.getByText("clariobase-ai-crm", { exact: true })).toBeVisible();
+      const readyResponse = await page.request.get("/api/ready");
+      expect(readyResponse.status()).toBe(200);
+      const readyBody = await readyResponse.json();
+      expect(readyBody).toMatchObject({ service: "clariobase-ai-crm", status: "ready", checks: { database: "ok", authentication: "ok" } });
+      expect(readyBody.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       await page.goto("/brak-takiej-strony");
       await expect(page.getByRole("heading", { name: "Ta strona jest niedostępna" })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "pl-PL");

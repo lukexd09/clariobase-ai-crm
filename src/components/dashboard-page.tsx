@@ -11,31 +11,32 @@ const priorities = [
     company: "Lumina PMU Studio",
     actionKey: "dashboard.priority.lumina.action",
     contextKey: "dashboard.priority.lumina.context",
-    deadlineKey: "dashboard.priority.lumina.deadline",
+    deadlineAt: "2026-06-21T13:30:00.000Z",
     href: "/leads"
   },
   {
     company: "Aurora Nail Studio",
     actionKey: "dashboard.priority.aurora.action",
     contextKey: "dashboard.priority.aurora.context",
-    deadlineKey: "dashboard.priority.aurora.deadline",
+    deadlineAt: "2026-06-22T07:00:00.000Z",
     href: "/leads"
   },
   {
     company: "Sienna Dental Care",
     actionKey: "dashboard.priority.sienna.action",
     contextKey: "dashboard.priority.sienna.context",
-    deadlineKey: "dashboard.priority.sienna.deadline",
+    deadlineAt: "2026-06-21T14:00:00.000Z",
     href: "/leads"
   },
   {
     company: "Velvet Brows & Lashes",
     actionKey: "dashboard.priority.velvet.action",
     contextKey: "dashboard.priority.velvet.context",
-    deadlineKey: "dashboard.priority.velvet.deadline",
+    deadlineAt: null,
+    deadlineFallbackKey: "dashboard.priority.velvet.deadline",
     href: "/leads"
   }
-] as const satisfies readonly { company: string; actionKey: TranslationKey; contextKey: TranslationKey; deadlineKey: TranslationKey; href: string }[];
+] as const satisfies readonly { company: string; actionKey: TranslationKey; contextKey: TranslationKey; deadlineAt: string | null; deadlineFallbackKey?: TranslationKey; href: string }[];
 
 const pipeline = [
   { stageKey: "dashboard.pipeline.new", value: 18 },
@@ -46,7 +47,7 @@ const pipeline = [
 ] as const satisfies readonly { stageKey: TranslationKey; value: number }[];
 
 export function DashboardPage() {
-  const { t, formatDate, formatNumber } = useI18n();
+  const { t, formatDate, formatDateTime, formatNumber } = useI18n();
   return (
     <div className="space-y-5">
       <header className="space-y-1">
@@ -72,7 +73,7 @@ export function DashboardPage() {
             <ol className="list-none divide-y divide-[color:var(--cb-border)]">
               {priorities.map((item) => (
                 <li key={item.company} className="py-4 first:pt-0 last:pb-0">
-                  <PriorityItem company={item.company} action={t(item.actionKey)} context={t(item.contextKey)} deadline={t(item.deadlineKey)} href={item.href} />
+                  <PriorityItem company={item.company} action={t(item.actionKey)} context={t(item.contextKey)} deadline={item.deadlineAt ? formatDateTime(item.deadlineAt) : t(item.deadlineFallbackKey)} href={item.href} />
                 </li>
               ))}
             </ol>

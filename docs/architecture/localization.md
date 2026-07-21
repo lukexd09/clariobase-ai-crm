@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This decision defines localization for E010/#45 and child tasks #46 and #206–#211. The application supports exactly `pl-PL` and `en-US`. Polish is selected from a Polish browser preference; English is both a supported locale and the deterministic fallback.
+This is the implemented localization contract for E010/#45 and child tasks #46 and #206–#211. The application supports exactly `pl-PL` and `en-US`. Polish is selected from a Polish browser preference; English is both a supported locale and the deterministic fallback.
 
 Localization covers application-owned presentation copy. It does not translate persisted values, user-authored content, imported content, identifiers, routes, API payload contracts, audit payloads, or developer logs.
 
@@ -13,12 +13,16 @@ Use a small repository-owned, dependency-free, typed runtime:
 ```text
 src/i18n/config.ts
 src/i18n/types.ts
+src/i18n/translate.ts
+src/i18n/taxonomy.ts
 src/i18n/dictionaries/en-US.ts
 src/i18n/dictionaries/pl-PL.ts
 src/i18n/resolve-request-locale.ts
 src/i18n/server.ts
 src/i18n/provider.tsx
 src/i18n/format.ts
+src/lib/form-date-time.ts
+src/app/layout.tsx
 ```
 
 The English dictionary defines the complete key schema. The Polish dictionary is checked for key and interpolation-placeholder parity. No i18n package is needed: two locales, no locale routes, no message extraction pipeline, and no persisted preference justify framework or dependency overhead.
@@ -58,8 +62,10 @@ The provider receives the server-selected locale and dictionary as props. It has
 Expected API:
 
 ```ts
-const { locale, t, formatDate, formatNumber } = await getI18n(); // server
-const { locale, t, formatDate, formatNumber } = useI18n();      // client
+const { locale, messages, t, formatDate, formatDateTime, formatNumber,
+  formatPercent, formatCurrency } = await getI18n(); // server
+const { locale, t, formatDate, formatDateTime, formatNumber,
+  formatPercent, formatCurrency } = useI18n();       // client
 ```
 
 Interpolation uses named placeholders such as `{count}`. Values are converted to text without evaluating markup. Dictionary validation proves key parity and exact placeholder-name parity. Missing English is an error. A missing Polish entry may fall back to the canonical English entry at runtime, but committed dictionaries must pass parity checks; fallback is a safety net, not an incomplete-translation policy. Raw keys must never reach UI.
@@ -77,7 +83,7 @@ en-US -> United States English conventions
 
 Technical transport values remain unchanged: ISO timestamps in machine payloads, `datetime-local` input serialization, database decimals, CSV/raw import fields, IDs, and health/readiness payloads. Currency conversion and business calculations are forbidden; only display formatting changes.
 
-Date-only business fields must stay calendar dates: callers use a date-only helper that does not reinterpret them as UTC instants. Timestamp helpers convert instants to `Europe/Warsaw`. Client Components receive the same locale and formatter policy through the provider, eliminating server/client time-zone drift.
+Date-only business fields stay calendar dates: `formatDate()` recognizes validated `YYYY-MM-DD` values and does not reinterpret them as timestamp instants. Timestamp helpers convert instants to `Europe/Warsaw`. Client Components receive the same locale and formatter policy through the provider, eliminating server/client time-zone drift.
 
 ## Metadata
 
@@ -182,9 +188,34 @@ These mappings define labels only; left-hand values remain unchanged in Prisma, 
 
 ## Exceptions
 
-Allowed hardcoded presentation exceptions must be narrow and documented by file, exact value, and reason in the T006 completeness report. Expected categories are brand names, technical protocol labels, invariant environment marker `TEST`, and punctuation/symbol-only fallbacks. `TEST` may remain invariant because it is an environment safety marker, but surrounding accessible explanation must be localized.
+Allowed hardcoded presentation exceptions are narrow and executable in `scripts/verify-localization.ts`, with file, exact value, and reason mirrored in `docs/verification/e010-localization-completeness.md`. Categories are product/platform brand names, invariant environment marker `TEST`, decorative glyphs hidden from assistive technology, and symbol-only navigation adornments. `TEST` remains invariant because it is an environment safety marker, but its accessible explanation is localized.
 
 Test fixtures, developer logs, CSS classes, identifiers, query values, and raw imported examples are outside hardcoded-copy enforcement; they are not presentation exceptions.
+
+## Adding new UI copy
+
+1. Add a stable dotted key to the canonical `en-US` dictionary.
+2. Add the same key to `pl-PL` with exactly the same named placeholders.
+3. Render it with server `getI18n().t` or client `useI18n().t`; do not use rich translated JSX.
+4. For enums or result codes, extend a typed key map without changing the technical value.
+5. Format dates, numbers, percentages and currencies with the shared locale helpers.
+6. Keep user/imported/audit content outside translation interpolation unless it is only embedded as a value.
+7. Run `pnpm verify:localization`, `pnpm test:fast` and the relevant disposable Playwright area.
+
+## Adding a future language
+
+A third locale requires an explicit product change. Extend `SUPPORTED_LOCALES` and `Locale`, add a complete dictionary, register it in `translate.ts`, teach the resolver its primary-language range, and replace the current two-locale unavailable-value branch in `format.ts`. Then add parity, placeholder, resolver, formatter and browser-context proof, and update this document and glossary. Partial dictionaries are not accepted as committed state.
+
+## Deferred manual and persistent selection
+
+Manual selection remains intentionally deferred. There is no switcher, locale route, cookie, local storage value, user/organization preference or database field. A browser-language change is applied on a new request or reload. Adding persistence requires a separate precedence and hydration design; it is not hidden inside the current resolver.
+
+## Verification
+
+- `pnpm verify:localization` — AST dictionary, hardcoded-copy and presentation-format audit.
+- `pnpm test:fast` — typed runtime, parity, placeholder, fallback, content-boundary and route contracts.
+- `pnpm test:e2e:area i18n` — disposable browser matrix, hydration, client navigation and representative routes.
+- `pnpm test:full` and `pnpm build` — integrated regression proof.
 
 ## Delivery ownership
 

@@ -97,23 +97,23 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
     output += chunk;
   });
 
-  const protectedRoute = await waitForHttp(`${baseUrl}/`);
-  assert.equal(protectedRoute.status, 200);
-  const protectedHtml = await protectedRoute.text();
-  assert.match(protectedHtml, /sign in/i);
-  assert.doesNotMatch(protectedHtml, /Your priorities for 21 June 2026/);
-  assert.doesNotMatch(protectedHtml, /Pipeline snapshot/);
-
-  const routes = [
-    {
-      path: "/health",
-      heading: "Health check",
-      activeNav: "System status",
-      includes: ["System status", "Timestamp"]
-    }
-  ] as const;
-
   try {
+    const protectedRoute = await waitForHttp(`${baseUrl}/`);
+    assert.equal(protectedRoute.status, 200);
+    const protectedHtml = await protectedRoute.text();
+    assert.match(protectedHtml, /<h1[^>]*>Sign in<\/h1>/i);
+    assert.doesNotMatch(protectedHtml, /<h1[^>]*>Your priorities for 21 June 2026<\/h1>/);
+    assert.doesNotMatch(protectedHtml, /<h2[^>]*>Pipeline snapshot<\/h2>/);
+
+    const routes = [
+      {
+        path: "/health",
+        heading: "Health check",
+        activeNav: "System status",
+        includes: ["System status", "Timestamp"]
+      }
+    ] as const;
+
     for (const route of routes) {
       const response = await waitForHttp(`${baseUrl}${route.path}`);
       const html = await response.text();
@@ -125,22 +125,22 @@ test("T008 rendered routes keep the compact light CRM contract", { timeout: 1800
         `${route.path} should render shell navigation`
       );
       assert.match(html, /aria-current="page"/, `${route.path} should expose the active route`);
-      assert.match(html, new RegExp(route.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-      assert.match(html, new RegExp(route.activeNav.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-      assert.doesNotMatch(html, /Notifications|🔔/);
-      assert.doesNotMatch(html, /Single Operator CRM/);
+      assert.match(html, new RegExp(`<h1[^>]*>${route.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}<\\/h1>`));
+      assert.match(html, new RegExp(`>${route.activeNav.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}<`));
+      assert.doesNotMatch(html, />Notifications<|>🔔</);
+      assert.doesNotMatch(html, />Single Operator CRM</);
       assert.doesNotMatch(html, /Current<\/span>/);
-      assert.doesNotMatch(html, /Keep the app check handy\./);
-      assert.doesNotMatch(html, /Sign out/);
-      assert.doesNotMatch(html, /Account menu coming soon\./);
-      assert.doesNotMatch(html, /Overview Dashboard/);
+      assert.doesNotMatch(html, />Keep the app check handy\.</);
+      assert.doesNotMatch(html, />Sign out</);
+      assert.doesNotMatch(html, />Account menu coming soon\.</);
+      assert.doesNotMatch(html, />Overview Dashboard</);
       assert.doesNotMatch(html, /bg-slate-950|border-slate-800/);
-      assert.doesNotMatch(html, /Minimal runtime probe for deployment and uptime checks\./);
+      assert.doesNotMatch(html, />Minimal runtime probe for deployment and uptime checks\.</);
 
       for (const snippet of route.includes) {
         assert.match(
           html,
-          new RegExp(snippet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+          new RegExp(`>${snippet.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}<`),
           `${route.path} should include ${snippet}`
         );
       }

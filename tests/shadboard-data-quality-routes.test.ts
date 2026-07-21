@@ -109,7 +109,7 @@ test("T006 route contracts keep the exact business mappings and semantics", () =
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.RESOLVED\)/);
   assert.match(duplicateDetailPage, /DataQualityStatusBadge[\s\S]*getTaxonomyTranslationKey\(candidate\.status\)[\s\S]*tone=\{candidate\.status === "OPEN" \? "information"/);
   assert.match(duplicateDetailPage, /duplicates\.customerId/);
-  assert.match(duplicateDetailPage, /Google Place ID/);
+  assert.match(duplicateDetailPage, /lead\.detail\.googlePlaceId/);
   assert.match(duplicateDetailPage, /duplicates\.sourceRecordId/);
   assert.match(duplicateDetailPage, /duplicates\.decisionNote/);
   assert.match(duplicateDetailPage, /target="_blank"/);

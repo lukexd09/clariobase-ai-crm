@@ -291,7 +291,7 @@ export default async function DuplicateCandidateDetailPage({
         <TechnicalDisclosure title={t("duplicates.technicalFor", { name: candidate.leadA.businessName })}>
           <dl className="grid gap-4 md:grid-cols-2">
             <Field label={t("duplicates.customerId")} value={candidate.leadA.customerId} />
-            <Field label="Google Place ID" value={candidate.leadA.googlePlaceId ?? missing} />
+            <Field label={t("lead.detail.googlePlaceId")} value={candidate.leadA.googlePlaceId ?? missing} />
             <Field label={t("duplicates.source")} value={candidate.leadA.source ?? missing} />
             <Field label={t("duplicates.sourceRecordId")} value={candidate.leadA.sourceRecordId ?? missing} />
           </dl>
@@ -299,7 +299,7 @@ export default async function DuplicateCandidateDetailPage({
         <TechnicalDisclosure title={t("duplicates.technicalFor", { name: candidate.leadB.businessName })}>
           <dl className="grid gap-4 md:grid-cols-2">
             <Field label={t("duplicates.customerId")} value={candidate.leadB.customerId} />
-            <Field label="Google Place ID" value={candidate.leadB.googlePlaceId ?? missing} />
+            <Field label={t("lead.detail.googlePlaceId")} value={candidate.leadB.googlePlaceId ?? missing} />
             <Field label={t("duplicates.source")} value={candidate.leadB.source ?? missing} />
             <Field label={t("duplicates.sourceRecordId")} value={candidate.leadB.sourceRecordId ?? missing} />
           </dl>
