@@ -374,9 +374,57 @@ async function main() {
           }
         }
       });
+      const comparisonLead = await prisma.lead.create({
+        data: {
+          customerId: `e010-compare-${marker}`,
+          businessName: `Firma Żółw kopia ${marker.slice(0, 8)}`,
+          category,
+          city: "Łódź",
+          leadStatus: "NEW",
+          priority: "MEDIUM",
+          packageFit: "UNKNOWN",
+          scoreTotal: 70
+        }
+      });
+      const importBatch = await prisma.importBatch.create({
+        data: {
+          sourceType: "LOCAL_JSON",
+          sourceName: `Źródło użytkownika ${marker.slice(0, 8)}`,
+          fileName: `verbatim-${marker.slice(0, 8)}.json`,
+          status: "COMPLETED_WITH_ERRORS",
+          totalRows: 1,
+          rejectedRows: 1,
+          startedAt: new Date("2026-07-21T10:30:00.000Z"),
+          finishedAt: new Date("2026-07-21T10:31:00.000Z"),
+          rows: {
+            create: {
+              rowNumber: 1,
+              status: "REJECTED",
+              businessName,
+              customerId: `e010-row-${marker}`,
+              source: "Raw source value",
+              sourceRecordId: `raw-${marker}`,
+              rejectionReason: "RAW_VALIDATION_MESSAGE"
+            }
+          }
+        }
+      });
+      const duplicate = await prisma.duplicateCandidate.create({
+        data: {
+          leadIdA: lead.id,
+          leadIdB: comparisonLead.id,
+          score: 96,
+          reasons: [
+            { signal: "phone", label: "Same phone number", value: "Raw matching value", score: 96 },
+            { signal: "customSignal", label: "Raw duplicate reason", value: "Raw custom value", score: 80 }
+          ]
+        }
+      });
       childEnv.PLAYWRIGHT_E010_LEAD_ID = lead.id;
       childEnv.PLAYWRIGHT_E010_BUSINESS_NAME = businessName;
       childEnv.PLAYWRIGHT_E010_CATEGORY = category;
+      childEnv.PLAYWRIGHT_E010_IMPORT_ID = importBatch.id;
+      childEnv.PLAYWRIGHT_E010_DUPLICATE_ID = duplicate.id;
     }
 
     const exitCode = await runPlaywright(mode as "smoke" | "area" | "full", selectedArea, childEnv);

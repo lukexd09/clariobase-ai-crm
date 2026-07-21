@@ -31,7 +31,7 @@ export function DataQualityMetric({
   tone
 }: {
   label: string;
-  value: number;
+  value: ReactNode;
   tone: "neutral" | "success" | "warning" | "danger" | "information";
 }) {
   return (
@@ -57,11 +57,13 @@ export function DataQualityStatusBadge({
 export function ConfidenceBadge({
   label,
   score,
+  scoreLabel,
   tone,
   detail
 }: {
   label: string;
-  score: number;
+  score: ReactNode;
+  scoreLabel: string;
   tone: "neutral" | "success" | "warning" | "information";
   detail: string;
 }) {
@@ -70,7 +72,7 @@ export function ConfidenceBadge({
       <Badge tone={tone} className="uppercase tracking-wide">
         {label}
       </Badge>
-      <p className="text-sm font-medium text-[color:var(--cb-foreground)]">Score {score}</p>
+      <p className="text-sm font-medium text-[color:var(--cb-foreground)]">{scoreLabel}: {score}</p>
       <p className="max-w-xs text-xs leading-5 text-[color:var(--cb-muted-foreground)]">{detail}</p>
     </div>
   );

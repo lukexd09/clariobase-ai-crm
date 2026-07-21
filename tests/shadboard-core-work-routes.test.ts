@@ -92,13 +92,13 @@ test("t005 routes keep the required operational behaviors", () => {
 
   assert.match(salesReportPage, /getSalesReport\(\)/);
   assert.match(salesReportPage, /getSalesStatusEntries\(\)/);
-  assert.match(salesReportPage, /Lead status summary/);
-  assert.match(salesReportPage, /Priority summary/);
-  assert.match(salesReportPage, /Package fit summary/);
-  assert.match(salesReportPage, /Workbench health/);
-  assert.match(salesReportPage, /Draft readiness/);
-  assert.match(salesReportPage, /Activity summary/);
-  assert.match(salesReportPage, /activities in the last 7 days/i);
+  assert.match(salesReportPage, /sales\.statusSummary/);
+  assert.match(salesReportPage, /sales\.prioritySummary/);
+  assert.match(salesReportPage, /sales\.packageSummary/);
+  assert.match(salesReportPage, /sales\.workbenchHealth/);
+  assert.match(salesReportPage, /sales\.draftReadiness/);
+  assert.match(salesReportPage, /sales\.activitySummary/);
+  assert.match(salesReportPage, /sales\.totalLast7/);
   assert.doesNotMatch(salesReportPage, /Track the same operational counts, draft states and workbench health used elsewhere in the CRM\./);
   assert.doesNotMatch(salesReportPage, /description="Track the same operational counts/);
 });

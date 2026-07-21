@@ -1,4 +1,5 @@
 import { LEAD_STATUS_VALUES, type LeadStatusValue } from "@/lib/lead-values";
+import type { TranslationKey } from "@/i18n/types";
 
 export type SalesStatusGroup =
   | "intake"
@@ -10,96 +11,67 @@ export type SalesStatusGroup =
   | "paused";
 
 export type SalesStatusMetadata = {
-  label: string;
   group: SalesStatusGroup;
-  description: string;
-  nextAction: string;
+  descriptionKey: TranslationKey;
+  nextActionKey: TranslationKey;
 };
 
 export const SALES_STATUS_METADATA = {
   NEW: {
-    label: "New",
     group: "intake",
-    description: "Fresh lead that still needs qualification.",
-    nextAction: "Confirm fit and fill any missing context."
+    descriptionKey: "sales.status.NEW.description", nextActionKey: "sales.status.NEW.next"
   },
   QUALIFIED: {
-    label: "Qualified",
     group: "intake",
-    description: "Lead is a clear fit and ready for deeper work.",
-    nextAction: "Create or refine the mini-audit."
+    descriptionKey: "sales.status.QUALIFIED.description", nextActionKey: "sales.status.QUALIFIED.next"
   },
   TO_AUDIT: {
-    label: "To audit",
     group: "audit",
-    description: "Queued for mini-audit or closer review.",
-    nextAction: "Prepare the first audit draft."
+    descriptionKey: "sales.status.TO_AUDIT.description", nextActionKey: "sales.status.TO_AUDIT.next"
   },
   AUDITED: {
-    label: "Audited",
     group: "audit",
-    description: "Mini-audit is ready and can drive outreach.",
-    nextAction: "Prepare outreach or follow-up actions."
+    descriptionKey: "sales.status.AUDITED.description", nextActionKey: "sales.status.AUDITED.next"
   },
   CONTACTED: {
-    label: "Contacted",
     group: "outreach",
-    description: "Initial outreach has been sent to the lead.",
-    nextAction: "Monitor for a reply or follow up once."
+    descriptionKey: "sales.status.CONTACTED.description", nextActionKey: "sales.status.CONTACTED.next"
   },
   REPLIED: {
-    label: "Replied",
     group: "conversation",
-    description: "The lead replied and a conversation is active.",
-    nextAction: "Move toward discovery or offer preparation."
+    descriptionKey: "sales.status.REPLIED.description", nextActionKey: "sales.status.REPLIED.next"
   },
   DISCOVERY_SCHEDULED: {
-    label: "Discovery scheduled",
     group: "conversation",
-    description: "A discovery conversation is already booked.",
-    nextAction: "Prepare the call and confirm the agenda."
+    descriptionKey: "sales.status.DISCOVERY_SCHEDULED.description", nextActionKey: "sales.status.DISCOVERY_SCHEDULED.next"
   },
   OFFER_SENT: {
-    label: "Offer sent",
     group: "offer",
-    description: "A commercial offer has been delivered.",
-    nextAction: "Track response, objections and timing."
+    descriptionKey: "sales.status.OFFER_SENT.description", nextActionKey: "sales.status.OFFER_SENT.next"
   },
   WON: {
-    label: "Won",
     group: "closed",
-    description: "The lead became a customer.",
-    nextAction: "Archive when downstream work is done."
+    descriptionKey: "sales.status.WON.description", nextActionKey: "sales.status.WON.next"
   },
   LOST: {
-    label: "Lost",
     group: "closed",
-    description: "The opportunity closed without conversion.",
-    nextAction: "Record the reason and archive if needed."
+    descriptionKey: "sales.status.LOST.description", nextActionKey: "sales.status.LOST.next"
   },
   NURTURE: {
-    label: "Nurture",
     group: "paused",
-    description: "Not ready now but worth revisiting later.",
-    nextAction: "Schedule a future check-in."
+    descriptionKey: "sales.status.NURTURE.description", nextActionKey: "sales.status.NURTURE.next"
   },
   BAD_FIT: {
-    label: "Bad fit",
     group: "paused",
-    description: "The lead does not match the current offer.",
-    nextAction: "Leave paused or archive if the fit will not improve."
+    descriptionKey: "sales.status.BAD_FIT.description", nextActionKey: "sales.status.BAD_FIT.next"
   },
   DO_NOT_CONTACT: {
-    label: "Do not contact",
     group: "paused",
-    description: "The lead must not receive further outreach.",
-    nextAction: "Stop outreach and keep the record protected."
+    descriptionKey: "sales.status.DO_NOT_CONTACT.description", nextActionKey: "sales.status.DO_NOT_CONTACT.next"
   },
   ARCHIVED: {
-    label: "Archived",
     group: "closed",
-    description: "Kept for history only, outside the active pipeline.",
-    nextAction: "No operational action."
+    descriptionKey: "sales.status.ARCHIVED.description", nextActionKey: "sales.status.ARCHIVED.next"
   }
 } satisfies Record<LeadStatusValue, SalesStatusMetadata>;
 

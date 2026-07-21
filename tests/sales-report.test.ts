@@ -37,14 +37,14 @@ test("sales status metadata covers every lead status", () => {
 test("sales report lower sections keep their source order and compact wide composition", () => {
   const salesReportPage = read("src/app/reports/sales/page.tsx");
 
-  assert.match(salesReportPage, /Priority summary/);
-  assert.match(salesReportPage, /Package fit summary/);
-  assert.match(salesReportPage, /Workbench health/);
-  assert.match(salesReportPage, /Draft readiness/);
-  assert.match(salesReportPage, /Activity summary/);
+  assert.match(salesReportPage, /t\("sales\.prioritySummary"\)/);
+  assert.match(salesReportPage, /t\("sales\.packageSummary"\)/);
+  assert.match(salesReportPage, /t\("sales\.workbenchHealth"\)/);
+  assert.match(salesReportPage, /t\("sales\.draftReadiness"\)/);
+  assert.match(salesReportPage, /t\("sales\.activitySummary"\)/);
   assert.match(
     salesReportPage,
-    /Priority summary[\s\S]*Package fit summary[\s\S]*Workbench health[\s\S]*Draft readiness[\s\S]*Activity summary/
+    /sales\.prioritySummary[\s\S]*sales\.packageSummary[\s\S]*sales\.workbenchHealth[\s\S]*sales\.draftReadiness[\s\S]*sales\.activitySummary/
   );
   assert.match(salesReportPage, /space-y-4 xl:columns-2 xl:gap-4 xl:\[column-fill:balance\]/);
   assert.match(salesReportPage, /xl:break-inside-avoid xl:mb-4/);

@@ -101,17 +101,22 @@ test.describe("E010 request locale runtime", () => {
   });
 
   test("@area:i18n core workflow stays localized and preserves imported content", async ({ browser }) => {
+    test.setTimeout(120_000);
     const email = process.env.CLARIOBASE_BOOTSTRAP_ADMIN_EMAIL;
     const password = process.env.CLARIOBASE_BOOTSTRAP_ADMIN_PASSWORD;
     const leadId = process.env.PLAYWRIGHT_E010_LEAD_ID;
     const businessName = process.env.PLAYWRIGHT_E010_BUSINESS_NAME;
     const category = process.env.PLAYWRIGHT_E010_CATEGORY;
+    const importId = process.env.PLAYWRIGHT_E010_IMPORT_ID;
+    const duplicateId = process.env.PLAYWRIGHT_E010_DUPLICATE_ID;
     expect(email).toBeTruthy();
     expect(password).toBeTruthy();
     expect(leadId).toBeTruthy();
     expect(businessName).toBeTruthy();
     expect(category).toBeTruthy();
-    if (!email || !password || !leadId || !businessName || !category) {
+    expect(importId).toBeTruthy();
+    expect(duplicateId).toBeTruthy();
+    if (!email || !password || !leadId || !businessName || !category || !importId || !duplicateId) {
       throw new Error("Missing disposable E010 fixture");
     }
 
@@ -142,7 +147,7 @@ test.describe("E010 request locale runtime", () => {
       await page.goto("/leads");
       await expect(page.getByRole("heading", { name: "Leady" })).toBeVisible();
       await expect(page.getByText(businessName, { exact: true })).toBeVisible();
-      await expect(page.getByText(category, { exact: true })).toBeVisible();
+      await expect(page.getByText(category, { exact: true }).first()).toBeVisible();
 
       await page.goto(`/leads/${leadId}`);
       await expect(page.getByRole("heading", { name: businessName })).toBeVisible();
@@ -152,6 +157,28 @@ test.describe("E010 request locale runtime", () => {
       await expect(page.getByText("Notatki, wiadomości i aktualizacje", { exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Dodaj aktywność" }).click();
       await expect(page.locator("#activity-form-feedback")).toHaveText("Tytuł aktywności jest wymagany");
+      await page.goto("/imports");
+      await expect(page.getByRole("heading", { name: "Partie importu" })).toBeVisible();
+      await expect(page.getByText(/Źródło użytkownika/).first()).toBeVisible();
+      await page.goto(`/imports/${importId}`);
+      await page.getByText("Szczegóły walidacji technicznej", { exact: true }).click();
+      await expect(page.getByText("RAW_VALIDATION_MESSAGE", { exact: true })).toBeVisible();
+      await page.goto("/duplicates");
+      await expect(page.getByRole("heading", { name: "Kandydaci na duplikaty" })).toBeVisible();
+      await page.goto(`/duplicates/${duplicateId}`);
+      await expect(page.getByText("Ten sam numer telefonu", { exact: true })).toBeVisible();
+      await expect(page.getByText("Raw duplicate reason", { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Oznacz weryfikację jako zakończoną" }).click();
+      await expect(page.getByRole("status")).toHaveText("Zaktualizowano weryfikację duplikatu.");
+      await page.goto("/reports/sales");
+      await expect(page.getByRole("heading", { name: "Operacyjny raport lejka" })).toBeVisible();
+      await page.goto("/admin/users");
+      await expect(page.getByRole("heading", { name: "Dostęp użytkowników" })).toBeVisible();
+      await page.goto("/health");
+      await expect(page.getByRole("heading", { name: "Kontrola działania" })).toBeVisible();
+      await expect(page.getByText("clariobase-ai-crm", { exact: true })).toBeVisible();
+      await page.goto("/brak-takiej-strony");
+      await expect(page.getByRole("heading", { name: "Ta strona jest niedostępna" })).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "pl-PL");
       expect(hydrationErrors).toEqual([]);
 
@@ -170,7 +197,7 @@ test.describe("E010 request locale runtime", () => {
         await expect(englishPage.getByText(businessName, { exact: true })).toBeVisible();
         await englishPage.goto("/leads");
         await expect(englishPage.getByRole("heading", { name: "Leads" })).toBeVisible();
-        await expect(englishPage.getByText(category, { exact: true })).toBeVisible();
+        await expect(englishPage.getByText(category, { exact: true }).first()).toBeVisible();
         await englishPage.goto(`/leads/${leadId}`);
         await expect(englishPage.locator("html")).toHaveAttribute("lang", "en-US");
         await expect(englishPage.getByText(/Jul 21, 2026, 12:30 PM/).first()).toBeVisible();
@@ -178,6 +205,24 @@ test.describe("E010 request locale runtime", () => {
         await expect(englishPage.getByText("Notes, messages, and updates", { exact: true })).toBeVisible();
         await expect(englishPage.getByText(businessName, { exact: true }).first()).toBeVisible();
         await expect(englishPage.getByText(category, { exact: true }).first()).toBeVisible();
+        await englishPage.goto("/imports");
+        await expect(englishPage.getByRole("heading", { name: "Import batches" })).toBeVisible();
+        await englishPage.goto(`/imports/${importId}`);
+        await englishPage.getByText("Technical validation details", { exact: true }).click();
+        await expect(englishPage.getByText("RAW_VALIDATION_MESSAGE", { exact: true })).toBeVisible();
+        await englishPage.goto("/duplicates");
+        await expect(englishPage.getByRole("heading", { name: "Duplicate candidates" })).toBeVisible();
+        await englishPage.goto(`/duplicates/${duplicateId}`);
+        await expect(englishPage.getByText("Same phone number", { exact: true })).toBeVisible();
+        await expect(englishPage.getByText("Raw duplicate reason", { exact: true })).toBeVisible();
+        await englishPage.goto("/reports/sales");
+        await expect(englishPage.getByRole("heading", { name: "Operational pipeline report" })).toBeVisible();
+        await englishPage.goto("/admin/users");
+        await expect(englishPage.getByRole("heading", { name: "User access" })).toBeVisible();
+        await englishPage.goto("/health");
+        await expect(englishPage.getByRole("heading", { name: "Health check" })).toBeVisible();
+        await englishPage.goto("/missing-page");
+        await expect(englishPage.getByRole("heading", { name: "This page is unavailable" })).toBeVisible();
       } finally {
         await english.close();
       }

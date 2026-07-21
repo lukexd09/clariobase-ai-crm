@@ -36,9 +36,9 @@ test("T006 routes stay on the project-owned boundary and keep explicit semantic 
   assert.doesNotMatch(importDetailPage, /IMPORT_ROW_STATUS_LABELS\[row\.status\]\}<\/div>\s*<DataQualityStatusBadge/);
   assert.doesNotMatch(duplicateDetailPage, /DUPLICATE_STATUS_LABELS\[candidate\.status\]\}<\/span>\s*<DataQualityStatusBadge/);
 
-  assert.match(importsPage, /No import batches yet\./);
-  assert.match(importDetailPage, /No row results available for this batch\./);
-  assert.match(duplicatesPage, /No duplicate candidates yet\./);
+  assert.match(importsPage, /t\("imports\.empty"\)/);
+  assert.match(importDetailPage, /t\("imports\.rowsEmpty"\)/);
+  assert.match(duplicatesPage, /t\("duplicates\.empty"\)/);
 
   assert.match(importsPage, /DataQualityStatusBadge/);
   assert.match(importDetailPage, /DataQualityStatusBadge/);
@@ -56,11 +56,11 @@ test("T006 routes stay on the project-owned boundary and keep explicit semantic 
   assert.doesNotMatch(dataQualityPrimitives, /<span className="text-2xl font-semibold tabular-nums/);
   assert.doesNotMatch(dataQualityPrimitives, /label.*label|value.*value/);
 
-  assert.match(importsPage, /DataQualityStatusBadge\s*\n?\s*label=\{IMPORT_BATCH_STATUS_LABELS\[batch\.status\]\}/);
-  assert.match(importDetailPage, /DataQualityStatusBadge\s*\n?\s*label=\{IMPORT_BATCH_STATUS_LABELS\[batch\.status\]\}/);
-  assert.match(importDetailPage, /DataQualityStatusBadge\s*\n?\s*label=\{IMPORT_ROW_STATUS_LABELS\[row\.status\]\}/);
-  assert.match(duplicatesPage, /DataQualityStatusBadge\s*\n?\s*label=\{DUPLICATE_STATUS_LABELS\[candidate\.status\]\}/);
-  assert.match(duplicateDetailPage, /DataQualityStatusBadge\s*\n?\s*label=\{DUPLICATE_STATUS_LABELS\[candidate\.status\]\}/);
+  assert.match(importsPage, /label=\{t\(getTaxonomyTranslationKey\(batch\.status\)\)\}/);
+  assert.match(importDetailPage, /label=\{t\(getTaxonomyTranslationKey\(batch\.status\)\)\}/);
+  assert.match(importDetailPage, /label=\{t\(getTaxonomyTranslationKey\(row\.status\)\)\}/);
+  assert.match(duplicatesPage, /label=\{t\(getTaxonomyTranslationKey\(candidate\.status\)\)\}/);
+  assert.match(duplicateDetailPage, /label=\{t\(getTaxonomyTranslationKey\(candidate\.status\)\)\}/);
 
   assert.match(importsPage, /tone=\{batch\.status === "RUNNING" \? "information"/);
   assert.match(importDetailPage, /tone=\{batch\.status === "RUNNING" \? "information"/);
@@ -90,27 +90,16 @@ test("T006 route contracts keep the exact business mappings and semantics", () =
   const duplicateDetailPage = read("src/app/duplicates/[id]/page.tsx");
   const dataQualityPrimitives = read("src/components/data-quality-primitives.tsx");
 
-  assert.match(importsPage, /LOCAL_JSON: "Local file"/);
-  assert.match(importsPage, /HARVESTER_EXPORT: "Harvester export"/);
-  assert.match(importsPage, /MANUAL_AI_PREPARED_FILE: "Prepared AI file"/);
-  assert.match(importsPage, /RUNNING: "In progress"/);
-  assert.match(importsPage, /COMPLETED: "Completed successfully"/);
-  assert.match(importsPage, /COMPLETED_WITH_ERRORS: "Completed with issues"/);
-  assert.match(importsPage, /FAILED: "Failed"/);
-  assert.match(importsPage, /DataQualityStatusBadge[\s\S]*IMPORT_BATCH_STATUS_LABELS\[batch\.status\][\s\S]*tone=\{batch\.status === "RUNNING" \? "information"/);
+  assert.match(importsPage, /getTaxonomyTranslationKey\(batch\.sourceType\)/);
+  assert.match(importsPage, /getTaxonomyTranslationKey\(batch\.status\)/);
+  assert.match(importsPage, /DataQualityStatusBadge[\s\S]*getTaxonomyTranslationKey\(batch\.status\)[\s\S]*tone=\{batch\.status === "RUNNING" \? "information"/);
 
-  assert.match(importDetailPage, /CREATED: "Lead created"/);
-  assert.match(importDetailPage, /UPDATED: "Lead updated"/);
-  assert.match(importDetailPage, /REJECTED: "Needs correction"/);
-  assert.match(importDetailPage, /SKIPPED: "Skipped"/);
+  assert.match(importDetailPage, /getTaxonomyTranslationKey\(row\.status\)/);
   assert.match(importDetailPage, /getRowOutcomeMessage/);
-  assert.match(importDetailPage, /DataQualityStatusBadge[\s\S]*IMPORT_BATCH_STATUS_LABELS\[batch\.status\][\s\S]*tone=\{batch\.status === "RUNNING" \? "information"/);
-  assert.match(importDetailPage, /DataQualityStatusBadge[\s\S]*IMPORT_ROW_STATUS_LABELS\[row\.status\][\s\S]*tone=\{row\.status === "CREATED" \? "success"/);
+  assert.match(importDetailPage, /DataQualityStatusBadge[\s\S]*getTaxonomyTranslationKey\(batch\.status\)[\s\S]*tone=\{batch\.status === "RUNNING" \? "information"/);
+  assert.match(importDetailPage, /DataQualityStatusBadge[\s\S]*getTaxonomyTranslationKey\(row\.status\)[\s\S]*tone=\{row\.status === "CREATED" \? "success"/);
 
-  assert.match(duplicatesPage, /OPEN: "Open review"/);
-  assert.match(duplicatesPage, /NEEDS_REVIEW: "Needs closer review"/);
-  assert.match(duplicatesPage, /DISMISSED: "Keep records separate"/);
-  assert.match(duplicatesPage, /RESOLVED: "Review complete"/);
+  assert.match(duplicatesPage, /getTaxonomyTranslationKey\(candidate\.status\)/);
   assert.match(duplicatesPage, /score >= 95/);
   assert.match(duplicatesPage, /score >= 85/);
   assert.match(duplicatesPage, /slice\(0, 2\)/);
@@ -118,16 +107,16 @@ test("T006 route contracts keep the exact business mappings and semantics", () =
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.DISMISSED\)/);
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.NEEDS_REVIEW\)/);
   assert.match(duplicateDetailPage, /updateDuplicateCandidateAction\.bind\(null, candidate\.id, DuplicateCandidateStatus\.RESOLVED\)/);
-  assert.match(duplicateDetailPage, /DataQualityStatusBadge[\s\S]*DUPLICATE_STATUS_LABELS\[candidate\.status\][\s\S]*tone=\{candidate\.status === "OPEN" \? "information"/);
-  assert.match(duplicateDetailPage, /Customer ID/);
+  assert.match(duplicateDetailPage, /DataQualityStatusBadge[\s\S]*getTaxonomyTranslationKey\(candidate\.status\)[\s\S]*tone=\{candidate\.status === "OPEN" \? "information"/);
+  assert.match(duplicateDetailPage, /duplicates\.customerId/);
   assert.match(duplicateDetailPage, /Google Place ID/);
-  assert.match(duplicateDetailPage, /Source record ID/);
-  assert.match(duplicateDetailPage, /Decision note:/);
+  assert.match(duplicateDetailPage, /duplicates\.sourceRecordId/);
+  assert.match(duplicateDetailPage, /duplicates\.decisionNote/);
   assert.match(duplicateDetailPage, /target="_blank"/);
   assert.match(duplicateDetailPage, /rel="noreferrer"/);
-  assert.match(duplicateDetailPage, /Matching field/);
-  assert.match(duplicateDetailPage, /Different field/);
-  assert.match(duplicateDetailPage, /Missing on both records/);
+  assert.match(duplicateDetailPage, /duplicates\.matchingField/);
+  assert.match(duplicateDetailPage, /duplicates\.differentField/);
+  assert.match(duplicateDetailPage, /duplicates\.missingBoth/);
 
   assert.match(dataQualityPrimitives, /tone:\s*"neutral" \| "success" \| "warning" \| "danger" \| "information"/);
 });
