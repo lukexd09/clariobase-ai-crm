@@ -6,6 +6,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { DashboardPage } from "@/components/dashboard-page";
+import { I18nProvider } from "@/i18n/provider";
+import { enUS } from "@/i18n/dictionaries/en-US";
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -17,12 +19,22 @@ function count(markup: string, tag: string) {
   return (markup.match(new RegExp(`<${tag}\\b`, "g")) ?? []).length;
 }
 
+function renderDashboard() {
+  return renderToStaticMarkup(
+    React.createElement(
+      I18nProvider,
+      { locale: "en-US", messages: enUS },
+      React.createElement(DashboardPage)
+    )
+  );
+}
+
 test("dashboard renders the exact business contract", () => {
-  const markup = renderToStaticMarkup(React.createElement(DashboardPage));
+  const markup = renderDashboard();
 
   assert.equal(count(markup, "h1"), 1);
   assert.match(markup, /Dashboard/);
-  assert.match(markup, /Your priorities for 21 June 2026/);
+  assert.match(markup, /Your priorities for Jun 21, 2026/);
   assert.doesNotMatch(markup, /Operational snapshot/);
   assert.match(markup, /aria-label="Dashboard metrics"/);
   assert.equal((markup.match(/aria-label="Dashboard metrics"/g) ?? []).length, 1);
@@ -87,7 +99,7 @@ test("dashboard source only uses approved primitives and canonical tokens", () =
   assert.match(primitives, /SurfaceTitle/);
   assert.match(primitives, /SurfaceContent/);
   assert.match(primitives, /SurfaceDescription/);
-  assert.match(primitives, /aria-label={`Open \$\{company\}`}/);
+  assert.match(primitives, /aria-label=\{t\("dashboard\.openCompany", \{ company \}\)\}/);
   assert.doesNotMatch(page, /shadboard|starter-kit|demo/i);
   assert.doesNotMatch(primitives, /shadboard|starter-kit|demo/i);
   assert.doesNotMatch(page, /#[0-9A-Fa-f]{3,6}/);
@@ -112,7 +124,7 @@ test("dashboard source only uses approved primitives and canonical tokens", () =
 });
 
 test("dashboard accessibility contract remains semantic", () => {
-  const markup = renderToStaticMarkup(React.createElement(DashboardPage));
+  const markup = renderDashboard();
 
   assert.equal(count(markup, "h2"), 3);
   assert.match(markup, /<dl/);

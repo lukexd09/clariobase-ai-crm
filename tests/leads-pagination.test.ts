@@ -13,6 +13,8 @@ import {
   getLeadPageWindow,
   parseLeadPage
 } from "../src/lib/lead-pagination";
+import { createTranslator } from "../src/i18n/translate";
+import { formatNumber } from "../src/i18n/format";
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -97,10 +99,16 @@ test("lead query helpers preserve filters and reset page only when filters chang
 });
 
 test("lead query helpers format the result counter text", () => {
-  assert.equal(formatLeadResultSummary(0, 0, 0), "0 leads");
-  assert.equal(formatLeadResultSummary(1, 50, 2000), "1-50 of 2,000 leads");
-  assert.equal(formatLeadResultSummary(51, 100, 2000), "51-100 of 2,000 leads");
-  assert.equal(formatLeadResultSummary(1, 17, 17), "1-17 of 17 leads");
+  const t = createTranslator("en-US");
+  const number = (value: number) => formatNumber("en-US", value);
+  assert.equal(formatLeadResultSummary(0, 0, 0, t, number), "0 leads");
+  assert.equal(formatLeadResultSummary(1, 50, 2000, t, number), "1-50 of 2,000 leads");
+  assert.equal(formatLeadResultSummary(51, 100, 2000, t, number), "51-100 of 2,000 leads");
+  assert.equal(formatLeadResultSummary(1, 17, 17, t, number), "1-17 of 17 leads");
+
+  const pl = createTranslator("pl-PL");
+  const plNumber = (value: number) => formatNumber("pl-PL", value);
+  assert.equal(formatLeadResultSummary(1, 50, 2000, pl, plNumber), "1-50 z 2000 leadów");
 });
 
 test("lead filter normalizer keeps only active filter values", () => {
@@ -142,16 +150,16 @@ test("lead pagination ui keeps keyboard and aria affordances", () => {
   assert.match(toolbarSource, /useSearchParams/);
   assert.match(toolbarSource, /useTransition/);
   assert.match(toolbarSource, /router\.replace\(/);
-  assert.match(toolbarSource, /Updating\.\.\./);
+  assert.match(toolbarSource, /t\("leads\.updating"\)/);
   assert.doesNotMatch(toolbarSource, /Apply filters/);
-  assert.match(toolbarSource, /Clear filters/);
+  assert.match(toolbarSource, /t\("leads\.clearFilters"\)/);
   assert.match(toolbarSource, /resultSummary/);
   assert.match(toolbarSource, /aria-busy=\{isPending\}/);
 
-  assert.match(paginationSource, /aria-label="Lead pagination"/);
+  assert.match(paginationSource, /aria-label=\{t\("leads\.pagination"\)\}/);
   assert.match(paginationSource, /aria-current="page"/);
   assert.match(paginationSource, /aria-disabled="true"/);
-  assert.match(paginationSource, /Previous/);
-  assert.match(paginationSource, /Next/);
+  assert.match(paginationSource, /t\("leads\.previous"\)/);
+  assert.match(paginationSource, /t\("leads\.next"\)/);
   assert.match(paginationSource, /tabular-nums/);
 });

@@ -99,4 +99,90 @@ test.describe("E010 request locale runtime", () => {
       await context.close();
     }
   });
+
+  test("@area:i18n core workflow stays localized and preserves imported content", async ({ browser }) => {
+    const email = process.env.CLARIOBASE_BOOTSTRAP_ADMIN_EMAIL;
+    const password = process.env.CLARIOBASE_BOOTSTRAP_ADMIN_PASSWORD;
+    const leadId = process.env.PLAYWRIGHT_E010_LEAD_ID;
+    const businessName = process.env.PLAYWRIGHT_E010_BUSINESS_NAME;
+    const category = process.env.PLAYWRIGHT_E010_CATEGORY;
+    expect(email).toBeTruthy();
+    expect(password).toBeTruthy();
+    expect(leadId).toBeTruthy();
+    expect(businessName).toBeTruthy();
+    expect(category).toBeTruthy();
+    if (!email || !password || !leadId || !businessName || !category) {
+      throw new Error("Missing disposable E010 fixture");
+    }
+
+    const hydrationErrors: string[] = [];
+    const polish = await browser.newContext({
+      storageState: undefined,
+      locale: "pl-PL",
+      extraHTTPHeaders: { "Accept-Language": "pl-PL" }
+    });
+    const page = await polish.newPage();
+    page.on("console", (message) => {
+      if (message.type() === "error" && /hydration|did not match|server rendered html/i.test(message.text())) hydrationErrors.push(message.text());
+    });
+
+    try {
+      await page.goto("/sign-in");
+      await page.getByLabel("E-mail").fill(email);
+      await page.getByLabel("Hasło").fill(password);
+      await page.locator('button[type="submit"]').click();
+      await page.waitForURL(/\/$/);
+      await expect(page.getByRole("heading", { name: "Pulpit" })).toBeVisible();
+      await expect(page.getByText("Dzisiejsze priorytety", { exact: true })).toBeVisible();
+
+      await page.goto("/work");
+      await expect(page.getByRole("heading", { name: "Kolejka pracy" })).toBeVisible();
+      await expect(page.getByText(businessName, { exact: true })).toBeVisible();
+
+      await page.goto("/leads");
+      await expect(page.getByRole("heading", { name: "Leady" })).toBeVisible();
+      await expect(page.getByText(businessName, { exact: true })).toBeVisible();
+      await expect(page.getByText(category, { exact: true })).toBeVisible();
+
+      await page.goto(`/leads/${leadId}`);
+      await expect(page.getByRole("heading", { name: businessName })).toBeVisible();
+      await expect(page.getByText(category, { exact: true }).first()).toBeVisible();
+      await expect(page.getByText(/21 lip.*12:30/).first()).toBeVisible();
+      await expect(page.getByText(/1[\s\u00a0]?234,50/).first()).toBeVisible();
+      await expect(page.getByText("Notatki, wiadomości i aktualizacje", { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Dodaj aktywność" }).click();
+      await expect(page.locator("#activity-form-feedback")).toHaveText("Tytuł aktywności jest wymagany");
+      await expect(page.locator("html")).toHaveAttribute("lang", "pl-PL");
+      expect(hydrationErrors).toEqual([]);
+
+      const english = await browser.newContext({
+        storageState: await polish.storageState(),
+        locale: "en-US",
+        extraHTTPHeaders: { "Accept-Language": "en-US" }
+      });
+      const englishPage = await english.newPage();
+      try {
+        await englishPage.goto("/");
+        await expect(englishPage.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+        await expect(englishPage.getByText("Today's priorities", { exact: true })).toBeVisible();
+        await englishPage.goto("/work");
+        await expect(englishPage.getByRole("heading", { name: "Work queue" })).toBeVisible();
+        await expect(englishPage.getByText(businessName, { exact: true })).toBeVisible();
+        await englishPage.goto("/leads");
+        await expect(englishPage.getByRole("heading", { name: "Leads" })).toBeVisible();
+        await expect(englishPage.getByText(category, { exact: true })).toBeVisible();
+        await englishPage.goto(`/leads/${leadId}`);
+        await expect(englishPage.locator("html")).toHaveAttribute("lang", "en-US");
+        await expect(englishPage.getByText(/Jul 21, 2026, 12:30 PM/).first()).toBeVisible();
+        await expect(englishPage.getByText(/PLN[\s\u00a0]?1,234\.50/).first()).toBeVisible();
+        await expect(englishPage.getByText("Notes, messages, and updates", { exact: true })).toBeVisible();
+        await expect(englishPage.getByText(businessName, { exact: true }).first()).toBeVisible();
+        await expect(englishPage.getByText(category, { exact: true }).first()).toBeVisible();
+      } finally {
+        await english.close();
+      }
+    } finally {
+      await polish.close();
+    }
+  });
 });

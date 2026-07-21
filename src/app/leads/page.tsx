@@ -6,6 +6,7 @@ import { formatLeadResultSummary, normalizeLeadFilters } from "@/lib/lead-query"
 import { parseLeadPage } from "@/lib/lead-pagination";
 import { PageSurface } from "@/components/core-work-primitives";
 import { requireUser } from "@/lib/auth-context";
+import { getI18n } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function LeadsPage({
   searchParams: Promise<SearchParams>;
 }) {
   await requireUser({ mode: "redirect", returnTo: "/leads" });
+  const { t, formatNumber } = await getI18n();
   const params = await searchParams;
   const filters = normalizeLeadFilters(params);
   const requestedPage = parseLeadPage(params.page);
@@ -25,15 +27,17 @@ export default async function LeadsPage({
   const resultSummary = formatLeadResultSummary(
     leadPage.rangeStart,
     leadPage.rangeEnd,
-    leadPage.totalCount
+    leadPage.totalCount,
+    t,
+    formatNumber
   );
 
   return (
     <div className="space-y-4">
       <PageSurface
-        eyebrow="Workspace"
-        title="Leads"
-        description="Filter the queue, confirm the current result window, and open any record for deeper operator work."
+        eyebrow={t("leads.eyebrow")}
+        title={t("leads.title")}
+        description={t("leads.description")}
       >
         <LeadTable
           leads={leadPage.leads}

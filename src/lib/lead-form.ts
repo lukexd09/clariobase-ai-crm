@@ -4,6 +4,7 @@ import {
   PACKAGE_FIT_VALUES
 } from "@/lib/lead-values";
 import { z } from "zod";
+import { parseFormDateTime } from "@/lib/form-date-time";
 
 export const leadUpdateSchema = z.object({
   leadStatus: z.enum(LEAD_STATUS_VALUES),
@@ -12,11 +13,10 @@ export const leadUpdateSchema = z.object({
   nextActionAt: z
     .preprocess((value) => {
       if (value === "" || value === null || value === undefined) return null;
-      if (typeof value === "string") return new Date(value);
-      return value;
-    }, z.date().nullable())
+      return parseFormDateTime(value);
+    }, z.date({ error: "validation.lead.next_action_invalid" }).nullable())
     .refine((value) => value === null || !Number.isNaN(value.getTime()), {
-      message: "Next action date must be a valid date"
+      message: "validation.lead.next_action_invalid"
     })
 });
 

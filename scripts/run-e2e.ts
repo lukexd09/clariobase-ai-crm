@@ -347,6 +347,38 @@ async function main() {
     assert(session?.user?.id, "Better Auth session could not be resolved from the disposable cookie");
     writeStorageState(storageStatePath, parsedCookies);
 
+    if (mode === "area" && selectedArea === "i18n") {
+      const marker = randomUUID();
+      const businessName = `Firma Żółw ${marker.slice(0, 8)}`;
+      const category = "Imported category stays verbatim";
+      const { prisma } = await import("@/lib/prisma");
+      const lead = await prisma.lead.create({
+        data: {
+          customerId: `e010-${marker}`,
+          businessName,
+          category,
+          city: "Łódź",
+          leadStatus: "CONTACTED",
+          priority: "HIGH",
+          packageFit: "CLARITY",
+          scoreTotal: 81,
+          nextActionAt: new Date("2026-07-21T10:30:00.000Z"),
+          offerDrafts: {
+            create: {
+              status: "DRAFT",
+              title: "Verbatim offer title",
+              packageFit: "CLARITY",
+              priceNet: "1234.50",
+              currency: "PLN"
+            }
+          }
+        }
+      });
+      childEnv.PLAYWRIGHT_E010_LEAD_ID = lead.id;
+      childEnv.PLAYWRIGHT_E010_BUSINESS_NAME = businessName;
+      childEnv.PLAYWRIGHT_E010_CATEGORY = category;
+    }
+
     const exitCode = await runPlaywright(mode as "smoke" | "area" | "full", selectedArea, childEnv);
 
     if (exitCode !== 0) {

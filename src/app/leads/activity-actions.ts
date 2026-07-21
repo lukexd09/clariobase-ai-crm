@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { activityCreateSchema } from "@/lib/activity-form";
 import { createLeadActivity } from "@/lib/activities";
-import { requireUser, unauthorizedResult } from "@/lib/auth-context";
+import { requireUser } from "@/lib/auth-context";
+import { normalizeLeadNoticeCode } from "@/lib/lead-notices";
 
 export async function createLeadActivityAction(leadId: string, formData: FormData) {
   try {
     await requireUser();
   } catch {
-    return unauthorizedResult();
+    return { ok: false, code: "unauthorized", status: 401 as const };
   }
 
   const parsed = activityCreateSchema.safeParse({
@@ -22,7 +23,7 @@ export async function createLeadActivityAction(leadId: string, formData: FormDat
   if (!parsed.success) {
     return {
       ok: false,
-      message: parsed.error.issues[0]?.message ?? "Invalid activity"
+      code: normalizeLeadNoticeCode(parsed.error.issues[0]?.message, "invalid_activity")
     };
   }
 
@@ -36,6 +37,6 @@ export async function createLeadActivityAction(leadId: string, formData: FormDat
 
   return {
     ok: true,
-    message: "Activity added"
+    code: "activity_added"
   };
 }

@@ -1,4 +1,5 @@
 import type { LeadPriority, LeadStatus, PackageFit } from "@/generated/prisma/client";
+import type { TranslationKey } from "@/i18n/types";
 
 export type WorkLead = {
   id: string;
@@ -23,8 +24,8 @@ export type WorkBucketName =
 
 export type WorkBucket = {
   key: WorkBucketName;
-  title: string;
-  description: string;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
   leads: WorkLead[];
 };
 
@@ -67,26 +68,26 @@ export function getWorkBuckets(leads: WorkLead[], now = new Date()): WorkBucket[
   return [
     {
       key: "overdue",
-      title: "Overdue next actions",
-      description: "Leads that already need attention today.",
+      titleKey: "work.bucket.overdue.title",
+      descriptionKey: "work.bucket.overdue.description",
       leads: sortByDate(overdue, "nextActionAt")
     },
     {
       key: "dueToday",
-      title: "Due today",
-      description: "Leads with a follow-up planned for today.",
+      titleKey: "work.bucket.dueToday.title",
+      descriptionKey: "work.bucket.dueToday.description",
       leads: sortByDate(dueToday, "nextActionAt")
     },
     {
       key: "upcoming",
-      title: "Upcoming next actions",
-      description: "Upcoming work, kept to the closest items first.",
+      titleKey: "work.bucket.upcoming.title",
+      descriptionKey: "work.bucket.upcoming.description",
       leads: sortByDate(upcoming, "nextActionAt").slice(0, 20)
     },
     {
       key: "noAction",
-      title: "No next action set",
-      description: "Actionable leads that still need a concrete next step.",
+      titleKey: "work.bucket.noAction.title",
+      descriptionKey: "work.bucket.noAction.description",
       leads: sortByPriority(noAction).slice(0, 20)
     }
   ];

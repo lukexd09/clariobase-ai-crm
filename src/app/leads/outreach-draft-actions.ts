@@ -2,15 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createLeadActivity } from "@/lib/activities";
-import { requireUser, unauthorizedResult } from "@/lib/auth-context";
+import { requireUser } from "@/lib/auth-context";
 import { outreachDraftFormSchema } from "@/lib/outreach-draft-form";
 import { createOutreachDraft, updateOutreachDraft } from "@/lib/outreach-drafts";
+import { normalizeLeadNoticeCode } from "@/lib/lead-notices";
 
 export async function saveOutreachDraftAction(leadId: string, formData: FormData) {
   try {
     await requireUser();
   } catch {
-    return unauthorizedResult();
+    return { ok: false, code: "unauthorized", status: 401 as const };
   }
 
   const parsed = outreachDraftFormSchema.safeParse({
@@ -29,7 +30,7 @@ export async function saveOutreachDraftAction(leadId: string, formData: FormData
   if (!parsed.success) {
     return {
       ok: false,
-      message: parsed.error.issues[0]?.message ?? "Invalid outreach draft"
+      code: normalizeLeadNoticeCode(parsed.error.issues[0]?.message, "invalid_outreach")
     };
   }
 
@@ -52,7 +53,7 @@ export async function saveOutreachDraftAction(leadId: string, formData: FormData
   if (!savedDraft) {
     return {
       ok: false,
-      message: "Outreach draft not found"
+      code: "outreach_not_found"
     };
   }
 
@@ -75,6 +76,6 @@ export async function saveOutreachDraftAction(leadId: string, formData: FormData
 
   return {
     ok: true,
-    message: parsed.data.draftId ? "Outreach draft updated" : "Outreach draft created"
+    code: parsed.data.draftId ? "outreach_updated" : "outreach_created"
   };
 }

@@ -1,5 +1,6 @@
 import { PACKAGE_FIT_VALUES, MINI_AUDIT_STATUS_VALUES } from "@/lib/lead-values";
 import { z } from "zod";
+import { parseFormDateTime } from "@/lib/form-date-time";
 
 const optionalText = z
   .string()
@@ -10,11 +11,10 @@ const optionalText = z
 const optionalDateTime = z
   .preprocess((value) => {
     if (value === "" || value === null || value === undefined) return null;
-    if (typeof value === "string") return new Date(value);
-    return value;
-  }, z.date().nullable())
+    return parseFormDateTime(value);
+  }, z.date({ error: "validation.mini_audit.approved_at_invalid" }).nullable())
   .refine((value) => value === null || !Number.isNaN(value.getTime()), {
-    message: "Approved at must be a valid date"
+    message: "validation.mini_audit.approved_at_invalid"
   });
 
 export const miniAuditDraftFormSchema = z.object({
@@ -41,8 +41,7 @@ export const miniAuditDraftFormSchema = z.object({
       value.riskNotes
     ].some((field) => typeof field === "string" && field.length > 0),
   {
-    message:
-      "Mini-audit draft requires at least one content field",
+    message: "validation.mini_audit.content_required",
     path: ["problem1"]
   }
 );

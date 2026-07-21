@@ -103,14 +103,16 @@ export function buildLeadUrl(
 export function formatLeadResultSummary(
   rangeStart: number,
   rangeEnd: number,
-  totalCount: number
+  totalCount: number,
+  translate: import("@/i18n/types").Translate,
+  formatNumber: (value: number) => string
 ) {
   if (totalCount === 0) {
-    return "0 leads";
+    return translate("leads.result.empty");
   }
-
-  const formatter = new Intl.NumberFormat("en-US");
-  const noun = totalCount === 1 ? "lead" : "leads";
-
-  return `${formatter.format(rangeStart)}-${formatter.format(rangeEnd)} of ${formatter.format(totalCount)} ${noun}`;
+  return translate("leads.result.range", {
+    start: formatNumber(rangeStart),
+    end: formatNumber(rangeEnd),
+    total: formatNumber(totalCount)
+  });
 }

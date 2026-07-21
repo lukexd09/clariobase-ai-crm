@@ -19,33 +19,12 @@ import { getLeadOfferDrafts, toOfferDraftClientRecord } from "@/lib/offer-drafts
 import { getLeadOutreachDrafts, type OutreachDraftRecord } from "@/lib/outreach-drafts";
 import { type OfferDraftClientRecord } from "@/lib/offer-drafts";
 import { requireUser } from "@/lib/auth-context";
+import { getI18n } from "@/i18n/server";
+import type { Translate } from "@/i18n/types";
+import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
+import { formatDateTimeLocalInput } from "@/i18n/format";
 
 export const dynamic = "force-dynamic";
-
-function formatDate(value: Date | null | undefined) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(value);
-}
-
-function formatShortDate(value: Date | null | undefined) {
-  if (!value) return "Not updated yet";
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium"
-  }).format(value);
-}
-
-function asLocalDateTimeValue(value: Date | null | undefined) {
-  if (!value) return "";
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  const hours = `${value.getHours()}`.padStart(2, "0");
-  const minutes = `${value.getMinutes()}`.padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
 
 export default async function LeadDetailPage({
   params
@@ -54,6 +33,7 @@ export default async function LeadDetailPage({
 }) {
   const { id } = await params;
   await requireUser({ mode: "redirect", returnTo: `/leads/${id}` });
+  const { t, formatDate, formatDateTime, formatNumber, formatCurrency } = await getI18n();
   const [lead, activities, miniAuditDrafts, outreachDrafts, offerDrafts] = await Promise.all([
     getLeadById(id),
     getLeadActivities(id),
@@ -68,33 +48,34 @@ export default async function LeadDetailPage({
   const recommendation = getNextRecommendedAction({
     miniAuditDrafts,
     outreachDrafts,
-    offerDrafts: clientOfferDrafts
+    offerDrafts: clientOfferDrafts,
+    t
   });
-  const nextActionDisplay = lead.nextActionAt ? formatDate(lead.nextActionAt) : "No next action set";
+  const nextActionDisplay = lead.nextActionAt ? formatDateTime(lead.nextActionAt) : t("lead.detail.noNextAction");
   const primaryMetadata = [
-    lead.city ?? "No city",
-    lead.category ?? "No category",
-    [lead.region, lead.country].filter(Boolean).join(", ") || "No region or country"
+    lead.city ?? t("lead.detail.noCity"),
+    lead.category ?? t("lead.detail.noCategory"),
+    [lead.region, lead.country].filter(Boolean).join(", ") || t("lead.detail.noRegionCountry")
   ];
   const sectionLinks = [
-    { href: "#lead-controls", label: "Status" },
-    { href: "#activity", label: "Activity log" },
-    { href: "#mini-audit", label: "Review" },
-    { href: "#outreach", label: "Message plan" },
-    { href: "#offer", label: "Draft" },
-    { href: "#technical-details", label: "Internal details" }
+    { href: "#lead-controls", label: t("lead.detail.status") },
+    { href: "#activity", label: t("lead.detail.activityLog") },
+    { href: "#mini-audit", label: t("lead.detail.review") },
+    { href: "#outreach", label: t("lead.detail.messagePlan") },
+    { href: "#offer", label: t("lead.detail.draft") },
+    { href: "#technical-details", label: t("lead.detail.internalDetails") }
   ];
 
   return (
     <main className="min-h-screen bg-[color:var(--cb-background)] text-[color:var(--cb-foreground)]">
       <div className="w-full px-4 py-4 sm:px-6 lg:px-6 xl:px-8 2xl:px-10 lg:py-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label="Lead breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-[color:var(--cb-muted-foreground)]">
+          <nav aria-label={t("lead.detail.breadcrumb")} className="flex flex-wrap items-center gap-2 text-sm text-[color:var(--cb-muted-foreground)]">
             <Link
               href="/leads"
               className="font-medium text-[color:var(--cb-foreground)] transition hover:text-[color:var(--cb-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
             >
-              Leads
+              {t("leads.title")}
             </Link>
             <span aria-hidden="true" className="text-[color:var(--cb-border)]">
               /
@@ -107,7 +88,7 @@ export default async function LeadDetailPage({
               href="/work"
               className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-4 py-2 text-sm font-medium text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)] hover:text-[color:var(--cb-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]"
             >
-              Open workbench
+              {t("lead.detail.openWorkbench")}
             </Link>
           </div>
         </div>
@@ -115,7 +96,7 @@ export default async function LeadDetailPage({
         <header className="mb-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-4 shadow-[var(--cb-shadow-surface)] lg:p-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 space-y-4">
-              <p className="text-sm font-medium text-[color:var(--cb-accent)]">Operator workspace</p>
+              <p className="text-sm font-medium text-[color:var(--cb-accent)]">{t("lead.detail.operatorWorkspace")}</p>
 
               <div className="space-y-3">
                 <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--cb-foreground)] sm:text-4xl">
@@ -142,31 +123,31 @@ export default async function LeadDetailPage({
 
               <div className="grid gap-3 sm:grid-cols-3">
                 <HeaderMetric
-                  label="Readiness"
-                  value={lead.scoreLabel ?? String(lead.scoreTotal)}
-                  detail={`Priority: ${lead.priority.replaceAll("_", " ")}`}
+                  label={t("lead.detail.readiness")}
+                  value={lead.scoreLabel ?? formatNumber(lead.scoreTotal)}
+                  detail={t("lead.detail.priorityValue", { value: t(getTaxonomyTranslationKey(lead.priority)) })}
                 />
                 <HeaderMetric
-                  label="Recommended next step"
+                  label={t("lead.detail.recommendedNextStep")}
                   value={nextActionDisplay}
-                  detail="Shown in local operator time."
+                  detail={t("lead.detail.localTime")}
                 />
                 <HeaderMetric
-                  label="Contact person"
-                  value="No contact person"
-                  detail={lead.phone ?? lead.email ?? "No direct contact saved"}
+                  label={t("lead.detail.contactPerson")}
+                  value={t("lead.detail.noContactPerson")}
+                  detail={lead.phone ?? lead.email ?? t("lead.detail.noDirectContact")}
                 />
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {lead.websiteUrl ? <ExternalLink href={lead.websiteUrl} label="Website" /> : null}
-                {lead.phone ? <InlineMeta label="Phone" value={lead.phone} /> : null}
-                {lead.email ? <InlineMeta label="Email" value={lead.email} /> : null}
+                {lead.websiteUrl ? <ExternalLink href={lead.websiteUrl} label={t("lead.detail.website")} /> : null}
+                {lead.phone ? <InlineMeta label={t("lead.detail.phone")} value={lead.phone} /> : null}
+                {lead.email ? <InlineMeta label={t("lead.detail.email")} value={lead.email} /> : null}
               </div>
             </div>
 
             <section className="xl:max-w-sm rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]">
-              <p className="text-sm font-medium text-[color:var(--cb-accent)]">Recommended next step</p>
+              <p className="text-sm font-medium text-[color:var(--cb-accent)]">{t("lead.detail.recommendedNextStep")}</p>
               <h2 className="mt-2 text-xl font-semibold tracking-tight text-[color:var(--cb-foreground)]">
                 {recommendation.title}
               </h2>
@@ -189,7 +170,7 @@ export default async function LeadDetailPage({
           </div>
         </header>
 
-        <nav aria-label="Operator workspace sections" className="mb-4 flex flex-wrap gap-2">
+        <nav aria-label={t("lead.detail.sections")} className="mb-4 flex flex-wrap gap-2">
           {sectionLinks.map((section) => (
             <Link
               key={section.href}
@@ -205,57 +186,57 @@ export default async function LeadDetailPage({
           <div className="space-y-4">
             <section className="rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]">
               <div className="flex flex-col gap-2 border-b border-[color:var(--cb-border)] pb-4">
-                <h2 className="text-xl font-semibold text-[color:var(--cb-foreground)]">Business context</h2>
+                <h2 className="text-xl font-semibold text-[color:var(--cb-foreground)]">{t("lead.detail.businessContext")}</h2>
                 <p className="text-sm text-[color:var(--cb-muted-foreground)]">
-                  A compact view of the operator-facing context without repeating status or package data.
+                  {t("lead.detail.businessContextDescription")}
                 </p>
               </div>
 
               <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <DefinitionItem
-                  label="Website"
+                  label={t("lead.detail.website")}
                   value={
                     lead.websiteUrl ? (
                       <ExternalLink href={lead.websiteUrl} label={lead.websiteUrl} />
                     ) : (
-                      "Not provided"
+                      t("lead.detail.notProvided")
                     )
                   }
                 />
-                <DefinitionItem label="Category" value={lead.category ?? "Not provided"} />
-                <DefinitionItem label="City" value={lead.city ?? "Not provided"} />
+                <DefinitionItem label={t("lead.detail.category")} value={lead.category ?? t("lead.detail.notProvided")} />
+                <DefinitionItem label={t("lead.detail.city")} value={lead.city ?? t("lead.detail.notProvided")} />
                 <DefinitionItem
-                  label="Region and country"
-                  value={[lead.region, lead.country].filter(Boolean).join(", ") || "Not provided"}
+                  label={t("lead.detail.regionCountry")}
+                  value={[lead.region, lead.country].filter(Boolean).join(", ") || t("lead.detail.notProvided")}
                 />
-                <DefinitionItem label="Phone" value={lead.phone ?? "Not provided"} />
-                <DefinitionItem label="Email" value={lead.email ?? "Not provided"} />
-                <DefinitionItem label="Address" value={lead.address ?? "Not provided"} />
+                <DefinitionItem label={t("lead.detail.phone")} value={lead.phone ?? t("lead.detail.notProvided")} />
+                <DefinitionItem label={t("lead.detail.email")} value={lead.email ?? t("lead.detail.notProvided")} />
+                <DefinitionItem label={t("lead.detail.address")} value={lead.address ?? t("lead.detail.notProvided")} />
                 <DefinitionItem
-                  label="Source"
+                  label={t("lead.detail.source")}
                   value={
                     lead.source
                       ? lead.sourceRecordId
                         ? `${lead.source} (${lead.sourceRecordId})`
                         : lead.source
-                      : "Not provided"
+                      : t("lead.detail.notProvided")
                   }
                 />
-                <DefinitionItem label="Last reviewed" value={formatDate(lead.lastReviewedAt)} />
+                <DefinitionItem label={t("lead.detail.lastReviewed")} value={lead.lastReviewedAt ? formatDateTime(lead.lastReviewedAt) : "-"} />
               </dl>
             </section>
 
             <section id="lead-artifacts" className="space-y-4">
               <ArtifactPanel
                 id="mini-audit"
-                label="Review"
-                title={getArtifactPanelTitle("Review", miniAuditDrafts.length)}
-                description={getMiniAuditPanelDescription(miniAuditDrafts)}
+                label={t("lead.detail.review")}
+                title={getArtifactPanelTitle(t("lead.detail.review"), miniAuditDrafts.length, t)}
+                description={getMiniAuditPanelDescription(miniAuditDrafts, t)}
                 statusBadge={
                   miniAuditDrafts.length > 0 ? (
                     <StatusPill value={getMiniAuditPanelStatus(miniAuditDrafts)} appearance="light" />
                   ) : (
-                    <SecondaryBadge>Not started</SecondaryBadge>
+                    <SecondaryBadge>{t("lead.detail.notStarted")}</SecondaryBadge>
                   )
                 }
                 packageBadge={
@@ -263,29 +244,27 @@ export default async function LeadDetailPage({
                     <StatusPill value={miniAuditDrafts[0].suggestedPackage} appearance="light" />
                   ) : null
                 }
-                updatedAt={getMiniAuditPanelUpdatedAt(miniAuditDrafts)}
-                emptyMessage="Create the first review when this lead is ready."
-                actionLabel={getMiniAuditPanelAction(miniAuditDrafts)}
+                footerText={getArtifactFooter(getMiniAuditPanelUpdatedAt(miniAuditDrafts), t("lead.detail.reviewEmpty"), t, formatDate)}
+                actionLabel={getArtifactPanelAction(miniAuditDrafts, t)}
               >
                 <MiniAuditDraftSection leadId={lead.id} drafts={miniAuditDrafts} />
               </ArtifactPanel>
 
               <ArtifactPanel
                 id="outreach"
-                label="Message plan"
-                title={getArtifactPanelTitle("Message plan", outreachDrafts.length)}
-                description={getOutreachPanelDescription(outreachDrafts)}
+                label={t("lead.detail.messagePlan")}
+                title={getArtifactPanelTitle(t("lead.detail.messagePlan"), outreachDrafts.length, t)}
+                description={getOutreachPanelDescription(outreachDrafts, t)}
                 statusBadge={
                   outreachDrafts.length > 0 ? (
                     <StatusPill value={getOutreachPanelStatus(outreachDrafts)} appearance="light" />
                   ) : (
-                    <SecondaryBadge>Not started</SecondaryBadge>
+                    <SecondaryBadge>{t("lead.detail.notStarted")}</SecondaryBadge>
                   )
                 }
                 packageBadge={null}
-                updatedAt={getOutreachPanelUpdatedAt(outreachDrafts)}
-                emptyMessage="Create the first message draft when outreach is ready."
-                actionLabel={getOutreachPanelAction(outreachDrafts)}
+                footerText={getArtifactFooter(getOutreachPanelUpdatedAt(outreachDrafts), t("lead.detail.outreachEmpty"), t, formatDate)}
+                actionLabel={getArtifactPanelAction(outreachDrafts, t)}
               >
                 <OutreachDraftSection
                   leadId={lead.id}
@@ -296,14 +275,14 @@ export default async function LeadDetailPage({
 
               <ArtifactPanel
                 id="offer"
-                label="Draft preparation"
-                title={getOfferPanelTitle(clientOfferDrafts)}
-                description={getOfferPanelDescription(clientOfferDrafts)}
+                label={t("lead.detail.draftPreparation")}
+                title={getOfferPanelTitle(clientOfferDrafts, t)}
+                description={getOfferPanelDescription(clientOfferDrafts, t, formatCurrency)}
                 statusBadge={
                   clientOfferDrafts.length > 0 ? (
                     <StatusPill value={getOfferPanelStatus(clientOfferDrafts)} appearance="light" />
                   ) : (
-                    <SecondaryBadge>Not started</SecondaryBadge>
+                    <SecondaryBadge>{t("lead.detail.notStarted")}</SecondaryBadge>
                   )
                 }
                 packageBadge={
@@ -311,9 +290,8 @@ export default async function LeadDetailPage({
                     <StatusPill value={clientOfferDrafts[0].packageFit} appearance="light" />
                   ) : null
                 }
-                updatedAt={getOfferPanelUpdatedAt(clientOfferDrafts)}
-                emptyMessage="Create the first draft when the lead is ready."
-                actionLabel={getOfferPanelAction(clientOfferDrafts)}
+                footerText={getArtifactFooter(getOfferPanelUpdatedAt(clientOfferDrafts), t("lead.detail.offerEmpty"), t, formatDate)}
+                actionLabel={getArtifactPanelAction(clientOfferDrafts, t)}
               >
                 <OfferDraftSection leadId={lead.id} drafts={clientOfferDrafts} />
               </ArtifactPanel>
@@ -326,26 +304,26 @@ export default async function LeadDetailPage({
               <summary className="cursor-pointer list-none rounded-[var(--cb-radius-xl)] px-5 py-4 transition hover:bg-[color:var(--cb-elevated-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)]">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-[color:var(--cb-foreground)]">Show technical details</p>
+                    <p className="text-sm font-medium text-[color:var(--cb-foreground)]">{t("lead.detail.showTechnical")}</p>
                     <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
-                      Source identifiers and audit timestamps stay available here when needed.
+                      {t("lead.detail.technicalDescription")}
                     </p>
                   </div>
                   <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
-                    Technical metadata
+                    {t("lead.detail.technicalMetadata")}
                   </span>
                 </div>
               </summary>
 
               <div className="border-t border-[color:var(--cb-border)] px-5 py-4">
                 <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <DefinitionItem label="Source" value={lead.source ?? "Not provided"} subtle />
-                  <DefinitionItem label="Source record ID" value={lead.sourceRecordId ?? "Not provided"} subtle />
-                  <DefinitionItem label="Google Place ID" value={lead.googlePlaceId ?? "Not provided"} subtle />
-                  <DefinitionItem label="Created at" value={formatDate(lead.createdAt)} subtle />
-                  <DefinitionItem label="Updated at" value={formatDate(lead.updatedAt)} subtle />
-                  <DefinitionItem label="Last imported at" value={formatDate(lead.lastImportedAt)} subtle />
-                  <DefinitionItem label="Archived at" value={formatDate(lead.archivedAt)} subtle />
+                  <DefinitionItem label={t("lead.detail.source")} value={lead.source ?? t("lead.detail.notProvided")} subtle />
+                  <DefinitionItem label={t("lead.detail.sourceRecordId")} value={lead.sourceRecordId ?? t("lead.detail.notProvided")} subtle />
+                  <DefinitionItem label={t("lead.detail.googlePlaceId")} value={lead.googlePlaceId ?? t("lead.detail.notProvided")} subtle />
+                  <DefinitionItem label={t("lead.detail.createdAt")} value={formatDateTime(lead.createdAt)} subtle />
+                  <DefinitionItem label={t("lead.detail.updatedAt")} value={formatDateTime(lead.updatedAt)} subtle />
+                  <DefinitionItem label={t("lead.detail.lastImportedAt")} value={lead.lastImportedAt ? formatDateTime(lead.lastImportedAt) : "-"} subtle />
+                  <DefinitionItem label={t("lead.detail.archivedAt")} value={lead.archivedAt ? formatDateTime(lead.archivedAt) : "-"} subtle />
                 </dl>
               </div>
             </details>
@@ -357,10 +335,10 @@ export default async function LeadDetailPage({
               className="rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]"
             >
               <div className="border-b border-[color:var(--cb-border)] pb-4">
-                <p className="text-sm font-medium text-[color:var(--cb-accent)]">Status</p>
-                <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">Status update</h2>
+                <p className="text-sm font-medium text-[color:var(--cb-accent)]">{t("lead.detail.status")}</p>
+                <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">{t("lead.detail.statusUpdate")}</h2>
                 <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
-                  Keep the state, priority, and next task aligned with the latest work.
+                  {t("lead.detail.statusDescription")}
                 </p>
               </div>
 
@@ -370,7 +348,7 @@ export default async function LeadDetailPage({
                   leadStatus={lead.leadStatus}
                   priority={lead.priority}
                   packageFit={lead.packageFit}
-                  nextActionAt={asLocalDateTimeValue(lead.nextActionAt)}
+                  nextActionAt={formatDateTimeLocalInput(lead.nextActionAt)}
                   nextActionDisplay={nextActionDisplay}
                 />
               </div>
@@ -381,12 +359,12 @@ export default async function LeadDetailPage({
               className="space-y-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-5 shadow-[var(--cb-shadow-surface)]"
             >
               <div className="border-b border-[color:var(--cb-border)] pb-4">
-                <p className="text-sm font-medium text-[color:var(--cb-accent)]">Activity log</p>
+                <p className="text-sm font-medium text-[color:var(--cb-accent)]">{t("lead.detail.activityLog")}</p>
                 <h2 className="mt-2 text-xl font-semibold text-[color:var(--cb-foreground)]">
-                  Notes, messages, and updates
+                  {t("lead.detail.activityHeading")}
                 </h2>
                 <p className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
-                  Log notes, messages, decisions, and follow-up context.
+                  {t("activity.bodyHint")}
                 </p>
               </div>
 
@@ -403,11 +381,13 @@ export default async function LeadDetailPage({
 function getNextRecommendedAction({
   miniAuditDrafts,
   outreachDrafts,
-  offerDrafts
+  offerDrafts,
+  t
 }: {
   miniAuditDrafts: MiniAuditDraftRecord[];
   outreachDrafts: OutreachDraftRecord[];
   offerDrafts: OfferDraftClientRecord[];
+  t: Translate;
 }) {
   const latestOfferDraft = offerDrafts[0];
   const hasActiveOffer = offerDrafts.some(
@@ -416,121 +396,118 @@ function getNextRecommendedAction({
 
   if (miniAuditDrafts.length === 0) {
     return {
-      title: "Prepare review",
-      description:
-        "No review draft exists yet, so start with findings, match, and the first message angle.",
-      primaryLabel: "Prepare review",
+      title: t("lead.detail.recommendation.prepareReview"),
+      description: t("lead.detail.recommendation.prepareReviewDescription"),
+      primaryLabel: t("lead.detail.recommendation.prepareReview"),
       primaryHref: "#mini-audit",
-      secondaryLabel: "Open activity log",
+      secondaryLabel: t("lead.detail.recommendation.openActivity"),
       secondaryHref: "#activity"
     };
   }
 
   if (outreachDrafts.length === 0) {
     return {
-      title: "Prepare message plan",
-      description:
-        "The lead already has a review foundation, so the next practical step is a message draft.",
-      primaryLabel: "Prepare message plan",
+      title: t("lead.detail.recommendation.prepareMessage"),
+      description: t("lead.detail.recommendation.prepareMessageDescription"),
+      primaryLabel: t("lead.detail.recommendation.prepareMessage"),
       primaryHref: "#outreach",
-      secondaryLabel: "Review status",
+      secondaryLabel: t("lead.detail.recommendation.reviewStatus"),
       secondaryHref: "#lead-controls"
     };
   }
 
   if (offerDrafts.length === 0) {
     return {
-      title: "Prepare draft",
-      description:
-        "The lead has enough earlier-workflow context, so create the first draft next.",
-      primaryLabel: "Prepare draft",
+      title: t("lead.detail.recommendation.prepareDraft"),
+      description: t("lead.detail.recommendation.prepareDraftDescription"),
+      primaryLabel: t("lead.detail.recommendation.prepareDraft"),
       primaryHref: "#offer",
-      secondaryLabel: "Open activity log",
+      secondaryLabel: t("lead.detail.recommendation.openActivity"),
       secondaryHref: "#activity"
     };
   }
 
   if (hasActiveOffer && latestOfferDraft) {
     return {
-      title: "Review draft",
-      description:
-        `The latest draft is still active (${latestOfferDraft.status.replaceAll("_", " ").toLowerCase()}). Review the current version before moving on.`,
-      primaryLabel: "Review draft",
+      title: t("lead.detail.recommendation.reviewDraft"),
+      description: t("lead.detail.recommendation.reviewDraftDescription", {
+        status: t(getTaxonomyTranslationKey(latestOfferDraft.status))
+      }),
+      primaryLabel: t("lead.detail.recommendation.reviewDraft"),
       primaryHref: "#offer",
-      secondaryLabel: "Jump to activity",
+      secondaryLabel: t("lead.detail.recommendation.openActivity"),
       secondaryHref: "#activity"
     };
   }
 
   return {
-    title: "Log activity or update status",
-    description:
-      "The core workflow artifacts already exist, so use the workspace to log a fresh activity or tighten the operational state.",
-    primaryLabel: "Log activity",
+    title: t("lead.detail.recommendation.logOrUpdate"),
+    description: t("lead.detail.recommendation.logOrUpdateDescription"),
+    primaryLabel: t("lead.detail.recommendation.logActivity"),
     primaryHref: "#activity",
-    secondaryLabel: "Update lead",
+    secondaryLabel: t("lead.detail.recommendation.updateLead"),
     secondaryHref: "#lead-controls"
   };
 }
 
-function getArtifactPanelTitle(name: string, count: number) {
-  return count === 0 ? `${name} not started` : `${name} ready`;
+function getArtifactPanelTitle(name: string, count: number, t: Translate) {
+  return count === 0
+    ? t("lead.detail.artifactNotStarted", { name })
+    : t("lead.detail.artifactReady", { name });
 }
 
 function getMiniAuditPanelStatus(drafts: Array<{ status: string }>) {
   return drafts[0].status as MiniAuditStatusValue;
 }
 
-function getMiniAuditPanelDescription(drafts: MiniAuditDraftRecord[]) {
+function getMiniAuditPanelDescription(drafts: MiniAuditDraftRecord[], t: Translate) {
   const latest = drafts[0];
   if (!latest) {
-    return "Capture the first review draft and a message angle.";
+    return t("lead.detail.reviewDescription");
   }
 
-  return latest.recommendation ?? latest.problem1 ?? "Compact review ready.";
+  return latest.recommendation ?? latest.problem1 ?? t("lead.detail.reviewReady");
 }
 
 function getMiniAuditPanelUpdatedAt(drafts: MiniAuditDraftRecord[]) {
   return drafts[0]?.updatedAt ?? null;
 }
 
-function getMiniAuditPanelAction(drafts: MiniAuditDraftRecord[]) {
-  return drafts.length === 0 ? "Create first draft" : "Open editor";
-}
-
 function getOutreachPanelStatus(drafts: OutreachDraftRecord[]) {
   return drafts[0].status as OutreachDraftStatusValue;
 }
 
-function getOutreachPanelDescription(drafts: OutreachDraftRecord[]) {
+function getOutreachPanelDescription(drafts: OutreachDraftRecord[], t: Translate) {
   const latest = drafts[0];
   if (!latest) {
-    return "Prepare the first message plan, channel, and follow-up metadata.";
+    return t("lead.detail.outreachDescription");
   }
 
-  return latest.subject ?? latest.openingHook ?? latest.message ?? "Latest outreach draft is ready.";
+  return latest.subject ?? latest.openingHook ?? latest.message ?? t("lead.detail.outreachReady");
 }
 
 function getOutreachPanelUpdatedAt(drafts: OutreachDraftRecord[]) {
   return drafts[0]?.updatedAt ?? null;
 }
 
-function getOutreachPanelAction(drafts: OutreachDraftRecord[]) {
-  return drafts.length === 0 ? "Create first draft" : "Open editor";
-}
-
-function getOfferPanelTitle(drafts: OfferDraftClientRecord[]) {
+function getOfferPanelTitle(drafts: OfferDraftClientRecord[], t: Translate) {
   const latest = drafts[0];
-  return latest ? latest.title : "Draft not started";
+  return latest ? latest.title : t("lead.detail.draftNotStarted");
 }
 
-function getOfferPanelDescription(drafts: OfferDraftClientRecord[]) {
+function getOfferPanelDescription(
+  drafts: OfferDraftClientRecord[],
+  t: Translate,
+  formatCurrency: (value: number, currency: string) => string
+) {
   const latest = drafts[0];
   if (!latest) {
-    return "Prepare the first draft when the lead is ready.";
+    return t("lead.detail.offerDescription");
   }
 
-  const price = latest.priceNet ? `${latest.currency} ${latest.priceNet}` : "No price set yet";
+  const price = latest.priceNet
+    ? formatCurrency(Number(latest.priceNet), latest.currency)
+    : t("lead.detail.noPrice");
   return [latest.title, price].filter(Boolean).join(" | ");
 }
 
@@ -542,8 +519,17 @@ function getOfferPanelUpdatedAt(drafts: OfferDraftClientRecord[]) {
   return drafts[0]?.updatedAt ?? null;
 }
 
-function getOfferPanelAction(drafts: OfferDraftClientRecord[]) {
-  return drafts.length === 0 ? "Create first draft" : "Open editor";
+function getArtifactPanelAction(drafts: unknown[], t: Translate) {
+  return drafts.length === 0 ? t("lead.detail.createFirstDraft") : t("lead.detail.openEditor");
+}
+
+function getArtifactFooter(
+  updatedAt: Date | null,
+  emptyMessage: string,
+  t: Translate,
+  formatDate: (value: Date) => string
+) {
+  return updatedAt ? t("lead.detail.updated", { date: formatDate(updatedAt) }) : emptyMessage;
 }
 
 function HeaderMetric({
@@ -588,8 +574,7 @@ function ArtifactPanel({
   description,
   statusBadge,
   packageBadge,
-  updatedAt,
-  emptyMessage,
+  footerText,
   actionLabel,
   children
 }: {
@@ -599,8 +584,7 @@ function ArtifactPanel({
   description: string;
   statusBadge: ReactNode;
   packageBadge: ReactNode | null;
-  updatedAt: Date | null;
-  emptyMessage: string;
+  footerText: string;
   actionLabel: string;
   children: ReactNode;
 }) {
@@ -617,7 +601,7 @@ function ArtifactPanel({
             <h3 className="text-xl font-semibold tracking-tight text-[color:var(--cb-foreground)]">{title}</h3>
             <p className="max-w-3xl text-sm leading-6 text-[color:var(--cb-muted-foreground)]">{description}</p>
             <p className="text-xs text-[color:var(--cb-muted-foreground)]">
-              {updatedAt ? `Updated ${formatShortDate(updatedAt)}` : emptyMessage}
+              {footerText}
             </p>
           </div>
 

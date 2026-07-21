@@ -53,16 +53,16 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(leadsPage, /packageFit: \["", \.\.\.filterOptions\.packageFit\]/);
 
   assert.match(leadFilters, /router\.replace\(/);
-  assert.match(leadFilters, /Updating\.\.\./);
-  assert.match(leadFilters, /Clear filters/);
+  assert.match(leadFilters, /t\("leads\.updating"\)/);
+  assert.match(leadFilters, /t\("leads\.clearFilters"\)/);
   assert.match(leadFilters, /resultSummary/);
   assert.match(leadFilters, /filterLabels/);
 
-  assert.match(leadPagination, /aria-label="Lead pagination"/);
+  assert.match(leadPagination, /aria-label=\{t\("leads\.pagination"\)\}/);
   assert.match(leadPagination, /aria-current="page"/);
   assert.match(leadPagination, /aria-disabled="true"/);
-  assert.match(leadPagination, /Previous/);
-  assert.match(leadPagination, /Next/);
+  assert.match(leadPagination, /t\("leads\.previous"\)/);
+  assert.match(leadPagination, /t\("leads\.next"\)/);
 
   assert.match(leadFilters, /htmlFor=\{selectId\}/);
   assert.match(leadFilters, /id=\{selectId\}/);
@@ -74,7 +74,7 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(workPage, /dueToday/);
   assert.match(workPage, /upcoming/);
   assert.match(workPage, /noAction/);
-  assert.match(workPage, /Quick update/);
+  assert.match(workPage, /t\("work\.quickUpdate"\)/);
   assert.match(workPage, /\/leads\/\$\{lead\.id\}#quick-update/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
@@ -86,8 +86,8 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(globalsCss, /html\s*\{\s*scrollbar-gutter:\s*stable;\s*\}/s);
   assert.match(leadTable, /text-left sm:text-center/);
   assert.match(workPage, /text-left sm:text-center/);
-  assert.match(leadTable, /No records match the current filters\./);
-  assert.match(workPage, /No records in this bucket\./);
+  assert.match(leadTable, /t\("leads\.empty"\)/);
+  assert.match(workPage, /t\("work\.empty"\)/);
   assert.doesNotMatch(leadTable, /text-center[^\\S\r\n]*text-left/);
 
   assert.match(salesReportPage, /getSalesReport\(\)/);

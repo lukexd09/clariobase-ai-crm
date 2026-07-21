@@ -6,7 +6,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { enUS } from "../src/i18n/dictionaries/en-US";
 import { plPL } from "../src/i18n/dictionaries/pl-PL";
-import { formatCurrency, formatDate, formatDateTime, formatNumber, formatPercent } from "../src/i18n/format";
+import { formatCurrency, formatDate, formatDateTime, formatDateTimeLocalInput, formatNumber, formatPercent } from "../src/i18n/format";
 import { I18nProvider, useI18n } from "../src/i18n/provider";
 import { resolveRequestLocale } from "../src/i18n/resolve-request-locale";
 import { createTranslator, getPlaceholders } from "../src/i18n/translate";
@@ -63,6 +63,9 @@ test("formatters use locale conventions and deterministic Warsaw time", () => {
     formatPercent("en-US", 0.255, { maximumFractionDigits: 1 })
   );
   assert.match(formatCurrency("pl-PL", 1234.5, "PLN"), /1[\s\u00a0]?234,50/);
+  assert.equal(formatCurrency("pl-PL", 1234.5, "123"), "Niedostępne");
+  assert.equal(formatDateTimeLocalInput(new Date("2026-01-15T12:00:00.000Z")), "2026-01-15T13:00");
+  assert.equal(formatDateTimeLocalInput(new Date("2026-07-15T12:00:00.000Z")), "2026-07-15T14:00");
   assert.equal(formatDate("pl-PL", "invalid"), "Niedostępne");
   assert.equal(formatDate("en-US", "2026-02-31"), "Unavailable");
   assert.equal(formatDate("en-US", "01/02/2026"), "Unavailable");

@@ -2,15 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createLeadActivity, buildLeadUpdateActivityBody } from "@/lib/activities";
-import { requireUser, unauthorizedResult } from "@/lib/auth-context";
+import { requireUser } from "@/lib/auth-context";
 import { leadUpdateSchema } from "@/lib/lead-form";
 import { getLeadById, updateLeadOperationalFields } from "@/lib/leads";
+import { normalizeLeadNoticeCode } from "@/lib/lead-notices";
 
 export async function updateLeadAction(leadId: string, formData: FormData) {
   try {
     await requireUser();
   } catch {
-    return unauthorizedResult();
+    return { ok: false, code: "unauthorized", status: 401 as const };
   }
 
   const parsed = leadUpdateSchema.safeParse({
@@ -23,7 +24,7 @@ export async function updateLeadAction(leadId: string, formData: FormData) {
   if (!parsed.success) {
     return {
       ok: false,
-      message: parsed.error.issues[0]?.message ?? "Invalid lead update"
+      code: normalizeLeadNoticeCode(parsed.error.issues[0]?.message, "invalid_lead_update")
     };
   }
 
@@ -55,6 +56,6 @@ export async function updateLeadAction(leadId: string, formData: FormData) {
 
   return {
     ok: true,
-    message: "Lead updated"
+    code: "lead_updated"
   };
 }

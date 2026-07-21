@@ -13,15 +13,14 @@ test("dashboard page exposes the production priorities and pipeline snapshot", (
   assert.match(routeSource, /SignInForm/);
   assert.match(routeSource, /getCurrentUser/);
   assert.match(pageSource, /<h1 className="text-\[2rem\]/);
-  assert.match(pageSource, /Your priorities for 21 June 2026/);
-  assert.match(pageSource, /aria-label="Dashboard metrics"/);
+  assert.match(pageSource, /t\("dashboard\.prioritiesFor"/);
+  assert.match(pageSource, /aria-label=\{t\("dashboard\.metrics"\)\}/);
   assert.match(pageSource, /Lumina PMU Studio/);
   assert.match(pageSource, /Aurora Nail Studio/);
   assert.match(pageSource, /Sienna Dental Care/);
   assert.match(pageSource, /Velvet Brows & Lashes/);
   assert.match(pageSource, /DashboardDataQualityAlert/);
-  assert.match(pageSource, /MetricCard label="Overdue" value="2" tone="danger"/);
-  assert.match(pageSource, /aria-label="Dashboard metrics"/);
+  assert.match(pageSource, /MetricCard label=\{t\("dashboard\.metric\.overdue"\)\} value=\{formatNumber\(2\)\} tone="danger"/);
   assert.doesNotMatch(pageSource, /Focus on Conversion/);
   assert.doesNotMatch(pageSource, /motivational quote/i);
   assert.doesNotMatch(pageSource, /stock image/i);

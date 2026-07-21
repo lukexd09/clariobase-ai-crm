@@ -3,16 +3,17 @@
 import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { createLeadActivity } from "@/lib/activities";
-import { requireUser, unauthorizedResult } from "@/lib/auth-context";
+import { requireUser } from "@/lib/auth-context";
 import { offerDraftFormSchema } from "@/lib/offer-draft-form";
 import { createOfferDraft, updateOfferDraft } from "@/lib/offer-drafts";
 import { prisma } from "@/lib/prisma";
+import { normalizeLeadNoticeCode } from "@/lib/lead-notices";
 
 export async function saveOfferDraftAction(leadId: string, formData: FormData) {
   try {
     await requireUser();
   } catch {
-    return unauthorizedResult();
+    return { ok: false, code: "unauthorized", status: 401 as const };
   }
 
   const parsed = offerDraftFormSchema.safeParse({
@@ -35,7 +36,7 @@ export async function saveOfferDraftAction(leadId: string, formData: FormData) {
   if (!parsed.success) {
     return {
       ok: false,
-      message: parsed.error.issues[0]?.message ?? "Invalid offer draft"
+      code: normalizeLeadNoticeCode(parsed.error.issues[0]?.message, "invalid_offer")
     };
   }
 
@@ -70,7 +71,7 @@ export async function saveOfferDraftAction(leadId: string, formData: FormData) {
   if (!savedDraft) {
     return {
       ok: false,
-      message: "Offer draft not found"
+      code: "offer_not_found"
     };
   }
 
@@ -112,6 +113,6 @@ export async function saveOfferDraftAction(leadId: string, formData: FormData) {
 
   return {
     ok: true,
-    message: parsed.data.draftId ? "Offer draft updated" : "Offer draft created"
+    code: parsed.data.draftId ? "offer_updated" : "offer_created"
   };
 }

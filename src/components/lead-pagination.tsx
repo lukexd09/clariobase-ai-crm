@@ -2,8 +2,9 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/clariobase-ui";
 import { buildLeadUrl, type LeadSearchParamsInput } from "@/lib/lead-query";
 import { getLeadPaginationItems } from "@/lib/lead-pagination";
+import { getI18n } from "@/i18n/server";
 
-export function LeadPagination({
+export async function LeadPagination({
   pathname,
   searchParams,
   page,
@@ -14,25 +15,25 @@ export function LeadPagination({
   page: number;
   totalPages: number;
 }) {
+  const { t, formatNumber } = await getI18n();
   const pages = getLeadPaginationItems(page, totalPages);
   const previousPage = page > 1 ? page - 1 : null;
   const nextPage = page < totalPages ? page + 1 : null;
 
   return (
-    <nav aria-label="Lead pagination" className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-3">
-      <p className="text-sm text-[color:var(--cb-muted-foreground)]">
-        Page <span className="tabular-nums font-medium text-[color:var(--cb-foreground)]">{page}</span> of{" "}
-        <span className="tabular-nums font-medium text-[color:var(--cb-foreground)]">{totalPages}</span>
+    <nav aria-label={t("leads.pagination")} className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-3">
+      <p className="text-sm tabular-nums text-[color:var(--cb-muted-foreground)]">
+        {t("leads.pageOf", { page: formatNumber(page), total: formatNumber(totalPages) })}
       </p>
 
       <div className="flex flex-wrap items-center gap-1">
         {previousPage ? (
           <ButtonLink href={buildLeadUrl(pathname, searchParams, { page: previousPage })} variant="secondary" className="min-h-9 px-3 py-1.5">
-            Previous
+            {t("leads.previous")}
           </ButtonLink>
         ) : (
           <span aria-disabled="true" className="inline-flex min-h-9 items-center rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 text-sm font-medium text-[color:var(--cb-muted-foreground)]">
-            Previous
+            {t("leads.previous")}
           </span>
         )}
 
@@ -64,11 +65,11 @@ export function LeadPagination({
 
         {nextPage ? (
           <ButtonLink href={buildLeadUrl(pathname, searchParams, { page: nextPage })} variant="secondary" className="min-h-9 px-3 py-1.5">
-            Next
+            {t("leads.next")}
           </ButtonLink>
         ) : (
           <span aria-disabled="true" className="inline-flex min-h-9 items-center rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] px-3 text-sm font-medium text-[color:var(--cb-muted-foreground)]">
-            Next
+            {t("leads.next")}
           </span>
         )}
       </div>

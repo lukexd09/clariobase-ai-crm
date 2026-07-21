@@ -23,8 +23,8 @@ test("core CRM work screens use the light shell baseline", () => {
   assert.match(homepage, /SignInForm/);
   assert.match(homepage, /getCurrentUser/);
   assert.match(dashboardPage, /DashboardDataQualityAlert/);
-  assert.match(dashboardPage, /aria-label="Dashboard metrics"/);
-  assert.match(dashboardPage, /PipelineSnapshot items=\{pipeline\}/);
+  assert.match(dashboardPage, /aria-label=\{t\("dashboard\.metrics"\)\}/);
+  assert.match(dashboardPage, /PipelineSnapshot items=\{pipeline\.map/);
   assert.doesNotMatch(dashboardPage, /text-\[0\.68rem\]/);
   assert.match(appShell, /nav aria-label=\{t\("shell\.primaryNavigation"\)\}/);
   assert.match(appShell, /SheetTrigger/);
@@ -42,7 +42,7 @@ test("core CRM work screens use the light shell baseline", () => {
     assert.doesNotMatch(source, /bg-slate-50/);
     assert.doesNotMatch(source, /max-w-7xl/);
   }
-  assert.match(leadsPage, /Workspace/);
+  assert.match(leadsPage, /t\("leads\.eyebrow"\)/);
   assert.match(leadsPage, /PageSurface/);
   assert.match(leadsPage, /LeadTable/);
 });
@@ -76,12 +76,12 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(salesReportPage, /TableSurface/);
 
   assert.match(leadFilters, /fieldset/);
-  assert.match(leadFilters, /legend className="sr-only">Filter leads<\/legend>/);
-  assert.match(leadFilters, /Result summary/);
+  assert.match(leadFilters, /t\("leads\.filterLegend"\)/);
+  assert.match(leadFilters, /t\("leads\.resultSummary"\)/);
   assert.match(leadFilters, /Select/);
   assert.match(leadFilters, /xl:grid-cols-4/);
   assert.match(leadFilters, /resultSummary/);
-  assert.match(leadFilters, /Clear filters/);
+  assert.match(leadFilters, /t\("leads\.clearFilters"\)/);
   assert.doesNotMatch(leadFilters, /Apply filters/);
   assert.match(leadFilters, /<Badge tone="neutral">/);
 
@@ -92,7 +92,7 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(leadTable, /appearance="foundation"/);
   assert.match(leadTable, /tabular-nums/);
   assert.match(leadTable, /text-left sm:text-center/);
-  assert.match(leadTable, /No records match the current filters\./);
+  assert.match(leadTable, /t\("leads\.empty"\)/);
 
   assert.match(workPage, /dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"/);
   assert.match(workPage, /xl:grid-cols-4/);
@@ -102,15 +102,15 @@ test("core CRM work screens keep semantic light status pills and accessible tabl
   assert.match(workPage, /tabular-nums/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
-  assert.match(workPage, /Quick update/);
+  assert.match(workPage, /t\("work\.quickUpdate"\)/);
   assert.doesNotMatch(
     workPage,
     /Open the day here, see which leads need attention first, and jump straight into the existing quick update form on each lead\./
   );
   assert.match(workPage, /text-left sm:text-center/);
-  assert.match(workPage, /No records in this bucket\./);
+  assert.match(workPage, /t\("work\.empty"\)/);
 
-  assert.match(dashboardPage, /Today's priorities|Today&apos;s priorities|Today&#x27;s priorities/);
+  assert.match(dashboardPage, /t\("dashboard\.todayPriorities"\)/);
   assert.match(dashboardPage, /DashboardDataQualityAlert/);
 });
 
@@ -125,13 +125,13 @@ test("leads screen keeps a compact operational header and active filter chips", 
   assert.doesNotMatch(leadsPage, /Current filter/);
   assert.doesNotMatch(leadsPage, /Visible rows/);
   assert.doesNotMatch(leadsPage, /leads\.length === 1 \? "lead" : "leads"/);
-  assert.match(leadFilters, /aria-label="Active filters"/);
+  assert.match(leadFilters, /aria-label=\{t\("leads\.activeFilters"\)\}/);
   assert.match(
     leadFilters,
     /<Badge tone="neutral">/
   );
-  assert.match(leadFilters, /filterLabels: Record<keyof FilterOptions, string>/);
-  assert.match(leadFilters, /formatFilterValue\(value: string\)/);
+  assert.match(leadFilters, /filterLabels: Record<keyof FilterOptions, TranslationKey>/);
+  assert.match(leadFilters, /key === "city" \? value : t\(getTaxonomyTranslationKey\(value\)\)/);
   assert.match(leadFilters, /router\.replace\(/);
   assert.match(leadFilters, /useTransition/);
 });

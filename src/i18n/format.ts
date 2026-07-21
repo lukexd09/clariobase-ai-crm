@@ -26,7 +26,25 @@ export function formatPercent(locale: Locale, value: number, options?: Intl.Numb
 }
 
 export function formatCurrency(locale: Locale, value: number, currency: string, options?: Intl.NumberFormatOptions) {
+  if (!/^[A-Za-z]{3}$/.test(currency)) return unavailable(locale);
   return formatNumber(locale, value, { style: "currency", currency, ...options });
+}
+
+export function formatDateTimeLocalInput(value: DateInput | null | undefined) {
+  if (value === null || value === undefined) return "";
+  const date = normalizeDate(value, false);
+  if (!date) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: PRESENTATION_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
 }
 
 function normalizeDate(value: DateInput, preserveDateOnly: boolean) {
