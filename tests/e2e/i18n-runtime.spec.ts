@@ -141,6 +141,44 @@ test.describe("E010 request locale runtime", () => {
     }
   });
 
+  test("@area:i18n workbench stays readable at desktop and compact widths", async ({ browser }) => {
+    const email = process.env.PLAYWRIGHT_E010_USER_EMAIL;
+    const password = process.env.PLAYWRIGHT_E010_USER_PASSWORD;
+    expect(email).toBeTruthy();
+    expect(password).toBeTruthy();
+    if (!email || !password) throw new Error("Missing disposable non-admin fixture");
+    const context = await browser.newContext({ storageState: undefined, locale: "pl-PL" });
+    const page = await context.newPage();
+
+    try {
+      await page.goto("/sign-in");
+      await page.getByLabel("E-mail").fill(email);
+      await page.getByLabel("Hasło").fill(password);
+      await page.locator('button[type="submit"]').click();
+      await page.waitForURL((url) => url.pathname === "/");
+
+      for (const width of [1440, 1280, 1024]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto("/work");
+        const tableRegion = page.locator('[data-slot="table-surface"]:has(a[href*="#quick-update"])').first();
+        await expect(tableRegion).toBeVisible();
+        const overflow = await tableRegion.evaluate((element) => ({
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth
+        }));
+        expect(overflow.scrollWidth, `${width}px table should retain its minimum width`).toBeGreaterThan(overflow.clientWidth);
+
+        const row = tableRegion.locator('tbody tr:has(a[href*="#quick-update"])').first();
+        await expect(row.locator('a[href*="#quick-update"]').last()).toBeVisible();
+        expect(await row.locator("td").nth(3).locator("span").first().evaluate((element) => getComputedStyle(element).whiteSpace)).toBe("nowrap");
+        expect(await row.locator("td").nth(7).evaluate((element) => getComputedStyle(element).whiteSpace)).toBe("nowrap");
+        expect(await row.locator("td").first().locator("a").evaluate((element) => getComputedStyle(element).webkitLineClamp)).toBe("2");
+      }
+    } finally {
+      await context.close();
+    }
+  });
+
   test("@area:i18n admin route denies anonymous and ordinary users without locale drift", async ({ browser }) => {
     const email = process.env.PLAYWRIGHT_E010_USER_EMAIL;
     const password = process.env.PLAYWRIGHT_E010_USER_PASSWORD;

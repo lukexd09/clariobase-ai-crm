@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { getVisibleWorkbenchScoreLabel } from "@/lib/workbench-presentation";
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -78,6 +79,14 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(workPage, /\/leads\/\$\{lead\.id\}#quick-update/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
+  assert.match(workPage, /<Table className="w-full min-w-\[1240px\] table-fixed">/);
+  assert.equal((workPage.match(/appearance="foundation" className="whitespace-nowrap"/g) ?? []).length, 3);
+  assert.match(workPage, /TableCell className="whitespace-nowrap tabular-nums/);
+  assert.match(workPage, /line-clamp-2 max-w-44 break-words/);
+  assert.match(workPage, /line-clamp-2 break-words/);
+  assert.match(workPage, /getVisibleWorkbenchScoreLabel\(lead\.scoreTotal, lead\.scoreLabel\)/);
+  assert.match(workPage, /max-w-24 truncate whitespace-nowrap text-xs/);
+  assert.match(workPage, /className="!min-h-9 !px-3 !py-1\.5 whitespace-nowrap"/);
   assert.match(workPage, /<dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">[\s\S]*<div className=/);
   assert.doesNotMatch(workPage, /<p className="text-\[11px\] font-semibold uppercase tracking-\[0\.18em\]/);
   assert.doesNotMatch(workPage, /<dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">[\s\S]*<div key=/);
@@ -101,4 +110,14 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(salesReportPage, /sales\.totalLast7/);
   assert.doesNotMatch(salesReportPage, /Track the same operational counts, draft states and workbench health used elsewhere in the CRM\./);
   assert.doesNotMatch(salesReportPage, /description="Track the same operational counts/);
+});
+
+test("workbench score label hides only technical repetitions of the primary number", () => {
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "81"), null);
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "Score: 81"), null);
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "score_total=81"), null);
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "Wynik 81"), null);
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "  Strong match  "), "Strong match");
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "Score 82"), "Score 82");
+  assert.equal(getVisibleWorkbenchScoreLabel(81, null), null);
 });
