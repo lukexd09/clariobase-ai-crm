@@ -910,6 +910,7 @@ jobs:
       - name: Verify preview readiness
         if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
+        working-directory: control
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
         run: |
