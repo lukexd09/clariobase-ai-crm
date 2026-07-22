@@ -203,6 +203,11 @@ test("Preview Release readiness uses the external runtime probe", () => {
   const workflow = read(".github/workflows/preview-release.yml");
   const readinessStep = extractWorkflowStepBlock(workflow, "Verify preview readiness");
 
+  assert.match(readinessStep, /working-directory: control/);
+  assert.match(readinessStep, /--env-file \.\\.env\.compose\.preview\.local/);
+  assert.match(readinessStep, /-f compose\.yaml/);
+  assert.match(readinessStep, /-f compose\.preview\.yaml/);
+  assert.match(readinessStep, /-f compose\.preview\.private-https\.yaml/);
   assert.match(readinessStep, /scripts\\verify-preview-readiness\.mjs/);
   assert.match(readinessStep, /--ca-path \$previewCaPath/);
   assert.match(readinessStep, /--hostname \$previewHost/);
