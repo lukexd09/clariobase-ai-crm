@@ -175,6 +175,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Lint GitHub Actions workflows
+        run: pnpm lint:actions
+
       - name: Fast tests
         run: pnpm test:fast
 
