@@ -1,5 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
-import { Badge, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
+import { Badge, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader } from "@/components/clariobase-ui";
 import { TechnicalDisclosure } from "@/components/data-quality-primitives";
 import { getI18n } from "@/i18n/server";
 import { getRuntimeReadiness } from "@/lib/runtime-readiness";
@@ -39,7 +39,7 @@ export default async function HealthPage() {
       <Surface>
         <SurfaceHeader>
           <p className="text-sm font-medium text-[color:var(--cb-accent)]">{t("health.eyebrow")}</p>
-          <SurfaceTitle>{t("health.title")}</SurfaceTitle>
+          <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--cb-foreground)] sm:text-3xl">{t("health.title")}</h1>
           <SurfaceDescription>{t("health.description")}</SurfaceDescription>
         </SurfaceHeader>
         <SurfaceContent className="space-y-5">
