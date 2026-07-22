@@ -57,6 +57,7 @@ test("dashboard renders CRM values, direct lead links and active duplicate count
   assert.match(markup, /Potential duplicates requiring review: 2/);
   assert.match(markup, /Intake/);
   assert.match(markup, /Contact and conversation/);
+  assert.equal((markup.match(/style="width:0%"/g) ?? []).length, 1);
   assert.doesNotMatch(markup, /2026-06-21|Lumina|Aurora|Sienna|Velvet/);
 });
 

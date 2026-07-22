@@ -91,7 +91,7 @@ export function PipelineSnapshot({ items }: { items: readonly { stage: string; v
               <div aria-hidden="true" className="h-1.5 rounded-full bg-[color:var(--cb-surface)]">
                 <div
                   className="h-1.5 rounded-full bg-[color:var(--cb-neutral)]"
-                  style={{ width: maximumValue === 0 ? "0%" : `${Math.max(8, (item.value / maximumValue) * 100)}%` }}
+                  style={{ width: item.value === 0 || maximumValue === 0 ? "0%" : `${Math.max(8, (item.value / maximumValue) * 100)}%` }}
                 />
               </div>
             </div>
