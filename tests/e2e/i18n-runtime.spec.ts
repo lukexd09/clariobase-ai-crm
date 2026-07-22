@@ -126,6 +126,9 @@ test.describe("E010 request locale runtime", () => {
       await page.goto("/");
       await expect(page.locator("html")).toHaveAttribute("lang", "pl-PL");
       await expect(page.getByRole("link", { name: "Pulpit" }).first()).toBeVisible();
+      const accountSummary = page.locator('summary[aria-label^="Menu konta:"]').first();
+      await accountSummary.focus();
+      await accountSummary.press("Enter");
       const signOut = page.getByRole("button", { name: "Wyloguj się" }).first();
       await expect(signOut).toBeVisible();
       await signOut.click();
@@ -259,6 +262,11 @@ test.describe("E010 request locale runtime", () => {
       await expect(page.getByRole("heading", { name: "Dostęp użytkowników" })).toBeVisible();
       await page.goto("/health");
       await expect(page.getByRole("heading", { name: "Kontrola działania" })).toBeVisible();
+      await expect(page.getByText("Aplikacja", { exact: true })).toBeVisible();
+      await expect(page.getByText("Baza danych", { exact: true }).first()).toBeVisible();
+      await expect(page.getByText("Logowanie", { exact: true }).first()).toBeVisible();
+      await expect(page.getByText("Ostatnia kontrola", { exact: true })).toBeVisible();
+      await page.getByText("Szczegóły techniczne", { exact: true }).click();
       await expect(page.getByText("clariobase-ai-crm", { exact: true })).toBeVisible();
       const readyResponse = await page.request.get("/api/ready");
       expect(readyResponse.status()).toBe(200);

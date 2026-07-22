@@ -46,9 +46,11 @@ test("known duplicate signals localize while unknown stored labels stay availabl
 
 test("health keeps machine values while localizing presentation", () => {
   const health = read("src/app/health/page.tsx");
-  assert.match(health, /service: "clariobase-ai-crm"/);
-  assert.match(health, /status: "ok"/);
-  assert.match(health, /new Date\(\)\.toISOString\(\)/);
+  assert.match(health, /getRuntimeReadiness\(\)/);
+  assert.match(health, /\{body\.service\}/);
+  assert.match(health, /\{body\.status\}/);
+  assert.match(health, /formatDateTime\(body\.timestamp\)/);
+  assert.match(health, /TechnicalDisclosure/);
   assert.match(health, /t\("health\.title"\)/);
   assert.match(health, /noStore\(\)/);
 });

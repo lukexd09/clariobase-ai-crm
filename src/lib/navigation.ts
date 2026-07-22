@@ -34,7 +34,7 @@ export const NAVIGATION_GROUPS = [
     titleKey: "navigation.group.dataQuality",
     items: [
       { href: "/imports", labelKey: "navigation.imports", icon: "imports" },
-      { href: "/duplicates", labelKey: "navigation.duplicates", icon: "duplicates" }
+      { href: "/duplicates", labelKey: "navigation.duplicatesShort", icon: "duplicates" }
     ]
   },
   {

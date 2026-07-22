@@ -19,6 +19,7 @@ export const plPL = {
   "navigation.sales": "Operacje",
   "navigation.imports": "Importy",
   "navigation.duplicates": "Potencjalne duplikaty",
+  "navigation.duplicatesShort": "Duplikaty",
   "navigation.health": "Stan systemu",
   "auth.signIn.title": "Zaloguj się",
   "auth.signIn.description": "Użyj aktywnego konta, aby przejść do obszaru pracy.",
@@ -32,6 +33,7 @@ export const plPL = {
   "auth.account.signedInUser": "Zalogowany użytkownik",
   "auth.account.sessionActive": "Sesja aktywna",
   "auth.account.signOut": "Wyloguj się",
+  "auth.account.menuFor": "Menu konta: {name}",
   "shared.pagination": "Stronicowanie",
   "shared.scrollableTable": "Przewijana tabela",
   "environment.testDescription": "Środowisko testowe. Dane mogą zostać zresetowane lub usunięte.",
@@ -613,6 +615,17 @@ export const plPL = {
   ,"health.eyebrow": "Stan systemu"
   ,"health.title": "Kontrola działania"
   ,"health.description": "Szybkie potwierdzenie, że CRM odpowiada i udostępnia bieżący stan środowiska."
+  ,"health.application": "Aplikacja"
+  ,"health.database": "Baza danych"
+  ,"health.authentication": "Logowanie"
+  ,"health.working": "Działa"
+  ,"health.needsAttention": "Wymaga uwagi"
+  ,"health.available": "Dostępna"
+  ,"health.unavailable": "Niedostępna"
+  ,"health.configured": "Skonfigurowane"
+  ,"health.needsConfiguration": "Wymaga konfiguracji"
+  ,"health.lastCheck": "Ostatnia kontrola"
+  ,"health.technicalDetails": "Szczegóły techniczne"
   ,"health.service": "Usługa"
   ,"health.status": "Status"
   ,"health.timestamp": "Znacznik czasu"

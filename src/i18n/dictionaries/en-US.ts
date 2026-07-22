@@ -17,6 +17,7 @@ export const enUS = {
   "navigation.sales": "Operations",
   "navigation.imports": "Imports",
   "navigation.duplicates": "Possible duplicates",
+  "navigation.duplicatesShort": "Duplicates",
   "navigation.health": "System status",
   "auth.signIn.title": "Sign in",
   "auth.signIn.description": "Use your active account to continue into the workspace.",
@@ -30,6 +31,7 @@ export const enUS = {
   "auth.account.signedInUser": "Signed in user",
   "auth.account.sessionActive": "Session active",
   "auth.account.signOut": "Sign out",
+  "auth.account.menuFor": "Account menu for {name}",
   "shared.pagination": "Pagination",
   "shared.scrollableTable": "Scrollable table",
   "environment.testDescription": "Test environment. Data may be reset or deleted.",
@@ -611,6 +613,17 @@ export const enUS = {
   ,"health.eyebrow": "System status"
   ,"health.title": "Health check"
   ,"health.description": "Quick confirmation that the CRM is responding and serving the current runtime state."
+  ,"health.application": "Application"
+  ,"health.database": "Database"
+  ,"health.authentication": "Sign-in"
+  ,"health.working": "Working"
+  ,"health.needsAttention": "Needs attention"
+  ,"health.available": "Available"
+  ,"health.unavailable": "Unavailable"
+  ,"health.configured": "Configured"
+  ,"health.needsConfiguration": "Needs configuration"
+  ,"health.lastCheck": "Last check"
+  ,"health.technicalDetails": "Technical details"
   ,"health.service": "Service"
   ,"health.status": "Status"
   ,"health.timestamp": "Timestamp"

@@ -22,12 +22,12 @@ test("navigation config keeps canonical production groups", () => {
   );
   assert.deepEqual(
     NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => item.labelKey),
-    ["navigation.dashboard", "navigation.work", "navigation.leads", "navigation.sales", "navigation.imports", "navigation.duplicates", "navigation.health"]
+    ["navigation.dashboard", "navigation.work", "navigation.leads", "navigation.sales", "navigation.imports", "navigation.duplicatesShort", "navigation.health"]
   );
   const english = createTranslator("en-US");
   const polish = createTranslator("pl-PL");
-  assert.deepEqual(NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => english(item.labelKey)), ["Dashboard", "Daily work", "Leads", "Operations", "Imports", "Possible duplicates", "System status"]);
-  assert.deepEqual(NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => polish(item.labelKey)), ["Pulpit", "Panel pracy", "Leady", "Operacje", "Importy", "Potencjalne duplikaty", "Stan systemu"]);
+  assert.deepEqual(NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => english(item.labelKey)), ["Dashboard", "Daily work", "Leads", "Operations", "Imports", "Duplicates", "System status"]);
+  assert.deepEqual(NAVIGATION_GROUPS.flatMap((group) => group.items).map((item) => polish(item.labelKey)), ["Pulpit", "Panel pracy", "Leady", "Operacje", "Importy", "Duplikaty", "Stan systemu"]);
   assert.ok(!NAVIGATION_GROUPS.flatMap((group) => group.items).some((item) => item.href.startsWith("/ux-prototype")));
 });
 
@@ -76,8 +76,17 @@ test("app shell source uses semantic primary and compact navigation", () => {
   assert.doesNotMatch(shellSource, /<main className="min-h-screen/);
   assert.match(accountChip, /authClient\.useSession\(\)/);
   assert.match(accountChip, /SignOutButton/);
+  assert.match(accountChip, /<details/);
+  assert.match(accountChip, /<summary/);
+  assert.match(accountChip, /aria-describedby=\{emailDescriptionId\}/);
+  assert.match(accountChip, /title=\{displayName\}/);
+  assert.match(accountChip, /auth\.account\.menuFor/);
+  assert.match(accountChip, /truncate text-sm font-semibold/);
+  assert.doesNotMatch(accountChip, /uppercase tracking-\[0\.14em\]/);
+  assert.doesNotMatch(accountChip, /border-\[#|bg-white|text-\[#/);
   assert.match(accountChip, /router\.push\("\/sign-in"\)/);
   assert.match(accountChip, /auth\.account\.signIn/);
   assert.match(signOutButton, /authClient\.signOut/);
   assert.match(signOutButton, /router\.push\("\/sign-in"\)/);
+  assert.match(signOutButton, /focus-visible:ring-\[color:var\(--cb-focus-ring\)\]/);
 });
