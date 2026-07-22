@@ -72,6 +72,7 @@ export function PriorityItem({
 
 export function PipelineSnapshot({ items }: { items: readonly { stage: string; value: number }[] }) {
   const { t, formatNumber } = useI18n();
+  const maximumValue = Math.max(...items.map((item) => item.value), 0);
   return (
     <Surface>
       <SurfaceHeader>
@@ -90,7 +91,7 @@ export function PipelineSnapshot({ items }: { items: readonly { stage: string; v
               <div aria-hidden="true" className="h-1.5 rounded-full bg-[color:var(--cb-surface)]">
                 <div
                   className="h-1.5 rounded-full bg-[color:var(--cb-neutral)]"
-                  style={{ width: `${Math.max(8, Math.min(100, item.value * 5))}%` }}
+                  style={{ width: maximumValue === 0 ? "0%" : `${Math.max(8, (item.value / maximumValue) * 100)}%` }}
                 />
               </div>
             </div>
@@ -101,8 +102,10 @@ export function PipelineSnapshot({ items }: { items: readonly { stage: string; v
   );
 }
 
-export function DashboardDataQualityAlert() {
-  const { t } = useI18n();
+export function DashboardDataQualityAlert({ count }: { count: number }) {
+  const { t, formatNumber } = useI18n();
+  if (count === 0) return null;
+
   return (
     <Surface className="border px-4 py-3 shadow-none border-[color:var(--cb-warning)]/35 bg-[color:var(--cb-warning)]/10">
       <SurfaceHeader className="p-0">
@@ -114,7 +117,7 @@ export function DashboardDataQualityAlert() {
       <SurfaceContent className="p-0 pt-1">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SurfaceDescription className="text-[color:var(--cb-foreground)]">
-            {t("dashboard.duplicates")}
+            {t("dashboard.duplicates", { count: formatNumber(count) })}
           </SurfaceDescription>
           <ButtonLink href="/duplicates" variant="secondary">
             {t("dashboard.review")}

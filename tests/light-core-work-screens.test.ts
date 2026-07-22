@@ -24,7 +24,7 @@ test("core CRM work screens use the light shell baseline", () => {
   assert.match(homepage, /getCurrentUser/);
   assert.match(dashboardPage, /DashboardDataQualityAlert/);
   assert.match(dashboardPage, /aria-label=\{t\("dashboard\.metrics"\)\}/);
-  assert.match(dashboardPage, /PipelineSnapshot items=\{pipeline\.map/);
+  assert.match(dashboardPage, /PipelineSnapshot items=\{data\.pipeline\.map/);
   assert.doesNotMatch(dashboardPage, /text-\[0\.68rem\]/);
   assert.match(appShell, /nav aria-label=\{t\("shell\.primaryNavigation"\)\}/);
   assert.match(appShell, /SheetTrigger/);

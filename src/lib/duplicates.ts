@@ -54,6 +54,11 @@ const duplicateCandidateSelect = {
   }
 } satisfies Prisma.DuplicateCandidateSelect;
 
+export const ACTIVE_DUPLICATE_CANDIDATE_STATUSES = [
+  DuplicateCandidateStatus.OPEN,
+  DuplicateCandidateStatus.NEEDS_REVIEW
+] as const;
+
 export function normalizeDuplicateText(value: string | null | undefined) {
   if (!value) return "";
   return value
@@ -106,6 +111,16 @@ export async function getDuplicateCandidates() {
   return prisma.duplicateCandidate.findMany({
     orderBy: [{ updatedAt: "desc" }, { score: "desc" }],
     select: duplicateCandidateSelect
+  });
+}
+
+export async function getActiveDuplicateCandidateCount() {
+  return prisma.duplicateCandidate.count({
+    where: {
+      status: {
+        in: [...ACTIVE_DUPLICATE_CANDIDATE_STATUSES]
+      }
+    }
   });
 }
 
