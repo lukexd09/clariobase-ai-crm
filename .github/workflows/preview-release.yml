@@ -342,7 +342,7 @@ jobs:
           CI_RUN_URL: ${{ needs.resolve-preview-release.outputs.ci_run_url }}
           DATABASE_MODE: ${{ needs.resolve-preview-release.outputs.database_mode }}
           BLOCK_REASON: ${{ needs.resolve-preview-release.outputs.skip_reason }}
-          PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview_url }}
+          PREVIEW_URL: ${{ needs.resolve-preview-release.outputs.preview_url }}
         with:
           script: |
             const marker = "<!-- clariobase-preview-status -->";
@@ -910,6 +910,7 @@ jobs:
       - name: Verify preview readiness
         if: steps.revalidate.outputs.runner_revalidation_result == 'PASS'
         shell: pwsh
+        working-directory: control
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
         run: |
@@ -918,51 +919,25 @@ jobs:
           $previewPort = $previewUrl.Port
           $previewCaPath = Join-Path $env:RUNNER_TEMP "preview-root.crt"
 
-          docker compose --env-file .\.env.compose.preview.local -f compose.yaml -f compose.preview.yaml -f compose.preview.private-https.yaml cp crm-private-ingress:/data/caddy/pki/authorities/local/root.crt $previewCaPath
+          try {
+            docker compose `
+              --env-file .\.env.compose.preview.local `
+              -f compose.yaml `
+              -f compose.preview.yaml `
+              -f compose.preview.private-https.yaml `
+              cp crm-private-ingress:/data/caddy/pki/authorities/local/root.crt $previewCaPath
 
-          node -e @"
-const fs = require('node:fs');
-const https = require('node:https');
-const caPath = process.argv[1];
-const previewHost = process.argv[2];
-const previewPort = Number(process.argv[3]);
-const ca = fs.readFileSync(caPath);
-const request = https.request({
-  hostname: '127.0.0.1',
-  port: previewPort,
-  path: '/api/ready',
-  method: 'GET',
-  servername: previewHost,
-  ca,
-  rejectUnauthorized: true,
-  headers: {
-    host: `${previewHost}:${previewPort}`,
-    'Cache-Control': 'no-store'
-  }
-}, (response) => {
-  const chunks = [];
-  response.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-  response.on('end', () => {
-    if (response.statusCode !== 200) {
-      console.error(`Preview readiness HTTP status was ${response.statusCode}.`);
-      process.exit(1);
-    }
-    const preview = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-    if (preview.service !== 'clariobase-ai-crm' || preview.status !== 'ready' || preview.checks?.database !== 'ok' || preview.checks?.authentication !== 'ok') {
-      console.error(`Preview readiness failed: service=${preview.service ?? 'null'}, status=${preview.status ?? 'null'}, database=${preview.checks?.database ?? 'null'}, authentication=${preview.checks?.authentication ?? 'null'}.`);
-      process.exit(1);
-    }
-    process.exit(0);
-  });
-});
-request.on('error', (error) => {
-  console.error(error.message);
-  process.exit(1);
-});
-request.end();
-"@ $previewCaPath $previewHost $previewPort
+            node .\scripts\verify-preview-readiness.mjs `
+              --ca-path $previewCaPath `
+              --hostname $previewHost `
+              --port $previewPort
 
-          Remove-Item $previewCaPath -Force -ErrorAction SilentlyContinue
+            if ($LASTEXITCODE -ne 0) {
+              throw "Preview readiness verification failed."
+            }
+          } finally {
+            Remove-Item $previewCaPath -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Write deployment summary
         if: success() && steps.revalidate.outputs.runner_revalidation_result == 'PASS'

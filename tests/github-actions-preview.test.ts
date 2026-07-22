@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const repoRoot = path.resolve(__dirname, "..");
 const expectedRepository = "lukexd09/clariobase-ai-crm";
@@ -178,10 +179,14 @@ test("Preview Release exposes explicit source modes and the resolver policy modu
   const resolver = splitJobBlock(workflow, "resolve-preview-release", "report-blocked");
 
   assert.match(workflow, /^name: Preview Release$/m);
+  assert.match(workflow, /^on:\s*\n\s*workflow_dispatch:/m);
   assert.match(workflow, /source_mode:/);
   assert.match(workflow, /options:\s*\n\s*- open_pr\s*\n\s*- main/);
   assert.match(workflow, /pr_number:/);
   assert.match(workflow, /expected_sha:/);
+  assert.match(workflow, /database_mode:\s*\n\s*description: Preview database lifecycle mode/);
+  assert.match(workflow, /reset_confirmation:\s*\n\s*description: Exact confirmation phrase required for reset mode/);
+  assert.match(resolver, /Preview Release must be dispatched from main/);
   assert.match(resolver, /preview-release-policy\.js/);
   assert.match(resolver, /source_mode: \$\{\{ steps\.resolve\.outputs\.source_mode \}\}/);
   assert.match(resolver, /reporting_target: \$\{\{ steps\.resolve\.outputs\.reporting_target \}\}/);
@@ -192,6 +197,56 @@ test("Preview Release exposes explicit source modes and the resolver policy modu
   assert.match(resolver, /selectPreviewContextArtifact/);
   assert.doesNotMatch(workflow, /workflow_run:/);
   assert.doesNotMatch(workflow, /pull_request_target/);
+});
+
+test("Preview Release readiness uses the external runtime probe", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const readinessStep = extractWorkflowStepBlock(workflow, "Verify preview readiness");
+
+  assert.match(readinessStep, /working-directory: control/);
+  assert.match(readinessStep, /--env-file \.\\.env\.compose\.preview\.local/);
+  assert.match(readinessStep, /-f compose\.yaml/);
+  assert.match(readinessStep, /-f compose\.preview\.yaml/);
+  assert.match(readinessStep, /-f compose\.preview\.private-https\.yaml/);
+  assert.match(readinessStep, /scripts\\verify-preview-readiness\.mjs/);
+  assert.match(readinessStep, /--ca-path \$previewCaPath/);
+  assert.match(readinessStep, /--hostname \$previewHost/);
+  assert.match(readinessStep, /--port \$previewPort/);
+  assert.match(readinessStep, /finally \{/);
+  assert.doesNotMatch(readinessStep, /node -e @"/);
+  assert.doesNotMatch(workflow, /^const fs = require\('node:fs'\);/m);
+});
+
+test("report-blocked only reads outputs from jobs in its needs graph", () => {
+  const workflow = read(".github/workflows/preview-release.yml");
+  const blocked = splitJobBlock(workflow, "report-blocked", "report-queued");
+  const needsReferences = [...blocked.matchAll(/needs\.([a-z0-9-]+)\.outputs/g)].map((match) => match[1]);
+
+  assert.match(blocked, /needs: resolve-preview-release/);
+  assert.match(blocked, /PREVIEW_URL: \$\{\{ needs\.resolve-preview-release\.outputs\.preview_url \}\}/);
+  assert.doesNotMatch(blocked, /needs\.deploy-preview\.outputs/);
+  assert.deepEqual([...new Set(needsReferences)].sort(), ["resolve-preview-release"]);
+});
+
+test("actionlint gate validates all GitHub workflows", () => {
+  const packageJson = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
+  const ci = read(".github/workflows/ci.yml");
+  const lintActions = read("scripts/lint-actions.mjs");
+  const actionlintConfig = read(".github/actionlint.yaml");
+
+  assert.equal(packageJson.scripts["lint:actions"], "node scripts/lint-actions.mjs");
+  assert.match(ci, /pnpm lint:actions/);
+  assert.match(lintActions, /rhysd\/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667/);
+  assert.match(actionlintConfig, /clariobase-preview/);
+
+  const command = process.platform === "win32" ? "cmd.exe" : "corepack";
+  const args = process.platform === "win32" ? ["/d", "/s", "/c", "corepack pnpm lint:actions"] : ["pnpm", "lint:actions"];
+  const result = spawnSync(command, args, {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+
+  assert.equal(result.status, 0, result.error?.message || result.stderr || result.stdout);
 });
 
 test("Preview Release comment jobs only run for pull-request reporting targets", () => {

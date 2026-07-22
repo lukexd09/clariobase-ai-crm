@@ -1,0 +1,8 @@
+self-hosted-runner:
+  labels:
+    - self-hosted
+    - windows
+    - x64
+    - clariobase-preview
+
+config-variables: null
