@@ -212,6 +212,7 @@ test("Preview Release readiness uses the external runtime probe", () => {
   assert.match(readinessStep, /--ca-path \$previewCaPath/);
   assert.match(readinessStep, /--hostname \$previewHost/);
   assert.match(readinessStep, /--port \$previewPort/);
+  assert.match(readinessStep, /CRM_PREVIEW_IMAGE_REF: \$\{\{ needs\.build-preview-image\.outputs\.image_ref \}\}/);
   assert.match(readinessStep, /finally \{/);
   assert.doesNotMatch(readinessStep, /node -e @"/);
   assert.doesNotMatch(workflow, /^const fs = require\('node:fs'\);/m);
