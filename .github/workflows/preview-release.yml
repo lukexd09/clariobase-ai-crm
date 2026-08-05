@@ -913,6 +913,7 @@ jobs:
         working-directory: control
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
+          CRM_PREVIEW_IMAGE_REF: ${{ needs.build-preview-image.outputs.image_ref }}
         run: |
           $previewUrl = [Uri]$env:PREVIEW_URL
           $previewHost = $previewUrl.DnsSafeHost
