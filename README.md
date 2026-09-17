@@ -1,335 +1,123 @@
 # ClarioBase AI CRM
 
-Self-hosted, file-based AI-assisted CRM for ClarioBase lead management, sales workflow, mini-audits, outreach preparation, offer drafting and future UGC pipeline support.
+### A hands-on Technical PM case study: from business workflow to an operable, containerized product
 
-## Core idea
+ClarioBase AI CRM is a self-hosted sales workspace designed around a real small-business lead pipeline. It brings lead review, prioritization, activities, mini-audits, outreach drafts, offer preparation and controlled AI-assisted enrichment into one focused product.
 
-This is not intended to be a generic CRM. It is a lightweight operational CRM designed around:
+The repository demonstrates how I translate a business need into product scope, architecture, a traceable backlog, working software, quality controls and an operational runtime.
 
-- a lead harvester,
-- a dedicated CRM PostgreSQL database,
-- sales pipeline management,
-- scoring and prioritization,
-- mini-audits,
-- manual ChatGPT-assisted analysis through structured file exchange.
+| | |
+|---|---|
+| **My role** | Product owner · Technical Project Manager · solution designer · AI-assisted builder |
+| **Delivery scope** | Discovery → MVP definition → architecture → backlog → implementation → QA → containerization → release readiness |
+| **Core stack** | Next.js · TypeScript · PostgreSQL · Prisma · Zod · Tailwind CSS · shadcn/ui · Docker |
+| **Current status** | Functional CRM workflows, reporting, controlled AI file exchange and Dockerized runtime implemented |
 
-## Selected technical direction
+## What this project demonstrates
 
-```text
-Application: Next.js App Router
-Language: TypeScript
-Database: separate PostgreSQL database for CRM
-ORM / migrations: Prisma
-Validation: Zod
-UI foundation: Tailwind CSS + shadcn/ui
-Package manager: pnpm
-AI integration v1: file-based exchange only, no AI API calls
+- translating business operations into product requirements and executable scope,
+- making and documenting architecture and technology decisions,
+- structuring delivery through stable epic and task identifiers,
+- using AI to accelerate implementation while retaining human review and acceptance,
+- designing validation, duplicate review and import audit controls around data quality,
+- treating security, failure modes, backup/restore and operational readiness as product requirements,
+- moving beyond a prototype into a reproducible, containerized environment.
+
+## Product scope
+
+The current solution covers:
+
+- lead and contact management,
+- sales pipeline statuses, scoring and prioritization,
+- activities, tasks and next-action management,
+- a daily sales workbench,
+- mini-audit, outreach and offer drafts,
+- import audit and deterministic duplicate review,
+- lightweight sales reporting,
+- file-based AI export, validation and import workflows.
+
+## Architecture and operating principles
+
+- The CRM PostgreSQL database is the source of truth for operational sales data.
+- The lead harvester and CRM remain separate systems with separate databases.
+- AI collaboration is file-based in v1; the application makes no external AI API calls.
+- AI-prepared imports are validated and require manual review before application.
+- Duplicate candidates are reviewed rather than automatically merged or deleted.
+- Drafts never send outbound messages or execute commercial actions automatically.
+- Real lead data and environment secrets must not be committed to the repository.
+- Liveness and database-aware readiness checks make failure states visible.
+- Docker Compose provides reproducible local, test and preview runtime contracts.
+
+## Delivery approach
+
+Work is organized into coded epics and tasks (`E001`, `E001.T001`) so decisions, implementation and verification remain traceable. Architecture Decision Records, operational runbooks and epic-level quality audits live alongside the product.
+
+AI is used as an implementation and analysis partner, not as an owner of the product. I retain responsibility for scope, trade-offs, acceptance criteria, safety boundaries, verification and release decisions.
+
+## Current product areas
+
+- `/` — business-oriented dashboard
+- `/work` — daily sales workbench
+- `/leads` and `/leads/[id]` — lead review and operator workspace
+- `/reports/sales` — operational sales summary
+- `/imports` — import audit and row-level results
+- `/duplicates` — side-by-side duplicate review
+- `/health` — application liveness
+- `/api/ready` — database-aware readiness
+
+## Documentation map
+
+The detailed project documentation is intentionally kept in [`/docs`](./docs):
+
+- [Project context](./docs/00-project-context.md)
+- [MVP scope](./docs/05-mvp-scope.md)
+- [Ways of working](./docs/09-ways-of-working.md)
+- [Technical stack decision](./docs/10-technical-stack-decision.md)
+- [Work-item coding](./docs/12-work-item-coding.md)
+- [AI file exchange](./docs/04-ai-file-exchange.md)
+- [Container runtime](./docs/runtime/container-runtime.md)
+- [Preview environment](./docs/architecture/preview-environment.md)
+- [Architecture decisions](./docs/decisions)
+- [Verification evidence](./docs/verification)
+
+## Run locally
+
+### Application development
+
+```bash
+pnpm install
+cp .env.example .env.local
+pnpm prisma:generate
+pnpm prisma:validate
+pnpm dev
 ```
 
-## Work item coding
+Set `DATABASE_URL` in `.env.local` before starting database-backed workflows.
 
-All epics and tasks use stable codes:
+### Docker Compose runtime
 
-```text
-E001 - Epic name
-E001.T001 - Task name
+```bash
+cp .env.compose.example .env.compose.local
+docker compose --env-file .env.compose.local up -d crm-postgres
+docker compose --env-file .env.compose.local run --rm crm-app sh -lc "node ./node_modules/prisma/build/index.js migrate deploy"
+docker compose --env-file .env.compose.local up -d crm-app
 ```
 
-See `docs/12-work-item-coding.md` for the full standard.
-
-## Key principles
-
-- CRM PostgreSQL database is the source of truth for CRM operational data.
-- Harvester remains the lead acquisition/enrichment system.
-- Harvester database and CRM database should be separate.
-- CRM UI supports lead review, scoring, pipeline, tasks, activities, mini-audits and outreach drafts.
-- CRM UI also supports offer drafts for manual commercial preparation.
-- No external AI API in v1.
-- AI collaboration is file-based through `data/ai-exchange/`.
-- All AI imports must be validated and manually reviewed before applying changes.
-- Real lead data should not be committed to the repository by default.
-- The system should support ClarioBase first, UGC outreach second, and only later evolve into a product.
-
-## Initial scope
-
-- Leads
-- Contacts
-- Pipeline statuses
-- Scoring
-- Activities
-- Tasks
-- Mini-audits
-- Outreach drafts
-- Offer drafts
-- AI export packs
-- AI response import
-- Basic reporting
-
-## Required reading before implementation
-
-Before starting any coding task, read:
-
-- `docs/00-project-context.md`
-- `docs/05-mvp-scope.md`
-- `docs/08-codex-working-rules.md`
-- `docs/09-ways-of-working.md`
-- `docs/10-technical-stack-decision.md`
-- `docs/12-work-item-coding.md`
-
-For AI exchange work, also read:
-
-- `docs/04-ai-file-exchange.md`
-- `data/ai-exchange/inbox/sample-prepared-leads.json`
-
-For harvester integration work, first create/update:
-
-- `docs/11-harvester-integration-analysis.md`
-
-For the E007 lead detail operator workspace redesign, also read the binding Stitch reference set:
-
-- `docs/design/stitch/operator-workspace/`
-
-For the E009 light CRM visual direction and closeout work, also read:
-
-- `docs/design/light-crm-visual-direction.md`
-
-For the E014 containerized runtime foundation, also read:
-
-- `docs/runtime/container-runtime.md`
-- `docs/runtime/container-image.md`
-- `docs/operations/container-operations.md`
-- `docs/architecture/container-orchestration.md`
-- `docs/decisions/adr-e014-container-runtime.md`
-- `docs/verification/e014-epic-quality-audit.md`
-- `.env.compose.example` for the safe Compose variable contract template
-
-For the E016 manual preview foundation, also read:
-
-- `docs/architecture/preview-environment.md`
-- `docs/decisions/adr-e016-manual-preview.md`
-- `docs/operations/preview-operations.md`
-- `docs/operations/windows-self-hosted-runner.md`
-- `docs/verification/e016-integrated-assurance.md`
-- `.env.compose.preview.example`
-
-For a fresh repository-local Compose startup, use this sequence:
-
-1. Copy `.env.compose.example` to a local env file such as `.env.compose.local`.
-2. Set `CRM_POSTGRES_PASSWORD` in that local env file.
-3. `docker compose --env-file .env.compose.local up -d crm-postgres`
-4. `docker compose --env-file .env.compose.local run --rm crm-app sh -lc "node ./node_modules/prisma/build/index.js migrate deploy"`
-5. `docker compose --env-file .env.compose.local up -d crm-app`
-
-That sequence matches the approved E014 runtime contract for a fresh PostgreSQL volume.
-When you use the Compose runtime, run one-off CRM CLI workflows through direct `node` + `tsx` commands inside `crm-app` so they target the containerized CRM database while still using the bind-mounted `data/ai-exchange/` directory without depending on Corepack network access.
-E016 extends that runtime with a separate manual preview slot and must never reuse the protected production identity `clariobase-crm`.
+See the runtime and operations documentation before using preview, backup/restore or persistent environments.
 
 ## Repository structure
 
 ```text
-clariobase-ai-crm/
-- docs/                 # Product, process and technical documentation
-- data/ai-exchange/     # Local file exchange workspace
-  - inbox/              # Prepared files waiting for validation
-  - processing/         # Optional manual staging area
-  - outbox/             # Exported CRM files for review or ChatGPT preparation
-  - archive/            # Archived exchange files
-  - error/              # Invalid or rejected files
-- README.md
+src/                  Application code
+prisma/               Data model, migrations and seed data
+scripts/              Import, validation, AI exchange and runtime checks
+docs/                 Product, architecture, process and operations documentation
+data/ai-exchange/      Local human-in-the-loop AI exchange workspace
+.github/               Delivery workflows and repository automation
 ```
 
-## Current status
+## Related product
 
-Post-UI implementation, workflow stabilization, and light CRM visual foundation phase.
+- [ClarioBase production website](https://clariobase.pl/)
+- [Website repository](https://github.com/lukexd09/clariobase-main-page)
 
-Implemented now:
-
-- lead list and lead detail,
-- the lead detail operator workspace,
-- the daily sales workbench,
-- sales reporting,
-- import audit and duplicate review,
-- file-based AI export and validation.
-- a light CRM homepage that introduces the new business-friendly visual direction.
-- a shared light CRM app shell with left navigation on the main CRM screens.
-
-## App shell
-
-The main CRM screens use a shared light shell with grouped left navigation on desktop.
-Business work entries stay higher priority than system entries.
-The homepage now acts as the Dashboard entry screen inside the shell.
-
-## Sales workbench
-
-Open `/work` to see the first daily sales workbench. It groups actionable leads into overdue, due today, upcoming, and no-next-action buckets, and links each record to the existing quick update form on the lead detail page.
-
-## Sales reporting
-
-Open `/reports/sales` for a text-based operational summary of lead status usage, workbench health, draft readiness, and activity volume. It is intentionally lightweight and does not use charts.
-
-## Activity timeline
-
-Each lead detail page includes a lightweight activity timeline and a manual activity form for logging notes, calls, messages, and other interaction types. Seed data includes fake demo activities for local development.
-
-## Local app setup
-
-1. Install dependencies with `pnpm install`.
-2. Create a local `.env.local` file.
-3. Set `DATABASE_URL` to your local `clariobase_crm` PostgreSQL database.
-4. Do not commit `.env.local`.
-5. Generate Prisma Client with `pnpm prisma:generate`.
-6. Validate the schema with `pnpm prisma:validate`.
-7. If your local CRM database is available, create the initial migration with `pnpm prisma:migrate`.
-8. Seed local fake data with `pnpm prisma:seed` if your local CRM database is available.
-9. Start the app with `pnpm dev`.
-
-## Available scripts
-
-- `pnpm dev` - start the Next.js app locally
-- `pnpm build` - create a production build
-- `pnpm start` - run the production server
-- `pnpm lint` - run ESLint
-- `pnpm test` - run the Node test suite
-- `pnpm docker:test-image` - build and smoke-test the production CRM image
-- `pnpm docker:test-runtime` - verify the Compose runtime, readiness, restart, and failure behavior
-- `pnpm docker:test-backup-restore` - verify logical backup and restore on a disposable CRM database
-- `pnpm cleanup:test-runtime` - remove only approved disposable E014 runtime artifacts and approved disposable `.codex-tmp/` entries
-- `pnpm prisma:generate` - generate Prisma Client
-- `pnpm prisma:validate` - validate the Prisma schema
-- `pnpm prisma:migrate` - apply local CRM migrations
-- `pnpm prisma:seed` - seed fake local CRM data
-- `pnpm leads:import` - import a local JSON lead file
-- `pnpm leads:detect-duplicates` - scan leads for likely duplicates
-- `pnpm ai:export-leads` - export local CRM context to `data/ai-exchange/outbox/`
-- `pnpm ai:validate-import-file` - validate a prepared AI import file before import
-
-## Health check
-
-Open `/health` after starting the app to verify the CRM app is running.
-`/health` is the HTTP liveness check for the Next.js process, returns a fresh timestamp on every request, and is intentionally non-cacheable.
-`/api/ready` is the database-aware readiness check and returns HTTP `503` when the configured CRM PostgreSQL database is unavailable.
-Run `corepack pnpm docker:test-runtime` to verify the documented Compose startup, readiness, failure-path, and restart behavior against isolated test resources.
-Run `corepack pnpm docker:test-backup-restore` to verify the documented logical backup and restore flow against isolated disposable CRM data.
-Run `corepack pnpm cleanup:test-runtime` to remove only disposable E014 runtime artifacts and approved disposable `.codex-tmp/` entries. It must never target the persistent operator stack `clariobase-crm`.
-The approved container runtime contract and runtime verification semantics for E014 are documented in `docs/runtime/container-runtime.md`.
-
-## Lead activity, mini-audit, outreach and offer drafts
-
-Open a lead in `/leads/[id]` to work with:
-
-- the quick operational update form,
-- the activity timeline,
-- mini-audit drafts,
-- outreach drafts,
-- offer drafts.
-
-Safety rules:
-
-- No additional Prisma models beyond the sales workflow foundation are introduced for activities, mini-audits, outreach drafts or offer drafts.
-- Offer drafts remain local CRM records only and do not send, export or execute a commercial workflow automatically.
-- Drafts are local CRM records only and do not send email, Instagram or other outbound messages.
-- The existing lead detail page remains the place where operators review and save these records.
-
-## Local import
-
-Import a local JSON file with fake lead data:
-
-```bash
-corepack pnpm leads:import ./data/import/sample-leads.json
-```
-
-Safety rules:
-
-- Use fake data only.
-- Do not commit `.env.local`.
-- Do not mutate the harvester database.
-- Re-imports do not overwrite operational CRM fields like status, priority, package fit or next action date.
-- The importer validates rows and rejects invalid ones with clear reasons.
-- The import is idempotent by `source + sourceRecordId` when available, then by `customerId`.
-
-After importing, review the audit trail in the app:
-
-- `/imports` for the batch list
-- `/imports/[id]` for row-level results and lead links
-
-## Duplicate review
-
-After running imports, detect likely duplicate leads with:
-
-```bash
-corepack pnpm leads:detect-duplicates
-```
-
-Then review candidates in the app:
-
-- `/duplicates` for the candidate list
-- `/duplicates/[id]` for side-by-side review
-
-Safety rules:
-
-- Use deterministic rules only; no AI matching.
-- Do not auto-merge leads.
-- Do not delete leads.
-- Do not commit `.env.local`.
-- Do not mutate the harvester database.
-
-## AI file exchange
-
-ClarioBase also supports a local, file-based ChatGPT workflow without calling any external AI API.
-
-### Folder convention
-
-```text
-data/ai-exchange/
-- inbox/       # Prepared files waiting for validation
-- processing/  # Optional manual staging area
-- outbox/      # Exported CRM files for review or ChatGPT preparation
-- archive/     # Archived exchange files
-- error/       # Invalid or rejected files
-```
-
-### Export a local review file
-
-```bash
-corepack pnpm ai:export-leads
-```
-
-This writes a JSON file into `data/ai-exchange/outbox/` containing local CRM lead context for review and manual ChatGPT preparation. It does not call any AI service and does not export `.env` data or harvester data.
-
-### Validate a prepared import file
-
-```bash
-corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
-```
-
-The validator checks that the file is valid JSON, contains a top-level array, and matches the same row contract used by `leads:import`. It prints total rows, valid rows, invalid rows, and row-level validation errors. A non-zero exit code means the file should not be imported yet.
-
-### Manual workflow
-
-```bash
-# user reviews or prepares the file with ChatGPT outside the app
-corepack pnpm ai:validate-import-file ./data/ai-exchange/inbox/prepared-leads.json
-corepack pnpm leads:import ./data/ai-exchange/inbox/prepared-leads.json
-corepack pnpm leads:detect-duplicates
-```
-
-With the repository-local Compose runtime, use the same workflow through the app container:
-
-```bash
-docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-ai-leads.ts
-docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/validate-ai-import-file.ts ./data/ai-exchange/inbox/prepared-leads.json
-docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/import-leads.ts ./data/ai-exchange/inbox/prepared-leads.json
-docker compose --env-file .env.compose.local run --rm crm-app node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/detect-duplicates.ts
-```
-
-### Safety rules
-
-- No external AI API calls are made by the app.
-- No automatic ChatGPT invocation exists.
-- No file watcher or background sync is included.
-- No harvester DB data is exported or mutated.
-- No real lead data should be committed to the repository.
-
-## Issue #2 recommendation
-
-Issue `#2` should stay open only if it will become the future AI response preview and approval workflow. If not, it can be closed as superseded by `#16`, `#20`, and `#24` because the current implementation now covers local export, validation, and import without direct AI API integration.
