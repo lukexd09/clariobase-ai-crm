@@ -12,8 +12,11 @@ function read(filePath: string) {
 test("health and remaining light baseline screens keep the shell contract", () => {
   const healthPage = read("src/app/health/page.tsx");
 
-  assert.match(healthPage, /System status/);
+  assert.match(healthPage, /t\("health\.eyebrow"\)/);
   assert.doesNotMatch(healthPage, /Minimal runtime probe for deployment and uptime checks\./);
-  assert.match(healthPage, /Health check/);
+  assert.match(healthPage, /t\("health\.title"\)/);
   assert.match(healthPage, /break-all/);
+  assert.match(healthPage, /Surface/);
+  assert.match(healthPage, /TechnicalDisclosure/);
+  assert.doesNotMatch(healthPage, /<main|bg-slate-|bg-white|text-slate-|border-slate-/);
 });

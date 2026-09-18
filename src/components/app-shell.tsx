@@ -18,6 +18,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTri
 import { AccountChip } from "@/components/auth/account-chip";
 import { cn } from "@/lib/utils";
 import { isNavigationItemActive, NAVIGATION_GROUPS, type NavigationIconKey } from "@/lib/navigation";
+import { useI18n } from "@/i18n/provider";
 
 const iconMap: Record<NavigationIconKey, ComponentType<{ className?: string; "aria-hidden"?: boolean }>> = {
   dashboard: LayoutDashboard,
@@ -61,12 +62,13 @@ function NavigationLinks({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-4">
       {NAVIGATION_GROUPS.map((group) => (
-        <section key={group.title} className="space-y-1.5">
+        <section key={group.titleKey} className="space-y-1.5">
           <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[color:var(--cb-muted-foreground)]">
-            {group.title}
+            {t(group.titleKey)}
           </p>
           <div className="space-y-1">
             {group.items.map((item) => {
@@ -90,7 +92,7 @@ function NavigationLinks({
                   <NavigationIcon iconKey={item.icon} active={active} />
                   <span className="min-w-0 flex-1">
                     <span className={cn("block truncate", active ? "font-semibold" : "font-medium")}>
-                      {item.label}
+                      {t(item.labelKey)}
                     </span>
                   </span>
                 </Link>
@@ -115,6 +117,7 @@ function BrandMark() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
 
@@ -127,11 +130,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <BrandMark />
               <span className="min-w-0">
                 <span className="block text-[18px] font-semibold leading-none">ClarioBase</span>
-                <span className="mt-1 block text-sm text-[color:var(--cb-muted-foreground)]">Creator workspace</span>
+                <span className="mt-1 block text-sm text-[color:var(--cb-muted-foreground)]">{t("shell.workspace")}</span>
               </span>
             </Link>
           </div>
-          <nav aria-label="Primary navigation" className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+          <nav aria-label={t("shell.primaryNavigation")} className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
             <NavigationLinks pathname={pathname} />
           </nav>
           <div className="border-t border-[color:var(--cb-border)] px-4 py-5">
@@ -146,7 +149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <BrandMark />
                 <span className="min-w-0">
                   <span className="block text-base font-semibold leading-none">ClarioBase</span>
-                  <span className="mt-1 block text-xs text-[color:var(--cb-muted-foreground)]">Creator workspace</span>
+                  <span className="mt-1 block text-xs text-[color:var(--cb-muted-foreground)]">{t("shell.workspace")}</span>
                 </span>
               </Link>
 
@@ -157,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     className="inline-flex h-10 items-center gap-2 rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 text-sm font-semibold text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)]/20 hover:bg-[color:var(--cb-background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-elevated-surface)]"
                   >
                     <Menu className="h-4 w-4" aria-hidden="true" />
-                    Menu
+                    {t("shell.menu")}
                   </button>
                 </SheetTrigger>
                 <SheetContent
@@ -169,15 +172,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <div>
                       <SheetTitle className="text-base font-semibold">ClarioBase</SheetTitle>
                       <SheetDescription className="mt-1 text-sm text-[color:var(--cb-muted-foreground)]">
-                        Creator workspace
+                        {t("shell.workspace")}
                       </SheetDescription>
                     </div>
-                    <SheetClose aria-label="Close navigation" className="inline-flex h-10 items-center gap-2 rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 text-sm font-semibold text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)]/20 hover:bg-[color:var(--cb-background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-elevated-surface)]">
-                      Close
+                    <SheetClose aria-label={t("shell.closeNavigation")} className="inline-flex h-10 items-center gap-2 rounded-[var(--cb-radius-md)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 text-sm font-semibold text-[color:var(--cb-foreground)] transition hover:border-[color:var(--cb-accent)]/20 hover:bg-[color:var(--cb-background)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-elevated-surface)]">
+                      {t("shell.closeNavigation")}
                     </SheetClose>
                   </div>
                   <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-                    <nav aria-label="Primary navigation" className="space-y-5">
+                    <nav aria-label={t("shell.primaryNavigation")} className="space-y-5">
                       <NavigationLinks pathname={pathname} onNavigate={() => setOpen(false)} />
                     </nav>
                   </div>

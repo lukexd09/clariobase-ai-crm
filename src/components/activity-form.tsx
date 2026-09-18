@@ -5,15 +5,18 @@ import { useFormStatus } from "react-dom";
 import { createLeadActivityAction } from "@/app/leads/activity-actions";
 import { ACTIVITY_TYPE_VALUES, type ActivityTypeValue } from "@/lib/activity-values";
 import { StatusPill } from "@/components/lead-status-pill";
+import { useI18n } from "@/i18n/provider";
+import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
+import { getLeadNoticeTranslationKey } from "@/lib/lead-notices";
 
 type ActivityFormState = {
   ok: boolean;
-  message: string;
+  code: string;
 };
 
 const initialState: ActivityFormState = {
   ok: true,
-  message: ""
+  code: ""
 };
 
 const fieldInputClassName =
@@ -21,6 +24,7 @@ const fieldInputClassName =
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { t } = useI18n();
 
   return (
     <button
@@ -28,12 +32,12 @@ function SubmitButton() {
       disabled={pending}
       className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Saving..." : "Add activity"}
+      {pending ? t("common.saving") : t("activity.add")}
     </button>
   );
 }
-
 export function ActivityForm({ leadId }: { leadId: string }) {
+  const { t } = useI18n();
   const [state, formAction] = useActionState<ActivityFormState, FormData>(
     async (_prevState, formData) => createLeadActivityAction(leadId, formData),
     initialState
@@ -43,18 +47,18 @@ export function ActivityForm({ leadId }: { leadId: string }) {
   return (
     <form
       action={formAction}
-      aria-describedby={state.message ? feedbackId : undefined}
+      aria-describedby={state.code ? feedbackId : undefined}
       className="space-y-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]"
     >
-      <h3 className="text-lg font-semibold text-[color:var(--cb-foreground)]">Add manual activity</h3>
+      <h3 className="text-lg font-semibold text-[color:var(--cb-foreground)]">{t("activity.addManual")}</h3>
       <div className="grid gap-4 md:grid-cols-2">
         <Field
-          label="Type"
+          label={t("activity.type")}
           control={
             <select name="type" defaultValue="NOTE" className={fieldInputClassName}>
               {ACTIVITY_TYPE_VALUES.map((value) => (
                 <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
+                  {t(getTaxonomyTranslationKey(value))}
                 </option>
               ))}
             </select>
@@ -62,41 +66,41 @@ export function ActivityForm({ leadId }: { leadId: string }) {
           hint={<StatusPill value={"NOTE" as ActivityTypeValue} appearance="light" />}
         />
         <Field
-          label="Title"
+          label={t("activity.title")}
           className="md:col-span-2"
-          control={<input name="title" defaultValue="" className={fieldInputClassName} placeholder="Quick call summary" />}
-          hint="Use a short summary that is still easy to scan later."
+          control={<input name="title" defaultValue="" className={fieldInputClassName} placeholder={t("activity.titlePlaceholder")} />}
+          hint={t("activity.titleHint")}
         />
         <Field
-          label="Occurred at"
+          label={t("activity.occurredAt")}
           control={<input name="occurredAt" type="datetime-local" className={fieldInputClassName} />}
-          hint="If left empty, the activity uses the current local time."
+          hint={t("activity.occurredAtHint")}
         />
         <Field
-          label="Body"
+          label={t("activity.body")}
           className="md:col-span-2"
           control={
             <textarea
               name="body"
               rows={4}
               className={`${fieldInputClassName} min-h-28 resize-y`}
-              placeholder="Notes, context, or next step..."
+              placeholder={t("activity.bodyPlaceholder")}
             />
           }
-          hint="Log notes, messages, decisions, and follow-up context."
+          hint={t("activity.bodyHint")}
         />
       </div>
 
       <div className="flex items-center gap-4">
         <SubmitButton />
-        {state.message ? (
+        {state.code ? (
           <p
             id={feedbackId}
             role={state.ok ? "status" : "alert"}
             aria-live={state.ok ? "polite" : "assertive"}
             className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}
           >
-            {state.message}
+            {t(getLeadNoticeTranslationKey(state.code))}
           </p>
         ) : null}
       </div>
@@ -116,12 +120,13 @@ export function ActivityTimeline({
     createdAt: Date;
   }[];
 }) {
+  const { t, formatDateTime } = useI18n();
   return (
     <section className="rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]">
-      <h2 className="text-lg font-semibold text-[color:var(--cb-foreground)]">Activity timeline</h2>
+      <h2 className="text-lg font-semibold text-[color:var(--cb-foreground)]">{t("activity.timeline")}</h2>
       <div className="mt-4 space-y-4">
         {activities.length === 0 ? (
-          <p className="text-sm text-[color:var(--cb-muted-foreground)]">No activity yet.</p>
+          <p className="text-sm text-[color:var(--cb-muted-foreground)]">{t("activity.empty")}</p>
         ) : (
           activities.map((activity) => (
             <article key={activity.id} className="rounded-[var(--cb-radius-lg)] border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] p-4 shadow-[var(--cb-shadow-surface)]">
@@ -132,15 +137,15 @@ export function ActivityTimeline({
               <p className="mt-2 text-sm text-[color:var(--cb-muted-foreground)]">{activity.body ?? "-"}</p>
               <dl className="mt-3 grid gap-2 text-xs uppercase tracking-[0.24em] text-[color:var(--cb-muted-foreground)] sm:grid-cols-2">
                 <div>
-                  <dt>Occurred</dt>
+                  <dt>{t("activity.occurred")}</dt>
                   <dd className="mt-1 normal-case tracking-normal text-[color:var(--cb-foreground)]">
-                    {formatDate(activity.occurredAt)}
+                    {formatDateTime(activity.occurredAt)}
                   </dd>
                 </div>
                 <div>
-                  <dt>Created</dt>
+                  <dt>{t("activity.created")}</dt>
                   <dd className="mt-1 normal-case tracking-normal text-[color:var(--cb-foreground)]">
-                    {formatDate(activity.createdAt)}
+                    {formatDateTime(activity.createdAt)}
                   </dd>
                 </div>
               </dl>
@@ -172,11 +177,4 @@ function Field({
       <span className="block text-xs leading-5 text-[color:var(--cb-muted-foreground)]">{hint}</span>
     </label>
   );
-}
-
-function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(value);
 }

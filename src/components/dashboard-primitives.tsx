@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { Badge, ButtonLink, Surface, SurfaceContent, SurfaceDescription, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
+import { useI18n } from "@/i18n/provider";
 
 export function MetricCard({
   label,
@@ -36,6 +39,7 @@ export function PriorityItem({
   deadline: string;
   href: string;
 }) {
+  const { t } = useI18n();
   return (
     <article>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
@@ -51,14 +55,14 @@ export function PriorityItem({
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
           <p className="text-sm text-[color:var(--cb-muted-foreground)]">
-            <span className="font-medium text-[color:var(--cb-foreground)]">Deadline:</span> {deadline}
+            <span className="font-medium text-[color:var(--cb-foreground)]">{t("dashboard.deadline")}</span> {deadline}
           </p>
           <ButtonLink
             href={href}
-            aria-label={`Open ${company}`}
+            aria-label={t("dashboard.openCompany", { company })}
             className="min-h-11 rounded-[var(--cb-radius-md)] px-3 focus-visible:ring-offset-[color:var(--cb-surface)]"
           >
-            Open
+            {t("dashboard.open")}
           </ButtonLink>
         </div>
       </div>
@@ -67,10 +71,12 @@ export function PriorityItem({
 }
 
 export function PipelineSnapshot({ items }: { items: readonly { stage: string; value: number }[] }) {
+  const { t, formatNumber } = useI18n();
+  const maximumValue = Math.max(...items.map((item) => item.value), 0);
   return (
     <Surface>
       <SurfaceHeader>
-        <SurfaceTitle>Pipeline snapshot</SurfaceTitle>
+        <SurfaceTitle>{t("dashboard.pipeline")}</SurfaceTitle>
       </SurfaceHeader>
       <SurfaceContent className="space-y-3">
         <dl className="space-y-3">
@@ -80,12 +86,12 @@ export function PipelineSnapshot({ items }: { items: readonly { stage: string; v
                 <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--cb-muted-foreground)]">
                   {item.stage}
                 </dt>
-                <dd className="font-semibold tabular-nums text-[color:var(--cb-foreground)]">{item.value}</dd>
+                <dd className="font-semibold tabular-nums text-[color:var(--cb-foreground)]">{formatNumber(item.value)}</dd>
               </div>
               <div aria-hidden="true" className="h-1.5 rounded-full bg-[color:var(--cb-surface)]">
                 <div
                   className="h-1.5 rounded-full bg-[color:var(--cb-neutral)]"
-                  style={{ width: `${Math.max(8, Math.min(100, item.value * 5))}%` }}
+                  style={{ width: item.value === 0 || maximumValue === 0 ? "0%" : `${Math.max(8, (item.value / maximumValue) * 100)}%` }}
                 />
               </div>
             </div>
@@ -96,22 +102,25 @@ export function PipelineSnapshot({ items }: { items: readonly { stage: string; v
   );
 }
 
-export function DashboardDataQualityAlert() {
+export function DashboardDataQualityAlert({ count }: { count: number }) {
+  const { t, formatNumber } = useI18n();
+  if (count === 0) return null;
+
   return (
     <Surface className="border px-4 py-3 shadow-none border-[color:var(--cb-warning)]/35 bg-[color:var(--cb-warning)]/10">
       <SurfaceHeader className="p-0">
-        <Badge tone="warning">Warning</Badge>
+        <Badge tone="warning">{t("dashboard.warning")}</Badge>
         <SurfaceTitle className="text-sm font-semibold text-[color:var(--cb-warning-ink)]">
-          Data quality warning
+          {t("dashboard.dataQuality")}
         </SurfaceTitle>
       </SurfaceHeader>
       <SurfaceContent className="p-0 pt-1">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SurfaceDescription className="text-[color:var(--cb-foreground)]">
-            3 possible duplicates need review
+            {t("dashboard.duplicates", { count: formatNumber(count) })}
           </SurfaceDescription>
           <ButtonLink href="/duplicates" variant="secondary">
-            Review
+            {t("dashboard.review")}
           </ButtonLink>
         </div>
       </SurfaceContent>

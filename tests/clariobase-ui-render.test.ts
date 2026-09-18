@@ -61,11 +61,11 @@ test("clariobase ui primitives render the required html contracts", () => {
   );
   const badge = render(React.createElement(Badge, { tone: "success" }, "Complete"));
   const status = render(React.createElement(StatusMessage, { tone: "information", title: "Heads up" }, "A short note."));
-  const pagination = render(React.createElement(PaginationControls, null, React.createElement("div", null, "1")));
+  const pagination = render(React.createElement(PaginationControls, { "aria-label": "Pagination" }, React.createElement("div", null, "1")));
   const tableSurface = render(
     React.createElement(
       TableSurface,
-      null,
+      { "aria-label": "Scrollable table" },
       React.createElement(
         Table,
         null,

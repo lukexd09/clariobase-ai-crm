@@ -4,9 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
+import { useI18n } from "@/i18n/provider";
 
 export function SignInForm() {
   const router = useRouter();
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const returnTo = getSafeRedirectPath(searchParams.get("returnTo"), "/");
   const [email, setEmail] = useState("");
@@ -19,9 +21,9 @@ export function SignInForm() {
       <div className="w-full rounded-xl border border-[#CBD5E1] bg-white p-6 min-[768px]:p-8">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#475569]">ClarioBase</p>
-          <h1 className="text-3xl font-semibold text-[#0F172A]">Sign in</h1>
+          <h1 className="text-3xl font-semibold text-[#0F172A]">{t("auth.signIn.title")}</h1>
           <p className="max-w-prose text-sm text-[#475569]">
-            Use your active account to continue into the workspace.
+            {t("auth.signIn.description")}
           </p>
         </div>
 
@@ -41,7 +43,7 @@ export function SignInForm() {
             setLoading(false);
 
             if (signInError) {
-              setError("Sign in failed. Check your credentials and try again.");
+              setError(t("auth.signIn.error"));
               return;
             }
 
@@ -50,7 +52,7 @@ export function SignInForm() {
           }}
         >
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-[#0F172A]">Email</span>
+            <span className="mb-1 block text-sm font-medium text-[#0F172A]">{t("auth.signIn.email")}</span>
             <input
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -61,7 +63,7 @@ export function SignInForm() {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-[#0F172A]">Password</span>
+            <span className="mb-1 block text-sm font-medium text-[#0F172A]">{t("auth.signIn.password")}</span>
             <input
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -78,13 +80,13 @@ export function SignInForm() {
           ) : null}
 
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-[#475569]">Protected by Better Auth session cookies.</p>
+            <p className="text-xs text-[#475569]">{t("auth.signIn.security")}</p>
             <button
               type="submit"
               disabled={loading}
               className="inline-flex h-11 items-center justify-center rounded-lg bg-[#006194] px-4 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t("auth.signIn.submitting") : t("auth.signIn.submit")}
             </button>
           </div>
         </form>

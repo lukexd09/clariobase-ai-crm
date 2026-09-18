@@ -91,7 +91,7 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.match(shellSource, /SheetClose/);
   assert.match(shellSource, /AccountChip/);
   assert.match(shellSource, /aria-current=\{active \? "page" : undefined\}/);
-  assert.match(shellSource, /Creator workspace/);
+  assert.match(shellSource, /t\("shell\.workspace"\)/);
   assert.doesNotMatch(shellSource, /Łukasz Chmiel/);
   assert.doesNotMatch(shellSource, /Operator/);
   assert.doesNotMatch(shellSource, /pathname === "\/leads"/);
@@ -122,8 +122,14 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.match(shellSource, /aria-hidden="true"/);
   assert.match(accountChip, /authClient\.useSession\(\)/);
   assert.match(accountChip, /SignOutButton/);
+  assert.match(accountChip, /<details/);
+  assert.match(accountChip, /<summary/);
+  assert.match(accountChip, /ChevronDown/);
+  assert.match(accountChip, /<SignOutButton className="w-full"/);
+  assert.match(accountChip, /min-w-0 flex-1 text-left/);
+  assert.doesNotMatch(accountChip, /border-\[#|bg-white|text-\[#/);
   assert.match(accountChip, /router\.push\("\/sign-in"\)/);
-  assert.match(accountChip, /Sign in/);
+  assert.match(accountChip, /auth\.account\.signIn/);
   assert.match(signOutButton, /authClient\.signOut/);
   assert.match(signOutButton, /router\.push\("\/sign-in"\)/);
 
@@ -136,7 +142,7 @@ test("shell contract keeps the shared shell and /leads integration minimal", () 
   assert.doesNotMatch(leadsPage, /ProofShell/);
   assert.doesNotMatch(leadsPage, /<main className=/);
   assert.match(leadsPage, /PageSurface/);
-  assert.match(leadsPage, /Workspace/);
+  assert.match(leadsPage, /t\("leads\.eyebrow"\)/);
   assert.doesNotMatch(leadsPage, /<main className=/);
 
   assert.match(packageJson.dependencies["@radix-ui/react-dialog"], /1\.1\.3/);

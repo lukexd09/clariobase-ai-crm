@@ -6,9 +6,9 @@ export function TableSurface({
   className = "",
   role = "region",
   tabIndex = 0,
-  "aria-label": ariaLabel = "Scrollable table",
+  "aria-label": ariaLabel,
   ...props
-}: ComponentProps<"div">) {
+}: Omit<ComponentProps<"div">, "aria-label"> & { "aria-label": string }) {
   return (
     <div
       data-slot="table-surface"

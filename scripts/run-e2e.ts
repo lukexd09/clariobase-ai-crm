@@ -232,6 +232,8 @@ async function main() {
   const authSecret = randomBytes(32).toString("hex");
   const bootstrapEmail = `clariobase-e2e-${randomUUID()}@example.test`;
   const bootstrapPassword = randomBytes(16).toString("hex");
+  const ordinaryUserEmail = `clariobase-e2e-user-${randomUUID()}@example.test`;
+  const ordinaryUserPassword = randomBytes(16).toString("hex");
   const postgresPort = await reserveFreePort();
   const databaseUrl = `postgresql://postgres:${postgresPassword}@127.0.0.1:${postgresPort}/${databaseName}?schema=public`;
   const bootstrapEnv: NodeJS.ProcessEnv = {
@@ -248,7 +250,15 @@ async function main() {
     CLARIOBASE_BOOTSTRAP_ADMIN_PASSWORD: bootstrapPassword
   };
 
-  sensitiveValues.push(databaseUrl, postgresPassword, authSecret, bootstrapEmail, bootstrapPassword);
+  sensitiveValues.push(
+    databaseUrl,
+    postgresPassword,
+    authSecret,
+    bootstrapEmail,
+    bootstrapPassword,
+    ordinaryUserEmail,
+    ordinaryUserPassword
+  );
 
   cleanup.registerDockerContainer(postgresContainerName);
   cleanup.registerTempPath(storageStatePath);
@@ -345,7 +355,99 @@ async function main() {
     const session = await auth.api.getSession({ headers: sessionHeaders });
 
     assert(session?.user?.id, "Better Auth session could not be resolved from the disposable cookie");
+    const { createControlledUser } = await import("@/lib/user-admin-gateway");
+    const ordinaryUser = await createControlledUser(
+      { headers: sessionHeaders },
+      {
+        email: ordinaryUserEmail,
+        name: "Disposable E2E User",
+        password: ordinaryUserPassword
+      }
+    );
+    assert(ordinaryUser.ok, "Disposable non-admin user could not be created");
+    childEnv.PLAYWRIGHT_E010_USER_EMAIL = ordinaryUserEmail;
+    childEnv.PLAYWRIGHT_E010_USER_PASSWORD = ordinaryUserPassword;
     writeStorageState(storageStatePath, parsedCookies);
+
+    if (mode === "area" && selectedArea === "i18n") {
+      const marker = randomUUID();
+      const businessName = `Firma Żółw ${marker.slice(0, 8)}`;
+      const category = "Imported category stays verbatim";
+      const { prisma } = await import("@/lib/prisma");
+      const lead = await prisma.lead.create({
+        data: {
+          customerId: `e010-${marker}`,
+          businessName,
+          category,
+          city: "Łódź",
+          leadStatus: "CONTACTED",
+          priority: "HIGH",
+          packageFit: "CLARITY",
+          scoreTotal: 81,
+          nextActionAt: new Date("2026-07-21T10:30:00.000Z"),
+          offerDrafts: {
+            create: {
+              status: "DRAFT",
+              title: "Verbatim offer title",
+              packageFit: "CLARITY",
+              priceNet: "1234.50",
+              currency: "PLN"
+            }
+          }
+        }
+      });
+      const comparisonLead = await prisma.lead.create({
+        data: {
+          customerId: `e010-compare-${marker}`,
+          businessName: `Firma Żółw kopia ${marker.slice(0, 8)}`,
+          category,
+          city: "Łódź",
+          leadStatus: "NEW",
+          priority: "MEDIUM",
+          packageFit: "UNKNOWN",
+          scoreTotal: 70
+        }
+      });
+      const importBatch = await prisma.importBatch.create({
+        data: {
+          sourceType: "LOCAL_JSON",
+          sourceName: `Źródło użytkownika ${marker.slice(0, 8)}`,
+          fileName: `verbatim-${marker.slice(0, 8)}.json`,
+          status: "COMPLETED_WITH_ERRORS",
+          totalRows: 1,
+          rejectedRows: 1,
+          startedAt: new Date("2026-07-21T10:30:00.000Z"),
+          finishedAt: new Date("2026-07-21T10:31:00.000Z"),
+          rows: {
+            create: {
+              rowNumber: 1,
+              status: "REJECTED",
+              businessName,
+              customerId: `e010-row-${marker}`,
+              source: "Raw source value",
+              sourceRecordId: `raw-${marker}`,
+              rejectionReason: "RAW_VALIDATION_MESSAGE"
+            }
+          }
+        }
+      });
+      const duplicate = await prisma.duplicateCandidate.create({
+        data: {
+          leadIdA: lead.id,
+          leadIdB: comparisonLead.id,
+          score: 96,
+          reasons: [
+            { signal: "phone", label: "Same phone number", value: "Raw matching value", score: 96 },
+            { signal: "customSignal", label: "Raw duplicate reason", value: "Raw custom value", score: 80 }
+          ]
+        }
+      });
+      childEnv.PLAYWRIGHT_E010_LEAD_ID = lead.id;
+      childEnv.PLAYWRIGHT_E010_BUSINESS_NAME = businessName;
+      childEnv.PLAYWRIGHT_E010_CATEGORY = category;
+      childEnv.PLAYWRIGHT_E010_IMPORT_ID = importBatch.id;
+      childEnv.PLAYWRIGHT_E010_DUPLICATE_ID = duplicate.id;
+    }
 
     const exitCode = await runPlaywright(mode as "smoke" | "area" | "full", selectedArea, childEnv);
 

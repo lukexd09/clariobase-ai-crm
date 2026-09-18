@@ -1,3 +1,6 @@
+"use client";
+
+import React from "react";
 import {
   type DuplicateCandidateStatusValue,
   type ImportBatchStatusValue,
@@ -14,6 +17,8 @@ import {
 import { type ActivityTypeValue } from "@/lib/activity-values";
 import { Badge } from "@/components/clariobase-ui";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
+import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
 
 const variants: Record<string, string> = {
   NEW: "bg-sky-500/15 text-sky-200 border-sky-500/30",
@@ -150,10 +155,13 @@ export function StatusPill({
   className?: string;
   appearance?: "default" | "light" | "foundation";
 }) {
+  const { t } = useI18n();
+  const label = t(getTaxonomyTranslationKey(value));
+
   if (appearance === "foundation") {
     return (
       <Badge tone="neutral" className={cn("uppercase tracking-wide", className)}>
-        {value.replaceAll("_", " ")}
+        {label}
       </Badge>
     );
   }
@@ -169,7 +177,7 @@ export function StatusPill({
         className
       )}
     >
-      {value.replaceAll("_", " ")}
+      {label}
     </span>
   );
 }

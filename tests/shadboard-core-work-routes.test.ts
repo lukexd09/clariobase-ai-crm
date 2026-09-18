@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { getVisibleWorkbenchScoreLabel } from "@/lib/workbench-presentation";
 
 const repoRoot = path.resolve(__dirname, "..");
 
@@ -53,16 +54,16 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(leadsPage, /packageFit: \["", \.\.\.filterOptions\.packageFit\]/);
 
   assert.match(leadFilters, /router\.replace\(/);
-  assert.match(leadFilters, /Updating\.\.\./);
-  assert.match(leadFilters, /Clear filters/);
+  assert.match(leadFilters, /t\("leads\.updating"\)/);
+  assert.match(leadFilters, /t\("leads\.clearFilters"\)/);
   assert.match(leadFilters, /resultSummary/);
   assert.match(leadFilters, /filterLabels/);
 
-  assert.match(leadPagination, /aria-label="Lead pagination"/);
+  assert.match(leadPagination, /aria-label=\{t\("leads\.pagination"\)\}/);
   assert.match(leadPagination, /aria-current="page"/);
   assert.match(leadPagination, /aria-disabled="true"/);
-  assert.match(leadPagination, /Previous/);
-  assert.match(leadPagination, /Next/);
+  assert.match(leadPagination, /t\("leads\.previous"\)/);
+  assert.match(leadPagination, /t\("leads\.next"\)/);
 
   assert.match(leadFilters, /htmlFor=\{selectId\}/);
   assert.match(leadFilters, /id=\{selectId\}/);
@@ -74,10 +75,18 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(workPage, /dueToday/);
   assert.match(workPage, /upcoming/);
   assert.match(workPage, /noAction/);
-  assert.match(workPage, /Quick update/);
+  assert.match(workPage, /t\("work\.quickUpdate"\)/);
   assert.match(workPage, /\/leads\/\$\{lead\.id\}#quick-update/);
   assert.match(workPage, /scope="col"/);
   assert.match(workPage, /caption className="sr-only"/);
+  assert.match(workPage, /<Table className="w-full min-w-\[1240px\] table-fixed">/);
+  assert.equal((workPage.match(/appearance="foundation" className="whitespace-nowrap"/g) ?? []).length, 3);
+  assert.match(workPage, /TableCell className="whitespace-nowrap tabular-nums/);
+  assert.match(workPage, /line-clamp-2 max-w-44 break-words/);
+  assert.match(workPage, /line-clamp-2 break-words/);
+  assert.match(workPage, /getVisibleWorkbenchScoreLabel\(lead\.scoreTotal, lead\.scoreLabel\)/);
+  assert.match(workPage, /max-w-24 truncate whitespace-nowrap text-xs/);
+  assert.match(workPage, /className="!min-h-9 !px-3 !py-1\.5 whitespace-nowrap"/);
   assert.match(workPage, /<dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">[\s\S]*<div className=/);
   assert.doesNotMatch(workPage, /<p className="text-\[11px\] font-semibold uppercase tracking-\[0\.18em\]/);
   assert.doesNotMatch(workPage, /<dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">[\s\S]*<div key=/);
@@ -86,19 +95,29 @@ test("t005 routes keep the required operational behaviors", () => {
   assert.match(globalsCss, /html\s*\{\s*scrollbar-gutter:\s*stable;\s*\}/s);
   assert.match(leadTable, /text-left sm:text-center/);
   assert.match(workPage, /text-left sm:text-center/);
-  assert.match(leadTable, /No records match the current filters\./);
-  assert.match(workPage, /No records in this bucket\./);
+  assert.match(leadTable, /t\("leads\.empty"\)/);
+  assert.match(workPage, /t\("work\.empty"\)/);
   assert.doesNotMatch(leadTable, /text-center[^\\S\r\n]*text-left/);
 
   assert.match(salesReportPage, /getSalesReport\(\)/);
   assert.match(salesReportPage, /getSalesStatusEntries\(\)/);
-  assert.match(salesReportPage, /Lead status summary/);
-  assert.match(salesReportPage, /Priority summary/);
-  assert.match(salesReportPage, /Package fit summary/);
-  assert.match(salesReportPage, /Workbench health/);
-  assert.match(salesReportPage, /Draft readiness/);
-  assert.match(salesReportPage, /Activity summary/);
-  assert.match(salesReportPage, /activities in the last 7 days/i);
+  assert.match(salesReportPage, /sales\.statusSummary/);
+  assert.match(salesReportPage, /sales\.prioritySummary/);
+  assert.match(salesReportPage, /sales\.packageSummary/);
+  assert.match(salesReportPage, /sales\.workbenchHealth/);
+  assert.match(salesReportPage, /sales\.draftReadiness/);
+  assert.match(salesReportPage, /sales\.activitySummary/);
+  assert.match(salesReportPage, /sales\.totalLast7/);
   assert.doesNotMatch(salesReportPage, /Track the same operational counts, draft states and workbench health used elsewhere in the CRM\./);
   assert.doesNotMatch(salesReportPage, /description="Track the same operational counts/);
+});
+
+test("workbench score label hides only technical repetitions of the primary number", () => {
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "81"), null);
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "Score: 81"), null);
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "score_total=81"), null);
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "Wynik 81"), null);
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "  Strong match  "), "Strong match");
+  assert.equal(getVisibleWorkbenchScoreLabel(81, "Score 82"), "Score 82");
+  assert.equal(getVisibleWorkbenchScoreLabel(81, null), null);
 });

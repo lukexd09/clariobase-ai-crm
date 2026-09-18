@@ -35,7 +35,7 @@ export function WorkIndicator({
   tone
 }: {
   label: string;
-  count: number;
+  count: string | number;
   tone: WorkTone;
 }) {
   const toneClassName =

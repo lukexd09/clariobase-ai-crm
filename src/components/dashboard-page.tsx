@@ -1,82 +1,69 @@
+"use client";
+
 import React from "react";
 import { DashboardDataQualityAlert, MetricCard, PipelineSnapshot, PriorityItem } from "@/components/dashboard-primitives";
 import { Surface, SurfaceContent, SurfaceHeader, SurfaceTitle } from "@/components/clariobase-ui";
+import { useI18n } from "@/i18n/provider";
+import type { DashboardData } from "@/lib/dashboard";
 
-const priorities = [
-  {
-    company: "Lumina PMU Studio",
-    action: "Send revised draft",
-    context: "The owner asked for a lighter workspace summary and confirmation that hosting is included.",
-    deadline: "Today, 15:30",
-    href: "/leads"
-  },
-  {
-    company: "Aurora Nail Studio",
-    action: "Confirm booking flow",
-    context: "The current enquiry form has too many steps before a customer can request an appointment.",
-    deadline: "Tomorrow, 09:00",
-    href: "/leads"
-  },
-  {
-    company: "Sienna Dental Care",
-    action: "Send review summary",
-    context: "The check-in was completed yesterday and the client is waiting for the next step.",
-    deadline: "Today, 16:00",
-    href: "/leads"
-  },
-  {
-    company: "Velvet Brows & Lashes",
-    action: "Schedule the next follow-up",
-    context: "No next task was created after the previous update was sent.",
-    deadline: "No deadline",
-    href: "/leads"
-  }
-] as const;
+const METRIC_PRESENTATION = {
+  overdue: { labelKey: "dashboard.metric.overdue", tone: "danger" },
+  dueToday: { labelKey: "dashboard.metric.dueToday", tone: "warning" },
+  upcoming: { labelKey: "dashboard.metric.upcoming", tone: "information" },
+  noAction: { labelKey: "dashboard.metric.idle", tone: "neutral" }
+} as const;
 
-const pipeline = [
-  { stage: "New", value: 18 },
-  { stage: "Contacted", value: 12 },
-  { stage: "Qualified", value: 7 },
-  { stage: "Proposal sent", value: 5 },
-  { stage: "Won", value: 2 }
-] as const;
-
-export function DashboardPage() {
+export function DashboardPage({ data }: { data: DashboardData }) {
+  const { t, formatDate, formatDateTime, formatNumber } = useI18n();
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h1 className="text-[2rem] font-semibold tracking-tight text-[color:var(--cb-foreground)]">Dashboard</h1>
-        <p className="text-sm leading-6 text-[color:var(--cb-muted-foreground)]">Your priorities for 21 June 2026</p>
+        <h1 className="text-[2rem] font-semibold tracking-tight text-[color:var(--cb-foreground)]">{t("dashboard.title")}</h1>
+        <p className="text-sm leading-6 text-[color:var(--cb-muted-foreground)]">{t("dashboard.prioritiesFor", { date: formatDate(data.operationalDate) })}</p>
       </header>
 
       <section className="space-y-3">
-        <dl aria-label="Dashboard metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Overdue" value="2" tone="danger" />
-          <MetricCard label="Due today" value="4" tone="warning" />
-          <MetricCard label="Upcoming" value="11" tone="information" />
-          <MetricCard label="Idle" value="6" tone="neutral" />
+        <dl aria-label={t("dashboard.metrics")} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {data.metrics.map((metric) => (
+            <MetricCard
+              key={metric.key}
+              label={t(METRIC_PRESENTATION[metric.key].labelKey)}
+              value={formatNumber(metric.count)}
+              tone={METRIC_PRESENTATION[metric.key].tone}
+            />
+          ))}
         </dl>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
         <Surface aria-labelledby="dashboard-priorities-heading">
           <SurfaceHeader>
-            <SurfaceTitle id="dashboard-priorities-heading">Today&apos;s priorities</SurfaceTitle>
+            <SurfaceTitle id="dashboard-priorities-heading">{t("dashboard.todayPriorities")}</SurfaceTitle>
           </SurfaceHeader>
           <SurfaceContent>
-            <ol className="list-none divide-y divide-[color:var(--cb-border)]">
-              {priorities.map((item) => (
-                <li key={item.company} className="py-4 first:pt-0 last:pb-0">
-                  <PriorityItem {...item} />
-                </li>
-              ))}
-            </ol>
+            {data.priorities.length > 0 ? (
+              <ol className="list-none divide-y divide-[color:var(--cb-border)]">
+                {data.priorities.map((item) => (
+                  <li key={item.id} className="py-4 first:pt-0 last:pb-0">
+                    <PriorityItem
+                      company={item.businessName}
+                      action={t(item.nextActionKey)}
+                      context={t(item.statusKey)}
+                      deadline={item.deadlineAt ? formatDateTime(item.deadlineAt) : t("dashboard.noDeadline")}
+                      href={item.href}
+                    />
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="py-6 text-sm text-[color:var(--cb-muted-foreground)]">{t("dashboard.prioritiesEmpty")}</p>
+            )}
           </SurfaceContent>
         </Surface>
 
         <div className="space-y-5">
-          <DashboardDataQualityAlert />
-          <PipelineSnapshot items={pipeline} />
+          <DashboardDataQualityAlert count={data.activeDuplicateCount} />
+          <PipelineSnapshot items={data.pipeline.map((item) => ({ stage: t(item.stageKey), value: item.value }))} />
         </div>
       </section>
     </div>

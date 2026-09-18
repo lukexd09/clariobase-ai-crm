@@ -10,15 +10,18 @@ import {
   type LeadStatusValue,
   type PackageFitValue
 } from "@/lib/lead-values";
+import { useI18n } from "@/i18n/provider";
+import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
+import { getLeadNoticeTranslationKey } from "@/lib/lead-notices";
 
 type LeadUpdateState = {
   ok: boolean;
-  message: string;
+  code: string;
 };
 
 const initialState: LeadUpdateState = {
   ok: true,
-  message: ""
+  code: ""
 };
 
 const fieldInputClassName =
@@ -26,6 +29,7 @@ const fieldInputClassName =
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { t } = useI18n();
 
   return (
     <button
@@ -33,7 +37,7 @@ function SubmitButton() {
       disabled={pending}
       className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Saving..." : "Save updates"}
+      {pending ? t("lead.update.saving") : t("lead.update.save")}
     </button>
   );
 }
@@ -44,6 +48,7 @@ export function LeadUpdateForm({
   priority,
   packageFit,
   nextActionAt,
+  nextActionAtOriginal,
   nextActionDisplay
 }: {
   leadId: string;
@@ -51,8 +56,10 @@ export function LeadUpdateForm({
   priority: LeadPriorityValue;
   packageFit: PackageFitValue;
   nextActionAt: string;
+  nextActionAtOriginal: string;
   nextActionDisplay: string;
 }) {
+  const { t } = useI18n();
   const [state, formAction] = useActionState<LeadUpdateState, FormData>(
     async (_prevState, formData) => updateLeadAction(leadId, formData),
     initialState
@@ -63,42 +70,42 @@ export function LeadUpdateForm({
     <form
       id="quick-update"
       action={formAction}
-      aria-describedby={state.message ? feedbackId : undefined}
+      aria-describedby={state.code ? feedbackId : undefined}
       className="space-y-4"
     >
       <div className="grid gap-4 md:grid-cols-2">
         <Field
-          label="Status"
-          hint="Choose the current working status for this lead."
+          label={t("lead.update.status")}
+          hint={t("lead.update.statusHint")}
           control={
             <select name="leadStatus" defaultValue={leadStatus} className={fieldInputClassName}>
               {LEAD_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
+                  {t(getTaxonomyTranslationKey(value))}
                 </option>
               ))}
             </select>
           }
         />
         <Field
-          label="Priority"
-          hint="Use the priority that best reflects follow-up urgency."
+          label={t("lead.update.priority")}
+          hint={t("lead.update.priorityHint")}
           control={
             <select name="priority" defaultValue={priority} className={fieldInputClassName}>
               {LEAD_PRIORITY_VALUES.map((value) => (
                 <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
+                  {t(getTaxonomyTranslationKey(value))}
                 </option>
               ))}
             </select>
           }
         />
         <Field
-          label="Next task"
+          label={t("lead.update.nextTask")}
           hint={
-            nextActionDisplay === "No next action set"
-              ? "No next task is scheduled yet."
-              : `Current schedule: ${nextActionDisplay}`
+            !nextActionAt
+              ? t("lead.update.noSchedule")
+              : t("lead.update.currentSchedule", { date: nextActionDisplay })
           }
           control={
             <input
@@ -112,17 +119,18 @@ export function LeadUpdateForm({
       </div>
 
       <input type="hidden" name="packageFit" value={packageFit} />
+      <input type="hidden" name="nextActionAtOriginal" value={nextActionAtOriginal} />
 
       <div className="flex items-center gap-4">
         <SubmitButton />
-        {state.message ? (
+        {state.code ? (
           <p
             id={feedbackId}
             role={state.ok ? "status" : "alert"}
             aria-live={state.ok ? "polite" : "assertive"}
             className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}
           >
-            {state.message}
+            {t(getLeadNoticeTranslationKey(state.code))}
           </p>
         ) : null}
       </div>

@@ -9,15 +9,20 @@ import {
   type OfferDraftStatusValue,
 } from "@/lib/lead-values";
 import type { OfferDraftClientRecord } from "@/lib/offer-drafts";
+import { useI18n } from "@/i18n/provider";
+import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
+import { getLeadNoticeTranslationKey } from "@/lib/lead-notices";
+import { formatDateTimeLocalInput } from "@/i18n/format";
+import { formatFormDateTimeOriginalInput } from "@/lib/form-date-time";
 
 type DraftState = {
   ok: boolean;
-  message: string;
+  code: string;
 };
 
 const initialState: DraftState = {
   ok: true,
-  message: ""
+  code: ""
 };
 
 const fieldInputClassName =
@@ -25,6 +30,7 @@ const fieldInputClassName =
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
+  const { t } = useI18n();
 
   return (
     <button
@@ -32,7 +38,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
       disabled={pending}
       className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Saving..." : children}
+      {pending ? t("common.saving") : children}
     </button>
   );
 }
@@ -64,6 +70,7 @@ function OfferDraftEditor({
   leadId: string;
   draft?: OfferDraftClientRecord;
 }) {
+  const { t } = useI18n();
   const [state, formAction] = useActionState<DraftState, FormData>(
     async (_previous, formData) => saveOfferDraftAction(leadId, formData),
     initialState
@@ -73,16 +80,16 @@ function OfferDraftEditor({
   return (
     <form
       action={formAction}
-      aria-describedby={state.message ? feedbackId : undefined}
+      aria-describedby={state.code ? feedbackId : undefined}
       className="space-y-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-[color:var(--cb-foreground)]">
-            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create draft"}
+            {draft ? t("draft.named", { id: draft.id.slice(0, 8) }) : t("offer.create")}
           </h3>
           <p className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">
-            {draft ? "Update the existing draft below." : "Create the first draft for this lead."}
+            {draft ? t("draft.updateExisting") : t("offer.createDescription")}
           </p>
         </div>
         {draft ? (
@@ -91,35 +98,43 @@ function OfferDraftEditor({
           </div>
         ) : (
           <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
-            New draft
+            {t("draft.new")}
           </span>
         )}
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
+      {draft ? (
+        <>
+          <input type="hidden" name="validUntilOriginal" value={formatFormDateTimeOriginalInput(draft.validUntil)} />
+          <input type="hidden" name="sentAtOriginal" value={formatFormDateTimeOriginalInput(draft.sentAt)} />
+          <input type="hidden" name="acceptedAtOriginal" value={formatFormDateTimeOriginalInput(draft.acceptedAt)} />
+          <input type="hidden" name="rejectedAtOriginal" value={formatFormDateTimeOriginalInput(draft.rejectedAt)} />
+        </>
+      ) : null}
       <input type="hidden" name="packageFit" value={draft?.packageFit ?? "UNKNOWN"} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <DraftField
-          label="Status"
+          label={t("draft.status")}
           control={
             <select name="status" defaultValue={draft?.status ?? "DRAFT"} className={fieldInputClassName}>
               {OFFER_DRAFT_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
+                  {t(getTaxonomyTranslationKey(value))}
                 </option>
               ))}
             </select>
           }
-          hint="Set the current stage for this offer draft."
+          hint={t("offer.statusHint")}
         />
         <DraftField
-          label="Title"
+          label={t("offer.title")}
           control={<input name="title" defaultValue={draft?.title ?? ""} className={fieldInputClassName} />}
-          hint="Required offer title."
+          hint={t("offer.titleHint")}
         />
         <DraftField
-          label="Price"
+          label={t("offer.price")}
           control={
             <input
               name="priceNet"
@@ -130,63 +145,63 @@ function OfferDraftEditor({
               className={fieldInputClassName}
             />
           }
-          hint="Optional numeric price."
+          hint={t("offer.priceHint")}
         />
         <DraftField
-          label="Currency"
+          label={t("offer.currency")}
           control={<input name="currency" defaultValue={draft?.currency ?? "PLN"} className={fieldInputClassName} />}
-          hint="Defaults to PLN."
+          hint={t("offer.currencyHint")}
         />
         <DraftField
-          label="Expires"
+          label={t("offer.expires")}
           control={
             <input
               name="validUntil"
               type="datetime-local"
-              defaultValue={asDateTimeLocal(draft?.validUntil)}
+              defaultValue={formatDateTimeLocalInput(draft?.validUntil)}
               className={fieldInputClassName}
             />
           }
-          hint="Optional expiry timestamp in local operator time."
+          hint={t("offer.expiresHint")}
         />
         <DraftField
-          label="Sent at"
+          label={t("offer.sentAt")}
           control={
             <input
               name="sentAt"
               type="datetime-local"
-              defaultValue={asDateTimeLocal(draft?.sentAt)}
+              defaultValue={formatDateTimeLocalInput(draft?.sentAt)}
               className={fieldInputClassName}
             />
           }
-          hint="Manual send timestamp in local operator time."
+          hint={t("offer.sentAtHint")}
         />
         <DraftField
-          label="Accepted at"
+          label={t("offer.acceptedAt")}
           control={
             <input
               name="acceptedAt"
               type="datetime-local"
-              defaultValue={asDateTimeLocal(draft?.acceptedAt)}
+              defaultValue={formatDateTimeLocalInput(draft?.acceptedAt)}
               className={fieldInputClassName}
             />
           }
-          hint="Optional acceptance timestamp in local operator time."
+          hint={t("offer.acceptedAtHint")}
         />
         <DraftField
-          label="Rejected at"
+          label={t("offer.rejectedAt")}
           control={
             <input
               name="rejectedAt"
               type="datetime-local"
-              defaultValue={asDateTimeLocal(draft?.rejectedAt)}
+              defaultValue={formatDateTimeLocalInput(draft?.rejectedAt)}
               className={fieldInputClassName}
             />
           }
-          hint="Optional rejection timestamp in local operator time."
+          hint={t("offer.rejectedAtHint")}
         />
         <DraftField
-          label="Scope summary"
+          label={t("offer.scopeSummary")}
           control={
             <textarea
               name="scopeSummary"
@@ -195,10 +210,10 @@ function OfferDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="What is included in the offer."
+          hint={t("offer.scopeSummaryHint")}
         />
         <DraftField
-          label="Assumptions"
+          label={t("offer.assumptions")}
           control={
             <textarea
               name="assumptions"
@@ -207,10 +222,10 @@ function OfferDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="What the price assumes."
+          hint={t("offer.assumptionsHint")}
         />
         <DraftField
-          label="Next step"
+          label={t("offer.nextStep")}
           control={
             <textarea
               name="nextStep"
@@ -219,10 +234,10 @@ function OfferDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="What should happen after this draft."
+          hint={t("offer.nextStepHint")}
         />
         <DraftField
-          label="Rejection reason"
+          label={t("offer.rejectionReason")}
           control={
             <textarea
               name="rejectionReason"
@@ -231,20 +246,20 @@ function OfferDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="Optional rejection note."
+          hint={t("offer.rejectionReasonHint")}
         />
       </div>
 
       <div className="flex items-center gap-4">
-        <SubmitButton>{draft ? "Save draft" : "Create draft"}</SubmitButton>
-        {state.message ? (
+        <SubmitButton>{draft ? t("offer.save") : t("offer.create")}</SubmitButton>
+        {state.code ? (
           <p
             id={feedbackId}
             role={state.ok ? "status" : "alert"}
             aria-live={state.ok ? "polite" : "assertive"}
             className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}
           >
-            {state.message}
+            {t(getLeadNoticeTranslationKey(state.code))}
           </p>
         ) : null}
       </div>
@@ -270,16 +285,6 @@ function DraftField({
       <span className="block text-xs leading-5 text-[color:var(--cb-muted-foreground)]">{hint}</span>
     </label>
   );
-}
-
-function asDateTimeLocal(value: Date | null | undefined) {
-  if (!value) return "";
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  const hours = `${value.getHours()}`.padStart(2, "0");
-  const minutes = `${value.getMinutes()}`.padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function asInputNumberValue(value: unknown) {

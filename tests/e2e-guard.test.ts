@@ -36,11 +36,12 @@ test("playwright guard rejects repository references to production targets", () 
 });
 
 test("playwright area selection requires an explicit known area", () => {
-  assert.equal(getSupportedAreas().join(","), "dashboard");
+  assert.equal(getSupportedAreas().join(","), "dashboard,i18n");
   assert.throws(() => resolveSelectedArea(undefined), /area selection is required/i);
   assert.throws(() => resolveSelectedArea("unknown"), /Unknown E2E area/i);
   assert.equal(resolveSelectedArea("dashboard"), "dashboard");
   assert.equal(resolveSelectedArea(" Dashboard "), "dashboard");
+  assert.equal(resolveSelectedArea("i18n"), "i18n");
 });
 
 test("playwright target guard rejects every protected loopback variant", () => {

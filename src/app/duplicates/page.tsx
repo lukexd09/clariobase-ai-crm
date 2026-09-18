@@ -1,52 +1,39 @@
 import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
 import { ConfidenceBadge, DataQualityPageHeader, DataQualityStatusBadge } from "@/components/data-quality-primitives";
 import { getDuplicateCandidates, type DuplicateReason } from "@/lib/duplicates";
-import { type DuplicateCandidateStatusValue } from "@/lib/lead-values";
 import { requireUser } from "@/lib/auth-context";
+import { getI18n } from "@/i18n/server";
+import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
+import type { Translate } from "@/i18n/types";
+import { getDuplicateSignalLabelTranslationKey } from "@/lib/duplicate-reasons";
 
 export const dynamic = "force-dynamic";
 
-const DUPLICATE_STATUS_LABELS: Record<DuplicateCandidateStatusValue, string> = {
-  OPEN: "Open review",
-  NEEDS_REVIEW: "Needs closer review",
-  DISMISSED: "Keep records separate",
-  RESOLVED: "Review complete"
-};
-
-function formatDate(value: Date | null | undefined) {
-  return value
-    ? new Intl.DateTimeFormat("en-GB", {
-        dateStyle: "medium",
-        timeStyle: "short"
-      }).format(value)
-    : "-";
-}
-
-function getConfidenceMeta(score: number) {
+function getConfidenceMeta(score: number, t: Translate) {
   if (score >= 95) {
     return {
-      label: "Very high confidence",
-      detail: "Several fields point to the same business record.",
+      label: t("duplicates.confidence.veryHigh"),
+      detail: t("duplicates.confidence.veryHighDetail"),
       tone: "success" as const
     };
   }
 
   if (score >= 85) {
     return {
-      label: "High confidence",
-      detail: "The records look closely related and need a quick human review.",
+      label: t("duplicates.confidence.high"),
+      detail: t("duplicates.confidence.highDetail"),
       tone: "information" as const
     };
   }
 
   return {
-    label: "Needs closer review",
-    detail: "There is a meaningful overlap, but the pair still needs a careful check.",
+    label: t("duplicates.confidence.review"),
+    detail: t("duplicates.confidence.reviewDetail"),
     tone: "warning" as const
   };
 }
 
-function getReasonPreview(reasons: unknown) {
+function getReasonPreview(reasons: unknown, fallback: string, t: Translate) {
   if (!Array.isArray(reasons)) {
     return [];
   }
@@ -54,8 +41,10 @@ function getReasonPreview(reasons: unknown) {
   return reasons
     .filter((reason): reason is DuplicateReason => Boolean(reason && typeof reason === "object"))
     .map((reason) => {
-      const summary = [reason.label, reason.value].filter(Boolean).join(": ");
-      return summary || reason.label || "Duplicate signal";
+      const key = getDuplicateSignalLabelTranslationKey(reason.signal);
+      const label = key ? t(key) : reason.label;
+      const summary = [label, reason.value].filter(Boolean).join(": ");
+      return summary || reason.label || fallback;
     })
     .filter(Boolean)
     .slice(0, 2);
@@ -63,33 +52,34 @@ function getReasonPreview(reasons: unknown) {
 
 export default async function DuplicatesPage() {
   await requireUser({ mode: "redirect", returnTo: "/duplicates" });
+  const { t, formatDateTime, formatNumber } = await getI18n();
   const candidates = await getDuplicateCandidates();
 
   return (
     <div className="space-y-4">
       <DataQualityPageHeader
-        eyebrow="Duplicate review"
-        title="Duplicate candidates"
-        description="Compare likely matches quickly, keep the current review states, and confirm whether both records should stay separate. No automatic merge is performed."
+        eyebrow={t("duplicates.eyebrow")}
+        title={t("duplicates.title")}
+        description={t("duplicates.description")}
       />
 
-      <TableSurface aria-label="Scrollable duplicate candidates table">
+      <TableSurface aria-label={t("duplicates.tableAria")}>
         <Table className="min-w-[1100px]">
-          <caption className="sr-only">Duplicate candidates awaiting review.</caption>
+          <caption className="sr-only">{t("duplicates.caption")}</caption>
           <TableHead>
             <tr>
-              <TableHeadCell scope="col">Candidate</TableHeadCell>
-              <TableHeadCell scope="col">Confidence</TableHeadCell>
-              <TableHeadCell scope="col">Signals</TableHeadCell>
-              <TableHeadCell scope="col">Status</TableHeadCell>
-              <TableHeadCell scope="col">Updated</TableHeadCell>
-              <TableHeadCell scope="col">Review</TableHeadCell>
+              <TableHeadCell scope="col">{t("duplicates.candidate")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("duplicates.confidence")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("duplicates.signals")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("duplicates.status")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("duplicates.updated")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("duplicates.review")}</TableHeadCell>
             </tr>
           </TableHead>
           <TableBody>
             {candidates.map((candidate) => {
-              const confidence = getConfidenceMeta(candidate.score);
-              const previewReasons = getReasonPreview(candidate.reasons);
+              const confidence = getConfidenceMeta(candidate.score, t);
+              const previewReasons = getReasonPreview(candidate.reasons, t("duplicates.signalFallback"), t);
 
               return (
                 <TableRow key={candidate.id}>
@@ -98,22 +88,22 @@ export default async function DuplicatesPage() {
                       <div>
                         <div className="font-medium text-[color:var(--cb-foreground)]">{candidate.leadA.businessName}</div>
                         <div className="text-xs text-[color:var(--cb-muted-foreground)]">
-                          {candidate.leadA.city ?? "No city"} | {candidate.leadA.category ?? "No category"}
+                          {candidate.leadA.city ?? t("duplicates.noCity")} | {candidate.leadA.category ?? t("duplicates.noCategory")}
                         </div>
                       </div>
                       <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--cb-muted-foreground)]">
-                        versus
+                        {t("duplicates.versus")}
                       </div>
                       <div>
                         <div className="font-medium text-[color:var(--cb-foreground)]">{candidate.leadB.businessName}</div>
                         <div className="text-xs text-[color:var(--cb-muted-foreground)]">
-                          {candidate.leadB.city ?? "No city"} | {candidate.leadB.category ?? "No category"}
+                          {candidate.leadB.city ?? t("duplicates.noCity")} | {candidate.leadB.category ?? t("duplicates.noCategory")}
                         </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <ConfidenceBadge label={confidence.label} score={candidate.score} tone={confidence.tone} detail={confidence.detail} />
+                    <ConfidenceBadge label={confidence.label} score={formatNumber(candidate.score)} scoreLabel={t("duplicates.score")} tone={confidence.tone} detail={confidence.detail} />
                   </TableCell>
                   <TableCell className="text-[color:var(--cb-muted-foreground)]">
                     {previewReasons.length > 0 ? (
@@ -130,18 +120,18 @@ export default async function DuplicatesPage() {
                   </TableCell>
                   <TableCell>
                     <DataQualityStatusBadge
-                      label={DUPLICATE_STATUS_LABELS[candidate.status]}
+                      label={t(getTaxonomyTranslationKey(candidate.status))}
                       tone={candidate.status === "OPEN" ? "information" : candidate.status === "NEEDS_REVIEW" ? "warning" : candidate.status === "DISMISSED" ? "neutral" : "success"}
                     />
                   </TableCell>
-                  <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDate(candidate.updatedAt)}</TableCell>
+                  <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDateTime(candidate.updatedAt)}</TableCell>
                   <TableCell>
                     <ButtonLink
                       href={`/duplicates/${candidate.id}`}
-                      aria-label={`Open duplicate review for ${candidate.leadA.businessName} and ${candidate.leadB.businessName}`}
+                      aria-label={t("duplicates.openAria", { left: candidate.leadA.businessName, right: candidate.leadB.businessName })}
                       className="whitespace-nowrap"
                     >
-                      Open review
+                      {t("duplicates.open")}
                     </ButtonLink>
                   </TableCell>
                 </TableRow>
@@ -150,7 +140,7 @@ export default async function DuplicatesPage() {
             {candidates.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-10 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
-                  No duplicate candidates yet.
+                  {t("duplicates.empty")}
                 </TableCell>
               </TableRow>
             ) : null}

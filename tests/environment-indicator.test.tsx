@@ -4,8 +4,9 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { EnvironmentIndicator } from "@/components/environment-indicator";
+import { createTranslator } from "@/i18n/translate";
 
-function renderWithEnv(value: string | undefined | null) {
+function renderWithEnv(value: string | undefined | null, locale: "en-US" | "pl-PL" = "en-US") {
   const original = process.env.CRM_DEPLOYMENT_ENV;
 
   if (value === undefined || value === null) {
@@ -14,7 +15,7 @@ function renderWithEnv(value: string | undefined | null) {
     process.env.CRM_DEPLOYMENT_ENV = value;
   }
 
-  const html = renderToStaticMarkup(<EnvironmentIndicator />);
+  const html = renderToStaticMarkup(<EnvironmentIndicator description={createTranslator(locale)("environment.testDescription")} />);
 
   if (original === undefined) {
     delete process.env.CRM_DEPLOYMENT_ENV;
@@ -41,7 +42,8 @@ test("preview shows the repeated watermark marker", () => {
   assert.match(html, /select-none/);
   assert.match(html, /fixed inset-0/);
   assert.equal(countTestMarks(html) >= 4, true);
-  assert.doesNotMatch(html, /TEST ENVIRONMENT — data in this environment may be reset or deleted\./);
+  assert.match(html, /Test environment\. Data may be reset or deleted\./);
+  assert.match(renderWithEnv("preview", "pl-PL"), /Środowisko testowe\. Dane mogą zostać zresetowane lub usunięte\./);
 });
 
 test("invalid or missing values show the repeated watermark marker", () => {

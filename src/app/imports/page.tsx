@@ -1,47 +1,26 @@
 import { ButtonLink, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TableSurface } from "@/components/clariobase-ui";
 import { DataQualityPageHeader, DataQualityStatusBadge } from "@/components/data-quality-primitives";
 import { getImportBatches } from "@/lib/imports";
-import { type ImportBatchStatusValue, type ImportSourceTypeValue } from "@/lib/lead-values";
 import { requireUser } from "@/lib/auth-context";
+import { getI18n } from "@/i18n/server";
+import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
 
 export const dynamic = "force-dynamic";
-
-const IMPORT_SOURCE_LABELS: Record<ImportSourceTypeValue, string> = {
-  LOCAL_JSON: "Local file",
-  HARVESTER_EXPORT: "Harvester export",
-  MANUAL_AI_PREPARED_FILE: "Prepared AI file"
-};
-
-const IMPORT_BATCH_STATUS_LABELS: Record<ImportBatchStatusValue, string> = {
-  RUNNING: "In progress",
-  COMPLETED: "Completed successfully",
-  COMPLETED_WITH_ERRORS: "Completed with issues",
-  FAILED: "Failed"
-};
-
-function formatDate(value: Date | null) {
-  return value
-    ? new Intl.DateTimeFormat("en-GB", {
-        dateStyle: "medium",
-        timeStyle: "short"
-      }).format(value)
-    : "-";
-}
 
 function getBatchLabel(batch: {
   sourceName: string | null;
   fileName: string | null;
-}) {
-  return batch.sourceName ?? batch.fileName ?? "Import batch";
+}, fallback: string) {
+  return batch.sourceName ?? batch.fileName ?? fallback;
 }
 
 function CountChip({
   label,
-  value,
+  formattedValue,
   tone
 }: {
   label: string;
-  value: number;
+  formattedValue: string;
   tone: "neutral" | "success" | "information" | "danger" | "warning";
 }) {
   const toneClassName = {
@@ -56,74 +35,76 @@ function CountChip({
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${toneClassName}`}
     >
-      {label}: {value}
+      {label}: {formattedValue}
     </span>
   );
 }
 
 export default async function ImportsPage() {
   await requireUser({ mode: "redirect", returnTo: "/imports" });
+  const { t, formatDateTime, formatNumber } = await getI18n();
   const batches = await getImportBatches();
+  const fallbackBatch = t("imports.batchFallback");
 
   return (
     <div className="space-y-4">
       <DataQualityPageHeader
-        eyebrow="Data intake"
-        title="Import batches"
-        description="Review each file import, confirm row outcomes, and open the affected leads without leaving the CRM workflow."
+        eyebrow={t("imports.eyebrow")}
+        title={t("imports.title")}
+        description={t("imports.description")}
       />
 
-      <TableSurface aria-label="Scrollable import batches table">
+      <TableSurface aria-label={t("imports.tableAria")}>
         <Table className="min-w-[1050px]">
-          <caption className="sr-only">Import batches and their processing results.</caption>
+          <caption className="sr-only">{t("imports.caption")}</caption>
           <TableHead>
             <tr>
-              <TableHeadCell scope="col">Batch</TableHeadCell>
-              <TableHeadCell scope="col">Rows</TableHeadCell>
-              <TableHeadCell scope="col">Status</TableHeadCell>
-              <TableHeadCell scope="col">Started</TableHeadCell>
-              <TableHeadCell scope="col">Finished</TableHeadCell>
-              <TableHeadCell scope="col">Review</TableHeadCell>
+              <TableHeadCell scope="col">{t("imports.batch")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("imports.rows")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("imports.status")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("imports.started")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("imports.finished")}</TableHeadCell>
+              <TableHeadCell scope="col">{t("imports.review")}</TableHeadCell>
             </tr>
           </TableHead>
           <TableBody>
             {batches.map((batch) => (
               <TableRow key={batch.id}>
                 <TableCell>
-                  <div className="font-medium text-[color:var(--cb-foreground)]">{getBatchLabel(batch)}</div>
+                  <div className="font-medium text-[color:var(--cb-foreground)]">{getBatchLabel(batch, fallbackBatch)}</div>
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[color:var(--cb-muted-foreground)]">
                     <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-2.5 py-1 font-medium text-[color:var(--cb-foreground)]">
-                      {IMPORT_SOURCE_LABELS[batch.sourceType]}
+                      {t(getTaxonomyTranslationKey(batch.sourceType))}
                     </span>
                     {batch.fileName && batch.fileName !== batch.sourceName ? (
-                      <span className="break-words">File: {batch.fileName}</span>
+                      <span className="break-words">{t("imports.file")}: {batch.fileName}</span>
                     ) : null}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex max-w-xl flex-wrap gap-2">
-                    <CountChip label="Total" value={batch.totalRows} tone="neutral" />
-                    <CountChip label="Created" value={batch.createdRows} tone="success" />
-                    <CountChip label="Updated" value={batch.updatedRows} tone="information" />
-                    <CountChip label="Rejected" value={batch.rejectedRows} tone="danger" />
-                    <CountChip label="Skipped" value={batch.skippedRows} tone="warning" />
+                    <CountChip label={t("imports.total")} formattedValue={formatNumber(batch.totalRows)} tone="neutral" />
+                    <CountChip label={t("imports.created")} formattedValue={formatNumber(batch.createdRows)} tone="success" />
+                    <CountChip label={t("imports.updated")} formattedValue={formatNumber(batch.updatedRows)} tone="information" />
+                    <CountChip label={t("imports.rejected")} formattedValue={formatNumber(batch.rejectedRows)} tone="danger" />
+                    <CountChip label={t("imports.skipped")} formattedValue={formatNumber(batch.skippedRows)} tone="warning" />
                   </div>
                 </TableCell>
                 <TableCell>
                   <DataQualityStatusBadge
-                    label={IMPORT_BATCH_STATUS_LABELS[batch.status]}
+                    label={t(getTaxonomyTranslationKey(batch.status))}
                     tone={batch.status === "RUNNING" ? "information" : batch.status === "COMPLETED" ? "success" : batch.status === "COMPLETED_WITH_ERRORS" ? "warning" : "danger"}
                   />
                 </TableCell>
-                <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDate(batch.startedAt)}</TableCell>
-                <TableCell className="text-[color:var(--cb-muted-foreground)]">{formatDate(batch.finishedAt)}</TableCell>
+                <TableCell className="text-[color:var(--cb-muted-foreground)]">{batch.startedAt ? formatDateTime(batch.startedAt) : t("common.unavailable")}</TableCell>
+                <TableCell className="text-[color:var(--cb-muted-foreground)]">{batch.finishedAt ? formatDateTime(batch.finishedAt) : t("common.unavailable")}</TableCell>
                 <TableCell>
                   <ButtonLink
                     href={`/imports/${batch.id}`}
-                    aria-label={`Open results for ${getBatchLabel(batch)}`}
+                    aria-label={t("imports.openAria", { name: getBatchLabel(batch, fallbackBatch) })}
                     className="whitespace-nowrap"
                   >
-                    Open batch results
+                    {t("imports.open")}
                   </ButtonLink>
                 </TableCell>
               </TableRow>
@@ -131,7 +112,7 @@ export default async function ImportsPage() {
             {batches.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-10 text-left sm:text-center text-[color:var(--cb-muted-foreground)]">
-                  No import batches yet.
+                  {t("imports.empty")}
                 </TableCell>
               </TableRow>
             ) : null}

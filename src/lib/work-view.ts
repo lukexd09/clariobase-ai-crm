@@ -1,4 +1,6 @@
 import type { LeadPriority, LeadStatus, PackageFit } from "@/generated/prisma/client";
+import type { TranslationKey } from "@/i18n/types";
+import { getPresentationDayBounds } from "@/lib/presentation-day";
 
 export type WorkLead = {
   id: string;
@@ -23,8 +25,8 @@ export type WorkBucketName =
 
 export type WorkBucket = {
   key: WorkBucketName;
-  title: string;
-  description: string;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
   leads: WorkLead[];
 };
 
@@ -47,46 +49,43 @@ export function isActionableLead(lead: Pick<WorkLead, "leadStatus">) {
 }
 
 export function getWorkBuckets(leads: WorkLead[], now = new Date()): WorkBucket[] {
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-  const startOfTomorrow = new Date(startOfToday);
-  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const { startOfPresentationDay, startOfNextPresentationDay } = getPresentationDayBounds(now);
 
   const actionableLeads = leads.filter(isActionableLead);
   const overdue = actionableLeads.filter(
-    (lead) => lead.nextActionAt && lead.nextActionAt < startOfToday
+    (lead) => lead.nextActionAt && lead.nextActionAt < startOfPresentationDay
   );
   const dueToday = actionableLeads.filter(
-    (lead) => lead.nextActionAt && lead.nextActionAt >= startOfToday && lead.nextActionAt < startOfTomorrow
+    (lead) => lead.nextActionAt && lead.nextActionAt >= startOfPresentationDay && lead.nextActionAt < startOfNextPresentationDay
   );
   const upcoming = actionableLeads.filter(
-    (lead) => lead.nextActionAt && lead.nextActionAt >= startOfTomorrow
+    (lead) => lead.nextActionAt && lead.nextActionAt >= startOfNextPresentationDay
   );
   const noAction = actionableLeads.filter((lead) => !lead.nextActionAt);
 
   return [
     {
       key: "overdue",
-      title: "Overdue next actions",
-      description: "Leads that already need attention today.",
+      titleKey: "work.bucket.overdue.title",
+      descriptionKey: "work.bucket.overdue.description",
       leads: sortByDate(overdue, "nextActionAt")
     },
     {
       key: "dueToday",
-      title: "Due today",
-      description: "Leads with a follow-up planned for today.",
+      titleKey: "work.bucket.dueToday.title",
+      descriptionKey: "work.bucket.dueToday.description",
       leads: sortByDate(dueToday, "nextActionAt")
     },
     {
       key: "upcoming",
-      title: "Upcoming next actions",
-      description: "Upcoming work, kept to the closest items first.",
+      titleKey: "work.bucket.upcoming.title",
+      descriptionKey: "work.bucket.upcoming.description",
       leads: sortByDate(upcoming, "nextActionAt").slice(0, 20)
     },
     {
       key: "noAction",
-      title: "No next action set",
-      description: "Actionable leads that still need a concrete next step.",
+      titleKey: "work.bucket.noAction.title",
+      descriptionKey: "work.bucket.noAction.description",
       leads: sortByPriority(noAction).slice(0, 20)
     }
   ];

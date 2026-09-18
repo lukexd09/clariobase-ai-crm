@@ -9,15 +9,20 @@ import {
   type MiniAuditStatusValue,
 } from "@/lib/lead-values";
 import type { MiniAuditDraftRecord } from "@/lib/mini-audits";
+import { useI18n } from "@/i18n/provider";
+import { getTaxonomyTranslationKey } from "@/i18n/taxonomy";
+import { getLeadNoticeTranslationKey } from "@/lib/lead-notices";
+import { formatDateTimeLocalInput } from "@/i18n/format";
+import { formatFormDateTimeOriginalInput } from "@/lib/form-date-time";
 
 type DraftState = {
   ok: boolean;
-  message: string;
+  code: string;
 };
 
 const initialState: DraftState = {
   ok: true,
-  message: ""
+  code: ""
 };
 
 const fieldInputClassName =
@@ -25,6 +30,7 @@ const fieldInputClassName =
 
 function SubmitButton({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
+  const { t } = useI18n();
 
   return (
     <button
@@ -32,7 +38,7 @@ function SubmitButton({ children }: { children: React.ReactNode }) {
       disabled={pending}
       className="rounded-full bg-[color:var(--cb-accent)] px-4 py-2 font-semibold text-[color:var(--cb-accent-foreground)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cb-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--cb-background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
-      {pending ? "Saving..." : children}
+      {pending ? t("common.saving") : children}
     </button>
   );
 }
@@ -64,6 +70,7 @@ function MiniAuditDraftEditor({
   leadId: string;
   draft?: MiniAuditDraftRecord;
 }) {
+  const { t } = useI18n();
   const [state, formAction] = useActionState<DraftState, FormData>(
     async (_previous, formData) => saveMiniAuditDraftAction(leadId, formData),
     initialState
@@ -73,16 +80,16 @@ function MiniAuditDraftEditor({
   return (
     <form
       action={formAction}
-      aria-describedby={state.message ? feedbackId : undefined}
+      aria-describedby={state.code ? feedbackId : undefined}
       className="space-y-4 rounded-[var(--cb-radius-xl)] border border-[color:var(--cb-border)] bg-[color:var(--cb-elevated-surface)] p-4 shadow-[var(--cb-shadow-surface)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-[color:var(--cb-foreground)]">
-            {draft ? `Draft ${draft.id.slice(0, 8)}` : "Create review draft"}
+            {draft ? t("draft.named", { id: draft.id.slice(0, 8) }) : t("miniAudit.create")}
           </h3>
           <p className="mt-1 text-xs text-[color:var(--cb-muted-foreground)]">
-            {draft ? "Update the existing draft below." : "Create the first review draft for this lead."}
+            {draft ? t("draft.updateExisting") : t("miniAudit.createDescription")}
           </p>
         </div>
         {draft ? (
@@ -91,57 +98,58 @@ function MiniAuditDraftEditor({
           </div>
         ) : (
           <span className="rounded-full border border-[color:var(--cb-border)] bg-[color:var(--cb-surface)] px-3 py-1 text-sm font-medium text-[color:var(--cb-foreground)]">
-            New draft
+            {t("draft.new")}
           </span>
         )}
       </div>
 
       {draft ? <input type="hidden" name="draftId" value={draft.id} /> : null}
+      {draft ? <input type="hidden" name="approvedAtOriginal" value={formatFormDateTimeOriginalInput(draft.approvedAt)} /> : null}
       <input type="hidden" name="suggestedPackage" value={draft?.suggestedPackage ?? "UNKNOWN"} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <DraftField
-          label="Status"
+          label={t("draft.status")}
           control={
             <select name="status" defaultValue={draft?.status ?? "DRAFT"} className={fieldInputClassName}>
               {MINI_AUDIT_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
-                  {value.replaceAll("_", " ")}
+                  {t(getTaxonomyTranslationKey(value))}
                 </option>
               ))}
             </select>
           }
-          hint="Set the current review stage for this draft."
+          hint={t("miniAudit.statusHint")}
         />
         <DraftField
-          label="Finding 1"
+          label={t("miniAudit.finding1")}
           control={<input name="problem1" defaultValue={draft?.problem1 ?? ""} className={fieldInputClassName} />}
-          hint="First core finding to address."
+          hint={t("miniAudit.finding1Hint")}
         />
         <DraftField
-          label="Finding 2"
+          label={t("miniAudit.finding2")}
           control={<input name="problem2" defaultValue={draft?.problem2 ?? ""} className={fieldInputClassName} />}
-          hint="Second core finding to address."
+          hint={t("miniAudit.finding2Hint")}
         />
         <DraftField
-          label="Finding 3"
+          label={t("miniAudit.finding3")}
           control={<input name="problem3" defaultValue={draft?.problem3 ?? ""} className={fieldInputClassName} />}
-          hint="Third core finding to address."
+          hint={t("miniAudit.finding3Hint")}
         />
         <DraftField
-          label="Approved at"
+          label={t("miniAudit.approvedAt")}
           control={
             <input
               name="approvedAt"
               type="datetime-local"
-              defaultValue={asDateTimeLocal(draft?.approvedAt)}
+              defaultValue={formatDateTimeLocalInput(draft?.approvedAt)}
               className={fieldInputClassName}
             />
           }
-          hint="Optional approval timestamp in local operator time."
+          hint={t("miniAudit.approvedAtHint")}
         />
         <DraftField
-          label="Review note"
+          label={t("miniAudit.reviewNote")}
           control={
             <textarea
               name="recommendation"
@@ -150,10 +158,10 @@ function MiniAuditDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="Short review summary."
+          hint={t("miniAudit.reviewNoteHint")}
         />
         <DraftField
-          label="Message angle"
+          label={t("miniAudit.messageAngle")}
           control={
             <textarea
               name="outreachAngle"
@@ -162,10 +170,10 @@ function MiniAuditDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="Lead-in for the first message."
+          hint={t("miniAudit.messageAngleHint")}
         />
         <DraftField
-          label="Draft note"
+          label={t("miniAudit.draftNote")}
           control={
             <textarea
               name="draftMessage"
@@ -174,10 +182,10 @@ function MiniAuditDraftEditor({
               className={`${fieldInputClassName} min-h-32 resize-y md:col-span-2`}
             />
           }
-          hint="Prepared note text."
+          hint={t("miniAudit.draftNoteHint")}
         />
         <DraftField
-          label="Risk notes"
+          label={t("miniAudit.riskNotes")}
           control={
             <textarea
               name="riskNotes"
@@ -186,20 +194,20 @@ function MiniAuditDraftEditor({
               className={`${fieldInputClassName} min-h-24 resize-y md:col-span-2`}
             />
           }
-          hint="Potential objections or caveats."
+          hint={t("miniAudit.riskNotesHint")}
         />
       </div>
 
       <div className="flex items-center gap-4">
-        <SubmitButton>{draft ? "Save review draft" : "Create review draft"}</SubmitButton>
-        {state.message ? (
+        <SubmitButton>{draft ? t("miniAudit.save") : t("miniAudit.create")}</SubmitButton>
+        {state.code ? (
           <p
             id={feedbackId}
             role={state.ok ? "status" : "alert"}
             aria-live={state.ok ? "polite" : "assertive"}
             className={state.ok ? "text-sm text-emerald-700" : "text-sm text-rose-700"}
           >
-            {state.message}
+            {t(getLeadNoticeTranslationKey(state.code))}
           </p>
         ) : null}
       </div>
@@ -225,14 +233,4 @@ function DraftField({
       <span className="block text-xs leading-5 text-[color:var(--cb-muted-foreground)]">{hint}</span>
     </label>
   );
-}
-
-function asDateTimeLocal(value: Date | null | undefined) {
-  if (!value) return "";
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  const hours = `${value.getHours()}`.padStart(2, "0");
-  const minutes = `${value.getMinutes()}`.padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
